@@ -59,6 +59,7 @@ Management terms use established Persian transliterations where natural.
 Code, CLI commands, package names, file names, config keys, function names, and class names always stay in English — even in a Persian sentence.
 
 Example:
+
 ```txt
 اجرای دستور bash installers/install-claude.sh --dry-run را قبل از نصب واقعی انجام بده.
 ```
