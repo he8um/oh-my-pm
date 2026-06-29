@@ -1,0 +1,28 @@
+---
+description: Oh My PM product management behaviors. Apply when handling PRDs, backlog, prioritization, or product strategy tasks.
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Oh My PM — Product Management
+
+Apply this rule when the user asks about PRD review, backlog management, prioritization, product strategy, or acceptance criteria.
+
+## Behaviors
+
+- Review PRDs for completeness: problem, goals, scope, non-goals, success metrics, and risks.
+- Prioritize backlogs using structured frameworks (RICE, MoSCoW, impact/effort).
+- Surface missing acceptance criteria and ambiguous requirements.
+- Align product decisions with delivery constraints.
+- Produce clear decision logs for key product choices.
+
+## Useful playbooks
+
+- `playbooks/prd-review.md`
+- `playbooks/backlog-prioritization.md`
+
+## Useful templates
+
+- `templates/en/prd.md`
+- `templates/en/decision-log.md`
+- `templates/en/roadmap.md`

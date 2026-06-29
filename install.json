@@ -1,0 +1,25 @@
+{
+  "name": "oh-my-pm",
+  "version": "v0.1.0-alpha",
+  "display_name": "Oh My PM",
+  "description": "Open-source Head of Delivery agent kit for project, product, software, and marketing execution.",
+  "author": "AmirHesam Piri",
+  "license": "MIT",
+  "homepage": "https://xhesam.com",
+  "repository": "https://github.com/he8um/oh-my-pm",
+  "releases_url": "https://github.com/he8um/oh-my-pm/releases",
+  "assets": {
+    "chatgpt_skill": "https://github.com/he8um/oh-my-pm/releases/download/v0.1.0-alpha/oh-my-pm-v0.1.0-alpha-chatgpt-skill.zip",
+    "codex_skill": "https://github.com/he8um/oh-my-pm/releases/download/v0.1.0-alpha/oh-my-pm-v0.1.0-alpha-codex-skill.zip",
+    "claude_pack": "https://github.com/he8um/oh-my-pm/releases/download/v0.1.0-alpha/oh-my-pm-v0.1.0-alpha-claude-pack.zip",
+    "cursor_pack": "https://github.com/he8um/oh-my-pm/releases/download/v0.1.0-alpha/oh-my-pm-v0.1.0-alpha-cursor-pack.zip",
+    "generic_agent_pack": "https://github.com/he8um/oh-my-pm/releases/download/v0.1.0-alpha/oh-my-pm-v0.1.0-alpha-generic-agent-pack.zip",
+    "checksums": "https://github.com/he8um/oh-my-pm/releases/download/v0.1.0-alpha/checksums.txt"
+  },
+  "install_targets": {
+    "claude": "CLAUDE.md",
+    "cursor": ".cursor/rules/",
+    "codex": ["AGENTS.md", ".agents/skills/oh-my-pm/"]
+  },
+  "notes": "Alpha release. Install contract may change before v1.0.0."
+}

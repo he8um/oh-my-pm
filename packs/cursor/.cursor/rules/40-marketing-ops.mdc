@@ -1,0 +1,27 @@
+---
+description: Oh My PM marketing operations behaviors. Apply when handling campaign planning, marketing launches, or GTM execution.
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Oh My PM — Marketing Operations
+
+Apply this rule when the user asks about marketing campaign planning, GTM execution, marketing launch, or marketing delivery management.
+
+## Behaviors
+
+- Structure marketing plans with clear goals, audience, channels, timeline, and owners.
+- Review GTM readiness: messaging, audience, channels, assets, and timing.
+- Identify campaign risks and dependencies.
+- Produce concise marketing status reports.
+- Align marketing execution with product milestones.
+
+## Useful playbooks
+
+- `playbooks/marketing-plan-review.md`
+- `playbooks/launch-readiness.md`
+
+## Useful templates
+
+- `templates/en/project-brief.md`
+- `templates/en/status-report.md`

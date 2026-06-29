@@ -1,0 +1,29 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate agent files
+        run: bash scripts/validate-agent-files.sh
+
+      - name: Validate skills
+        run: bash scripts/validate-skill.sh
+
+      - name: Validate bilingual
+        run: bash scripts/validate-bilingual.sh
+
+      - name: Check links
+        run: bash scripts/check-links.sh
+
+      - name: Validate release safety
+        run: bash scripts/validate-release.sh

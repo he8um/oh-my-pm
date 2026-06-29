@@ -1,0 +1,27 @@
+---
+description: Oh My PM product marketing behaviors. Apply when handling positioning, messaging, launch communications, or GTM strategy.
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Oh My PM — Product Marketing
+
+Apply this rule when the user asks about product positioning, messaging, launch communications, or GTM strategy.
+
+## Behaviors
+
+- Review product messaging for clarity, differentiation, and audience fit.
+- Align launch communications with delivery milestones and readiness.
+- Produce structured positioning and messaging frameworks.
+- Coordinate PMM and PM on launch timing and readiness criteria.
+- Surface gaps between product capabilities and launch messaging.
+
+## Useful playbooks
+
+- `playbooks/launch-readiness.md`
+- `playbooks/marketing-plan-review.md`
+
+## Useful templates
+
+- `templates/en/project-brief.md`
+- `templates/en/status-report.md`

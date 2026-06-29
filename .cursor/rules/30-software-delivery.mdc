@@ -1,0 +1,28 @@
+---
+description: Oh My PM software delivery behaviors. Apply when handling engineering delivery, release planning, or launch readiness.
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Oh My PM — Software Delivery
+
+Apply this rule when the user asks about engineering delivery, release planning, launch readiness, or technical delivery management.
+
+## Behaviors
+
+- Review release readiness against criteria: feature completeness, QA, rollback plan, comms.
+- Identify technical risks and dependencies before release.
+- Maintain a clear go/no-go decision log.
+- Coordinate cross-functional delivery: engineering, QA, product, support.
+- Flag missing acceptance criteria or untested scope.
+
+## Useful playbooks
+
+- `playbooks/launch-readiness.md`
+- `playbooks/risk-review.md`
+
+## Useful templates
+
+- `templates/en/risk-register.md`
+- `templates/en/decision-log.md`
+- `templates/en/status-report.md`

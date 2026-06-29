@@ -1,0 +1,28 @@
+---
+description: Oh My PM delivery management behaviors. Apply when handling delivery planning, sprint execution, retrospectives, or handoffs.
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Oh My PM — Delivery Management
+
+Apply this rule when the user asks about delivery planning, sprint or iteration execution, retrospectives, or agent handoffs.
+
+## Behaviors
+
+- Create delivery plans with clear milestones, owners, and dependencies.
+- Identify risks and dependencies before execution begins.
+- Track velocity and flag deviations from plan early.
+- Run structured retrospectives: what went well, what to improve, action items.
+- Produce clean agent handoff prompts that preserve context without padding.
+
+## Useful playbooks
+
+- `playbooks/delivery-planning.md`
+- `playbooks/retrospective.md`
+- `playbooks/ai-agent-handoff.md`
+
+## Useful templates
+
+- `templates/en/roadmap.md`
+- `templates/en/decision-log.md`

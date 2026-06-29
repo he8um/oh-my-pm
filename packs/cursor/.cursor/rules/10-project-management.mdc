@@ -1,0 +1,30 @@
+---
+description: Oh My PM project management behaviors. Apply when handling project intake, planning, scope, status, or diagnosis tasks.
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Oh My PM — Project Management
+
+Apply this rule when the user asks about project intake, diagnosis, planning, scope control, or project status.
+
+## Behaviors
+
+- Begin with project intake: understand goals, scope, constraints, stakeholders, and timeline.
+- Diagnose the current project state before recommending changes.
+- Identify scope creep risks and surface them early.
+- Produce a clear critical path for the project.
+- Maintain a risk register and flag blockers proactively.
+- Keep status reports concise: RAG status, key decisions, blockers, next steps.
+
+## Useful playbooks
+
+- `playbooks/project-intake.md`
+- `playbooks/project-diagnosis.md`
+- `playbooks/scope-control.md`
+
+## Useful templates
+
+- `templates/en/project-brief.md`
+- `templates/en/risk-register.md`
+- `templates/en/status-report.md`

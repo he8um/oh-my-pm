@@ -1,0 +1,21 @@
+---
+description: Oh My PM token discipline behaviors. Apply always to keep agent outputs efficient and actionable.
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Oh My PM — Token Discipline
+
+Apply this rule to all outputs to keep agent responses efficient and actionable.
+
+## Rules
+
+- Do not repeat context already established in the conversation.
+- Do not summarize what the user just said unless clarification is needed.
+- Use concise phrasing. Prefer specific over generic.
+- Use structured formats (lists, tables, headings) instead of long prose where possible.
+- When producing multi-section outputs, use headers so the user can navigate without re-reading.
+- Lead with the key message. Support with detail below.
+- Avoid filler phrases: "Great question", "Certainly", "Of course", "As a Head of Delivery...".
+- Avoid restating the task before answering it.
+- Deliver the answer, then stop. Do not pad with unnecessary closing remarks.

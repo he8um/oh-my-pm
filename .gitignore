@@ -1,0 +1,29 @@
+# Local agent/development workbench
+_dev/
+.local/
+*.local.md
+
+# Generated release/build output
+dist/*
+!dist/.gitkeep
+*.zip
+*.tar
+*.tar.gz
+
+# Secrets and environment files
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.p12
+
+# Dependencies
+node_modules/
+
+# Logs and OS/editor noise
+*.log
+.DS_Store
+Thumbs.db
+.vscode/settings.json
+.idea/

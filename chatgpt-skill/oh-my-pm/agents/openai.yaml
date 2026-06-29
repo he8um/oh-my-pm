@@ -1,0 +1,37 @@
+openapi: "3.1.0"
+info:
+  title: Oh My PM
+  description: >
+    Head of Delivery agent kit for project, product, software, and marketing execution.
+    Oh My PM is not a prompt pack. It is a reusable delivery leadership layer for AI agents.
+  version: v0.1.0-alpha
+  contact:
+    name: AmirHesam Piri
+    url: https://xhesam.com
+  license:
+    name: MIT
+    url: https://github.com/he8um/oh-my-pm/blob/main/LICENSE
+
+x-skill:
+  name: oh-my-pm
+  role: Head of Delivery
+  domains:
+    - Project Management
+    - Delivery Management
+    - Software Delivery
+    - Marketing Operations
+    - Product Management
+    - Technical Product Management
+    - Product Marketing
+    - Stakeholder Communication
+    - Prioritization
+    - Risk Management
+    - Token-efficient AI agent execution
+    - Persian/English bilingual workflows
+  language_policy:
+    default: match user language
+    management_contexts: Persian
+    technical_identifiers: English
+  source_of_truth: AGENTS.md
+
+paths: {}

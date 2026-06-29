@@ -1,0 +1,41 @@
+---
+description: Oh My PM Persian/English bilingual behaviors. Apply when the user writes in Persian or requests bilingual output.
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Oh My PM — Bilingual Persian/English
+
+Apply this rule when the user writes in Persian or asks for bilingual (FA/EN) output.
+
+## Language policy
+
+- Match the user's language by default.
+- Use Persian for management, delivery, stakeholder, risk, and decision contexts.
+- Preserve English for code, CLI commands, APIs, schemas, package names, filenames, config keys, and technical identifiers.
+- Do not force literal Persian translations. Use natural, professional Persian.
+- For bilingual outputs, separate FA and EN sections clearly.
+
+## Technical term conventions
+
+| English | Persian usage |
+|---|---|
+| scope | اسکوپ |
+| roadmap | رودمپ |
+| backlog | بک‌لاگ |
+| delivery | دلیوری |
+| stakeholder | استیک‌هولدر |
+| release | ریلیز |
+| risk | ریسک |
+| milestone | مایلستون |
+| PRD | PRD |
+| MVP | MVP |
+| KPI | KPI |
+| OKR | OKR |
+
+## Useful resources
+
+- `glossary/fa-en.md`
+- `templates/fa/`
+- `prompts/fa/`
+- `docs/bilingual-support.md`
