@@ -1,6 +1,6 @@
 {
   "name": "oh-my-pm",
-  "version": "v0.2.0",
+  "version": "v0.3.0",
   "display_name": "Oh My PM",
   "description": "Open-source Head of Delivery agent kit for project, product, software, and marketing execution.",
   "author": "AmirHesam Piri",
@@ -9,12 +9,12 @@
   "repository": "https://github.com/he8um/oh-my-pm",
   "releases_url": "https://github.com/he8um/oh-my-pm/releases",
   "assets": {
-    "chatgpt_skill": "https://github.com/he8um/oh-my-pm/releases/download/v0.2.0/oh-my-pm-v0.2.0-chatgpt-skill.zip",
-    "codex_skill": "https://github.com/he8um/oh-my-pm/releases/download/v0.2.0/oh-my-pm-v0.2.0-codex-skill.zip",
-    "claude_pack": "https://github.com/he8um/oh-my-pm/releases/download/v0.2.0/oh-my-pm-v0.2.0-claude-pack.zip",
-    "cursor_pack": "https://github.com/he8um/oh-my-pm/releases/download/v0.2.0/oh-my-pm-v0.2.0-cursor-pack.zip",
-    "generic_agent_pack": "https://github.com/he8um/oh-my-pm/releases/download/v0.2.0/oh-my-pm-v0.2.0-generic-agent-pack.zip",
-    "checksums": "https://github.com/he8um/oh-my-pm/releases/download/v0.2.0/checksums.txt"
+    "chatgpt_skill": "https://github.com/he8um/oh-my-pm/releases/download/v0.3.0/oh-my-pm-v0.3.0-chatgpt-skill.zip",
+    "codex_skill": "https://github.com/he8um/oh-my-pm/releases/download/v0.3.0/oh-my-pm-v0.3.0-codex-skill.zip",
+    "claude_pack": "https://github.com/he8um/oh-my-pm/releases/download/v0.3.0/oh-my-pm-v0.3.0-claude-pack.zip",
+    "cursor_pack": "https://github.com/he8um/oh-my-pm/releases/download/v0.3.0/oh-my-pm-v0.3.0-cursor-pack.zip",
+    "generic_agent_pack": "https://github.com/he8um/oh-my-pm/releases/download/v0.3.0/oh-my-pm-v0.3.0-generic-agent-pack.zip",
+    "checksums": "https://github.com/he8um/oh-my-pm/releases/download/v0.3.0/checksums.txt"
   },
   "install_targets": {
     "claude": "CLAUDE.md",

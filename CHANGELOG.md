@@ -7,7 +7,7 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 
 ---
 
-## [v0.3.0] — Unreleased
+## [v0.3.0] — 2026-06-30
 
 ### Added in v0.3.0
 
@@ -23,10 +23,11 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 - Improved test scenarios: added pass criteria for critical path, RAG status, and identifier preservation; added golden output cross-references
 - Added 17 new checks to `validate-bilingual.sh`: bilingual skill references (2), FA/EN scenario files (2), golden output files (2), FA example parity (8), EN example parity (8)
 - Minor polish to `templates/fa/project-brief.md`, `templates/fa/status-report.md`, `templates/fa/decision-log.md`
+- Deepened all 11 domain reference files in `chatgpt-skill` and `codex-skill` from starter skeletons to full operational references, synchronized across both skill packages: project-management, delivery-management, software-delivery, marketing-ops, product-management, technical-product-management, product-marketing, prioritization, risk-management, stakeholder-communication, token-efficiency
 
 ### Changed in v0.3.0
 
-- `validate-bilingual.sh`: expanded from 21 to 38 checks
+- `validate-bilingual.sh`: expanded from 21 to 42 checks
 
 ---
 

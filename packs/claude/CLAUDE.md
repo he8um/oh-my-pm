@@ -44,5 +44,5 @@ Oh My PM is an open-source Head of Delivery agent kit for project, product, soft
 ## Source
 
 Oh My PM — [https://github.com/he8um/oh-my-pm](https://github.com/he8um/oh-my-pm)
-Version: v0.2.0
+Version: v0.3.0
 License: MIT

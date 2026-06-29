@@ -27,7 +27,7 @@ Once installed, Codex-compatible agents will operate with Oh My PM Head of Deliv
 
 ## Version
 
-v0.2.0
+v0.3.0
 
 ## Source
 

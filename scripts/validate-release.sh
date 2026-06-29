@@ -7,7 +7,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-EXPECTED_VERSION="v0.2.0"
+EXPECTED_VERSION="v0.3.0"
 PASS=0
 FAIL=0
 
