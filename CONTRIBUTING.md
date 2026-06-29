@@ -36,6 +36,25 @@ If contributing Persian content:
 - Preserve English technical identifiers.
 - Pair every FA template or prompt with an EN counterpart.
 
+## Agent files and global Git ignore
+
+`AGENTS.md` and `CLAUDE.md` are required tracked source files in this repository. Some developers have these filenames in their global Git ignore (for example, in `~/.config/git/ignore`), which can cause changes to these files to be silently hidden from `git status`.
+
+If changes to these files do not appear in `git status`, check whether a global rule is ignoring them:
+
+```bash
+git check-ignore -v AGENTS.md
+git check-ignore -v CLAUDE.md
+```
+
+If the files are intentionally changed and are ignored only because of a global ignore rule, stage them explicitly:
+
+```bash
+git add -f AGENTS.md CLAUDE.md
+```
+
+Do not remove these files, rename them, or duplicate their contents elsewhere. `AGENTS.md` remains the source of truth for all agent behavior.
+
 ## Code of conduct
 
 See `CODE_OF_CONDUCT.md`.

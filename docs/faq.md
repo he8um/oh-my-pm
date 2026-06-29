@@ -42,6 +42,27 @@ Yes. Oh My PM is MIT-licensed. See `LICENSE`.
 
 Open an issue using the bug report template in the GitHub repository.
 
+## Why do AGENTS.md or CLAUDE.md not appear in git status?
+
+Some developers have these filenames in their global Git ignore file (for example, `~/.config/git/ignore`). This silently hides changes to `AGENTS.md` and `CLAUDE.md` from `git status`.
+
+To check:
+
+```bash
+git check-ignore -v AGENTS.md
+git check-ignore -v CLAUDE.md
+```
+
+If a global rule is the cause, stage the files with:
+
+```bash
+git add -f AGENTS.md CLAUDE.md
+```
+
+Both files are required tracked source files in this repository. Do not remove or rename them.
+
+See `CONTRIBUTING.md` for full details.
+
 ## How do I contribute?
 
 See `CONTRIBUTING.md`.
