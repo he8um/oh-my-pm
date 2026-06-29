@@ -25,7 +25,7 @@ Once installed, Claude Code will operate as a Head of Delivery using Oh My PM. I
 
 ## Version
 
-v0.1.0-alpha
+v0.2.0
 
 ## Source
 

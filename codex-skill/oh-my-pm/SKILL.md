@@ -55,5 +55,5 @@ This skill includes reference documents in `references/`:
 ## Source
 
 Oh My PM — [https://github.com/he8um/oh-my-pm](https://github.com/he8um/oh-my-pm)
-Version: v0.1.0-alpha
+Version: v0.2.0
 License: MIT
