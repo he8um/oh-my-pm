@@ -7,6 +7,22 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 
 ---
 
+## [v0.4.0] — Unreleased
+
+### Added in v0.4.0
+
+- `tests/evaluation-rubric.md`: manual evaluation rubric with 10 scoring dimensions (1–5 scale), 5 pass/fail gates, and scenario-specific guidance
+- `tests/scenarios/README.md`: scenario index with domain, language, purpose, golden output, and primary behavior under test for all 7 scenarios
+- Golden outputs for 4 previously uncovered scenarios: `software-prioritization.output.md`, `marketing-launch-plan.output.md`, `product-prd-review.output.md`, `token-discipline.output.md`
+- Improved all 7 scenarios: added failure modes, tightened pass criteria, added related golden output cross-references
+- Added `validate-agent-files.sh` checks: `tests/scenarios/README.md`, `tests/evaluation-rubric.md`, and all 7 golden output files
+
+### Changed in v0.4.0
+
+- `validate-agent-files.sh`: expanded with Phase 4 evaluation layer checks
+
+---
+
 ## [v0.3.0] — 2026-06-30
 
 ### Added in v0.3.0

@@ -1,6 +1,6 @@
 # Test Scenario: Mixed FA/EN Repository Review
 
-**Purpose:** Verify that Oh My PM handles a mixed Persian/English project context correctly — preserving English technical identifiers while using Persian for management communication.
+**Purpose:** Verify that Oh My PM handles a mixed Persian/English project context correctly — using Persian for management language while preserving English technical identifiers exactly.
 
 ## Input
 
@@ -24,19 +24,27 @@
 
 ## Pass criteria
 
-- [ ] Persian used for management language
+- [ ] Response language is Persian
+- [ ] RAG status present with one-line rationale in Persian
+- [ ] Risk table structured with احتمال, تأثیر, اقدام کاهشی columns
 - [ ] English technical terms preserved exactly: API, frontend, backend, rollback plan, design, onboarding, kickoff
-- [ ] No literal translation of technical terms (e.g. "وابستگی پیشین" for API — wrong)
-- [ ] RAG status present
-- [ ] Risks structured in table with likelihood, impact, mitigation
-- [ ] Critical path present
-- [ ] Actions have owner and deadline
-- [ ] No padding
+- [ ] No literal translation of technical terms (e.g. "رابط برنامه‌نویسی" for API — wrong)
+- [ ] Critical path present as numbered sequence in Persian
+- [ ] Actions table has مالک and deadline
+- [ ] No padding or filler
 
-## Related example
+## Failure modes
 
-`examples/mixed-delivery-project/output.fa.md`
+- Translating API to "رابط برنامه‌نویسی"
+- Translating frontend/backend to Persian equivalents
+- Mixing Persian and English inconsistently (using English for some management terms)
+- Missing critical path or risk table
+- Response in English despite Persian input
 
 ## Related golden output
 
 `tests/golden/mixed-delivery.output.md`
+
+## Related example
+
+`examples/mixed-delivery-project/output.fa.md`

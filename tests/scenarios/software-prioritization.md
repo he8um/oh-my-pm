@@ -1,6 +1,6 @@
 # Test Scenario: Software Backlog Prioritization
 
-**Purpose:** Verify that Oh My PM applies structured prioritization to a software backlog.
+**Purpose:** Verify that Oh My PM applies structured prioritization to a software backlog and flags missing PRD elements.
 
 ## Input
 
@@ -28,15 +28,33 @@ Prioritize this backlog for v1.
 
 - MoSCoW or equivalent framework applied
 - Must haves are genuinely required for the stated goal
-- Won't haves are clearly justified
-- Missing PRD elements flagged (acceptance criteria, success metric)
+- Won't haves clearly justified with rationale
+- Missing PRD elements flagged (acceptance criteria, success metric, non-goals)
+- Ordering dependency noted (infrastructure before UI testing)
 
 ## Pass criteria
 
-- [ ] Structured prioritization framework applied
-- [ ] Must have items justify the goal
+- [ ] Structured prioritization framework applied (MoSCoW or equivalent)
+- [ ] Must have items tied to the stated goal
 - [ ] Won't have items have clear rationale
-- [ ] Missing PRD elements flagged
+- [ ] Admin panel and analytics dashboard in Won't have or Could have
+- [ ] Missing acceptance criteria flagged
+- [ ] Missing success metric target flagged
+- [ ] Missing non-goals flagged
+- [ ] Response is structured, not a flat list
+- [ ] No padding or filler
+
+## Failure modes
+
+- Treating all 10 items as Must have
+- Not flagging missing acceptance criteria
+- Prioritizing admin panel without justification
+- Using vague rationale ("important", "needed") without linking to goal
+- Reordering without noting infrastructure dependency
+
+## Related golden output
+
+`tests/golden/software-prioritization.output.md`
 
 ## Related example
 
