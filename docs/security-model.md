@@ -13,6 +13,9 @@ Oh My PM is a local agent kit. It makes no network calls, collects no telemetry,
 - Installers do not overwrite files by default. Use `--force` to replace.
 - Installers support `--dry-run` to preview changes before applying them.
 - Installers support `--backup` to create a timestamped backup before replacing.
+- Installers support `--self-test` to verify preconditions without modifying files.
+- All installer scripts use `set -eu` for a safe shell baseline.
+- Generated release assets (`dist/*.zip`) are not committed to the repository.
 
 ## Release asset safety
 

@@ -15,10 +15,13 @@ bash installers/install-claude.sh
 Options:
 
 ```bash
---dry-run     Preview what would be installed without making changes
---force       Replace existing CLAUDE.md
---backup      Create a backup before replacing (use with --force)
---target DIR  Install to a specific target directory (default: current directory)
+--dry-run       Preview what would be installed without making changes
+--force         Replace existing CLAUDE.md
+--backup        Create a timestamped backup before replacing (use with --force)
+--target DIR    Install to a specific target directory (default: current directory)
+--self-test     Verify installer preconditions without modifying files
+--version       Print pack version and exit
+--help          Show usage and exit
 ```
 
 ## Install for Cursor
@@ -30,9 +33,13 @@ bash installers/install-cursor.sh
 Options:
 
 ```bash
---dry-run     Preview what would be installed
---force       Replace existing rule files
---target DIR  Install to a specific target directory
+--dry-run       Preview what would be installed
+--force         Replace existing rule files
+--backup        Create a timestamped backup before replacing (use with --force)
+--target DIR    Install to a specific target directory
+--self-test     Verify installer preconditions without modifying files
+--version       Print pack version and exit
+--help          Show usage and exit
 ```
 
 ## Install for Codex
@@ -44,9 +51,13 @@ bash installers/install-codex.sh
 Options:
 
 ```bash
---dry-run     Preview what would be installed
---force       Replace existing AGENTS.md
---target DIR  Install to a specific target directory
+--dry-run       Preview what would be installed
+--force         Replace existing AGENTS.md and skill files
+--backup        Create a timestamped backup before replacing (use with --force)
+--target DIR    Install to a specific target directory
+--self-test     Verify installer preconditions without modifying files
+--version       Print pack version and exit
+--help          Show usage and exit
 ```
 
 ## Install ChatGPT Skill
@@ -60,7 +71,7 @@ Options:
 bash installers/verify-install.sh
 ```
 
-Checks that installed files are in place.
+Checks that installed files are in place. Supports `--scope <claude|cursor|codex|all>` and `--target DIR`.
 
 ## Uninstall
 
@@ -70,7 +81,17 @@ bash installers/uninstall-cursor.sh
 bash installers/uninstall-codex.sh
 ```
 
-All uninstallers support `--dry-run` and `--target DIR`.
+All uninstallers support `--dry-run`, `--force`, `--target DIR`, `--self-test`, and `--help`.
+
+## Upgrade safely
+
+Use `--force --backup` to upgrade an existing install with a timestamped backup:
+
+```bash
+bash installers/install-claude.sh --force --backup
+```
+
+The installer prints the backup path and a restore command. See `docs/upgrading.md` for rollback instructions.
 
 ## Related docs
 

@@ -26,7 +26,7 @@ check_contains() {
   label="$1"
   path="$2"
   term="$3"
-  if grep -q "$term" "$REPO_ROOT/$path" 2>/dev/null; then
+  if grep -q -e "$term" "$REPO_ROOT/$path" 2>/dev/null; then
     echo "PASS: $label contains '$term'"
     PASS=$((PASS + 1))
   else
@@ -82,6 +82,50 @@ check_exists "packs/claude/README.md" "packs/claude/README.md"
 check_exists "packs/cursor/README.md" "packs/cursor/README.md"
 check_exists "packs/codex/README.md" "packs/codex/README.md"
 check_exists "packs/generic/README.md" "packs/generic/README.md"
+
+echo ""
+echo "--- Installer scripts ---"
+check_exists "installers/install-claude.sh"   "installers/install-claude.sh"
+check_exists "installers/install-cursor.sh"   "installers/install-cursor.sh"
+check_exists "installers/install-codex.sh"    "installers/install-codex.sh"
+check_exists "installers/uninstall-claude.sh" "installers/uninstall-claude.sh"
+check_exists "installers/uninstall-cursor.sh" "installers/uninstall-cursor.sh"
+check_exists "installers/uninstall-codex.sh"  "installers/uninstall-codex.sh"
+check_exists "installers/verify-install.sh"   "installers/verify-install.sh"
+
+check_executable() {
+  label="$1"; path="$2"
+  if [ -x "$REPO_ROOT/$path" ]; then
+    echo "PASS: $label is executable"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL: $label is not executable — run: chmod +x $path"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+echo ""
+echo "--- Installer executability ---"
+check_executable "install-claude.sh"   "installers/install-claude.sh"
+check_executable "install-cursor.sh"   "installers/install-cursor.sh"
+check_executable "install-codex.sh"    "installers/install-codex.sh"
+check_executable "uninstall-claude.sh" "installers/uninstall-claude.sh"
+check_executable "uninstall-cursor.sh" "installers/uninstall-cursor.sh"
+check_executable "uninstall-codex.sh"  "installers/uninstall-codex.sh"
+check_executable "verify-install.sh"   "installers/verify-install.sh"
+
+echo ""
+echo "--- Installer flags (self-test and help) ---"
+check_contains "install-claude.sh: --self-test"   "installers/install-claude.sh"   "--self-test"
+check_contains "install-cursor.sh: --self-test"   "installers/install-cursor.sh"   "--self-test"
+check_contains "install-codex.sh: --self-test"    "installers/install-codex.sh"    "--self-test"
+check_contains "install-claude.sh: --help"        "installers/install-claude.sh"   "--help"
+check_contains "install-cursor.sh: --backup"      "installers/install-cursor.sh"   "--backup"
+check_contains "install-codex.sh: --backup"       "installers/install-codex.sh"    "--backup"
+
+echo ""
+echo "--- install.json ---"
+check_exists "install.json" "install.json"
 
 echo ""
 echo "=== Summary ==="
