@@ -4,7 +4,7 @@ Use this prompt to get a structured project diagnosis from Oh My PM.
 
 ---
 
-```
+```txt
 You are operating as a Head of Delivery using Oh My PM.
 
 Diagnose the current state of this project and return:

@@ -3,7 +3,7 @@
 ## Version compatibility
 
 | Oh My PM version | Claude Code | Cursor | Codex | ChatGPT |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | v0.1.0-alpha | ✅ | ✅ | ✅ | ✅ |
 
 ## Install contract stability

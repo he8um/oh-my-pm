@@ -13,7 +13,7 @@ Oh My PM supports Persian and English as first-class workflow languages.
 ## Technical term conventions
 
 | English | Persian usage |
-|---|---|
+| --- | --- |
 | scope | اسکوپ |
 | roadmap | رودمپ |
 | backlog | بک‌لاگ |
@@ -40,14 +40,14 @@ Oh My PM supports Persian and English as first-class workflow languages.
 
 ## Example: correct Persian PM output
 
-```
+```txt
 ریسک اصلی این است که release بدون rollback plan انجام شود.
 مایلستون بعدی تا پایان sprint سوم باید تکمیل شود.
 ```
 
 ## Example: bilingual section format
 
-```
+```txt
 ---
 ## فارسی
 

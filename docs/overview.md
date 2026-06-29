@@ -13,7 +13,7 @@ Oh My PM gives AI agents structured delivery thinking: how to prioritize, assess
 You install one file (or a set of files) into your project or AI tool. Your agent then operates with the judgment of an experienced Head of Delivery.
 
 | Tool | What you install |
-|---|---|
+| --- | --- |
 | Claude Code | `CLAUDE.md` |
 | Cursor | `.cursor/rules/*.mdc` |
 | Codex | `AGENTS.md` + `.agents/skills/oh-my-pm/` |

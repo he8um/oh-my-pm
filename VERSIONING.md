@@ -4,14 +4,14 @@ Oh My PM uses Semantic Versioning.
 
 ## Version format
 
-```
+```txt
 vMAJOR.MINOR.PATCH[-PRERELEASE]
 ```
 
 ## Rules
 
 | Increment | When |
-|---|---|
+| --- | --- |
 | MAJOR | Breaking behavior or install contract changes |
 | MINOR | Compatible new domains, playbooks, templates, packs, connectors, or MCP features |
 | PATCH | Wording, docs, validation, packaging, and compatibility fixes |

@@ -4,7 +4,7 @@
 
 ## Input
 
-```
+```txt
 Feature: In-app notification center
 Timeline: 5 weeks, team of 3
 Goal: Reduce support tickets from users missing account notifications

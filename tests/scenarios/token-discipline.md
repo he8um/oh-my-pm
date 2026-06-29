@@ -4,7 +4,7 @@
 
 ## Input
 
-```
+```txt
 What is the status of the payments API project? It is week 3 of 8, 60% complete, with a blocked QA environment and a missing rollback plan.
 ```
 

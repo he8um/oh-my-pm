@@ -4,7 +4,7 @@
 
 ## Input
 
-```
+```txt
 Project: Payments API v2 integration
 Status: Week 3 of 8. 60% complete.
 Blockers: Vendor sandbox credentials delayed. QA environment not ready.

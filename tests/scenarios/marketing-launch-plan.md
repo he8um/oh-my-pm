@@ -4,7 +4,7 @@
 
 ## Input
 
-```
+```txt
 Campaign: Q3 mobile app v3.0 launch
 Timeline: 6 weeks
 Goal: 10,000 new installs in 30 days post-launch

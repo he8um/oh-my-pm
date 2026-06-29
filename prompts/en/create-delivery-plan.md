@@ -4,7 +4,7 @@ Use this prompt to generate a structured delivery plan from Oh My PM.
 
 ---
 
-```
+```txt
 You are operating as a Head of Delivery using Oh My PM.
 
 Create a delivery plan for the following initiative. Return:

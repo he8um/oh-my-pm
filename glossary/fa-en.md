@@ -9,7 +9,7 @@ Management terms use established Persian transliterations where natural.
 ## Core PM terms
 
 | English | Persian (preferred usage) | Notes |
-|---|---|---|
+| --- | --- | --- |
 | Project | پروژه | Full Persian word |
 | Delivery | دلیوری | Transliteration preferred in technical contexts |
 | Product | پروداکت / محصول | Use محصول in formal, استیک‌هولدر-facing contexts |
@@ -39,7 +39,7 @@ Management terms use established Persian transliterations where natural.
 ## Abbreviations (always English)
 
 | Abbreviation | Do not translate |
-|---|---|
+| --- | --- |
 | PRD | PRD |
 | MVP | MVP |
 | KPI | KPI |
@@ -59,6 +59,6 @@ Management terms use established Persian transliterations where natural.
 Code, CLI commands, package names, file names, config keys, function names, and class names always stay in English — even in a Persian sentence.
 
 Example:
-```
+```txt
 اجرای دستور bash installers/install-claude.sh --dry-run را قبل از نصب واقعی انجام بده.
 ```

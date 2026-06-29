@@ -15,7 +15,7 @@ Use this playbook to diagnose the current state of a project in trouble or at a 
 ## RAG criteria
 
 | Status | Criteria |
-|---|---|
+| --- | --- |
 | 🟢 Green | On track. Risks manageable. No critical blockers. |
 | 🟡 Amber | At risk. One or more blockers or unresolved risks. Needs attention. |
 | 🔴 Red | Off track. Launch date or scope at risk. Escalation required. |

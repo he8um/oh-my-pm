@@ -14,7 +14,7 @@ As a Head of Delivery, drive delivery planning, execution oversight, and structu
 
 ## Output structure for delivery plan
 
-```
+```txt
 Milestone: [Name]
 Target date: [Date]
 Owner: [Name or team]

@@ -11,7 +11,7 @@
 ## Technical term conventions
 
 | English | Persian usage |
-|---|---|
+| --- | --- |
 | scope | اسکوپ |
 | roadmap | رودمپ |
 | backlog | بک‌لاگ |
@@ -35,13 +35,13 @@
 
 ## Example: correct Persian output
 
-```
+```txt
 ریسک اصلی این است که release بدون rollback plan انجام شود.
 ```
 
 ## Example: incorrect Persian output (too literal)
 
-```
+```txt
 خطر اصلی این است که انتشار بدون برنامه بازگردانی انجام شود.
 ```
 
@@ -51,7 +51,7 @@ The second form is less natural for technical delivery work. Use transliterated 
 
 When producing explicitly bilingual output, separate sections:
 
-```
+```txt
 ---
 ## فارسی
 

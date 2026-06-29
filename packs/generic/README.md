@@ -24,5 +24,5 @@ v0.1.0-alpha
 
 ## Source
 
-Oh My PM — https://github.com/he8um/oh-my-pm
+Oh My PM — [https://github.com/he8um/oh-my-pm](https://github.com/he8um/oh-my-pm)
 License: MIT

@@ -14,7 +14,7 @@ As a Head of Delivery, apply delivery leadership to marketing campaign execution
 
 ## Output structure for campaign status
 
-```
+```txt
 Campaign: [Name]
 Status: [Red / Amber / Green]
 Launch target: [Date]

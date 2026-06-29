@@ -17,7 +17,7 @@ Integration is progressing but two blockers are compressing the QA window. Launc
 ## Top 3 risks
 
 | Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | QA window compressed if sandbox delayed further | High | High | Escalate to vendor executive contact today |
 | No rollback plan at launch | High | High | Define rollback criteria by end of week 4 |
 | QA environment blocked on DevOps | Medium | High | Engineering lead to escalate today with hard deadline |
@@ -41,7 +41,7 @@ Integration is progressing but two blockers are compressing the QA window. Launc
 ## Immediate actions
 
 | Action | Owner | By |
-|---|---|---|
+| --- | --- | --- |
 | Escalate sandbox delay to vendor | PM | Today |
 | Escalate DevOps blocker | Engineering lead | Today |
 | Document rollback plan | Engineering lead | End of week 4 |

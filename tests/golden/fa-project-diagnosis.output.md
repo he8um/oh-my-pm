@@ -17,7 +17,7 @@ Use this to calibrate quality — not as an exact match requirement. The agent's
 ## ریسک‌های اصلی
 
 | ریسک | احتمال | تأثیر | اقدام کاهشی |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | تأخیر sandbox credentials — پنجره QA فشرده می‌شود | بالا | بالا | اسکالیشن به مخاطب اجرایی vendor امروز |
 | نبود rollback plan در لانچ | بالا | بالا | تعریف معیار و روش rollback تا پایان هفته ۴ |
 | محیط QA بلاک روی DevOps | متوسط | بالا | لید مهندسی امروز با ددلاین مشخص اسکالیشن کند |
@@ -27,7 +27,7 @@ Use this to calibrate quality — not as an exact match requirement. The agent's
 ## اقدامات فوری
 
 | اقدام | مالک | تا |
-|---|---|---|
+| --- | --- | --- |
 | اسکالیشن به vendor | PM | امروز |
 | اسکالیشن به DevOps | لید مهندسی | امروز |
 | مستندسازی rollback plan | لید مهندسی | پایان هفته ۴ |

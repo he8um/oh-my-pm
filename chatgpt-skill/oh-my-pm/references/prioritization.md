@@ -24,7 +24,7 @@ Use when you need to communicate scope boundaries clearly.
 ### Impact/Effort matrix
 
 | | Low effort | High effort |
-|---|---|---|
+| --- | --- | --- |
 | High impact | Do first | Plan carefully |
 | Low impact | Do if easy | Deprioritize |
 

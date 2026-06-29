@@ -23,7 +23,7 @@
 ## User stories
 
 | As a... | I want to... | So that... |
-|---|---|---|
+| --- | --- | --- |
 | | | |
 
 ## Requirements
@@ -47,19 +47,19 @@
 ## Dependencies
 
 | Dependency | Type | Owner | Status |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | | | | |
 
 ## Risks
 
 | Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | | | | |
 
 ## Success metrics
 
 | Metric | Baseline | Target | Measurement method |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | | | | |
 
 ## Open questions
@@ -69,7 +69,7 @@
 ## Approvals
 
 | Role | Name | Date |
-|---|---|---|
+| --- | --- | --- |
 | PM | | |
 | Engineering lead | | |
 | Design | | |

@@ -4,7 +4,7 @@ Use this prompt to generate a clean handoff prompt for the next AI agent session
 
 ---
 
-```
+```txt
 You are operating as a Head of Delivery using Oh My PM.
 
 Create a concise handoff prompt for the next agent session. The prompt must:

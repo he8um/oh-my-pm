@@ -4,7 +4,7 @@
 
 ## Input
 
-```
+```txt
 PRD: In-app notification center
 Goal: Reduce support tickets
 Team: 2 engineers, 1 designer

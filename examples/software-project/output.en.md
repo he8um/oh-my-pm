@@ -15,7 +15,7 @@ Integration is progressing but two blockers are compressing the QA window. The l
 ## Top 3 risks
 
 | Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | QA window too short if sandbox delayed further | High | High | Escalate to vendor today. Parallel-track any dev-testable items. |
 | No rollback plan at launch | High | High | Define rollback criteria and procedure by end of week 4. Assign to engineering lead. |
 | DevOps blocker delays QA environment setup | Medium | High | Engineering lead to escalate to DevOps manager today with hard deadline. |
@@ -39,7 +39,7 @@ Integration is progressing but two blockers are compressing the QA window. The l
 ## Immediate actions
 
 | Action | Owner | By |
-|---|---|---|
+| --- | --- | --- |
 | Escalate sandbox credential delay to vendor executive contact | PM | Today |
 | Escalate DevOps blocker to DevOps manager | Engineering lead | Today |
 | Document rollback plan | Engineering lead | End of week 4 |

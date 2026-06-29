@@ -2,7 +2,7 @@
 
 ## File hierarchy
 
-```
+```txt
 AGENTS.md                    ← Source of truth for all agent behavior
 ├── CLAUDE.md                ← Adapter for Claude Code
 ├── .cursor/rules/*.mdc      ← Adapter for Cursor

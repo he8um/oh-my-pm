@@ -28,13 +28,13 @@
 ## Stakeholders
 
 | Name | Role | Involvement |
-|---|---|---|
+| --- | --- | --- |
 | | | |
 
 ## Timeline
 
 | Milestone | Target date | Owner |
-|---|---|---|
+| --- | --- | --- |
 | | | |
 
 ## Constraints
@@ -44,7 +44,7 @@
 ## Risks
 
 | Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | | | | |
 
 ## Success criteria

@@ -7,7 +7,7 @@ As a Head of Delivery, identify, assess, and manage risks proactively across all
 ## Risk register format
 
 | Risk | Likelihood | Impact | Mitigation | Owner | Status |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | [Description] | High/Med/Low | High/Med/Low | [Action] | [Name] | Open/Mitigated/Closed |
 
 ## Key behaviors

@@ -5,7 +5,7 @@ This document describes the installer behavior contract for Oh My PM.
 ## Supported installers
 
 | Script | Purpose |
-|---|---|
+| --- | --- |
 | `installers/install-claude.sh` | Install Claude Code pack |
 | `installers/install-cursor.sh` | Install Cursor pack |
 | `installers/install-codex.sh` | Install Codex pack |
@@ -19,7 +19,7 @@ This document describes the installer behavior contract for Oh My PM.
 All install scripts support:
 
 | Flag | Effect |
-|---|---|
+| --- | --- |
 | `--dry-run` | Print planned actions without making changes |
 | `--force` | Allow overwrite of existing files |
 | `--backup` | Create a timestamped backup before replacing (use with `--force`) |
@@ -49,7 +49,7 @@ Uninstall scripts support: `--dry-run`, `--force`, `--target`, `--self-test`, `-
 ## Install targets
 
 | Tool | Files installed |
-|---|---|
+| --- | --- |
 | Claude | `CLAUDE.md` |
 | Cursor | `.cursor/rules/*.mdc` |
 | Codex | `AGENTS.md`, `.agents/skills/oh-my-pm/` |
@@ -61,7 +61,7 @@ Installers detect existing files before overwriting. If a conflict is found and 
 ## Upgrade behavior
 
 | Situation | Behavior |
-|---|---|
+| --- | --- |
 | Same file already installed | Skip unless `--force` |
 | Different version installed | Conflict reported; use `--force --backup` to upgrade |
 

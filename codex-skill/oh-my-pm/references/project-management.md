@@ -15,7 +15,7 @@ As a Head of Delivery, apply structured project management thinking to every pro
 
 ## Output structure for project status
 
-```
+```txt
 Project: [Name]
 Status: [Red / Amber / Green]
 Phase: [Current phase]

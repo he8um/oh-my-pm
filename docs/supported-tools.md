@@ -3,7 +3,7 @@
 ## Current support
 
 | Tool | Status | Install method |
-|---|---|---|
+| --- | --- | --- |
 | Claude Code | ✅ Supported | `bash installers/install-claude.sh` |
 | Cursor | ✅ Supported | `bash installers/install-cursor.sh` |
 | Codex | ✅ Supported | `bash installers/install-codex.sh` |
@@ -13,7 +13,7 @@
 ## Planned support
 
 | Tool | Planned version | Notes |
-|---|---|---|
+| --- | --- | --- |
 | MCP-compatible agents | v0.7.0 | Read-only PM-focused MCP server |
 
 ## Tool-specific notes

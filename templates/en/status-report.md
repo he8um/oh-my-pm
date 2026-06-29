@@ -19,13 +19,13 @@
 ## Key decisions needed
 
 | Decision | Owner | Due |
-|---|---|---|
+| --- | --- | --- |
 | | | |
 
 ## Risks
 
 | Risk | Status |
-|---|---|
+| --- | --- |
 | | Open / Mitigated |
 
 ## Blockers
@@ -35,7 +35,7 @@
 ## Next milestones
 
 | Milestone | Target date | Status |
-|---|---|---|
+| --- | --- | --- |
 | | | On track / At risk / Blocked |
 
 ## Notes

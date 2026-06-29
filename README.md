@@ -43,7 +43,7 @@ Oh My PM fills this gap with a reusable, installable, open-source delivery layer
 ## Supported tools
 
 | Tool | Support |
-|---|---|
+| --- | --- |
 | Claude Code | ✅ via `CLAUDE.md` |
 | Cursor | ✅ via `.cursor/rules/` |
 | Codex | ✅ via `AGENTS.md` + Codex Skill |
@@ -116,7 +116,7 @@ Oh My PM supports Persian and English as first-class workflow languages.
 Each release includes:
 
 | Asset | Description |
-|---|---|
+| --- | --- |
 | `oh-my-pm-vX.Y.Z-chatgpt-skill.zip` | ChatGPT Skill package |
 | `oh-my-pm-vX.Y.Z-codex-skill.zip` | Codex Skill package |
 | `oh-my-pm-vX.Y.Z-claude-pack.zip` | Claude Code pack |
@@ -139,7 +139,7 @@ Each release includes:
 ## Roadmap
 
 | Version | Milestone |
-|---|---|
+| --- | --- |
 | v0.1.0-alpha | Repository foundation + installable alpha packs |
 | v0.2.0 | Installer hardening + safer upgrades |
 | v0.3.0 | Bilingual FA/EN quality hardening |

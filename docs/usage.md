@@ -21,23 +21,23 @@ Use Oh My PM when you need to:
 
 ## Example prompts
 
-```
+```txt
 Diagnose the current state of this project and identify the top 3 risks.
 ```
 
-```
+```txt
 Create a delivery plan for this feature based on the requirements below.
 ```
 
-```
+```txt
 Review this PRD and flag any missing sections, unclear scope, or unresolved dependencies.
 ```
 
-```
+```txt
 Write a stakeholder update for this week. Keep it executive-appropriate and under 300 words.
 ```
 
-```
+```txt
 Prioritize this backlog using MoSCoW. Flag items that have unclear acceptance criteria.
 ```
 
@@ -45,7 +45,7 @@ Prioritize this backlog using MoSCoW. Flag items that have unclear acceptance cr
 
 Write in Persian and the agent will respond in Persian with appropriate technical English terms preserved:
 
-```
+```txt
 پروژه ما با تأخیر در تیم backend مواجه شده. وضعیت را تحلیل کن و یک plan جایگزین پیشنهاد بده.
 ```
 
@@ -55,7 +55,7 @@ Templates are in `templates/en/` and `templates/fa/`.
 
 Reference them in your prompt:
 
-```
+```txt
 Use the project-brief template to create a project brief for this initiative.
 ```
 

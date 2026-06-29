@@ -10,7 +10,7 @@ Use this playbook to create a clean handoff prompt when passing work between AI 
 
 ## Handoff structure
 
-```
+```txt
 ## Context
 
 [2-4 bullet points summarizing the project or task state]

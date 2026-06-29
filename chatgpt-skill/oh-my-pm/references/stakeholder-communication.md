@@ -14,7 +14,7 @@ As a Head of Delivery, produce clear, audience-appropriate stakeholder communica
 
 ## Status update structure
 
-```
+```txt
 Project: [Name]
 Date: [Date]
 Status: [Red / Amber / Green]

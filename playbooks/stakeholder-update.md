@@ -15,7 +15,7 @@ Use this playbook to prepare a stakeholder update.
 ## Audience calibration
 
 | Audience | Focus |
-|---|---|
+| --- | --- |
 | Executive | Status, decisions, risks, timeline/budget impact |
 | Cross-functional team | Shared milestones, dependencies, what you need from them |
 | Engineering team | What to build, blockers, escalation path |

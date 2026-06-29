@@ -8,7 +8,7 @@
 ## Decisions
 
 | # | Date | Decision | Rationale | Owner | Status |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | 1 | | | | | Decided |
 | 2 | | | | | Pending |
 
@@ -26,5 +26,5 @@
 ## Open decisions
 
 | # | Question | Owner | Due date |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | | | | |

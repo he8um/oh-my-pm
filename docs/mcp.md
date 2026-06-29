@@ -34,7 +34,7 @@ This is a data access layer, not a replacement for the core agent behavior in `A
 
 ## Planned stack
 
-```
+```txt
 Runtime: Node.js
 Language: TypeScript
 Package manager: pnpm
@@ -44,7 +44,7 @@ Path: packages/mcp-server/
 ## Connector roadmap
 
 | Version | Connector |
-|---|---|
+| --- | --- |
 | v0.8.0 | GitHub Issues / Projects |
 | v0.9.0 | ClickUp |
 | v0.10.0 | Airtable |

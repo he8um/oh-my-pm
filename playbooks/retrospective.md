@@ -13,7 +13,7 @@ Use this playbook to run a structured retrospective after a sprint, milestone, o
 
 ## Output format
 
-```
+```txt
 Period: [Sprint / Milestone / Project name]
 Date: [Date]
 Facilitator: [Name]
@@ -26,7 +26,7 @@ What to improve:
 
 Action items:
 | Action | Owner | By |
-|---|---|---|
+| --- | --- | --- |
 | | | |
 
 Shoutouts:
