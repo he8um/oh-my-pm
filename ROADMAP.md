@@ -8,7 +8,7 @@ Oh My PM follows the phased strategy: first become installable, then become usef
 | --- | --- |
 | **v0.1.0-alpha** | Repository foundation + installable alpha packs — released |
 | **v0.2.0** | Installer hardening + safer upgrades — released |
-| v0.3.0 | Bilingual FA/EN quality hardening |
+| **v0.3.0** | Bilingual FA/EN quality hardening — in progress |
 | v0.4.0 | Scenario testing + golden output evaluation |
 | v0.5.0 | Deep playbooks, templates, and examples expansion |
 | v0.6.0 | MCP research, interface design, and architecture docs |

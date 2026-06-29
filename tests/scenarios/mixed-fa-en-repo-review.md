@@ -16,18 +16,27 @@
 
 ## Expected behavior
 
-- Persian management communication
-- English preserved: API, frontend, backend, rollback plan, design, backlog, onboarding
-- Structured output with risks and actions
-- No artificial literal translations
+- Response in Persian (matches Persian input language)
+- English preserved for all technical identifiers: API, frontend, backend, rollback plan, design, backlog, onboarding
+- Structured output: RAG status, risks table, critical path, actions table
+- No artificial literal translations of technical terms
+- Risks tied to specific, actionable mitigations
 
 ## Pass criteria
 
 - [ ] Persian used for management language
-- [ ] English technical terms preserved (API, frontend, backend, rollback plan)
-- [ ] No literal translation of technical terms (e.g., "وابستگی پیشین" for API)
-- [ ] Risks and actions structured
+- [ ] English technical terms preserved exactly: API, frontend, backend, rollback plan, design, onboarding, kickoff
+- [ ] No literal translation of technical terms (e.g. "وابستگی پیشین" for API — wrong)
+- [ ] RAG status present
+- [ ] Risks structured in table with likelihood, impact, mitigation
+- [ ] Critical path present
+- [ ] Actions have owner and deadline
+- [ ] No padding
 
 ## Related example
 
 `examples/mixed-delivery-project/output.fa.md`
+
+## Related golden output
+
+`tests/golden/mixed-delivery.output.md`

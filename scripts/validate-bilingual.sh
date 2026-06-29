@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 # Oh My PM — Validate bilingual file parity
-# Checks that FA/EN templates and prompts are paired and glossary exists.
+# Checks that FA/EN templates and prompts are paired, glossary exists,
+# bilingual references exist in both skills, examples are present, and
+# scenario and golden output files exist.
 
 set -e
 
@@ -49,8 +51,41 @@ echo "--- Bilingual docs ---"
 check_exists "docs/bilingual-support.md" "docs/bilingual-support.md"
 
 echo ""
+echo "--- Bilingual skill references ---"
+check_exists "chatgpt-skill bilingual reference" "chatgpt-skill/oh-my-pm/references/bilingual-fa-en.md"
+check_exists "codex-skill bilingual reference" "codex-skill/oh-my-pm/references/bilingual-fa-en.md"
+
+echo ""
 echo "--- Mixed scenario ---"
 check_exists "tests/scenarios/mixed-fa-en-repo-review.md" "tests/scenarios/mixed-fa-en-repo-review.md"
+check_exists "tests/scenarios/fa-project-diagnosis.md" "tests/scenarios/fa-project-diagnosis.md"
+
+echo ""
+echo "--- Golden outputs ---"
+check_exists "tests/golden/fa-project-diagnosis.output.md" "tests/golden/fa-project-diagnosis.output.md"
+check_exists "tests/golden/mixed-delivery.output.md" "tests/golden/mixed-delivery.output.md"
+
+echo ""
+echo "--- FA examples ---"
+check_exists "examples/software-project/input.fa.md" "examples/software-project/input.fa.md"
+check_exists "examples/software-project/output.fa.md" "examples/software-project/output.fa.md"
+check_exists "examples/marketing-project/input.fa.md" "examples/marketing-project/input.fa.md"
+check_exists "examples/marketing-project/output.fa.md" "examples/marketing-project/output.fa.md"
+check_exists "examples/product-project/input.fa.md" "examples/product-project/input.fa.md"
+check_exists "examples/product-project/output.fa.md" "examples/product-project/output.fa.md"
+check_exists "examples/mixed-delivery-project/input.fa.md" "examples/mixed-delivery-project/input.fa.md"
+check_exists "examples/mixed-delivery-project/output.fa.md" "examples/mixed-delivery-project/output.fa.md"
+
+echo ""
+echo "--- EN examples ---"
+check_exists "examples/software-project/input.en.md" "examples/software-project/input.en.md"
+check_exists "examples/software-project/output.en.md" "examples/software-project/output.en.md"
+check_exists "examples/marketing-project/input.en.md" "examples/marketing-project/input.en.md"
+check_exists "examples/marketing-project/output.en.md" "examples/marketing-project/output.en.md"
+check_exists "examples/product-project/input.en.md" "examples/product-project/input.en.md"
+check_exists "examples/product-project/output.en.md" "examples/product-project/output.en.md"
+check_exists "examples/mixed-delivery-project/input.en.md" "examples/mixed-delivery-project/input.en.md"
+check_exists "examples/mixed-delivery-project/output.en.md" "examples/mixed-delivery-project/output.en.md"
 
 echo ""
 echo "=== Summary ==="

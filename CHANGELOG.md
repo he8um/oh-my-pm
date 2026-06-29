@@ -7,6 +7,29 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 
 ---
 
+## [v0.3.0] — Unreleased
+
+### Added in v0.3.0
+
+- Expanded `glossary/fa-en.md` with 20+ new PM/delivery terms: DRI, SOW, UAT, RACI, rollback, handoff, change request, owner, assignee, due date, impact, effort, confidence, escalation, kickoff, sign-off, capacity, non-goals, and transliteration notes
+- Abbreviation table in glossary expanded with DRI, SOW, UAT, and usage context column
+- Transliteration notes section in glossary explaining when to use transliteration vs full Persian
+- Expanded `chatgpt-skill` and `codex-skill` bilingual references: mixed input handling, bad-translation avoidance table, Persian quality checklist, full term conventions, bilingual section format guide
+- Expanded `docs/bilingual-support.md`: mixed input behavior, correct/incorrect output examples, extended term table, related docs section
+- Updated `.cursor/rules/70-bilingual-fa-en.mdc`: added mixed-input handling rule, rollback/escalation/blocker/owner/critical path terms, reference to skill bilingual doc
+- Improved FA prompts: added mixed-input handling rules, technical identifier preservation guidance, and self-contained handoff instruction to all three Persian prompts
+- Added critical path section to `tests/golden/mixed-delivery.output.md`
+- Enriched `tests/golden/fa-project-diagnosis.output.md` with one-line status rationale and expanded decisions section
+- Improved test scenarios: added pass criteria for critical path, RAG status, and identifier preservation; added golden output cross-references
+- Added 17 new checks to `validate-bilingual.sh`: bilingual skill references (2), FA/EN scenario files (2), golden output files (2), FA example parity (8), EN example parity (8)
+- Minor polish to `templates/fa/project-brief.md`, `templates/fa/status-report.md`, `templates/fa/decision-log.md`
+
+### Changed in v0.3.0
+
+- `validate-bilingual.sh`: expanded from 21 to 38 checks
+
+---
+
 ## [v0.2.0] — 2026-06-29
 
 ### Added in v0.2.0

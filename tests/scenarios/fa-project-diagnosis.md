@@ -16,21 +16,28 @@
 ## Expected behavior
 
 - Response in Persian
-- RAG status with rationale
-- Risks listed in structured format
-- Actions with owners and timeframes
-- Technical terms (API, sandbox, rollback plan, QA, vendor) preserved in English
-- No filler phrases
-- No padding
+- RAG status (🔴/🟡/🟢) with one-line rationale
+- Top risks in structured table format with احتمال, تأثیر, اقدام کاهشی columns
+- Critical path as numbered sequence
+- Immediate actions table with مالک and ددلاین
+- Technical terms (API, sandbox, rollback plan, QA, vendor, DevOps) preserved in English
+- No filler phrases, no padding
 
 ## Pass criteria
 
 - [ ] Response language matches Persian input
-- [ ] Risk list is structured
-- [ ] Technical identifiers remain in English
-- [ ] Actions are specific and owner-assigned
+- [ ] RAG status present with rationale
+- [ ] Risk table is structured with likelihood, impact, mitigation
+- [ ] Critical path present as numbered sequence
+- [ ] Actions table has owner and deadline columns
+- [ ] Technical identifiers remain in English: API, sandbox, rollback plan, QA, vendor
 - [ ] No padding or filler
+- [ ] No literal translations of technical terms (e.g. "اعتبارنامه sandbox" is correct; "ابزار کنترل دسترسی" for RBAC is not)
 
 ## Related example
 
 `examples/software-project/output.fa.md`
+
+## Related golden output
+
+`tests/golden/fa-project-diagnosis.output.md`

@@ -43,11 +43,20 @@ Prioritize this backlog using MoSCoW. Flag items that have unclear acceptance cr
 
 ## Using bilingual features
 
-Write in Persian and the agent will respond in Persian with appropriate technical English terms preserved:
+Write in Persian and the agent responds in Persian, with English technical identifiers preserved:
 
 ```txt
 پروژه ما با تأخیر در تیم backend مواجه شده. وضعیت را تحلیل کن و یک plan جایگزین پیشنهاد بده.
 ```
+
+Mixed Persian/English input is supported. The agent uses Persian for management decisions and preserves English for technical identifiers:
+
+```txt
+قرارداد API بین frontend و backend نهایی نشده. rollback plan هم نداریم.
+وضعیت را تشخیص بده و اقدامات فوری را مشخص کن.
+```
+
+See `docs/bilingual-support.md` for the full language policy and `glossary/fa-en.md` for terminology conventions.
 
 ## Using templates
 
@@ -59,6 +68,10 @@ Reference them in your prompt:
 Use the project-brief template to create a project brief for this initiative.
 ```
 
+## Using prompts
+
+Reusable prompts are in `prompts/en/` and `prompts/fa/`. Copy and fill in the context section.
+
 ## Using playbooks
 
 Playbooks are in `playbooks/`. They provide structured guidance for specific delivery scenarios.
@@ -68,3 +81,4 @@ Playbooks are in `playbooks/`. They provide structured guidance for specific del
 - `docs/installation.md`
 - `docs/bilingual-support.md`
 - `docs/token-efficiency.md`
+- `docs/examples.md`

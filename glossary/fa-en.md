@@ -12,8 +12,9 @@ Management terms use established Persian transliterations where natural.
 | --- | --- | --- |
 | Project | پروژه | Full Persian word |
 | Delivery | دلیوری | Transliteration preferred in technical contexts |
-| Product | پروداکت / محصول | Use محصول in formal, استیک‌هولدر-facing contexts |
+| Product | پروداکت / محصول | Use محصول in formal, stakeholder-facing contexts |
 | Scope | اسکوپ | Transliteration |
+| Non-goals | خارج از اسکوپ | Full Persian phrase |
 | Roadmap | رودمپ | Transliteration |
 | Backlog | بک‌لاگ | Transliteration |
 | Sprint | اسپرینت | Transliteration |
@@ -30,29 +31,46 @@ Management terms use established Persian transliterations where natural.
 | Acceptance criteria | معیار پذیرش | Full Persian phrase |
 | Status report | گزارش وضعیت | Full Persian phrase |
 | Decision log | لاگ تصمیم / ثبت تصمیمات | Both acceptable |
+| Risk register | رجیستر ریسک | Transliteration |
 | Retrospective | رترو / جلسه بازنگری | رترو in team context |
 | Post-mortem | پست‌مورتم | Transliteration |
 | Critical path | مسیر بحرانی | Full Persian phrase |
 | Go/no-go | گو / نوگو | Transliteration |
 | Agent handoff | هندآف ایجنت | Transliteration |
+| Handoff | هندآف | Transliteration |
+| Rollback | رول‌بک | Transliteration; do not translate as "بازگردانی" in technical contexts |
+| Change request | درخواست تغییر | Full Persian phrase |
+| Owner | مالک | Full Persian word |
+| Assignee | مسئول / اساینی | مالک or مسئول preferred in management context |
+| Due date | ددلاین / تاریخ تحویل | ددلاین in team context; تاریخ تحویل in formal docs |
+| Impact | تأثیر | Full Persian word |
+| Effort | تلاش / حجم کار | حجم کار more natural in estimation context |
+| Confidence | اطمینان | Full Persian word |
+| Escalation | اسکالیشن | Transliteration |
+| Kickoff | کیک‌اف | Transliteration |
+| Sign-off | تأیید | Full Persian word |
+| Capacity | ظرفیت | Full Persian word |
 
 ## Abbreviations (always English)
 
-| Abbreviation | Do not translate |
-| --- | --- |
-| PRD | PRD |
-| MVP | MVP |
-| KPI | KPI |
-| OKR | OKR |
-| GTM | GTM |
-| PMM | PMM |
-| QA | QA |
-| API | API |
-| SLA | SLA |
-| RBAC | RBAC |
-| CI/CD | CI/CD |
-| ROI | ROI |
-| RACI | RACI |
+| Abbreviation | Do not translate | Usage context |
+| --- | --- | --- |
+| PRD | PRD | Product Requirements Document |
+| MVP | MVP | Minimum Viable Product |
+| KPI | KPI | Key Performance Indicator |
+| OKR | OKR | Objective and Key Results |
+| GTM | GTM | Go-to-Market |
+| PMM | PMM | Product Marketing Manager |
+| QA | QA | Quality Assurance |
+| API | API | Application Programming Interface |
+| SLA | SLA | Service Level Agreement |
+| RBAC | RBAC | Role-Based Access Control |
+| CI/CD | CI/CD | Continuous Integration / Continuous Deployment |
+| ROI | ROI | Return on Investment |
+| RACI | RACI | Responsible, Accountable, Consulted, Informed |
+| DRI | DRI | Directly Responsible Individual |
+| SOW | SOW | Statement of Work |
+| UAT | UAT | User Acceptance Testing |
 
 ## Technical identifiers (always English)
 
@@ -63,3 +81,13 @@ Example:
 ```txt
 اجرای دستور bash installers/install-claude.sh --dry-run را قبل از نصب واقعی انجام بده.
 ```
+
+## Transliteration notes
+
+- Use transliteration when a term is widely used as-is in Persian PM/tech teams.
+- Use full Persian when it is more natural and commonly understood.
+- Do not force literal translation of technical terms. For example:
+  - rollback → رول‌بک (not "بازگردانی" in delivery context)
+  - backlog → بک‌لاگ (not "فهرست معوقه")
+  - sprint → اسپرینت (not "دوی سرعت")
+- Prefer the form most commonly used in Persian-speaking engineering and PM teams.
