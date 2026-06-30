@@ -14,7 +14,25 @@
 
 | Tool | Planned version | Notes |
 | --- | --- | --- |
-| MCP-compatible agents | v0.7.0 | Read-only PM-focused MCP server |
+| MCP-compatible agents | v0.7.0 | Read-only PM-focused MCP server alpha — local context only |
+| GitHub Issues / Projects | v0.8.0 | MCP connector — read-only |
+| ClickUp | v0.9.0 | MCP connector — read-only |
+| Airtable | v0.10.0 | MCP connector — read-only |
+| Linear | v0.11.0 | MCP connector — read-only |
+| Jira | v0.12.0 | MCP connector — read-only |
+| Notion | v0.13.0 | MCP connector — read-only |
+
+## MCP status
+
+MCP (Model Context Protocol) is planned as an optional integration layer. It is **not implemented** in v0.5.0 or v0.6.0.
+
+- v0.6.0: Interface design, security policy, and connector roadmap documented
+- v0.7.0: MCP server alpha planned — read-only, local context only, no external connector required
+- v0.8.0+: External connectors added one per version
+
+Existing packs (Claude Code, Cursor, Codex, ChatGPT, generic) remain the primary installation method. MCP is an optional data-access add-on, not a replacement.
+
+See `docs/mcp.md` for the full MCP roadmap.
 
 ## Tool-specific notes
 

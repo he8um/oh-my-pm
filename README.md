@@ -49,7 +49,7 @@ Oh My PM fills this gap with a reusable, installable, open-source delivery layer
 | Codex | ✅ via `AGENTS.md` + Codex Skill |
 | ChatGPT | ✅ via ChatGPT Skill |
 | Generic agents | ✅ via `AGENTS.md` |
-| Future MCP | 🗓 Planned — v0.7.0 |
+| MCP (future) | 🗓 Planned — v0.7.0 alpha |
 
 ---
 
@@ -94,7 +94,7 @@ This copies `AGENTS.md` and the Codex Skill into your project.
 
 ### Install as ChatGPT Skill
 
-1. Download the latest `oh-my-pm-v0.4.0-chatgpt-skill.zip` from [Releases](https://github.com/he8um/oh-my-pm/releases).
+1. Download the latest `oh-my-pm-v0.5.0-chatgpt-skill.zip` from [Releases](https://github.com/he8um/oh-my-pm/releases).
 2. Unzip and upload `SKILL.md` as a custom GPT context file, or follow the ChatGPT Skill import process.
 
 ---
@@ -124,6 +124,20 @@ Each release includes:
 | `oh-my-pm-vX.Y.Z-generic-agent-pack.zip` | Generic AGENTS.md pack |
 | `checksums.txt` | SHA-256 checksums |
 | `validation-report.md` | Release validation results |
+
+---
+
+## MCP (future)
+
+MCP (Model Context Protocol) support is planned as an optional integration layer.
+
+- v0.6.0 documents the interface design and security model.
+- v0.7.0 is planned as a read-only MCP server alpha — local context only, no external connector required.
+- External connectors (GitHub, ClickUp, Linear, Jira, Notion, Airtable) are planned one per version starting at v0.8.0.
+
+MCP does not replace existing packs. Current Claude Code, Cursor, Codex, ChatGPT, and generic pack support is unaffected.
+
+See `docs/mcp.md` for the full MCP roadmap.
 
 ---
 

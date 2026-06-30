@@ -7,6 +7,23 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 
 ---
 
+## [Unreleased] — v0.6.0
+
+### Added in v0.6.0
+
+- `docs/mcp.md`: deepened MCP planning document — what MCP will do, what it won't do, read-only-first policy, planned tools, resources, prompts, connector roadmap, security principles, bilingual behavior, open questions
+- `docs/mcp-interface-design.md`: new — MCP interface design covering design principles, server identity, tool naming conventions, resource naming, prompt naming, input/output shapes, error handling, read-only-first policy, write action gating, bilingual response behavior, token-efficient behavior, local repository context boundaries
+- `docs/mcp-security-policy.md`: new — MCP security policy covering credentials, read-only default, write action gating, connector allowlist, no telemetry, no background network calls, no broad scans, least privilege, auditability, failure-safe behavior
+- `docs/mcp-connector-roadmap.md`: new — connector sequencing and design for all 7 planned connectors (v0.7.0 alpha through v0.13.0 Notion), each with purpose, read-only capabilities, potential future write capability, risks, non-goals, required configuration, testing approach
+- `docs/architecture.md`: added layer model diagram (core skill layer, installable pack layer, future MCP layer), expanded MCP section with why MCP is optional, why MCP must not contradict AGENTS.md, how MCP relates to agent behavior
+- `docs/security-model.md`: added MCP security section — credentials, read-only default, connector allowlist, no telemetry, no broad scans, failure-safe behavior
+- `docs/supported-tools.md`: added MCP status section and planned connector table (v0.7.0–v0.13.0)
+- `docs/compatibility.md`: updated MCP known limitation to reflect v0.6.0 documentation status
+- `README.md`: added MCP future section with v0.6.0 and v0.7.0 description
+- `ROADMAP.md`: marked v0.6.0 as in progress
+
+---
+
 ## [v0.5.0] — 2026-06-30
 
 ### Added in v0.5.0

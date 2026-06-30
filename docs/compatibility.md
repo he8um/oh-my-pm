@@ -32,7 +32,7 @@ Always check the `CHANGELOG.md` before upgrading.
 ## Known limitations
 
 - v0.1.0-alpha: starter content only; deep playbooks and examples are planned for later phases.
-- MCP integration is not available in this version. Planned for v0.7.0.
+- MCP integration is not available in v0.5.0 or v0.6.0. Interface design and security policy documented in v0.6.0. Alpha implementation planned for v0.7.0.
 - The install contract may change before v1.0.0.
 
 ## Related docs

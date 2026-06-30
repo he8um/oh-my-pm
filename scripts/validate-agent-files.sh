@@ -209,6 +209,25 @@ check_exists "examples/mixed-delivery-project/output.en.md" "examples/mixed-deli
 check_exists "examples/mixed-delivery-project/output.fa.md" "examples/mixed-delivery-project/output.fa.md"
 
 echo ""
+echo "--- MCP docs (Phase 6) ---"
+check_exists "docs/mcp.md" "docs/mcp.md"
+check_exists "docs/mcp-interface-design.md" "docs/mcp-interface-design.md"
+check_exists "docs/mcp-security-policy.md" "docs/mcp-security-policy.md"
+check_exists "docs/mcp-connector-roadmap.md" "docs/mcp-connector-roadmap.md"
+check_contains "docs/architecture.md: MCP layer" "docs/architecture.md" "MCP layer"
+check_contains "docs/security-model.md: read-only" "docs/security-model.md" "read-only"
+check_contains "ROADMAP.md: v0.7.0" "ROADMAP.md" "v0.7.0"
+
+# Confirm packages/mcp-server does not exist in Phase 6
+if [ -d "$REPO_ROOT/packages/mcp-server" ]; then
+  echo "FAIL: packages/mcp-server must not exist in Phase 6"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS: packages/mcp-server does not exist (correct for Phase 6)"
+  PASS=$((PASS + 1))
+fi
+
+echo ""
 echo "=== Summary ==="
 echo "Passed: $PASS"
 echo "Failed: $FAIL"
