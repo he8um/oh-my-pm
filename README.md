@@ -5,7 +5,7 @@
 Oh My PM is not a prompt pack. It is a reusable delivery leadership layer for AI agents.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v0.5.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v0.6.0-blue.svg)](CHANGELOG.md)
 
 ---
 
