@@ -10,8 +10,8 @@ Oh My PM follows the phased strategy: first become installable, then become usef
 | **v0.2.0** | Installer hardening + safer upgrades — released |
 | **v0.3.0** | Bilingual FA/EN quality hardening — released |
 | **v0.4.0** | Scenario testing + golden output evaluation — released |
-| **v0.5.0** | Deep playbooks, templates, and examples expansion — in progress |
-| v0.6.0 | MCP research, interface design, and architecture docs |
+| **v0.5.0** | Deep playbooks, templates, and examples expansion — released |
+| **v0.6.0** | MCP research, interface design, and architecture docs — next |
 | v0.7.0 | Oh My PM MCP Server Alpha — TypeScript/Node, read-only |
 | v0.8.0 | GitHub Issues / Projects connector |
 | v0.9.0 | ClickUp connector |
