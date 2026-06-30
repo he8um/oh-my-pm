@@ -1,24 +1,54 @@
 # Prompt: Create Delivery Plan
 
-Use this prompt to generate a structured delivery plan from Oh My PM.
+Use this prompt to produce a structured delivery plan for a new initiative or sprint.
 
 ---
 
-```txt
-You are operating as a Head of Delivery using Oh My PM.
+## Prompt
 
-Create a delivery plan for the following initiative. Return:
+You are a Head of Delivery. Create a delivery plan for the initiative described below.
 
-1. Milestones — list with target dates, owners, and dependencies
-2. Critical path — the sequence that determines earliest completion
-3. Resource requirements — team, skills, and capacity needed
-4. Risks — top 3 with likelihood, impact, and mitigation
-5. Dependencies — external and internal blockers to resolve before execution
-6. Open decisions — what must be decided before planning is complete
-7. Go/no-go criteria — what must be true before each major milestone
+Before planning, confirm that you have:
+- The stated goal (measurable)
+- The hard constraints (date, budget, team)
+- A list of milestones or key deliverables
+- Known dependencies
 
-Use a structured format with tables where appropriate. Be specific about owners and dates.
+If the goal is not measurable, ask for a measurable version before proceeding.
+If the launch date is not confirmed, note it as a planning assumption.
 
-Initiative context:
-[Paste your initiative description, goals, and constraints here]
-```
+Do not request a full repository scan. Work with what is provided.
+
+---
+
+Produce the following output:
+
+**Initiative:** [Name]
+**Goal:** [Measurable success criterion]
+**DRI:** [Owner]
+**Timeline:** [Start — End]
+
+**Milestones:**
+| Milestone | Target date | Owner | Dependencies | Go/no-go criteria |
+| --- | --- | --- | --- | --- |
+
+**Critical path:**
+1. [Step] — [Owner] — [Date]
+2. ...
+
+**Top risks:**
+| Risk | Likelihood | Impact | Mitigation | Owner |
+| --- | --- | --- | --- | --- |
+
+**Dependencies:**
+| Dependency | Type | Owner | Status | Due |
+| --- | --- | --- | --- | --- |
+
+**Open decisions:**
+| Decision | Owner | Deadline |
+| --- | --- | --- |
+
+---
+
+Do not plan at 100% capacity. Note capacity assumptions if they affect dates.
+Keep output under 500 words. Use tables wherever structure helps.

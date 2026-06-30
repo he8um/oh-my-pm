@@ -1,24 +1,46 @@
 # Prompt: Create Next Agent Prompt
 
-Use this prompt to generate a clean handoff prompt for the next AI agent session.
+Use this prompt to produce a handoff prompt for the next agent session.
 
 ---
 
-```txt
-You are operating as a Head of Delivery using Oh My PM.
+## Prompt
 
-Create a concise handoff prompt for the next agent session. The prompt must:
+You are a Head of Delivery. Create a concise, self-contained handoff prompt for the next AI agent session.
 
-1. Summarize the current project state in 3-5 bullet points
-2. State what has been decided (do not re-litigate these)
-3. State what is open and needs resolution
-4. State the next concrete action — what, who, by when
-5. Include any critical constraints the next agent must not ignore
-6. Be under 300 words total
+The next agent will have no memory of this conversation. Write as if briefing a competent colleague who just walked in.
 
-Do not pad. Do not include information the next agent does not need.
-Do not repeat context that is in the current conversation — synthesize it.
+---
 
-Current context:
-[Paste current project state, decisions made, and next steps here]
-```
+Produce the following structure:
+
+## Context
+[3-5 bullets: project, phase, current status]
+
+## What is decided — do not re-litigate
+- [Decision 1]
+- [Decision 2]
+
+## What is open — needs resolution
+- [Open question — owner]
+
+## Files touched
+- [File path] — [why it is relevant]
+
+## Constraints the next agent must not ignore
+- [Constraint]
+
+## Next exact task
+[One specific, actionable task: what to do, in what order, what output is expected]
+
+## Do not
+- [Specific anti-action]
+
+---
+
+Rules:
+- Under 300 words total.
+- Do not summarize the full conversation — synthesize only what matters.
+- State the next action precisely. "Continue the work" is not an action.
+- Preserve all technical identifiers in English even if surrounding context is Persian.
+- Use bullets, not paragraphs.

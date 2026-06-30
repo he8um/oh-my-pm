@@ -2,42 +2,78 @@
 
 **Project:**
 **Date:**
-**Owner:**
-**Status:** 🟢 Green / 🟡 Amber / 🔴 Red
+**Author:**
+**Audience:** Executive / Team / Cross-functional / External
+
+---
+
+## Status
+
+🟢 Green / 🟡 Amber / 🔴 Red
+
+**One-line rationale:**
 
 ---
 
 ## Summary
 
-[2-3 sentences on overall project status. Lead with the key message.]
+_2-3 sentences. Lead with the key message: status, trend, and what is at risk. Not background, not context._
 
-## What changed this week
+---
 
-- [Change 1]
-- [Change 2]
+## What changed this period
 
-## Key decisions needed
+-
+-
 
-| Decision | Owner | Due |
-| --- | --- | --- |
-| | | |
+---
 
-## Risks
+## Key metrics
 
-| Risk | Status |
-| --- | --- |
-| | Open / Mitigated |
+| Metric | Last period | This period | Target | Trend |
+| --- | --- | --- | --- | --- |
+| | | | | ↑ / → / ↓ |
+
+---
+
+## Milestones
+
+| Milestone | Target date | Owner | Status |
+| --- | --- | --- | --- |
+| | | | 🟢 On track / 🟡 At risk / 🔴 Blocked |
+
+---
 
 ## Blockers
 
-- [Blocker — owner — escalation needed: yes/no]
+| Blocker | Owner | Escalated | Since |
+| --- | --- | --- | --- |
+| | | Yes / No | |
 
-## Next milestones
+---
 
-| Milestone | Target date | Status |
+## Risks
+
+| Risk | Score | Status | Owner |
+| --- | --- | --- | --- |
+| | Critical / High / Med | Open / Mitigated | |
+
+---
+
+## Decisions needed
+
+| Decision | Owner | By |
 | --- | --- | --- |
-| | | On track / At risk / Blocked |
+| | | |
 
-## Notes
+---
 
-[Anything else the reader needs to know]
+## Next actions
+
+| Action | Owner | By |
+| --- | --- | --- |
+| | | |
+
+---
+
+_Next update:_

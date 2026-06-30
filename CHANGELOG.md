@@ -7,6 +7,36 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 
 ---
 
+## [Unreleased] — v0.5.0
+
+### Added in v0.5.0
+
+- All 12 playbooks deepened with full operational structure: Purpose, When to use, Inputs needed, Fast-start questions, Recommended process, Output structure, Decision rules, Risk checks, Quality checklist, Common mistakes, Bilingual notes, Related templates, Related scenarios
+- `playbooks/project-intake.md`: intake signal checklist table (7 signals), fast-start questions, scope control rules
+- `playbooks/project-diagnosis.md`: RAG status rules table, critical path format, blocker escalation rules
+- `playbooks/scope-control.md`: scope change impact analysis format, signs of scope creep list, escalation criteria
+- `playbooks/delivery-planning.md`: milestone quality rules, critical path identification, capacity assumption guidance
+- `playbooks/backlog-prioritization.md`: framework selection guide table, MoSCoW, RICE guidance, dependency-aware sequencing
+- `playbooks/risk-review.md`: blocker vs risk vs issue table, risk scoring matrix, mitigation vs contingency distinction, trigger definition
+- `playbooks/prd-review.md`: gap severity table, acceptance criteria quality bar, success metric quality bar
+- `playbooks/marketing-plan-review.md`: critical path for marketing launches, common risk table with mitigation, measurement readiness checklist
+- `playbooks/launch-readiness.md`: go/no-go decision format, full launch readiness checklist (engineering, marketing, support), rollback planning questions
+- `playbooks/stakeholder-update.md`: audience calibration table (4 types), escalation format, decision request format, bad news communication steps, Persian stakeholder notes
+- `playbooks/retrospective.md`: root cause depth guidance, action item quality bar, timebox guidance
+- `playbooks/ai-agent-handoff.md`: token efficiency rules, handoff structure format, do-not list pattern, 300-word cap
+- All 6 EN templates deepened: `project-brief.md`, `prd.md`, `roadmap.md`, `risk-register.md`, `decision-log.md`, `status-report.md` — full tables, scoring guides, decision principles
+- All 6 FA templates updated to match EN depth with natural Persian: `project-brief.md`, `prd.md`, `roadmap.md`, `risk-register.md`, `decision-log.md`, `status-report.md`
+- All 3 EN prompts improved: `diagnose-project.md`, `create-delivery-plan.md`, `create-next-agent-prompt.md` — context-first, focused inputs, token-efficient output structure
+- All 3 FA prompts improved: `diagnose-project.md`, `create-delivery-plan.md`, `create-next-agent-prompt.md` — technical identifier preservation rules, compact output structure
+- Improved example outputs for all 4 project types: marketing, product, and mixed-delivery outputs expanded with critical path, risk tables, immediate actions, and key decisions
+- `validate-agent-files.sh`: 65 → 103 checks — Phase 5 coverage for all 12 playbooks, 6 EN templates, 6 FA templates, 6 EN prompts, 6 FA prompts, 8 example outputs
+
+### Changed in v0.5.0
+
+- `validate-agent-files.sh`: expanded with Phase 5 structural checks
+
+---
+
 ## [v0.4.0] — 2026-06-30
 
 ### Added in v0.4.0
