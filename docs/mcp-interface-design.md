@@ -100,9 +100,13 @@ configured at once:
 - Linear (v0.11.0): `linear_list_issues`, `linear_summarize_issue`,
   `linear_summarize_project_status`, `linear_list_teams`,
   `linear_list_projects`
+- Jira (v0.12.0): `jira_list_issues`, `jira_summarize_issue`,
+  `jira_summarize_project_status`, `jira_list_projects`,
+  `jira_list_boards`
 
 See `docs/github-connector.md`, `docs/clickup-connector.md`,
-`docs/airtable-connector.md`, and `docs/linear-connector.md` for the
+`docs/airtable-connector.md`, `docs/linear-connector.md`, and
+`docs/jira-connector.md` for the
 authoritative tool list per connector.
 
 ---

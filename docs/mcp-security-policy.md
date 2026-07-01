@@ -62,7 +62,7 @@ In v0.7.0, the allowlist contains no external connectors — local repo context 
 
 Connectors are added one per version starting at v0.8.0. Each connector is reviewed for security before release.
 
-As of v0.11.0, the allowlist contains: GitHub Issues/Projects (v0.8.0), ClickUp (v0.9.0), Airtable (v0.10.0), Linear (v0.11.0). All are read-only.
+As of v0.12.0, the allowlist contains: GitHub Issues/Projects (v0.8.0), ClickUp (v0.9.0), Airtable (v0.10.0), Linear (v0.11.0), Jira (v0.12.0). All are read-only.
 
 ---
 
@@ -105,6 +105,7 @@ If local logging is added for debugging, it is:
 - ClickUp connector: read-only API token scoped to the minimum workspace access needed — no write-capable endpoint is ever called
 - Airtable connector: read-only personal access token scoped to `data.records:read` and `schema.bases:read` only, limited to the base(s) actually used — no write-capable endpoint is ever called
 - Linear connector: member-level (not admin) API key limited to the team(s) actually used — the connector never sends a GraphQL mutation
+- Jira connector: member-level (not site-admin) API token limited to the project(s) actually used — the connector never calls a write endpoint (`POST`/`PUT`/`PATCH`/`DELETE`), including issue transitions
 - Other connectors: equivalent read-only scope at configuration time
 - The server does not request scopes it does not need
 

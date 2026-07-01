@@ -378,6 +378,38 @@ for write_tool in \
 done
 
 echo ""
+echo "--- Jira connector (Phase 12) ---"
+check_exists "docs/jira-connector.md" "docs/jira-connector.md"
+check_exists "packages/mcp-server/src/connectors/jira/config.ts" "packages/mcp-server/src/connectors/jira/config.ts"
+check_exists "packages/mcp-server/src/connectors/jira/client.ts" "packages/mcp-server/src/connectors/jira/client.ts"
+check_exists "packages/mcp-server/src/connectors/jira/types.ts" "packages/mcp-server/src/connectors/jira/types.ts"
+check_exists "packages/mcp-server/src/connectors/jira/errors.ts" "packages/mcp-server/src/connectors/jira/errors.ts"
+check_exists "packages/mcp-server/src/tools/jira-list-issues.ts" "packages/mcp-server/src/tools/jira-list-issues.ts"
+check_exists "packages/mcp-server/src/tools/jira-summarize-issue.ts" "packages/mcp-server/src/tools/jira-summarize-issue.ts"
+check_exists "packages/mcp-server/src/tools/jira-summarize-project-status.ts" "packages/mcp-server/src/tools/jira-summarize-project-status.ts"
+check_exists "packages/mcp-server/src/tools/jira-list-projects.ts" "packages/mcp-server/src/tools/jira-list-projects.ts"
+check_exists "packages/mcp-server/src/tools/jira-list-boards.ts" "packages/mcp-server/src/tools/jira-list-boards.ts"
+check_exists "packages/mcp-server/tests/jira-config.test.ts" "packages/mcp-server/tests/jira-config.test.ts"
+check_exists "packages/mcp-server/tests/jira-read-only-policy.test.ts" "packages/mcp-server/tests/jira-read-only-policy.test.ts"
+check_exists "packages/mcp-server/tests/jira-tools.test.ts" "packages/mcp-server/tests/jira-tools.test.ts"
+check_contains "docs/jira-connector.md: no write actions" "docs/jira-connector.md" "No write actions"
+check_contains "docs/jira-connector.md: OH_MY_PM_JIRA_TOKEN" "docs/jira-connector.md" "OH_MY_PM_JIRA_TOKEN"
+check_contains "packages/mcp-server/src/connectors/jira/config.ts: OH_MY_PM_JIRA_TOKEN" "packages/mcp-server/src/connectors/jira/config.ts" "OH_MY_PM_JIRA_TOKEN"
+
+# Confirm no Jira write tool filenames exist
+for write_tool in \
+  "jira-create-issue" "jira-update-issue" "jira-delete-issue" \
+  "jira-transition-issue" "jira-create-comment" "jira-change-status"; do
+  if [ -f "$REPO_ROOT/packages/mcp-server/src/tools/${write_tool}.ts" ]; then
+    echo "FAIL: write tool ${write_tool}.ts must not exist in Phase 12"
+    FAIL=$((FAIL + 1))
+  else
+    echo "PASS: no write tool ${write_tool}.ts (correct for Phase 12)"
+    PASS=$((PASS + 1))
+  fi
+done
+
+echo ""
 echo "=== Summary ==="
 echo "Passed: $PASS"
 echo "Failed: $FAIL"

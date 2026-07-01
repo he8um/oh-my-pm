@@ -19,8 +19,8 @@
 | ClickUp | v0.9.0 | MCP connector — read-only — shipped |
 | Airtable | v0.10.0 | MCP connector — read-only — shipped |
 | Linear | v0.11.0 | MCP connector — read-only — shipped |
-| Jira | v0.12.0 | MCP connector — read-only — next |
-| Notion | v0.13.0 | MCP connector — read-only |
+| Jira | v0.12.0 | MCP connector — read-only — shipped |
+| Notion | v0.13.0 | MCP connector — read-only — next |
 
 ## MCP status
 
@@ -32,7 +32,8 @@ MCP (Model Context Protocol) is an optional integration layer available as an al
 - v0.9.0: ClickUp connector — read-only, environment-variable configured — **shipped**
 - v0.10.0: Airtable connector — read-only, environment-variable configured — **shipped**
 - v0.11.0: Linear connector — read-only, environment-variable configured — **shipped**
-- v0.12.0+: Additional connectors added one per version (Jira next)
+- v0.12.0: Jira connector — read-only, environment-variable configured — **shipped**
+- v0.13.0+: Additional connectors added one per version (Notion next)
 
 Install: `cd packages/mcp-server && npm install && npm run build`. Configure via `examples/client-config.example.json`.
 

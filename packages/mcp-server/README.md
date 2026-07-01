@@ -1,8 +1,8 @@
 # Oh My PM MCP Server
 
-Read-only MCP server for Oh My PM — local context tools, GitHub connector, ClickUp connector, Airtable connector, and Linear connector for delivery agents.
+Read-only MCP server for Oh My PM — local context tools, GitHub connector, ClickUp connector, Airtable connector, Linear connector, and Jira connector for delivery agents.
 
-**Version:** v0.11.0  
+**Version:** v0.12.0  
 **Transport:** stdio (local only)  
 **Status:** Alpha
 
@@ -10,7 +10,7 @@ Read-only MCP server for Oh My PM — local context tools, GitHub connector, Cli
 
 ## What this is
 
-The Oh My PM MCP server gives MCP-compatible clients (Claude Code, Cursor, etc.) structured access to local project context, GitHub Issues/Milestones, ClickUp workspace/list/task data, Airtable base/table/record data, and Linear team/project/issue data.
+The Oh My PM MCP server gives MCP-compatible clients (Claude Code, Cursor, etc.) structured access to local project context, GitHub Issues/Milestones, ClickUp workspace/list/task data, Airtable base/table/record data, Linear team/project/issue data, and Jira project/board/sprint/issue data.
 
 All tools are read-only. No write actions. No mutations.
 
@@ -76,6 +76,18 @@ Airtable tools require `OH_MY_PM_AIRTABLE_BASE_ID` and `OH_MY_PM_AIRTABLE_TOKEN`
 
 Linear tools require `OH_MY_PM_LINEAR_TEAM_ID` and `OH_MY_PM_LINEAR_TOKEN`. Like the ClickUp and Airtable connectors, Linear has no unauthenticated fallback — a missing token returns a degraded response rather than crashing. The connector uses Linear's GraphQL API but sends only a small, fixed set of read-only queries — never a mutation. See `docs/linear-connector.md`.
 
+### Jira connector tools (v0.12.0)
+
+| Tool | Description |
+| --- | --- |
+| `jira_list_issues` | List open issues in the configured project, with delivery tags (blocked, stale, unassigned, missing estimate, missing sprint, overdue) |
+| `jira_summarize_issue` | Structured summary of a single issue by key (e.g. PROJ-123) |
+| `jira_summarize_project_status` | Delivery status summary of the configured project: issue counts, blockers, active sprint completion rate, next actions |
+| `jira_list_projects` | List projects accessible to the configured site |
+| `jira_list_boards` | List boards in the configured project |
+
+Jira tools require `OH_MY_PM_JIRA_BASE_URL`, `OH_MY_PM_JIRA_PROJECT_KEY`, `OH_MY_PM_JIRA_EMAIL`, and `OH_MY_PM_JIRA_TOKEN`. Unlike the bearer-token connectors, Jira authenticates with HTTP Basic auth (email + API token) — a missing email or token returns a degraded response rather than crashing. The client issues only `GET` requests. See `docs/jira-connector.md`.
+
 ---
 
 ## Resources
@@ -94,6 +106,9 @@ Linear tools require `OH_MY_PM_LINEAR_TEAM_ID` and `OH_MY_PM_LINEAR_TOKEN`. Like
 | `linear://workspace/current` | Current configured Linear workspace identity |
 | `linear://teams` | Teams accessible to the configured Linear token (bounded) |
 | `linear://issues/open` | Open issues in the configured Linear team (bounded) |
+| `jira://site/current` | Current configured Jira site identity |
+| `jira://projects` | Projects accessible to the configured Jira site (bounded) |
+| `jira://issues/open` | Open issues in the configured Jira project (bounded) |
 
 ---
 
@@ -113,6 +128,9 @@ Linear tools require `OH_MY_PM_LINEAR_TEAM_ID` and `OH_MY_PM_LINEAR_TOKEN`. Like
 | `summarize-linear-delivery-status` | Delivery status using Linear issue/project data |
 | `diagnose-linear-issue-backlog` | Linear issue backlog diagnosis |
 | `prepare-linear-project-handoff` | Handoff prompt seeded with Linear context |
+| `summarize-jira-delivery-status` | Delivery status using Jira issue/board/sprint data |
+| `diagnose-jira-issue-backlog` | Jira issue backlog diagnosis |
+| `prepare-jira-project-handoff` | Handoff prompt seeded with Jira context |
 
 ---
 
@@ -203,18 +221,30 @@ Add to your MCP client config (e.g. `~/.config/claude/claude_desktop_config.json
 
 **Token security:** The token is read from the environment at startup only. It is never logged, never returned in tool output, and never included in error messages. When missing, tools return a degraded response instead of crashing.
 
+### Jira connector (v0.12.0)
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `OH_MY_PM_JIRA_BASE_URL` | Yes | Jira Cloud site base URL (e.g. `https://yourorg.atlassian.net`) |
+| `OH_MY_PM_JIRA_EMAIL` | Yes | Account email — paired with the token for Basic auth |
+| `OH_MY_PM_JIRA_TOKEN` | Yes | Jira API token — required for all reads, no unauthenticated fallback |
+| `OH_MY_PM_JIRA_PROJECT_KEY` | Yes | Jira project key |
+| `OH_MY_PM_JIRA_BOARD_ID` | No | Default board ID for board/sprint-scoped tools |
+
+**Token security:** The email and token are read from the environment at startup only. Neither is logged, returned in tool output, or included in error messages. When either is missing, tools return a degraded response instead of crashing.
+
 ---
 
 ## Security
 
 - Read-only. No write actions. No mutations in any tool.
-- GitHub, ClickUp, Airtable, and Linear tokens (if set) are never logged, never returned in tool output, never in error messages.
+- GitHub, ClickUp, Airtable, Linear, and Jira tokens (if set) are never logged, never returned in tool output, never in error messages.
 - Sensitive local file patterns (`.env`, `*.key`, `*.pem`) are excluded from reads.
 - Path traversal attempts are rejected.
 - No background polling. No telemetry. No credential storage.
-- The Linear connector never sends a GraphQL mutation.
+- The Linear connector never sends a GraphQL mutation. The Jira connector never calls a write endpoint (`POST`/`PUT`/`PATCH`/`DELETE`).
 
-See `docs/mcp-security-policy.md`, `docs/github-connector.md`, `docs/clickup-connector.md`, `docs/airtable-connector.md`, and `docs/linear-connector.md` in the repository root.
+See `docs/mcp-security-policy.md`, `docs/github-connector.md`, `docs/clickup-connector.md`, `docs/airtable-connector.md`, `docs/linear-connector.md`, and `docs/jira-connector.md` in the repository root.
 
 ---
 
@@ -239,3 +269,4 @@ pnpm start       # start the server (requires pnpm build first)
 - `docs/clickup-connector.md` — ClickUp connector scope, tools, configuration, and failure behavior
 - `docs/airtable-connector.md` — Airtable connector scope, tools, configuration, and failure behavior
 - `docs/linear-connector.md` — Linear connector scope, tools, configuration, and failure behavior
+- `docs/jira-connector.md` — Jira connector scope, tools, configuration, and failure behavior

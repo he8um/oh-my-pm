@@ -35,6 +35,14 @@ import {
 } from "./tools/linear-summarize-project-status.js";
 import { linearListTeams } from "./tools/linear-list-teams.js";
 import { linearListProjects } from "./tools/linear-list-projects.js";
+import { jiraListIssues, jiraListIssuesSchema } from "./tools/jira-list-issues.js";
+import { jiraSummarizeIssue, jiraSummarizeIssueSchema } from "./tools/jira-summarize-issue.js";
+import {
+  jiraSummarizeProjectStatus,
+  jiraSummarizeProjectStatusSchema,
+} from "./tools/jira-summarize-project-status.js";
+import { jiraListProjects } from "./tools/jira-list-projects.js";
+import { jiraListBoards } from "./tools/jira-list-boards.js";
 import { registerResources } from "./resources/registry.js";
 import { registerPrompts } from "./prompts/registry.js";
 import { enforceReadOnly } from "./policy/read-only.js";
@@ -42,7 +50,7 @@ import { enforceReadOnly } from "./policy/read-only.js";
 export async function startServer(): Promise<void> {
   const server = new McpServer({
     name: "oh-my-pm",
-    version: "0.11.0",
+    version: "0.12.0",
   });
 
   enforceReadOnly(server);
@@ -303,6 +311,58 @@ export async function startServer(): Promise<void> {
     {},
     async () => {
       const result = await linearListProjects();
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  // ── Jira connector tools (read-only) ────────────────────────────────────────
+
+  server.tool(
+    "jira_list_issues",
+    "List open Jira issues in the configured project with delivery tags (blocked, stale, unassigned, missing estimate, missing sprint, overdue). Requires OH_MY_PM_JIRA_BASE_URL, OH_MY_PM_JIRA_PROJECT_KEY, OH_MY_PM_JIRA_EMAIL, and OH_MY_PM_JIRA_TOKEN.",
+    jiraListIssuesSchema,
+    async (params) => {
+      const result = await jiraListIssues(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "jira_summarize_issue",
+    "Get a structured summary of a single Jira issue by key (e.g. PROJ-123).",
+    jiraSummarizeIssueSchema,
+    async (params) => {
+      const result = await jiraSummarizeIssue(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "jira_summarize_project_status",
+    "Summarize delivery status of the configured Jira project: open issue count, blockers, unassigned issues, missing estimates, missing sprint assignment, overdue issues, stale issues, active sprint completion rate, next actions.",
+    jiraSummarizeProjectStatusSchema,
+    async (params) => {
+      const result = await jiraSummarizeProjectStatus(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "jira_list_projects",
+    "List projects accessible to the configured Jira site.",
+    {},
+    async () => {
+      const result = await jiraListProjects();
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "jira_list_boards",
+    "List boards in the configured Jira project.",
+    {},
+    async () => {
+      const result = await jiraListBoards();
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     }
   );

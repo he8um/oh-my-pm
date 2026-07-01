@@ -1,6 +1,6 @@
 {
   "name": "@oh-my-pm/mcp-server",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Oh My PM MCP Server — read-only local context tools for delivery agents",
   "license": "MIT",
   "private": true,

@@ -258,4 +258,69 @@ export function registerPrompts(server: McpServer): void {
       ],
     })
   );
+
+  // ── Jira connector prompts ─────────────────────────────────────────────
+
+  server.prompt(
+    "summarize-jira-delivery-status",
+    "Summarize delivery status using Jira issue, board, and sprint data.",
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              "You are the Oh My PM Head of Delivery agent.",
+              "Use jira_summarize_project_status and jira_list_issues to produce a delivery status summary.",
+              "Output: open issue count, blockers, unassigned issues, missing estimates, missing sprint assignment, overdue issues, stale issues, active sprint completion rate if available, next actions.",
+              "State assumptions and limitations explicitly. Format: structured — bullets and a short table. Under 250 words.",
+            ].join(" "),
+          },
+        },
+      ],
+    })
+  );
+
+  server.prompt(
+    "diagnose-jira-issue-backlog",
+    "Diagnose the Jira issue backlog using delivery semantics.",
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              "You are the Oh My PM Head of Delivery agent.",
+              "Use jira_list_issues and jira_summarize_project_status to diagnose the issue backlog.",
+              "Identify: blocked work, stale work, unassigned work, missing estimates, missing sprint assignment, overdue issues, unclear statuses, missing priorities.",
+              "Note that dependency risk is not computed — the connector does not read Jira issue links.",
+              "Format: structured — bullets grouped by risk category. Under 300 words.",
+            ].join(" "),
+          },
+        },
+      ],
+    })
+  );
+
+  server.prompt(
+    "prepare-jira-project-handoff",
+    "Prepare a project handoff prompt seeded with current Jira issue and project context.",
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              "You are the Oh My PM Head of Delivery agent.",
+              "Use jira_summarize_project_status and prepare_agent_handoff together.",
+              "Produce a self-contained handoff prompt under 300 words that includes: current project issue status, blockers, unassigned or unestimated issues (handoff gaps), and immediate next actions.",
+            ].join(" "),
+          },
+        },
+      ],
+    })
+  );
 }

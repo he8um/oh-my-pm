@@ -32,7 +32,7 @@ Always check the `CHANGELOG.md` before upgrading.
 ## Known limitations
 
 - v0.1.0-alpha: starter content only; deep playbooks and examples are planned for later phases.
-- MCP server alpha available in v0.7.0 — local context tools. GitHub Issues / Projects connector added in v0.8.0 — read-only, environment-variable configured. See `docs/github-connector.md`. ClickUp connector added in v0.9.0 — read-only, environment-variable configured. See `docs/clickup-connector.md`. Airtable connector added in v0.10.0 — read-only, environment-variable configured. See `docs/airtable-connector.md`. Linear connector added in v0.11.0 — read-only, environment-variable configured. See `docs/linear-connector.md`.
+- MCP server alpha available in v0.7.0 — local context tools. GitHub Issues / Projects connector added in v0.8.0 — read-only, environment-variable configured. See `docs/github-connector.md`. ClickUp connector added in v0.9.0 — read-only, environment-variable configured. See `docs/clickup-connector.md`. Airtable connector added in v0.10.0 — read-only, environment-variable configured. See `docs/airtable-connector.md`. Linear connector added in v0.11.0 — read-only, environment-variable configured. See `docs/linear-connector.md`. Jira connector added in v0.12.0 — read-only, environment-variable configured. See `docs/jira-connector.md`.
 - The install contract may change before v1.0.0.
 
 ## Related docs

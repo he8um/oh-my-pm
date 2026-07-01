@@ -22,6 +22,13 @@ import { fetchOpenIssuesInTeam } from "../connectors/linear/issues.js";
 import { extractDeliveryTags as extractLinearDeliveryTags } from "../connectors/linear/formatters.js";
 import { makeDegradedNoToken as makeLinearDegradedNoToken } from "../connectors/linear/errors.js";
 import { HARD_MAX_ISSUES } from "../connectors/linear/limits.js";
+import { loadJiraConfig } from "../connectors/jira/config.js";
+import { JiraClient } from "../connectors/jira/client.js";
+import { fetchProjects as fetchJiraProjects } from "../connectors/jira/projects.js";
+import { fetchOpenIssuesInProject } from "../connectors/jira/issues.js";
+import { extractDeliveryTags as extractJiraDeliveryTags } from "../connectors/jira/formatters.js";
+import { makeDegradedNoToken as makeJiraDegradedNoToken } from "../connectors/jira/errors.js";
+import { HARD_MAX_ISSUES as JIRA_HARD_MAX_ISSUES } from "../connectors/jira/limits.js";
 
 export function registerResources(server: McpServer): void {
   const root = getProjectRoot();
@@ -181,6 +188,38 @@ export function registerResources(server: McpServer): void {
     async (_uri) => {
       const content = JSON.stringify(await readLinearOpenIssues(), null, 2);
       return { contents: [{ uri: "linear://issues/open", text: content }] };
+    }
+  );
+
+  // ── Jira connector resources (read-only, bounded) ────────────────────────
+
+  server.resource(
+    "jira://site/current",
+    "jira://site/current",
+    { description: "Current configured Jira site identity." },
+    async (_uri) => {
+      const content = JSON.stringify(await readJiraSiteCurrent(), null, 2);
+      return { contents: [{ uri: "jira://site/current", text: content }] };
+    }
+  );
+
+  server.resource(
+    "jira://projects",
+    "jira://projects",
+    { description: "Projects accessible to the configured Jira site (bounded)." },
+    async (_uri) => {
+      const content = JSON.stringify(await readJiraProjects(), null, 2);
+      return { contents: [{ uri: "jira://projects", text: content }] };
+    }
+  );
+
+  server.resource(
+    "jira://issues/open",
+    "jira://issues/open",
+    { description: "Open issues in the configured Jira project (bounded)." },
+    async (_uri) => {
+      const content = JSON.stringify(await readJiraOpenIssues(), null, 2);
+      return { contents: [{ uri: "jira://issues/open", text: content }] };
     }
   );
 }
@@ -361,6 +400,59 @@ async function readLinearOpenIssues(): Promise<Record<string, unknown>> {
       title: i.title,
       state: i.state_name,
       delivery_tags: extractLinearDeliveryTags(i),
+    })),
+  };
+}
+
+async function readJiraSiteCurrent(): Promise<Record<string, unknown>> {
+  const { config, error } = loadJiraConfig();
+  if (error || !config) {
+    return { read_at: now(), status: "error", error_code: "config_missing", message: error };
+  }
+  if (!config.email || !config.token) {
+    return { read_at: now(), ...makeJiraDegradedNoToken() };
+  }
+  return { read_at: now(), status: "ok", base_url: config.baseUrl };
+}
+
+async function readJiraProjects(): Promise<Record<string, unknown>> {
+  const { config, error } = loadJiraConfig();
+  if (error || !config) {
+    return { read_at: now(), status: "error", error_code: "config_missing", message: error };
+  }
+  if (!config.email || !config.token) {
+    return { read_at: now(), ...makeJiraDegradedNoToken() };
+  }
+  const client = new JiraClient(config);
+  const { projects, error: fetchError } = await fetchJiraProjects(client);
+  if (fetchError) return { read_at: now(), ...(fetchError as Record<string, unknown>) };
+  return { read_at: now(), status: "ok", projects: projects ?? [] };
+}
+
+async function readJiraOpenIssues(): Promise<Record<string, unknown>> {
+  const { config, error } = loadJiraConfig();
+  if (error || !config) {
+    return { read_at: now(), status: "error", error_code: "config_missing", message: error };
+  }
+  if (!config.email || !config.token) {
+    return { read_at: now(), ...makeJiraDegradedNoToken() };
+  }
+  const client = new JiraClient(config);
+  const { issues, error: fetchError } = await fetchOpenIssuesInProject(
+    client,
+    config.projectKey,
+    JIRA_HARD_MAX_ISSUES
+  );
+  if (fetchError) return { read_at: now(), ...(fetchError as Record<string, unknown>) };
+  return {
+    read_at: now(),
+    status: "ok",
+    project_key: config.projectKey,
+    issues: (issues ?? []).map((i) => ({
+      key: i.key,
+      summary: i.summary,
+      status: i.status_name,
+      delivery_tags: extractJiraDeliveryTags(i),
     })),
   };
 }

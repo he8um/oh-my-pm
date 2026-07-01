@@ -40,6 +40,14 @@ export const LINEAR_READ_ONLY_TOOLS = new Set([
   "linear_list_projects",
 ]);
 
+export const JIRA_READ_ONLY_TOOLS = new Set([
+  "jira_list_issues",
+  "jira_summarize_issue",
+  "jira_summarize_project_status",
+  "jira_list_projects",
+  "jira_list_boards",
+]);
+
 const LOCAL_READ_ONLY_TOOLS = new Set([
   "inspect_project_context",
   "diagnose_project",
@@ -54,6 +62,7 @@ export function isReadOnlyTool(toolName: string): boolean {
     GITHUB_READ_ONLY_TOOLS.has(toolName) ||
     CLICKUP_READ_ONLY_TOOLS.has(toolName) ||
     AIRTABLE_READ_ONLY_TOOLS.has(toolName) ||
-    LINEAR_READ_ONLY_TOOLS.has(toolName)
+    LINEAR_READ_ONLY_TOOLS.has(toolName) ||
+    JIRA_READ_ONLY_TOOLS.has(toolName)
   );
 }

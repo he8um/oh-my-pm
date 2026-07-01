@@ -7,6 +7,40 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 
 ---
 
+## [Unreleased] — v0.12.0
+
+### Added in v0.12.0
+
+- `docs/jira-connector.md`: new — Jira connector scope, read-only policy, tools, resources, prompts, configuration, failure behavior, rate-limit behavior, pagination/limit behavior, delivery semantics, test approach, explicit write-action exclusions
+- `packages/mcp-server/src/connectors/jira/`: Jira connector — config.ts, errors.ts, types.ts, limits.ts, formatters.ts, client.ts, issues.ts, projects.ts, boards.ts
+- `packages/mcp-server/src/tools/jira-list-issues.ts`: list open issues in the configured project with delivery tags (blocked, stale, unassigned, missing estimate, missing sprint, overdue), bounded to 25 items by default
+- `packages/mcp-server/src/tools/jira-summarize-issue.ts`: structured summary of a single issue by key
+- `packages/mcp-server/src/tools/jira-summarize-project-status.ts`: project delivery status summary — issue counts, blockers, active sprint completion rate, handoff gaps, recommended next actions
+- `packages/mcp-server/src/tools/jira-list-projects.ts`: list projects accessible to the configured site
+- `packages/mcp-server/src/tools/jira-list-boards.ts`: list boards in the configured project
+- `packages/mcp-server/src/resources/registry.ts`: added `jira://site/current`, `jira://projects`, `jira://issues/open` resources (bounded)
+- `packages/mcp-server/src/prompts/registry.ts`: added `summarize-jira-delivery-status`, `diagnose-jira-issue-backlog`, `prepare-jira-project-handoff` prompts
+- `packages/mcp-server/tests/jira-config.test.ts`: 5 config loading tests (missing base URL, missing project key, defaults, optional board ID)
+- `packages/mcp-server/tests/jira-read-only-policy.test.ts`: 4 read-only policy tests (Jira tool allowlist, write-style rejections, client issues only GET requests)
+- `packages/mcp-server/tests/jira-formatting.test.ts`: 18 formatting tests (rate limit headers, status category classification, delivery tag extraction, description truncation, item clamping)
+- `packages/mcp-server/tests/jira-tools.test.ts`: 15 integration tests (mocked Jira REST responses, config errors, missing-token degraded response, auth errors, active sprint completion rate, token/email redaction)
+- `packages/mcp-server/src/policy/read-only.ts`: expanded — Jira tool allowlist added, `JIRA_READ_ONLY_TOOLS` exported
+
+### Changed in v0.12.0
+
+- `packages/mcp-server/src/server.ts`: registered 5 Jira connector tools — `jira_list_issues`, `jira_summarize_issue`, `jira_summarize_project_status`, `jira_list_projects`, `jira_list_boards`
+- `packages/mcp-server/src/server.ts`: version bumped to `0.12.0`
+- `packages/mcp-server/package.json`: version bumped to `0.12.0`
+- `validate-agent-files.sh`: expanded with Phase 12 Jira connector checks
+- `ROADMAP.md`: v0.12.0 marked as in progress, v0.13.0 marked as next
+- `docs/mcp-connector-roadmap.md`: Jira marked as in progress — Phase 12
+- `docs/mcp-security-policy.md`: Jira added to the connector allowlist and least-privilege guidance
+- `docs/mcp-interface-design.md`: documented implemented Jira connector tool names
+- `docs/compatibility.md`, `docs/supported-tools.md`: Jira connector marked shipped
+- `packages/mcp-server/README.md`: added Jira connector tool, resource, prompt, and configuration documentation
+
+---
+
 ## [v0.11.0] — 2026-07-01
 
 ### Added in v0.11.0

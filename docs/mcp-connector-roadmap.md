@@ -15,7 +15,7 @@ No connectors are implemented in v0.6.0. This is a planning document.
 | v0.9.0 | ClickUp | Released — Phase 9 |
 | v0.10.0 | Airtable | Released — Phase 10 |
 | v0.11.0 | Linear | Released — Phase 11 |
-| v0.12.0 | Jira | Enterprise standard, complex API, higher integration cost |
+| **v0.12.0** | Jira | In progress — Phase 12 |
 | v0.13.0 | Notion | Docs-as-PM hybrid, high user demand, API has limitations |
 
 One connector per version. Connectors do not ship until their security review is complete.
@@ -235,16 +235,16 @@ See `docs/linear-connector.md` for the full connector scope.
 
 ---
 
-## v0.12.0 — Jira Connector
+## v0.12.0 — Jira Connector (In progress — Phase 12)
 
-**Purpose:** Give the agent access to Jira issues and sprint data for enterprise delivery contexts.
+**Purpose:** Give the agent access to Jira project, board, sprint, and issue data for enterprise delivery diagnosis, issue backlog review, and sprint/board review.
 
 **Read-only first capability:**
 
-- List open issues in a configured project
-- Get sprint status (active sprint, velocity, completion rate)
-- List issues with blocker or critical priority
-- List issues assigned to a named team member
+- List open issues in a configured project, with delivery tags (blocked, stale, unassigned, missing estimate, missing sprint, overdue)
+- Summarize a single issue by key
+- Summarize project delivery status: issue counts, blockers, active sprint completion rate, next-action candidates
+- List projects and boards
 
 **Potential future write capability (not in v0.12.0):**
 
@@ -260,7 +260,11 @@ OH_MY_PM_JIRA_TOKEN=<api-token>
 OH_MY_PM_JIRA_PROJECT_KEY=<project-key>
 ```
 
-**Testing approach:** Jira REST API mocked in unit tests. Integration tests require a Jira Cloud sandbox account.
+Jira uses HTTP Basic auth (email + API token) rather than a single bearer
+token — unlike GitHub, ClickUp, Airtable, and Linear. Missing email or token
+returns a degraded response.
+
+**Testing approach:** Jira REST API mocked in unit tests. No real Jira API calls in tests. The client issues only `GET` requests — no `POST`, `PUT`, `PATCH`, or `DELETE` request is ever sent.
 
 **Risks:**
 
@@ -273,6 +277,9 @@ OH_MY_PM_JIRA_PROJECT_KEY=<project-key>
 - No Jira Confluence integration
 - No Jira Service Management integration
 - No custom field mapping in v0.12.0
+- No issue link / dependency resolution
+
+See `docs/jira-connector.md` for the full connector scope.
 
 ---
 
