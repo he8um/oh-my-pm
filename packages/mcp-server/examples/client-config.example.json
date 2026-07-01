@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "oh-my-pm": {
+      "command": "node",
+      "args": ["/absolute/path/to/oh-my-pm/packages/mcp-server/dist/index.js"],
+      "env": {
+        "OH_MY_PM_PROJECT_ROOT": "/absolute/path/to/your/project"
+      }
+    }
+  }
+}

@@ -7,6 +7,41 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 
 ---
 
+## [v0.7.0] — Unreleased
+
+### Added in v0.7.0
+
+- `packages/mcp-server/`: Oh My PM MCP Server alpha — TypeScript/Node.js/pnpm, stdio transport, read-only, local context only, no external connector required
+- `packages/mcp-server/src/tools/inspect-project-context.ts`: reads AGENTS.md, VERSION, README.md to return project identity
+- `packages/mcp-server/src/tools/diagnose-project.ts`: structured project diagnosis from local docs (ROADMAP.md, CHANGELOG.md)
+- `packages/mcp-server/src/tools/prepare-agent-handoff.ts`: generates self-contained handoff prompt under 300 words
+- `packages/mcp-server/src/tools/summarize-delivery-status.ts`: delivery status summary from ROADMAP.md and CHANGELOG.md
+- `packages/mcp-server/src/resources/registry.ts`: three resources — `project://current`, `project://risks/open`, `project://decisions/open`
+- `packages/mcp-server/src/prompts/registry.ts`: three prompts — `diagnose-project`, `prepare-agent-handoff`, `summarize-delivery-status`
+- `packages/mcp-server/src/policy/read-only.ts`: read-only constraint enforcement and tool allowlist
+- `packages/mcp-server/src/policy/bilingual.ts`: technical identifier preservation rules (API, rollback, sprint, backlog, QA, CI/CD)
+- `packages/mcp-server/src/policy/token-limits.ts`: response size bounds (max 50 list items, 300-word handoff cap)
+- `packages/mcp-server/src/utils/safe-files.ts`: safe local file reading — path traversal rejection, sensitive file pattern exclusion
+- `packages/mcp-server/src/utils/formatting.ts`: structured response shape helpers (ok, partial, error)
+- `packages/mcp-server/tests/`: 4 test files, 16 tests — read-only policy, tool schemas, safe file reading, bilingual policy
+- `packages/mcp-server/examples/client-config.example.json`: MCP client configuration example
+- `packages/mcp-server/examples/requests.example.md`: tool invocation examples with sample responses
+- `packages/mcp-server/README.md`: install, configure, and run documentation
+- `docs/mcp-alpha-scope.md`: resolves all Phase 6 open questions — SDK version, auth model, project root discovery, stale data signaling, connector degradation, env var names, tool/resource/prompt scope
+- `package.json` (root): minimal workspace root for pnpm
+- `pnpm-workspace.yaml`: declares `packages/*` workspace
+- `validate-agent-files.sh`: expanded from 111 to 133 checks — Phase 7 MCP server alpha checks (22 new)
+
+### Changed in v0.7.0
+
+- `docs/mcp.md`: open questions section now points to `docs/mcp-alpha-scope.md` as resolved
+- `docs/supported-tools.md`: MCP status updated to reflect v0.7.0 alpha shipped
+- `docs/compatibility.md`: MCP known limitation updated to reflect v0.7.0 availability
+- `ROADMAP.md`: v0.7.0 marked as in progress
+- `.gitignore`: added `packages/mcp-server/dist/` and `packages/mcp-server/coverage/`
+
+---
+
 ## [v0.6.0] — 2026-06-30
 
 ### Added in v0.6.0

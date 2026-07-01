@@ -32,7 +32,7 @@ Always check the `CHANGELOG.md` before upgrading.
 ## Known limitations
 
 - v0.1.0-alpha: starter content only; deep playbooks and examples are planned for later phases.
-- MCP integration is not available in v0.5.0 or v0.6.0. Interface design and security policy documented in v0.6.0. Alpha implementation planned for v0.7.0.
+- MCP server alpha is available in v0.7.0 — read-only, local context only, stdio transport, no external connector required. See `docs/mcp-alpha-scope.md` and `packages/mcp-server/README.md`.
 - The install contract may change before v1.0.0.
 
 ## Related docs

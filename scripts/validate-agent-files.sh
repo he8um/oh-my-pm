@@ -218,12 +218,37 @@ check_contains "docs/architecture.md: MCP layer" "docs/architecture.md" "MCP lay
 check_contains "docs/security-model.md: read-only" "docs/security-model.md" "read-only"
 check_contains "ROADMAP.md: v0.7.0" "ROADMAP.md" "v0.7.0"
 
-# Confirm packages/mcp-server does not exist in Phase 6
-if [ -d "$REPO_ROOT/packages/mcp-server" ]; then
-  echo "FAIL: packages/mcp-server must not exist in Phase 6"
+echo ""
+echo "--- MCP server alpha (Phase 7) ---"
+check_exists "docs/mcp-alpha-scope.md" "docs/mcp-alpha-scope.md"
+check_exists "packages/mcp-server/README.md" "packages/mcp-server/README.md"
+check_exists "packages/mcp-server/package.json" "packages/mcp-server/package.json"
+check_exists "packages/mcp-server/tsconfig.json" "packages/mcp-server/tsconfig.json"
+check_exists "packages/mcp-server/src/index.ts" "packages/mcp-server/src/index.ts"
+check_exists "packages/mcp-server/src/server.ts" "packages/mcp-server/src/server.ts"
+check_exists "packages/mcp-server/src/policy/read-only.ts" "packages/mcp-server/src/policy/read-only.ts"
+check_exists "packages/mcp-server/src/tools/inspect-project-context.ts" "packages/mcp-server/src/tools/inspect-project-context.ts"
+check_exists "packages/mcp-server/src/tools/diagnose-project.ts" "packages/mcp-server/src/tools/diagnose-project.ts"
+check_exists "packages/mcp-server/src/tools/prepare-agent-handoff.ts" "packages/mcp-server/src/tools/prepare-agent-handoff.ts"
+check_exists "packages/mcp-server/src/tools/summarize-delivery-status.ts" "packages/mcp-server/src/tools/summarize-delivery-status.ts"
+check_exists "packages/mcp-server/src/resources/registry.ts" "packages/mcp-server/src/resources/registry.ts"
+check_exists "packages/mcp-server/src/prompts/registry.ts" "packages/mcp-server/src/prompts/registry.ts"
+check_exists "packages/mcp-server/src/utils/safe-files.ts" "packages/mcp-server/src/utils/safe-files.ts"
+check_exists "packages/mcp-server/tests/read-only-policy.test.ts" "packages/mcp-server/tests/read-only-policy.test.ts"
+check_exists "packages/mcp-server/tests/tool-schemas.test.ts" "packages/mcp-server/tests/tool-schemas.test.ts"
+check_exists "packages/mcp-server/tests/safe-files.test.ts" "packages/mcp-server/tests/safe-files.test.ts"
+check_exists "packages/mcp-server/tests/bilingual-policy.test.ts" "packages/mcp-server/tests/bilingual-policy.test.ts"
+check_contains "packages/mcp-server/src/policy/read-only.ts: isReadOnlyTool" "packages/mcp-server/src/policy/read-only.ts" "isReadOnlyTool"
+check_contains "packages/mcp-server/package.json: build script" "packages/mcp-server/package.json" "tsc"
+check_contains "packages/mcp-server/package.json: test script" "packages/mcp-server/package.json" "jest"
+
+# Confirm no write tools exist in Phase 7 alpha
+if grep -r "write\|create_task\|update_status\|delete_issue\|POST\|PUT\|PATCH\|DELETE" \
+     "$REPO_ROOT/packages/mcp-server/src/tools/" 2>/dev/null | grep -v "^.*tsconfig\|comment\|//\|no write\|No write\|No mutations\|read-only\|write capability\|write action" | grep -q .; then
+  echo "FAIL: packages/mcp-server/src/tools/ must not contain write actions in v0.7.0 alpha"
   FAIL=$((FAIL + 1))
 else
-  echo "PASS: packages/mcp-server does not exist (correct for Phase 6)"
+  echo "PASS: packages/mcp-server/src/tools/ contains no write actions (correct for Phase 7 alpha)"
   PASS=$((PASS + 1))
 fi
 

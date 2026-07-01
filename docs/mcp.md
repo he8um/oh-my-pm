@@ -206,13 +206,17 @@ Phase 7 will implement the MCP server alpha:
 
 ## Open questions
 
-These will be resolved before v0.7.0 implementation begins:
+All open questions from Phase 6 have been resolved in `docs/mcp-alpha-scope.md`.
 
-1. Which MCP client versions are targeted for v0.7.0 compatibility?
-2. What is the authentication model for local-only MCP server use?
-3. How does the MCP server discover the project root in a multi-repo environment?
-4. How does the agent signal that MCP data is stale or unavailable?
-5. What is the graceful degradation behavior when a connector returns an error?
+Summary of decisions:
+
+1. **MCP client version targeting:** Protocol version `2024-11-05` (stable base, supported by `@modelcontextprotocol/sdk` and Claude Code).
+2. **Auth model:** No authentication in v0.7.0 local-only alpha. stdio transport runs as a client subprocess — no network exposure.
+3. **Project root discovery:** `OH_MY_PM_PROJECT_ROOT` environment variable; falls back to `process.cwd()`. Single root per instance.
+4. **Stale/unavailable data:** Tools return `status: "partial"` with a `warnings` array for missing files; `status: "error"` when project root is unreadable.
+5. **Connector error degradation:** Structured `status: "error"` response; agent continues without data. (v0.7.0 has no external connectors.)
+
+See `docs/mcp-alpha-scope.md` for full resolution details.
 
 ---
 

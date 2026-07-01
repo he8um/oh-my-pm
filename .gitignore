@@ -21,6 +21,10 @@ dist/*
 # Dependencies
 node_modules/
 
+# MCP server build and test output
+packages/mcp-server/dist/
+packages/mcp-server/coverage/
+
 # Logs and OS/editor noise
 *.log
 .DS_Store
