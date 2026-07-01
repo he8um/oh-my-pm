@@ -25,7 +25,7 @@ Once installed, Cursor will apply Oh My PM Head of Delivery behaviors via the MD
 
 ## Version
 
-v0.13.0
+v1.0.0
 
 ## Source
 

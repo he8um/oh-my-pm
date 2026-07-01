@@ -1,6 +1,6 @@
 {
   "name": "oh-my-pm",
-  "version": "v0.13.0",
+  "version": "v1.0.0",
   "display_name": "Oh My PM",
   "description": "Open-source Head of Delivery agent kit for project, product, software, and marketing execution.",
   "author": "AmirHesam Piri",
@@ -9,17 +9,17 @@
   "repository": "https://github.com/he8um/oh-my-pm",
   "releases_url": "https://github.com/he8um/oh-my-pm/releases",
   "assets": {
-    "chatgpt_skill": "https://github.com/he8um/oh-my-pm/releases/download/v0.13.0/oh-my-pm-v0.13.0-chatgpt-skill.zip",
-    "codex_skill": "https://github.com/he8um/oh-my-pm/releases/download/v0.13.0/oh-my-pm-v0.13.0-codex-skill.zip",
-    "claude_pack": "https://github.com/he8um/oh-my-pm/releases/download/v0.13.0/oh-my-pm-v0.13.0-claude-pack.zip",
-    "cursor_pack": "https://github.com/he8um/oh-my-pm/releases/download/v0.13.0/oh-my-pm-v0.13.0-cursor-pack.zip",
-    "generic_agent_pack": "https://github.com/he8um/oh-my-pm/releases/download/v0.13.0/oh-my-pm-v0.13.0-generic-agent-pack.zip",
-    "checksums": "https://github.com/he8um/oh-my-pm/releases/download/v0.13.0/checksums.txt"
+    "chatgpt_skill": "https://github.com/he8um/oh-my-pm/releases/download/v1.0.0/oh-my-pm-v1.0.0-chatgpt-skill.zip",
+    "codex_skill": "https://github.com/he8um/oh-my-pm/releases/download/v1.0.0/oh-my-pm-v1.0.0-codex-skill.zip",
+    "claude_pack": "https://github.com/he8um/oh-my-pm/releases/download/v1.0.0/oh-my-pm-v1.0.0-claude-pack.zip",
+    "cursor_pack": "https://github.com/he8um/oh-my-pm/releases/download/v1.0.0/oh-my-pm-v1.0.0-cursor-pack.zip",
+    "generic_agent_pack": "https://github.com/he8um/oh-my-pm/releases/download/v1.0.0/oh-my-pm-v1.0.0-generic-agent-pack.zip",
+    "checksums": "https://github.com/he8um/oh-my-pm/releases/download/v1.0.0/checksums.txt"
   },
   "install_targets": {
     "claude": "CLAUDE.md",
     "cursor": ".cursor/rules/",
     "codex": ["AGENTS.md", ".agents/skills/oh-my-pm/"]
   },
-  "notes": "Alpha release. Install contract may change before v1.0.0."
+  "notes": "Stable release. Install contract is stable as of v1.0.0."
 }

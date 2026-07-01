@@ -7,6 +7,36 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 
 ---
 
+## [v1.0.0] — 2026-07-01
+
+### Added in v1.0.0
+
+- `docs/release-readiness-v1.0.0.md`: new — the authoritative v1.0.0 promotion criteria document (install/pack/MCP contract stability, connector readiness, security/privacy, bilingual quality, manual QA checklist, release command checklist, rollback plan, post-release verification checklist)
+- `scripts/validate-agent-files.sh`: added a v1.0.0 stabilization readiness section — checks for `docs/release-readiness-v1.0.0.md`, per-connector docs and source directories, a guard against referencing an unplanned next connector phase, and pack VERSION lockstep + root-vs-pack `.cursor/rules/*.mdc` byte-identity checks
+
+### Changed in v1.0.0
+
+- All pack and skill `VERSION` files, `packages/mcp-server/package.json`, `packages/mcp-server/src/server.ts`, `install.json`, and `scripts/validate-release.sh` bumped to `v1.0.0`
+- `install.json`: asset URLs updated to the `v1.0.0` release; `notes` field updated from alpha/pre-v1.0.0 wording to reflect a stable install contract
+- `ROADMAP.md`: `v1.0.0` marked released; MCP integration section rewritten from future-tense planning language to present-tense shipped-state description
+- `docs/mcp.md`: rewritten to remove all "planned"/"future"/"will" language in favor of present-tense shipped-state descriptions; replaced the fictional planned-tool-categories table with a pointer to the real `<connector>_<verb>_<noun>` naming convention; consolidated per-version scope sections into a single implementation history section
+- `docs/architecture.md`: layer model updated — all three layers (core skill, installable pack, MCP integration) now described as existing today, not planned
+- `docs/security-model.md`: MCP security section reframed from future to present tense
+- `docs/compatibility.md`: version compatibility table expanded to cover the full `v0.1.0-alpha`–`v0.13.0` range with an MCP column
+- `installers/verify-install.sh`: Cursor check block expanded from 4 to all 9 installed `.mdc` files, matching what `install-cursor.sh` actually copies
+- `packs/cursor/.cursor/rules/70-bilingual-fa-en.mdc`: synced to match the root `.cursor/rules/70-bilingual-fa-en.mdc` exactly (previously missing sections and term-table rows)
+- README.md, pack READMEs, `CLAUDE.md`, `AGENTS.md`, and skill `SKILL.md` files: current-version fields bumped to `v1.0.0`
+
+### What v1.0.0 means
+
+- Stable install contract across Claude Code, Cursor, Codex, and generic agent packs
+- Stable pack contract — root and pack content verified in sync
+- Stable, read-only-only MCP contract across all six shipped connectors: GitHub, ClickUp, Airtable, Linear, Jira, Notion
+- No write actions, credential storage, telemetry, or dashboard anywhere in scope
+- See `docs/release-readiness-v1.0.0.md` for the full criteria this release was promoted against
+
+---
+
 ## [v0.13.0] — 2026-07-01
 
 ### Added in v0.13.0

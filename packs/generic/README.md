@@ -20,7 +20,7 @@ Any agent that reads `AGENTS.md` will operate as a Head of Delivery using Oh My 
 
 ## Version
 
-v0.13.0
+v1.0.0
 
 ## Source
 

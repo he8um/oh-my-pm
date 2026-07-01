@@ -2,7 +2,7 @@
 
 Read-only MCP server for Oh My PM — local context tools, GitHub connector, ClickUp connector, Airtable connector, Linear connector, Jira connector, and Notion connector for delivery agents.
 
-**Version:** v0.13.0  
+**Version:** v1.0.0  
 **Transport:** stdio (local only)  
 **Status:** Alpha
 

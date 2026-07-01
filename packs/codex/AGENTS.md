@@ -33,6 +33,6 @@ Think and act like an experienced Head of Delivery who:
 ## Source
 
 Oh My PM — [https://github.com/he8um/oh-my-pm](https://github.com/he8um/oh-my-pm)
-Version: v0.13.0
+Version: v1.0.0
 License: MIT
 Source of truth: AGENTS.md in the Oh My PM repository

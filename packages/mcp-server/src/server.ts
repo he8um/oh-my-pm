@@ -58,7 +58,7 @@ import { enforceReadOnly } from "./policy/read-only.js";
 export async function startServer(): Promise<void> {
   const server = new McpServer({
     name: "oh-my-pm",
-    version: "0.13.0",
+    version: "1.0.0",
   });
 
   enforceReadOnly(server);

@@ -19,17 +19,17 @@ Oh My PM follows the phased strategy: first become installable, then become usef
 | v0.11.0 | Linear connector — released |
 | v0.12.0 | Jira connector — released |
 | v0.13.0 | Notion connector — released |
-| **v1.0.0** | Stable install contract + stable core + optional MCP support — next |
+| **v1.0.0** | Stable install contract + stable core + optional MCP support — released |
 
 ## MCP integration
 
-MCP (Model Context Protocol) support is planned as a **future optional integration layer** starting at v0.7.0.
+MCP (Model Context Protocol) support is an optional integration layer, shipped starting at v0.7.0.
 
-MCP will be PM-focused and read-only at first. Write actions will come later behind explicit confirmation and policy.
+MCP is PM-focused and read-only. Write actions would require explicit confirmation and policy review before any connector enables them — see `docs/mcp-security-policy.md`.
 
-MCP will not replace or alter the core agent behavior defined in `AGENTS.md`. It is an optional data access layer on top of the existing delivery agent kit.
+MCP does not replace or alter the core agent behavior defined in `AGENTS.md`. It is an optional data access layer on top of the existing delivery agent kit.
 
-See `docs/mcp.md` for full MCP plans.
+See `docs/mcp.md` for the full MCP design and connector list.
 
 ## What is not on the roadmap
 
@@ -37,6 +37,7 @@ See `docs/mcp.md` for full MCP plans.
 - A generic automation platform
 - Vendor lock-in to any specific AI provider
 - Telemetry or data collection
+- Write actions in any connector
 
 ## Related docs
 
