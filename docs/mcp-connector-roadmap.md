@@ -15,7 +15,7 @@ No connectors are implemented in v0.6.0. This is a planning document.
 | v0.9.0 | ClickUp | Released — Phase 9 |
 | v0.10.0 | Airtable | Released — Phase 10 |
 | v0.11.0 | Linear | Released — Phase 11 |
-| **v0.12.0** | Jira | In progress — Phase 12 |
+| v0.12.0 | Jira | Released — Phase 12 |
 | v0.13.0 | Notion | Docs-as-PM hybrid, high user demand, API has limitations |
 
 One connector per version. Connectors do not ship until their security review is complete.
@@ -235,7 +235,7 @@ See `docs/linear-connector.md` for the full connector scope.
 
 ---
 
-## v0.12.0 — Jira Connector (In progress — Phase 12)
+## v0.12.0 — Jira Connector (Released — Phase 12)
 
 **Purpose:** Give the agent access to Jira project, board, sprint, and issue data for enterprise delivery diagnosis, issue backlog review, and sprint/board review.
 

@@ -17,8 +17,8 @@ Oh My PM follows the phased strategy: first become installable, then become usef
 | v0.9.0 | ClickUp connector — released |
 | v0.10.0 | Airtable connector — released |
 | v0.11.0 | Linear connector — released |
-| **v0.12.0** | Jira connector — in progress |
-| v0.13.0 | Notion connector — next |
+| v0.12.0 | Jira connector — released |
+| **v0.13.0** | Notion connector — next |
 | v1.0.0 | Stable install contract + stable core + optional MCP support |
 
 ## MCP integration
