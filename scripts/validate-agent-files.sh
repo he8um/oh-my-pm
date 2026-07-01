@@ -284,6 +284,37 @@ for write_tool in \
 done
 
 echo ""
+echo "--- ClickUp connector (Phase 9) ---"
+check_exists "docs/clickup-connector.md" "docs/clickup-connector.md"
+check_exists "packages/mcp-server/src/connectors/clickup/config.ts" "packages/mcp-server/src/connectors/clickup/config.ts"
+check_exists "packages/mcp-server/src/connectors/clickup/client.ts" "packages/mcp-server/src/connectors/clickup/client.ts"
+check_exists "packages/mcp-server/src/connectors/clickup/types.ts" "packages/mcp-server/src/connectors/clickup/types.ts"
+check_exists "packages/mcp-server/src/connectors/clickup/errors.ts" "packages/mcp-server/src/connectors/clickup/errors.ts"
+check_exists "packages/mcp-server/src/tools/clickup-list-tasks.ts" "packages/mcp-server/src/tools/clickup-list-tasks.ts"
+check_exists "packages/mcp-server/src/tools/clickup-summarize-task.ts" "packages/mcp-server/src/tools/clickup-summarize-task.ts"
+check_exists "packages/mcp-server/src/tools/clickup-summarize-list-status.ts" "packages/mcp-server/src/tools/clickup-summarize-list-status.ts"
+check_exists "packages/mcp-server/src/tools/clickup-list-spaces.ts" "packages/mcp-server/src/tools/clickup-list-spaces.ts"
+check_exists "packages/mcp-server/tests/clickup-config.test.ts" "packages/mcp-server/tests/clickup-config.test.ts"
+check_exists "packages/mcp-server/tests/clickup-read-only-policy.test.ts" "packages/mcp-server/tests/clickup-read-only-policy.test.ts"
+check_exists "packages/mcp-server/tests/clickup-tools.test.ts" "packages/mcp-server/tests/clickup-tools.test.ts"
+check_contains "docs/clickup-connector.md: no write actions" "docs/clickup-connector.md" "No write actions"
+check_contains "docs/clickup-connector.md: OH_MY_PM_CLICKUP_TOKEN" "docs/clickup-connector.md" "OH_MY_PM_CLICKUP_TOKEN"
+check_contains "packages/mcp-server/src/connectors/clickup/config.ts: OH_MY_PM_CLICKUP_TOKEN" "packages/mcp-server/src/connectors/clickup/config.ts" "OH_MY_PM_CLICKUP_TOKEN"
+
+# Confirm no ClickUp write tool filenames exist
+for write_tool in \
+  "clickup-create-task" "clickup-update-task" "clickup-delete-task" \
+  "clickup-create-comment" "clickup-change-status" "clickup-assign"; do
+  if [ -f "$REPO_ROOT/packages/mcp-server/src/tools/${write_tool}.ts" ]; then
+    echo "FAIL: write tool ${write_tool}.ts must not exist in Phase 9"
+    FAIL=$((FAIL + 1))
+  else
+    echo "PASS: no write tool ${write_tool}.ts (correct for Phase 9)"
+    PASS=$((PASS + 1))
+  fi
+done
+
+echo ""
 echo "=== Summary ==="
 echo "Passed: $PASS"
 echo "Failed: $FAIL"

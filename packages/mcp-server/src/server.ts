@@ -9,6 +9,16 @@ import { githubListIssues, githubListIssuesSchema } from "./tools/github-list-is
 import { githubSummarizeIssue, githubSummarizeIssueSchema } from "./tools/github-summarize-issue.js";
 import { githubListMilestones } from "./tools/github-list-milestones.js";
 import { githubGetRepositoryContext } from "./tools/github-get-repository-context.js";
+import { clickupListTasks, clickupListTasksSchema } from "./tools/clickup-list-tasks.js";
+import { clickupSummarizeTask, clickupSummarizeTaskSchema } from "./tools/clickup-summarize-task.js";
+import {
+  clickupSummarizeListStatus,
+  clickupSummarizeListStatusSchema,
+} from "./tools/clickup-summarize-list-status.js";
+import { clickupListSpaces } from "./tools/clickup-list-spaces.js";
+import { clickupListFolders, clickupListFoldersSchema } from "./tools/clickup-list-folders.js";
+import { clickupListLists, clickupListListsSchema } from "./tools/clickup-list-lists.js";
+import { clickupGetWorkspaceContext } from "./tools/clickup-get-workspace-context.js";
 import { registerResources } from "./resources/registry.js";
 import { registerPrompts } from "./prompts/registry.js";
 import { enforceReadOnly } from "./policy/read-only.js";
@@ -16,7 +26,7 @@ import { enforceReadOnly } from "./policy/read-only.js";
 export async function startServer(): Promise<void> {
   const server = new McpServer({
     name: "oh-my-pm",
-    version: "0.8.0",
+    version: "0.9.0",
   });
 
   enforceReadOnly(server);
@@ -101,6 +111,78 @@ export async function startServer(): Promise<void> {
     {},
     async () => {
       const result = await githubGetRepositoryContext();
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  // ── ClickUp connector tools (read-only) ────────────────────────────────────
+
+  server.tool(
+    "clickup_list_tasks",
+    "List open ClickUp tasks in a list with delivery tags (blocked, stale, unassigned, missing due date, overdue). Requires OH_MY_PM_CLICKUP_WORKSPACE_ID and OH_MY_PM_CLICKUP_TOKEN.",
+    clickupListTasksSchema,
+    async (params) => {
+      const result = await clickupListTasks(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "clickup_summarize_task",
+    "Get a structured summary of a single ClickUp task by ID.",
+    clickupSummarizeTaskSchema,
+    async (params) => {
+      const result = await clickupSummarizeTask(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "clickup_summarize_list_status",
+    "Summarize delivery status of a ClickUp list: open task count, blockers, stale, unassigned, missing due dates, overdue, and next-action candidates.",
+    clickupSummarizeListStatusSchema,
+    async (params) => {
+      const result = await clickupSummarizeListStatus(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "clickup_list_spaces",
+    "List spaces in the configured ClickUp workspace.",
+    {},
+    async () => {
+      const result = await clickupListSpaces();
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "clickup_list_folders",
+    "List folders in a configured or specified ClickUp space.",
+    clickupListFoldersSchema,
+    async (params) => {
+      const result = await clickupListFolders(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "clickup_list_lists",
+    "List lists in a configured or specified ClickUp folder or space.",
+    clickupListListsSchema,
+    async (params) => {
+      const result = await clickupListLists(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "clickup_get_workspace_context",
+    "Get ClickUp workspace identity: name, ID, and space count.",
+    {},
+    async () => {
+      const result = await clickupGetWorkspaceContext();
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     }
   );

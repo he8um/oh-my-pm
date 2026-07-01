@@ -1,6 +1,13 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { safeReadFile, getProjectRoot } from "../utils/safe-files.js";
 import { now } from "../utils/formatting.js";
+import { loadClickUpConfig } from "../connectors/clickup/config.js";
+import { ClickUpClient } from "../connectors/clickup/client.js";
+import { fetchWorkspaceContext, fetchSpaces } from "../connectors/clickup/hierarchy.js";
+import { fetchOpenTasksInList } from "../connectors/clickup/tasks.js";
+import { extractDeliveryTags } from "../connectors/clickup/formatters.js";
+import { makeDegradedNoToken } from "../connectors/clickup/errors.js";
+import { HARD_MAX_TASKS } from "../connectors/clickup/limits.js";
 
 export function registerResources(server: McpServer): void {
   const root = getProjectRoot();
@@ -66,4 +73,103 @@ export function registerResources(server: McpServer): void {
       return { contents: [{ uri: "project://decisions/open", text: content }] };
     }
   );
+
+  // ── ClickUp connector resources (read-only, bounded) ─────────────────────
+
+  server.resource(
+    "clickup://workspace/current",
+    "clickup://workspace/current",
+    { description: "Current configured ClickUp workspace identity." },
+    async (_uri) => {
+      const content = JSON.stringify(await readClickUpWorkspaceCurrent(), null, 2);
+      return { contents: [{ uri: "clickup://workspace/current", text: content }] };
+    }
+  );
+
+  server.resource(
+    "clickup://spaces",
+    "clickup://spaces",
+    { description: "Spaces in the configured ClickUp workspace (bounded)." },
+    async (_uri) => {
+      const content = JSON.stringify(await readClickUpSpaces(), null, 2);
+      return { contents: [{ uri: "clickup://spaces", text: content }] };
+    }
+  );
+
+  server.resource(
+    "clickup://tasks/open",
+    "clickup://tasks/open",
+    { description: "Open tasks in the configured ClickUp list (bounded)." },
+    async (_uri) => {
+      const content = JSON.stringify(await readClickUpOpenTasks(), null, 2);
+      return { contents: [{ uri: "clickup://tasks/open", text: content }] };
+    }
+  );
+}
+
+async function readClickUpWorkspaceCurrent(): Promise<Record<string, unknown>> {
+  const { config, error } = loadClickUpConfig();
+  if (error || !config) {
+    return { read_at: now(), status: "error", error_code: "config_missing", message: error };
+  }
+  if (!config.token) {
+    return { read_at: now(), ...makeDegradedNoToken() };
+  }
+  const client = new ClickUpClient(config);
+  const { workspace, error: fetchError } = await fetchWorkspaceContext(
+    client,
+    config.workspaceId
+  );
+  if (fetchError) return { read_at: now(), ...(fetchError as Record<string, unknown>) };
+  return { read_at: now(), status: "ok", workspace };
+}
+
+async function readClickUpSpaces(): Promise<Record<string, unknown>> {
+  const { config, error } = loadClickUpConfig();
+  if (error || !config) {
+    return { read_at: now(), status: "error", error_code: "config_missing", message: error };
+  }
+  if (!config.token) {
+    return { read_at: now(), ...makeDegradedNoToken() };
+  }
+  const client = new ClickUpClient(config);
+  const { spaces, error: fetchError } = await fetchSpaces(client, config.workspaceId);
+  if (fetchError) return { read_at: now(), ...(fetchError as Record<string, unknown>) };
+  return { read_at: now(), status: "ok", spaces: spaces ?? [] };
+}
+
+async function readClickUpOpenTasks(): Promise<Record<string, unknown>> {
+  const { config, error } = loadClickUpConfig();
+  if (error || !config) {
+    return { read_at: now(), status: "error", error_code: "config_missing", message: error };
+  }
+  if (!config.token) {
+    return { read_at: now(), ...makeDegradedNoToken() };
+  }
+  if (!config.listId) {
+    return {
+      read_at: now(),
+      status: "error",
+      error_code: "config_missing",
+      message: "OH_MY_PM_CLICKUP_LIST_ID is not set.",
+    };
+  }
+  const client = new ClickUpClient(config);
+  const { tasks, error: fetchError } = await fetchOpenTasksInList(
+    client,
+    config.listId,
+    HARD_MAX_TASKS
+  );
+  if (fetchError) return { read_at: now(), ...(fetchError as Record<string, unknown>) };
+  return {
+    read_at: now(),
+    status: "ok",
+    list_id: config.listId,
+    tasks: (tasks ?? []).map((t) => ({
+      id: t.id,
+      name: t.name,
+      status: t.status,
+      delivery_tags: extractDeliveryTags(t),
+    })),
+  };
 }

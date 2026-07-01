@@ -1,8 +1,8 @@
 # Oh My PM MCP Server
 
-Read-only MCP server for Oh My PM — local context tools and GitHub connector for delivery agents.
+Read-only MCP server for Oh My PM — local context tools, GitHub connector, and ClickUp connector for delivery agents.
 
-**Version:** v0.8.0  
+**Version:** v0.9.0  
 **Transport:** stdio (local only)  
 **Status:** Alpha
 
@@ -10,7 +10,7 @@ Read-only MCP server for Oh My PM — local context tools and GitHub connector f
 
 ## What this is
 
-The Oh My PM MCP server gives MCP-compatible clients (Claude Code, Cursor, etc.) structured access to local project context and GitHub Issues/Milestones.
+The Oh My PM MCP server gives MCP-compatible clients (Claude Code, Cursor, etc.) structured access to local project context, GitHub Issues/Milestones, and ClickUp workspace/list/task data.
 
 All tools are read-only. No write actions. No mutations.
 
@@ -38,6 +38,20 @@ All tools are read-only. No write actions. No mutations.
 
 GitHub tools require `OH_MY_PM_GITHUB_OWNER` and `OH_MY_PM_GITHUB_REPO` to be set. Without a token, public repositories are accessible at a lower rate limit.
 
+### ClickUp connector tools (v0.9.0)
+
+| Tool | Description |
+| --- | --- |
+| `clickup_list_tasks` | List open tasks in a list with delivery tags (blocked, stale, unassigned, missing due date, overdue) |
+| `clickup_summarize_task` | Structured summary of a single task by ID |
+| `clickup_summarize_list_status` | Delivery status summary of a list: blockers, stale, unassigned, overdue, next actions |
+| `clickup_list_spaces` | List spaces in the configured workspace |
+| `clickup_list_folders` | List folders in a configured or specified space |
+| `clickup_list_lists` | List lists in a configured or specified folder or space |
+| `clickup_get_workspace_context` | Workspace identity: name, ID, space count |
+
+ClickUp tools require `OH_MY_PM_CLICKUP_WORKSPACE_ID` and `OH_MY_PM_CLICKUP_TOKEN`. Unlike the GitHub connector, ClickUp has no unauthenticated fallback — a missing token returns a degraded response rather than crashing. See `docs/clickup-connector.md`.
+
 ---
 
 ## Resources
@@ -47,6 +61,9 @@ GitHub tools require `OH_MY_PM_GITHUB_OWNER` and `OH_MY_PM_GITHUB_REPO` to be se
 | `project://current` | Project identity: name, version, milestone state |
 | `project://risks/open` | Open risk register (local template) |
 | `project://decisions/open` | Open decisions (local template) |
+| `clickup://workspace/current` | Current configured ClickUp workspace identity |
+| `clickup://spaces` | Spaces in the configured ClickUp workspace (bounded) |
+| `clickup://tasks/open` | Open tasks in the configured ClickUp list (bounded) |
 
 ---
 
@@ -57,6 +74,9 @@ GitHub tools require `OH_MY_PM_GITHUB_OWNER` and `OH_MY_PM_GITHUB_REPO` to be se
 | `diagnose-project` | Full project diagnosis |
 | `prepare-agent-handoff` | Agent handoff prompt |
 | `summarize-delivery-status` | Delivery status summary |
+| `summarize-clickup-delivery-status` | Delivery status using ClickUp list/task data |
+| `diagnose-clickup-task-backlog` | ClickUp task backlog diagnosis |
+| `prepare-clickup-project-handoff` | Handoff prompt seeded with ClickUp context |
 
 ---
 
@@ -110,17 +130,30 @@ Add to your MCP client config (e.g. `~/.config/claude/claude_desktop_config.json
 
 **Token security:** The token is read from the environment at startup only. It is never logged, never returned in tool output, and never included in error messages.
 
+### ClickUp connector (v0.9.0)
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `OH_MY_PM_CLICKUP_WORKSPACE_ID` | Yes | ClickUp workspace (team) ID |
+| `OH_MY_PM_CLICKUP_TOKEN` | Yes | ClickUp API token — required for all reads, no unauthenticated fallback |
+| `OH_MY_PM_CLICKUP_SPACE_ID` | No | Default space ID for space-scoped tools |
+| `OH_MY_PM_CLICKUP_FOLDER_ID` | No | Default folder ID for folder-scoped tools |
+| `OH_MY_PM_CLICKUP_LIST_ID` | No | Default list ID for list/task-scoped tools |
+| `OH_MY_PM_CLICKUP_API_BASE_URL` | No | Override API base URL (default: `https://api.clickup.com/api/v2`) |
+
+**Token security:** The token is read from the environment at startup only. It is never logged, never returned in tool output, and never included in error messages. When missing, tools return a degraded response instead of crashing.
+
 ---
 
 ## Security
 
 - Read-only. No write actions. No mutations in any tool.
-- GitHub token (if set) is never logged, never returned in tool output, never in error messages.
+- GitHub and ClickUp tokens (if set) are never logged, never returned in tool output, never in error messages.
 - Sensitive local file patterns (`.env`, `*.key`, `*.pem`) are excluded from reads.
 - Path traversal attempts are rejected.
 - No background polling. No telemetry. No credential storage.
 
-See `docs/mcp-security-policy.md` and `docs/github-connector.md` in the repository root.
+See `docs/mcp-security-policy.md`, `docs/github-connector.md`, and `docs/clickup-connector.md` in the repository root.
 
 ---
 
@@ -142,3 +175,4 @@ pnpm start       # start the server (requires pnpm build first)
 - `docs/mcp-security-policy.md` — security policy
 - `docs/mcp-alpha-scope.md` — resolved open questions for v0.7.0
 - `docs/github-connector.md` — GitHub connector scope, tools, configuration, and failure behavior
+- `docs/clickup-connector.md` — ClickUp connector scope, tools, configuration, and failure behavior

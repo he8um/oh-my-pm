@@ -16,8 +16,8 @@
 | --- | --- | --- |
 | MCP-compatible agents | v0.7.0 | Read-only MCP server alpha — local context only — shipped |
 | GitHub Issues / Projects connector | v0.8.0 | Read-only — shipped |
-| ClickUp | v0.9.0 | MCP connector — read-only — next |
-| Airtable | v0.10.0 | MCP connector — read-only |
+| ClickUp | v0.9.0 | MCP connector — read-only — shipped |
+| Airtable | v0.10.0 | MCP connector — read-only — next |
 | Linear | v0.11.0 | MCP connector — read-only |
 | Jira | v0.12.0 | MCP connector — read-only |
 | Notion | v0.13.0 | MCP connector — read-only |
@@ -29,7 +29,8 @@ MCP (Model Context Protocol) is an optional integration layer available as an al
 - v0.6.0: Interface design, security policy, and connector roadmap documented
 - v0.7.0: MCP server alpha — read-only, local context only, stdio transport, no external connector required — **shipped**
 - v0.8.0: GitHub Issues / Projects connector — read-only, environment-variable configured — **shipped**
-- v0.9.0+: Additional connectors added one per version (ClickUp next)
+- v0.9.0: ClickUp connector — read-only, environment-variable configured — **shipped**
+- v0.10.0+: Additional connectors added one per version (Airtable next)
 
 Install: `cd packages/mcp-server && npm install && npm run build`. Configure via `examples/client-config.example.json`.
 

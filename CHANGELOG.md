@@ -7,6 +7,42 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 
 ---
 
+## [Unreleased] — v0.9.0
+
+### Added in v0.9.0
+
+- `docs/clickup-connector.md`: new — ClickUp connector scope, read-only policy, tools, resources, prompts, configuration, failure behavior, rate-limit behavior, pagination/limit behavior, delivery semantics, test approach, explicit write-action exclusions
+- `packages/mcp-server/src/connectors/clickup/`: ClickUp connector — config.ts, errors.ts, types.ts, limits.ts, formatters.ts, client.ts, tasks.ts, hierarchy.ts
+- `packages/mcp-server/src/tools/clickup-list-tasks.ts`: list open tasks in a list with delivery tags (blocked, stale, unassigned, missing due date, overdue), bounded to 25 items by default
+- `packages/mcp-server/src/tools/clickup-summarize-task.ts`: structured summary of a single task by ID
+- `packages/mcp-server/src/tools/clickup-summarize-list-status.ts`: list delivery status summary — blockers, stale, unassigned, missing due dates, overdue, handoff gaps, recommended next actions
+- `packages/mcp-server/src/tools/clickup-list-spaces.ts`: list spaces in the configured workspace
+- `packages/mcp-server/src/tools/clickup-list-folders.ts`: list folders in a configured or specified space
+- `packages/mcp-server/src/tools/clickup-list-lists.ts`: list lists in a configured or specified folder or space (with folderless-list fallback)
+- `packages/mcp-server/src/tools/clickup-get-workspace-context.ts`: workspace identity — name, ID, space count
+- `packages/mcp-server/src/resources/registry.ts`: added `clickup://workspace/current`, `clickup://spaces`, `clickup://tasks/open` resources (bounded)
+- `packages/mcp-server/src/prompts/registry.ts`: added `summarize-clickup-delivery-status`, `diagnose-clickup-task-backlog`, `prepare-clickup-project-handoff` prompts
+- `packages/mcp-server/tests/clickup-config.test.ts`: 6 config loading tests (missing workspace ID, defaults, custom base URL, optional IDs)
+- `packages/mcp-server/tests/clickup-read-only-policy.test.ts`: 3 read-only policy tests (ClickUp tool allowlist, write-style rejections)
+- `packages/mcp-server/tests/clickup-formatting.test.ts`: 17 formatting tests (rate limit headers, status classification, delivery tag extraction, description truncation, item clamping)
+- `packages/mcp-server/tests/clickup-tools.test.ts`: 22 integration tests (mocked ClickUp API responses, config errors, missing-token degraded response, auth errors, token redaction)
+- `packages/mcp-server/src/policy/read-only.ts`: expanded — ClickUp tool allowlist added, `CLICKUP_READ_ONLY_TOOLS` exported
+
+### Changed in v0.9.0
+
+- `packages/mcp-server/src/server.ts`: registered 7 ClickUp connector tools — `clickup_list_tasks`, `clickup_summarize_task`, `clickup_summarize_list_status`, `clickup_list_spaces`, `clickup_list_folders`, `clickup_list_lists`, `clickup_get_workspace_context`
+- `packages/mcp-server/src/server.ts`: version bumped to `0.9.0`
+- `packages/mcp-server/package.json`: version bumped to `0.9.0`
+- `validate-agent-files.sh`: expanded with Phase 9 ClickUp connector checks
+- `ROADMAP.md`: v0.9.0 marked as released, v0.10.0 marked as next
+- `docs/mcp-connector-roadmap.md`: ClickUp marked as released — Phase 9
+- `docs/mcp-security-policy.md`: ClickUp added to the connector allowlist and least-privilege guidance
+- `docs/mcp-interface-design.md`: documented implemented connector tool naming convention
+- `docs/compatibility.md`, `docs/supported-tools.md`: ClickUp connector marked shipped
+- `packages/mcp-server/README.md`: added ClickUp connector tool, resource, prompt, and configuration documentation
+
+---
+
 ## [v0.8.0] — 2026-07-01
 
 ### Added in v0.8.0

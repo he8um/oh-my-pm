@@ -11,8 +11,8 @@ No connectors are implemented in v0.6.0. This is a planning document.
 | Version | Connector | Rationale |
 | --- | --- | --- |
 | v0.7.0 | MCP server alpha — no external connector | Validate server architecture with local context only |
-| **v0.8.0** | GitHub Issues / Projects | Released — Phase 8 |
-| v0.9.0 | ClickUp | High coverage among PM and marketing teams |
+| v0.8.0 | GitHub Issues / Projects | Released — Phase 8 |
+| **v0.9.0** | ClickUp | Released — Phase 9 |
 | v0.10.0 | Airtable | Lightweight project tracking, broad use in non-engineering teams |
 | v0.11.0 | Linear | Engineering-focused, fast API, increasingly common |
 | v0.12.0 | Jira | Enterprise standard, complex API, higher integration cost |
@@ -98,16 +98,17 @@ Token must be scoped to `repo:read` only. Write scopes are not required or reque
 
 ---
 
-## v0.9.0 — ClickUp Connector
+## v0.9.0 — ClickUp Connector (Released — Phase 9)
 
-**Purpose:** Give the agent access to ClickUp task and sprint data for delivery diagnosis and prioritization.
+**Purpose:** Give the agent access to ClickUp workspace, space, folder, list, and task data for delivery diagnosis, backlog review, and prioritization.
 
 **Read-only first capability:**
 
-- List open tasks in a configured space or list
-- Get sprint (sprint list) status
-- List tasks assigned to a named team member
-- List tasks labeled as blockers or flagged as high-priority
+- List open tasks in a configured or specified list, with delivery tags (blocked, stale, unassigned, missing due date, overdue)
+- Summarize a single task by ID
+- Summarize list delivery status (blockers, stale, unassigned, missing due dates, overdue, next actions)
+- List spaces, folders, and lists in the configured workspace
+- Get workspace identity (name, ID, space count)
 
 **Potential future write capability (not in v0.9.0):**
 
@@ -119,10 +120,13 @@ Token must be scoped to `repo:read` only. Write scopes are not required or reque
 
 ```txt
 OH_MY_PM_CLICKUP_TOKEN=<api-token>
-OH_MY_PM_CLICKUP_SPACE_ID=<space-id>
+OH_MY_PM_CLICKUP_WORKSPACE_ID=<workspace-id>
 ```
 
-**Testing approach:** API responses mocked in unit tests. Integration tests against a dedicated synthetic ClickUp workspace.
+ClickUp requires a token for all useful endpoints — unlike GitHub, there is no
+unauthenticated fallback. Missing token returns a degraded response.
+
+**Testing approach:** API responses mocked in unit tests. No real ClickUp API calls in tests.
 
 **Risks:**
 
@@ -134,6 +138,10 @@ OH_MY_PM_CLICKUP_SPACE_ID=<space-id>
 - No ClickUp Docs integration
 - No time tracking data
 - No billing or workspace management
+- No comments or custom fields fetched by default
+- No dependency-risk computation (dependency endpoint not read)
+
+See `docs/clickup-connector.md` for the full connector scope.
 
 ---
 

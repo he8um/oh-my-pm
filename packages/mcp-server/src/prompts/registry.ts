@@ -62,4 +62,69 @@ export function registerPrompts(server: McpServer): void {
       ],
     })
   );
+
+  // ── ClickUp connector prompts ──────────────────────────────────────────
+
+  server.prompt(
+    "summarize-clickup-delivery-status",
+    "Summarize delivery status using ClickUp list and task data.",
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              "You are the Oh My PM Head of Delivery agent.",
+              "Use clickup_summarize_list_status and clickup_list_tasks to produce a delivery status summary.",
+              "Output: open task count, blockers, stale tasks, unassigned tasks, overdue tasks, next actions.",
+              "State assumptions and limitations explicitly. Format: structured — bullets and a short table. Under 250 words.",
+            ].join(" "),
+          },
+        },
+      ],
+    })
+  );
+
+  server.prompt(
+    "diagnose-clickup-task-backlog",
+    "Diagnose the ClickUp task backlog using delivery semantics.",
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              "You are the Oh My PM Head of Delivery agent.",
+              "Use clickup_list_tasks and clickup_summarize_list_status to diagnose the task backlog.",
+              "Identify: blocked work, stale work, unassigned work, missing due dates, overdue work, unclear statuses.",
+              "Note that dependency risk is not computed — the connector does not read task dependencies.",
+              "Format: structured — bullets grouped by risk category. Under 300 words.",
+            ].join(" "),
+          },
+        },
+      ],
+    })
+  );
+
+  server.prompt(
+    "prepare-clickup-project-handoff",
+    "Prepare a project handoff prompt seeded with current ClickUp task and list context.",
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              "You are the Oh My PM Head of Delivery agent.",
+              "Use clickup_summarize_list_status and prepare_agent_handoff together.",
+              "Produce a self-contained handoff prompt under 300 words that includes: current list status, blockers, unassigned or undated tasks (handoff gaps), and immediate next actions.",
+            ].join(" "),
+          },
+        },
+      ],
+    })
+  );
 }

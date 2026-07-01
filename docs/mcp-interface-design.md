@@ -81,6 +81,23 @@ All tools are read-only. No write actions in v0.7.0.
 | `list_open_risks` | List items tagged as risks in the connected tool | GitHub, ClickUp, Linear |
 | `summarize_stakeholder_updates` | Summarize recent stakeholder-relevant activity | GitHub, Jira, Linear |
 
+### Implemented connector tool names
+
+The tables above describe the planned generic tool vocabulary. Shipped
+connectors use a `<connector>_<verb>_<noun>` naming convention instead, to
+keep each connector's tools unambiguous when multiple connectors are
+configured at once:
+
+- GitHub (v0.8.0): `github_list_issues`, `github_summarize_issue`,
+  `github_list_milestones`, `github_get_repository_context`
+- ClickUp (v0.9.0): `clickup_list_tasks`, `clickup_summarize_task`,
+  `clickup_summarize_list_status`, `clickup_list_spaces`,
+  `clickup_list_folders`, `clickup_list_lists`,
+  `clickup_get_workspace_context`
+
+See `docs/github-connector.md` and `docs/clickup-connector.md` for the
+authoritative tool list per connector.
+
 ---
 
 ## Resource naming conventions

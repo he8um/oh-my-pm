@@ -14,6 +14,16 @@ export const GITHUB_READ_ONLY_TOOLS = new Set([
   "github_get_repository_context",
 ]);
 
+export const CLICKUP_READ_ONLY_TOOLS = new Set([
+  "clickup_list_tasks",
+  "clickup_summarize_task",
+  "clickup_summarize_list_status",
+  "clickup_list_spaces",
+  "clickup_list_folders",
+  "clickup_list_lists",
+  "clickup_get_workspace_context",
+]);
+
 const LOCAL_READ_ONLY_TOOLS = new Set([
   "inspect_project_context",
   "diagnose_project",
@@ -23,5 +33,9 @@ const LOCAL_READ_ONLY_TOOLS = new Set([
 
 // Returns true if the given tool name is a permitted read-only tool.
 export function isReadOnlyTool(toolName: string): boolean {
-  return LOCAL_READ_ONLY_TOOLS.has(toolName) || GITHUB_READ_ONLY_TOOLS.has(toolName);
+  return (
+    LOCAL_READ_ONLY_TOOLS.has(toolName) ||
+    GITHUB_READ_ONLY_TOOLS.has(toolName) ||
+    CLICKUP_READ_ONLY_TOOLS.has(toolName)
+  );
 }
