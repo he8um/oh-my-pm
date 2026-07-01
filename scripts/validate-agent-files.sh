@@ -253,6 +253,37 @@ else
 fi
 
 echo ""
+echo "--- GitHub connector (Phase 8) ---"
+check_exists "docs/github-connector.md" "docs/github-connector.md"
+check_exists "packages/mcp-server/src/connectors/github/config.ts" "packages/mcp-server/src/connectors/github/config.ts"
+check_exists "packages/mcp-server/src/connectors/github/client.ts" "packages/mcp-server/src/connectors/github/client.ts"
+check_exists "packages/mcp-server/src/connectors/github/types.ts" "packages/mcp-server/src/connectors/github/types.ts"
+check_exists "packages/mcp-server/src/connectors/github/errors.ts" "packages/mcp-server/src/connectors/github/errors.ts"
+check_exists "packages/mcp-server/src/tools/github-list-issues.ts" "packages/mcp-server/src/tools/github-list-issues.ts"
+check_exists "packages/mcp-server/src/tools/github-summarize-issue.ts" "packages/mcp-server/src/tools/github-summarize-issue.ts"
+check_exists "packages/mcp-server/src/tools/github-list-milestones.ts" "packages/mcp-server/src/tools/github-list-milestones.ts"
+check_exists "packages/mcp-server/src/tools/github-get-repository-context.ts" "packages/mcp-server/src/tools/github-get-repository-context.ts"
+check_exists "packages/mcp-server/tests/github-config.test.ts" "packages/mcp-server/tests/github-config.test.ts"
+check_exists "packages/mcp-server/tests/github-read-only-policy.test.ts" "packages/mcp-server/tests/github-read-only-policy.test.ts"
+check_exists "packages/mcp-server/tests/github-tools.test.ts" "packages/mcp-server/tests/github-tools.test.ts"
+check_contains "docs/github-connector.md: no write actions" "docs/github-connector.md" "No write actions"
+check_contains "docs/github-connector.md: OH_MY_PM_GITHUB_TOKEN" "docs/github-connector.md" "OH_MY_PM_GITHUB_TOKEN"
+check_contains "packages/mcp-server/src/connectors/github/config.ts: OH_MY_PM_GITHUB_TOKEN" "packages/mcp-server/src/connectors/github/config.ts" "OH_MY_PM_GITHUB_TOKEN"
+
+# Confirm no GitHub write tool filenames exist
+for write_tool in \
+  "github-create-issue" "github-update-issue" "github-close-issue" \
+  "github-create-comment" "github-add-label" "github-assign"; do
+  if [ -f "$REPO_ROOT/packages/mcp-server/src/tools/${write_tool}.ts" ]; then
+    echo "FAIL: write tool ${write_tool}.ts must not exist in Phase 8"
+    FAIL=$((FAIL + 1))
+  else
+    echo "PASS: no write tool ${write_tool}.ts (correct for Phase 8)"
+    PASS=$((PASS + 1))
+  fi
+done
+
+echo ""
 echo "=== Summary ==="
 echo "Passed: $PASS"
 echo "Failed: $FAIL"

@@ -5,6 +5,10 @@ import { inspectProjectContext } from "./tools/inspect-project-context.js";
 import { diagnoseProject } from "./tools/diagnose-project.js";
 import { prepareAgentHandoff } from "./tools/prepare-agent-handoff.js";
 import { summarizeDeliveryStatus } from "./tools/summarize-delivery-status.js";
+import { githubListIssues, githubListIssuesSchema } from "./tools/github-list-issues.js";
+import { githubSummarizeIssue, githubSummarizeIssueSchema } from "./tools/github-summarize-issue.js";
+import { githubListMilestones } from "./tools/github-list-milestones.js";
+import { githubGetRepositoryContext } from "./tools/github-get-repository-context.js";
 import { registerResources } from "./resources/registry.js";
 import { registerPrompts } from "./prompts/registry.js";
 import { enforceReadOnly } from "./policy/read-only.js";
@@ -12,12 +16,12 @@ import { enforceReadOnly } from "./policy/read-only.js";
 export async function startServer(): Promise<void> {
   const server = new McpServer({
     name: "oh-my-pm",
-    version: "0.7.0",
+    version: "0.8.0",
   });
 
   enforceReadOnly(server);
 
-  // ── Tools ──────────────────────────────────────────────────────────────────
+  // ── Local context tools ────────────────────────────────────────────────────
 
   server.tool(
     "inspect_project_context",
@@ -55,6 +59,48 @@ export async function startServer(): Promise<void> {
     {},
     async () => {
       const result = await summarizeDeliveryStatus();
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  // ── GitHub connector tools (read-only) ────────────────────────────────────
+
+  server.tool(
+    "github_list_issues",
+    "List open GitHub issues with title, assignees, labels, and delivery tags. Requires OH_MY_PM_GITHUB_OWNER and OH_MY_PM_GITHUB_REPO.",
+    githubListIssuesSchema,
+    async (params) => {
+      const result = await githubListIssues(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "github_summarize_issue",
+    "Get a structured summary of a single GitHub issue by number.",
+    githubSummarizeIssueSchema,
+    async (params) => {
+      const result = await githubSummarizeIssue(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "github_list_milestones",
+    "List open GitHub milestones with due date, completion percentage, and overdue flag.",
+    {},
+    async () => {
+      const result = await githubListMilestones();
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "github_get_repository_context",
+    "Get GitHub repository name, description, default branch, and open issue count.",
+    {},
+    async () => {
+      const result = await githubGetRepositoryContext();
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     }
   );

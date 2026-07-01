@@ -11,7 +11,7 @@ No connectors are implemented in v0.6.0. This is a planning document.
 | Version | Connector | Rationale |
 | --- | --- | --- |
 | v0.7.0 | MCP server alpha — no external connector | Validate server architecture with local context only |
-| v0.8.0 | GitHub Issues / Projects | High coverage, well-documented API, widely used by engineering teams |
+| **v0.8.0** | GitHub Issues / Projects | In progress — Phase 8 |
 | v0.9.0 | ClickUp | High coverage among PM and marketing teams |
 | v0.10.0 | Airtable | Lightweight project tracking, broad use in non-engineering teams |
 | v0.11.0 | Linear | Engineering-focused, fast API, increasingly common |

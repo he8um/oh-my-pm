@@ -7,6 +7,31 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 
 ---
 
+## [v0.8.0] — Unreleased
+
+### Added in v0.8.0
+
+- `docs/github-connector.md`: new — GitHub Issues / Projects connector scope, read-only policy, tools, resources, configuration, failure behavior, rate-limit behavior, test approach, explicit write-action exclusions
+- `packages/mcp-server/src/connectors/github/`: GitHub connector — config.ts, errors.ts, types.ts, limits.ts, formatters.ts, client.ts, issues.ts, milestones.ts, repository.ts
+- `packages/mcp-server/src/tools/github-list-issues.ts`: list open GitHub issues with delivery tags (blocker, stale), label filter, bounded to 25 items by default
+- `packages/mcp-server/src/tools/github-summarize-issue.ts`: structured summary of a single issue by number
+- `packages/mcp-server/src/tools/github-list-milestones.ts`: open milestones with due date, completion percentage, overdue flag
+- `packages/mcp-server/src/tools/github-get-repository-context.ts`: repository name, description, default branch, open issue count
+- `packages/mcp-server/tests/github-config.test.ts`: 6 config loading tests (missing fields, defaults, GitHub Enterprise URL)
+- `packages/mcp-server/tests/github-read-only-policy.test.ts`: 3 read-only policy tests (GitHub tool allowlist, write-style rejections)
+- `packages/mcp-server/tests/github-formatting.test.ts`: 9 formatting tests (rate limit headers, delivery tags, body truncation, item clamping)
+- `packages/mcp-server/tests/github-tools.test.ts`: 10 integration tests (mocked GitHub API responses, config errors, auth errors, token redaction)
+- `packages/mcp-server/src/policy/read-only.ts`: expanded — GitHub tool allowlist added, `GITHUB_READ_ONLY_TOOLS` exported
+
+### Changed in v0.8.0
+
+- `packages/mcp-server/src/server.ts`: registered 4 GitHub connector tools — `github_list_issues`, `github_summarize_issue`, `github_list_milestones`, `github_get_repository_context`
+- `packages/mcp-server/src/server.ts`: version bumped to `0.8.0`
+- `validate-agent-files.sh`: expanded with Phase 8 GitHub connector checks
+- `ROADMAP.md`: v0.8.0 marked as in progress
+
+---
+
 ## [v0.7.0] — 2026-07-01
 
 ### Added in v0.7.0

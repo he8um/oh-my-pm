@@ -14,8 +14,8 @@
 
 | Tool | Planned version | Notes |
 | --- | --- | --- |
-| MCP-compatible agents | v0.7.0 | Read-only PM-focused MCP server alpha — local context only — **shipped** |
-| GitHub Issues / Projects | v0.8.0 | MCP connector — read-only |
+| MCP-compatible agents | v0.7.0 | Read-only MCP server alpha — local context only — shipped |
+| GitHub Issues / Projects connector | v0.8.0 | Read-only — in progress |
 | ClickUp | v0.9.0 | MCP connector — read-only |
 | Airtable | v0.10.0 | MCP connector — read-only |
 | Linear | v0.11.0 | MCP connector — read-only |
