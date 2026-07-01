@@ -5,7 +5,7 @@
 Oh My PM is not a prompt pack. It is a reusable delivery leadership layer for AI agents.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v0.6.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v0.7.0-blue.svg)](CHANGELOG.md)
 
 ---
 
@@ -131,7 +131,7 @@ Each release includes:
 
 MCP (Model Context Protocol) support is planned as an optional integration layer.
 
-- v0.6.0 documents the interface design and security model.
+- v0.7.0 documents the interface design and security model.
 - v0.7.0 is planned as a read-only MCP server alpha — local context only, no external connector required.
 - External connectors (GitHub, ClickUp, Linear, Jira, Notion, Airtable) are planned one per version starting at v0.8.0.
 
@@ -159,7 +159,7 @@ See `docs/mcp.md` for the full MCP roadmap.
 | v0.3.0 | Bilingual FA/EN quality hardening |
 | v0.4.0 | Scenario testing + golden output evaluation |
 | v0.5.0 | Deep playbooks, templates, and examples |
-| v0.6.0 | MCP research and architecture docs |
+| v0.7.0 | MCP research and architecture docs |
 | v0.7.0 | Oh My PM MCP Server Alpha (read-only) |
 | v0.8.0–v0.13.0 | PM tool connectors (GitHub, ClickUp, Airtable, Linear, Jira, Notion) |
 | v1.0.0 | Stable install contract |
