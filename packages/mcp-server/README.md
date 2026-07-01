@@ -1,8 +1,8 @@
 # Oh My PM MCP Server
 
-Read-only MCP server for Oh My PM — local context tools, GitHub connector, ClickUp connector, and Airtable connector for delivery agents.
+Read-only MCP server for Oh My PM — local context tools, GitHub connector, ClickUp connector, Airtable connector, and Linear connector for delivery agents.
 
-**Version:** v0.10.0  
+**Version:** v0.11.0  
 **Transport:** stdio (local only)  
 **Status:** Alpha
 
@@ -10,7 +10,7 @@ Read-only MCP server for Oh My PM — local context tools, GitHub connector, Cli
 
 ## What this is
 
-The Oh My PM MCP server gives MCP-compatible clients (Claude Code, Cursor, etc.) structured access to local project context, GitHub Issues/Milestones, ClickUp workspace/list/task data, and Airtable base/table/record data.
+The Oh My PM MCP server gives MCP-compatible clients (Claude Code, Cursor, etc.) structured access to local project context, GitHub Issues/Milestones, ClickUp workspace/list/task data, Airtable base/table/record data, and Linear team/project/issue data.
 
 All tools are read-only. No write actions. No mutations.
 
@@ -64,6 +64,18 @@ ClickUp tools require `OH_MY_PM_CLICKUP_WORKSPACE_ID` and `OH_MY_PM_CLICKUP_TOKE
 
 Airtable tools require `OH_MY_PM_AIRTABLE_BASE_ID` and `OH_MY_PM_AIRTABLE_TOKEN`. Like the ClickUp connector, Airtable has no unauthenticated fallback — a missing token returns a degraded response rather than crashing. See `docs/airtable-connector.md`.
 
+### Linear connector tools (v0.11.0)
+
+| Tool | Description |
+| --- | --- |
+| `linear_list_issues` | List open issues in the configured team, with delivery tags (blocked, stale, unassigned, missing estimate, missing cycle) |
+| `linear_summarize_issue` | Structured summary of a single issue by identifier (e.g. ENG-123) |
+| `linear_summarize_project_status` | Delivery status summary of the configured team: issue counts, blockers, unassigned, missing estimates, missing cycles, next actions |
+| `linear_list_teams` | List teams accessible to the configured token |
+| `linear_list_projects` | List projects in the configured team |
+
+Linear tools require `OH_MY_PM_LINEAR_TEAM_ID` and `OH_MY_PM_LINEAR_TOKEN`. Like the ClickUp and Airtable connectors, Linear has no unauthenticated fallback — a missing token returns a degraded response rather than crashing. The connector uses Linear's GraphQL API but sends only a small, fixed set of read-only queries — never a mutation. See `docs/linear-connector.md`.
+
 ---
 
 ## Resources
@@ -79,6 +91,9 @@ Airtable tools require `OH_MY_PM_AIRTABLE_BASE_ID` and `OH_MY_PM_AIRTABLE_TOKEN`
 | `airtable://base/current` | Current configured Airtable base identity |
 | `airtable://tables` | Tables in the configured Airtable base (bounded) |
 | `airtable://records/current` | Records in the configured Airtable table (bounded) |
+| `linear://workspace/current` | Current configured Linear workspace identity |
+| `linear://teams` | Teams accessible to the configured Linear token (bounded) |
+| `linear://issues/open` | Open issues in the configured Linear team (bounded) |
 
 ---
 
@@ -95,6 +110,9 @@ Airtable tools require `OH_MY_PM_AIRTABLE_BASE_ID` and `OH_MY_PM_AIRTABLE_TOKEN`
 | `summarize-airtable-base-status` | Delivery status using Airtable table/record data |
 | `diagnose-airtable-data-quality` | Airtable data-quality diagnosis |
 | `prepare-airtable-project-handoff` | Handoff prompt seeded with Airtable context |
+| `summarize-linear-delivery-status` | Delivery status using Linear issue/project data |
+| `diagnose-linear-issue-backlog` | Linear issue backlog diagnosis |
+| `prepare-linear-project-handoff` | Handoff prompt seeded with Linear context |
 
 ---
 
@@ -173,17 +191,30 @@ Add to your MCP client config (e.g. `~/.config/claude/claude_desktop_config.json
 
 **Token security:** The token is read from the environment at startup only. It is never logged, never returned in tool output, and never included in error messages. When missing, tools return a degraded response instead of crashing.
 
+### Linear connector (v0.11.0)
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `OH_MY_PM_LINEAR_TEAM_ID` | Yes | Linear team ID |
+| `OH_MY_PM_LINEAR_TOKEN` | Yes | Linear API key — required for all reads, no unauthenticated fallback |
+| `OH_MY_PM_LINEAR_WORKSPACE_ID` | No | Informational workspace ID |
+| `OH_MY_PM_LINEAR_PROJECT_ID` | No | Default project ID for project-scoped tools |
+| `OH_MY_PM_LINEAR_API_BASE_URL` | No | Override API base URL (default: `https://api.linear.app/graphql`) |
+
+**Token security:** The token is read from the environment at startup only. It is never logged, never returned in tool output, and never included in error messages. When missing, tools return a degraded response instead of crashing.
+
 ---
 
 ## Security
 
 - Read-only. No write actions. No mutations in any tool.
-- GitHub, ClickUp, and Airtable tokens (if set) are never logged, never returned in tool output, never in error messages.
+- GitHub, ClickUp, Airtable, and Linear tokens (if set) are never logged, never returned in tool output, never in error messages.
 - Sensitive local file patterns (`.env`, `*.key`, `*.pem`) are excluded from reads.
 - Path traversal attempts are rejected.
 - No background polling. No telemetry. No credential storage.
+- The Linear connector never sends a GraphQL mutation.
 
-See `docs/mcp-security-policy.md`, `docs/github-connector.md`, `docs/clickup-connector.md`, and `docs/airtable-connector.md` in the repository root.
+See `docs/mcp-security-policy.md`, `docs/github-connector.md`, `docs/clickup-connector.md`, `docs/airtable-connector.md`, and `docs/linear-connector.md` in the repository root.
 
 ---
 
@@ -207,3 +238,4 @@ pnpm start       # start the server (requires pnpm build first)
 - `docs/github-connector.md` — GitHub connector scope, tools, configuration, and failure behavior
 - `docs/clickup-connector.md` — ClickUp connector scope, tools, configuration, and failure behavior
 - `docs/airtable-connector.md` — Airtable connector scope, tools, configuration, and failure behavior
+- `docs/linear-connector.md` — Linear connector scope, tools, configuration, and failure behavior

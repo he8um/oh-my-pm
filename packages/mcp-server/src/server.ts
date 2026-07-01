@@ -27,6 +27,14 @@ import {
   airtableSummarizeBaseStatus,
   airtableSummarizeBaseStatusSchema,
 } from "./tools/airtable-summarize-base-status.js";
+import { linearListIssues, linearListIssuesSchema } from "./tools/linear-list-issues.js";
+import { linearSummarizeIssue, linearSummarizeIssueSchema } from "./tools/linear-summarize-issue.js";
+import {
+  linearSummarizeProjectStatus,
+  linearSummarizeProjectStatusSchema,
+} from "./tools/linear-summarize-project-status.js";
+import { linearListTeams } from "./tools/linear-list-teams.js";
+import { linearListProjects } from "./tools/linear-list-projects.js";
 import { registerResources } from "./resources/registry.js";
 import { registerPrompts } from "./prompts/registry.js";
 import { enforceReadOnly } from "./policy/read-only.js";
@@ -34,7 +42,7 @@ import { enforceReadOnly } from "./policy/read-only.js";
 export async function startServer(): Promise<void> {
   const server = new McpServer({
     name: "oh-my-pm",
-    version: "0.10.0",
+    version: "0.11.0",
   });
 
   enforceReadOnly(server);
@@ -243,6 +251,58 @@ export async function startServer(): Promise<void> {
     airtableSummarizeBaseStatusSchema,
     async (params) => {
       const result = await airtableSummarizeBaseStatus(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  // ── Linear connector tools (read-only) ──────────────────────────────────────
+
+  server.tool(
+    "linear_list_issues",
+    "List open Linear issues in the configured team with delivery tags (blocked, stale, unassigned, missing estimate, missing cycle). Requires OH_MY_PM_LINEAR_TEAM_ID and OH_MY_PM_LINEAR_TOKEN.",
+    linearListIssuesSchema,
+    async (params) => {
+      const result = await linearListIssues(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "linear_summarize_issue",
+    "Get a structured summary of a single Linear issue by identifier (e.g. ENG-123).",
+    linearSummarizeIssueSchema,
+    async (params) => {
+      const result = await linearSummarizeIssue(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "linear_summarize_project_status",
+    "Summarize delivery status of the configured Linear team: open issue count, blockers, unassigned issues, missing estimates, missing cycles, stale issues, next actions.",
+    linearSummarizeProjectStatusSchema,
+    async (params) => {
+      const result = await linearSummarizeProjectStatus(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "linear_list_teams",
+    "List teams accessible to the configured Linear token.",
+    {},
+    async () => {
+      const result = await linearListTeams();
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "linear_list_projects",
+    "List projects in the configured Linear team.",
+    {},
+    async () => {
+      const result = await linearListProjects();
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     }
   );

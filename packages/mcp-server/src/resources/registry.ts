@@ -15,6 +15,13 @@ import { fetchRecords } from "../connectors/airtable/records.js";
 import { extractDataQualityTags } from "../connectors/airtable/formatters.js";
 import { makeDegradedNoToken as makeAirtableDegradedNoToken } from "../connectors/airtable/errors.js";
 import { HARD_MAX_RECORDS } from "../connectors/airtable/limits.js";
+import { loadLinearConfig } from "../connectors/linear/config.js";
+import { LinearClient } from "../connectors/linear/client.js";
+import { fetchWorkspaceContext as fetchLinearWorkspaceContext, fetchTeams } from "../connectors/linear/teams.js";
+import { fetchOpenIssuesInTeam } from "../connectors/linear/issues.js";
+import { extractDeliveryTags as extractLinearDeliveryTags } from "../connectors/linear/formatters.js";
+import { makeDegradedNoToken as makeLinearDegradedNoToken } from "../connectors/linear/errors.js";
+import { HARD_MAX_ISSUES } from "../connectors/linear/limits.js";
 
 export function registerResources(server: McpServer): void {
   const root = getProjectRoot();
@@ -144,6 +151,38 @@ export function registerResources(server: McpServer): void {
       return { contents: [{ uri: "airtable://records/current", text: content }] };
     }
   );
+
+  // ── Linear connector resources (read-only, bounded) ──────────────────────
+
+  server.resource(
+    "linear://workspace/current",
+    "linear://workspace/current",
+    { description: "Current configured Linear workspace identity." },
+    async (_uri) => {
+      const content = JSON.stringify(await readLinearWorkspaceCurrent(), null, 2);
+      return { contents: [{ uri: "linear://workspace/current", text: content }] };
+    }
+  );
+
+  server.resource(
+    "linear://teams",
+    "linear://teams",
+    { description: "Teams accessible to the configured Linear token (bounded)." },
+    async (_uri) => {
+      const content = JSON.stringify(await readLinearTeams(), null, 2);
+      return { contents: [{ uri: "linear://teams", text: content }] };
+    }
+  );
+
+  server.resource(
+    "linear://issues/open",
+    "linear://issues/open",
+    { description: "Open issues in the configured Linear team (bounded)." },
+    async (_uri) => {
+      const content = JSON.stringify(await readLinearOpenIssues(), null, 2);
+      return { contents: [{ uri: "linear://issues/open", text: content }] };
+    }
+  );
 }
 
 async function readClickUpWorkspaceCurrent(): Promise<Record<string, unknown>> {
@@ -266,6 +305,62 @@ async function readAirtableRecordsCurrent(): Promise<Record<string, unknown>> {
     records: (records ?? []).map((r) => ({
       id: r.id,
       data_quality_tags: extractDataQualityTags(r),
+    })),
+  };
+}
+
+async function readLinearWorkspaceCurrent(): Promise<Record<string, unknown>> {
+  const { config, error } = loadLinearConfig();
+  if (error || !config) {
+    return { read_at: now(), status: "error", error_code: "config_missing", message: error };
+  }
+  if (!config.token) {
+    return { read_at: now(), ...makeLinearDegradedNoToken() };
+  }
+  const client = new LinearClient(config);
+  const { workspace, error: fetchError } = await fetchLinearWorkspaceContext(client);
+  if (fetchError) return { read_at: now(), ...(fetchError as Record<string, unknown>) };
+  return { read_at: now(), status: "ok", workspace };
+}
+
+async function readLinearTeams(): Promise<Record<string, unknown>> {
+  const { config, error } = loadLinearConfig();
+  if (error || !config) {
+    return { read_at: now(), status: "error", error_code: "config_missing", message: error };
+  }
+  if (!config.token) {
+    return { read_at: now(), ...makeLinearDegradedNoToken() };
+  }
+  const client = new LinearClient(config);
+  const { teams, error: fetchError } = await fetchTeams(client);
+  if (fetchError) return { read_at: now(), ...(fetchError as Record<string, unknown>) };
+  return { read_at: now(), status: "ok", teams: teams ?? [] };
+}
+
+async function readLinearOpenIssues(): Promise<Record<string, unknown>> {
+  const { config, error } = loadLinearConfig();
+  if (error || !config) {
+    return { read_at: now(), status: "error", error_code: "config_missing", message: error };
+  }
+  if (!config.token) {
+    return { read_at: now(), ...makeLinearDegradedNoToken() };
+  }
+  const client = new LinearClient(config);
+  const { issues, error: fetchError } = await fetchOpenIssuesInTeam(
+    client,
+    config.teamId,
+    HARD_MAX_ISSUES
+  );
+  if (fetchError) return { read_at: now(), ...(fetchError as Record<string, unknown>) };
+  return {
+    read_at: now(),
+    status: "ok",
+    team_id: config.teamId,
+    issues: (issues ?? []).map((i) => ({
+      identifier: i.identifier,
+      title: i.title,
+      state: i.state_name,
+      delivery_tags: extractLinearDeliveryTags(i),
     })),
   };
 }

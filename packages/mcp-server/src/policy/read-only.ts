@@ -32,6 +32,14 @@ export const AIRTABLE_READ_ONLY_TOOLS = new Set([
   "airtable_summarize_base_status",
 ]);
 
+export const LINEAR_READ_ONLY_TOOLS = new Set([
+  "linear_list_issues",
+  "linear_summarize_issue",
+  "linear_summarize_project_status",
+  "linear_list_teams",
+  "linear_list_projects",
+]);
+
 const LOCAL_READ_ONLY_TOOLS = new Set([
   "inspect_project_context",
   "diagnose_project",
@@ -45,6 +53,7 @@ export function isReadOnlyTool(toolName: string): boolean {
     LOCAL_READ_ONLY_TOOLS.has(toolName) ||
     GITHUB_READ_ONLY_TOOLS.has(toolName) ||
     CLICKUP_READ_ONLY_TOOLS.has(toolName) ||
-    AIRTABLE_READ_ONLY_TOOLS.has(toolName)
+    AIRTABLE_READ_ONLY_TOOLS.has(toolName) ||
+    LINEAR_READ_ONLY_TOOLS.has(toolName)
   );
 }

@@ -49,7 +49,7 @@ Oh My PM fills this gap with a reusable, installable, open-source delivery layer
 | Codex | ✅ via `AGENTS.md` + Codex Skill |
 | ChatGPT | ✅ via ChatGPT Skill |
 | Generic agents | ✅ via `AGENTS.md` |
-| MCP (alpha) | ✅ Read-only server — local context, GitHub, ClickUp, Airtable connectors shipped |
+| MCP (alpha) | ✅ Read-only server — local context, GitHub, ClickUp, Airtable, Linear connectors shipped |
 
 ---
 
@@ -135,7 +135,8 @@ MCP (Model Context Protocol) support is an optional, read-only integration layer
 - v0.8.0 added a read-only GitHub Issues / Projects connector.
 - v0.9.0 added a read-only ClickUp connector.
 - v0.10.0 added a read-only Airtable connector.
-- Additional connectors (Linear, Jira, Notion) are planned one per version. See `docs/mcp-connector-roadmap.md`.
+- v0.11.0 added a read-only Linear connector.
+- Additional connectors (Jira, Notion) are planned one per version. See `docs/mcp-connector-roadmap.md`.
 
 MCP does not replace existing packs. Current Claude Code, Cursor, Codex, ChatGPT, and generic pack support is unaffected. See `packages/mcp-server/README.md`.
 

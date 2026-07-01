@@ -193,4 +193,69 @@ export function registerPrompts(server: McpServer): void {
       ],
     })
   );
+
+  // ── Linear connector prompts ───────────────────────────────────────────
+
+  server.prompt(
+    "summarize-linear-delivery-status",
+    "Summarize delivery status using Linear issue and project data.",
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              "You are the Oh My PM Head of Delivery agent.",
+              "Use linear_summarize_project_status and linear_list_issues to produce a delivery status summary.",
+              "Output: open issue count, blockers, unassigned issues, missing estimates, missing cycles, stale issues, next actions.",
+              "State assumptions and limitations explicitly. Format: structured — bullets and a short table. Under 250 words.",
+            ].join(" "),
+          },
+        },
+      ],
+    })
+  );
+
+  server.prompt(
+    "diagnose-linear-issue-backlog",
+    "Diagnose the Linear issue backlog using delivery semantics.",
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              "You are the Oh My PM Head of Delivery agent.",
+              "Use linear_list_issues and linear_summarize_project_status to diagnose the issue backlog.",
+              "Identify: blocked work, stale work, unassigned work, missing estimates, missing cycles, unclear states, missing priorities.",
+              "Note that dependency risk is not computed — the connector does not read issue relations (blocks/blocked-by/related).",
+              "Format: structured — bullets grouped by risk category. Under 300 words.",
+            ].join(" "),
+          },
+        },
+      ],
+    })
+  );
+
+  server.prompt(
+    "prepare-linear-project-handoff",
+    "Prepare a project handoff prompt seeded with current Linear issue and project context.",
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              "You are the Oh My PM Head of Delivery agent.",
+              "Use linear_summarize_project_status and prepare_agent_handoff together.",
+              "Produce a self-contained handoff prompt under 300 words that includes: current team issue status, blockers, unassigned or unestimated issues (handoff gaps), and immediate next actions.",
+            ].join(" "),
+          },
+        },
+      ],
+    })
+  );
 }

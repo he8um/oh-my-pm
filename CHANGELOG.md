@@ -7,6 +7,40 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 
 ---
 
+## [Unreleased] — v0.11.0
+
+### Added in v0.11.0
+
+- `docs/linear-connector.md`: new — Linear connector scope, read-only policy, tools, resources, prompts, configuration, failure behavior, rate-limit behavior, pagination/limit behavior, delivery semantics, test approach, explicit write-action exclusions
+- `packages/mcp-server/src/connectors/linear/`: Linear connector — config.ts, errors.ts, types.ts, limits.ts, formatters.ts, client.ts, issues.ts, teams.ts, projects.ts
+- `packages/mcp-server/src/tools/linear-list-issues.ts`: list open issues in the configured team with delivery tags (blocked, stale, unassigned, missing estimate, missing cycle), bounded to 25 items by default
+- `packages/mcp-server/src/tools/linear-summarize-issue.ts`: structured summary of a single issue by identifier
+- `packages/mcp-server/src/tools/linear-summarize-project-status.ts`: team delivery status summary — issue counts, blockers, unassigned, missing estimates, missing cycles, handoff gaps, recommended next actions
+- `packages/mcp-server/src/tools/linear-list-teams.ts`: list teams accessible to the configured token
+- `packages/mcp-server/src/tools/linear-list-projects.ts`: list projects in the configured team
+- `packages/mcp-server/src/resources/registry.ts`: added `linear://workspace/current`, `linear://teams`, `linear://issues/open` resources (bounded)
+- `packages/mcp-server/src/prompts/registry.ts`: added `summarize-linear-delivery-status`, `diagnose-linear-issue-backlog`, `prepare-linear-project-handoff` prompts
+- `packages/mcp-server/tests/linear-config.test.ts`: 6 config loading tests (missing team ID, defaults, custom base URL, optional workspace/project IDs)
+- `packages/mcp-server/tests/linear-read-only-policy.test.ts`: 4 read-only policy tests (Linear tool allowlist, write-style rejections, no GraphQL query contains "mutation")
+- `packages/mcp-server/tests/linear-formatting.test.ts`: 16 formatting tests (rate limit headers, state type classification, delivery tag extraction, description truncation, item clamping)
+- `packages/mcp-server/tests/linear-tools.test.ts`: 13 integration tests (mocked Linear GraphQL responses, config errors, missing-token degraded response, auth errors, token redaction)
+- `packages/mcp-server/src/policy/read-only.ts`: expanded — Linear tool allowlist added, `LINEAR_READ_ONLY_TOOLS` exported
+
+### Changed in v0.11.0
+
+- `packages/mcp-server/src/server.ts`: registered 5 Linear connector tools — `linear_list_issues`, `linear_summarize_issue`, `linear_summarize_project_status`, `linear_list_teams`, `linear_list_projects`
+- `packages/mcp-server/src/server.ts`: version bumped to `0.11.0`
+- `packages/mcp-server/package.json`: version bumped to `0.11.0`
+- `validate-agent-files.sh`: expanded with Phase 11 Linear connector checks
+- `ROADMAP.md`: v0.11.0 marked as in progress, v0.12.0 marked as next
+- `docs/mcp-connector-roadmap.md`: Linear marked as in progress — Phase 11
+- `docs/mcp-security-policy.md`: Linear added to the connector allowlist and least-privilege guidance
+- `docs/mcp-interface-design.md`: documented implemented Linear connector tool names
+- `docs/compatibility.md`, `docs/supported-tools.md`: Linear connector marked shipped
+- `packages/mcp-server/README.md`: added Linear connector tool, resource, prompt, and configuration documentation
+
+---
+
 ## [v0.10.0] — 2026-07-01
 
 ### Added in v0.10.0

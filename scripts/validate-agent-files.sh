@@ -346,6 +346,38 @@ for write_tool in \
 done
 
 echo ""
+echo "--- Linear connector (Phase 11) ---"
+check_exists "docs/linear-connector.md" "docs/linear-connector.md"
+check_exists "packages/mcp-server/src/connectors/linear/config.ts" "packages/mcp-server/src/connectors/linear/config.ts"
+check_exists "packages/mcp-server/src/connectors/linear/client.ts" "packages/mcp-server/src/connectors/linear/client.ts"
+check_exists "packages/mcp-server/src/connectors/linear/types.ts" "packages/mcp-server/src/connectors/linear/types.ts"
+check_exists "packages/mcp-server/src/connectors/linear/errors.ts" "packages/mcp-server/src/connectors/linear/errors.ts"
+check_exists "packages/mcp-server/src/tools/linear-list-issues.ts" "packages/mcp-server/src/tools/linear-list-issues.ts"
+check_exists "packages/mcp-server/src/tools/linear-summarize-issue.ts" "packages/mcp-server/src/tools/linear-summarize-issue.ts"
+check_exists "packages/mcp-server/src/tools/linear-summarize-project-status.ts" "packages/mcp-server/src/tools/linear-summarize-project-status.ts"
+check_exists "packages/mcp-server/src/tools/linear-list-teams.ts" "packages/mcp-server/src/tools/linear-list-teams.ts"
+check_exists "packages/mcp-server/src/tools/linear-list-projects.ts" "packages/mcp-server/src/tools/linear-list-projects.ts"
+check_exists "packages/mcp-server/tests/linear-config.test.ts" "packages/mcp-server/tests/linear-config.test.ts"
+check_exists "packages/mcp-server/tests/linear-read-only-policy.test.ts" "packages/mcp-server/tests/linear-read-only-policy.test.ts"
+check_exists "packages/mcp-server/tests/linear-tools.test.ts" "packages/mcp-server/tests/linear-tools.test.ts"
+check_contains "docs/linear-connector.md: no write actions" "docs/linear-connector.md" "No write actions"
+check_contains "docs/linear-connector.md: OH_MY_PM_LINEAR_TOKEN" "docs/linear-connector.md" "OH_MY_PM_LINEAR_TOKEN"
+check_contains "packages/mcp-server/src/connectors/linear/config.ts: OH_MY_PM_LINEAR_TOKEN" "packages/mcp-server/src/connectors/linear/config.ts" "OH_MY_PM_LINEAR_TOKEN"
+
+# Confirm no Linear write tool filenames exist
+for write_tool in \
+  "linear-create-issue" "linear-update-issue" "linear-delete-issue" \
+  "linear-create-comment" "linear-change-status" "linear-assign"; do
+  if [ -f "$REPO_ROOT/packages/mcp-server/src/tools/${write_tool}.ts" ]; then
+    echo "FAIL: write tool ${write_tool}.ts must not exist in Phase 11"
+    FAIL=$((FAIL + 1))
+  else
+    echo "PASS: no write tool ${write_tool}.ts (correct for Phase 11)"
+    PASS=$((PASS + 1))
+  fi
+done
+
+echo ""
 echo "=== Summary ==="
 echo "Passed: $PASS"
 echo "Failed: $FAIL"

@@ -97,9 +97,13 @@ configured at once:
 - Airtable (v0.10.0): `airtable_list_bases`, `airtable_list_tables`,
   `airtable_describe_table`, `airtable_list_records`,
   `airtable_summarize_base_status`
+- Linear (v0.11.0): `linear_list_issues`, `linear_summarize_issue`,
+  `linear_summarize_project_status`, `linear_list_teams`,
+  `linear_list_projects`
 
-See `docs/github-connector.md`, `docs/clickup-connector.md`, and
-`docs/airtable-connector.md` for the authoritative tool list per connector.
+See `docs/github-connector.md`, `docs/clickup-connector.md`,
+`docs/airtable-connector.md`, and `docs/linear-connector.md` for the
+authoritative tool list per connector.
 
 ---
 
