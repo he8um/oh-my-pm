@@ -127,4 +127,70 @@ export function registerPrompts(server: McpServer): void {
       ],
     })
   );
+
+  // ── Airtable connector prompts ─────────────────────────────────────────
+
+  server.prompt(
+    "summarize-airtable-base-status",
+    "Summarize delivery status using Airtable table and record data.",
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              "You are the Oh My PM Head of Delivery agent.",
+              "Use airtable_summarize_base_status and airtable_list_records to produce a delivery status summary.",
+              "Output: record count, missing owners, missing due dates, missing required fields, stale records, next actions.",
+              "State assumptions and limitations explicitly — owner/status/due-date detection is heuristic, not a fixed schema.",
+              "Format: structured — bullets and a short table. Under 250 words.",
+            ].join(" "),
+          },
+        },
+      ],
+    })
+  );
+
+  server.prompt(
+    "diagnose-airtable-data-quality",
+    "Diagnose Airtable table data quality using delivery semantics.",
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              "You are the Oh My PM Head of Delivery agent.",
+              "Use airtable_list_records and airtable_summarize_base_status to diagnose data quality.",
+              "Identify: missing required fields, empty owner fields, stale records, unclear statuses, unlinked records.",
+              "Note that cross-base source-of-truth ambiguity and linked-record dependency resolution are not computed in this connector.",
+              "Format: structured — bullets grouped by issue category. Under 300 words.",
+            ].join(" "),
+          },
+        },
+      ],
+    })
+  );
+
+  server.prompt(
+    "prepare-airtable-project-handoff",
+    "Prepare a project handoff prompt seeded with current Airtable table and record context.",
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              "You are the Oh My PM Head of Delivery agent.",
+              "Use airtable_summarize_base_status and prepare_agent_handoff together.",
+              "Produce a self-contained handoff prompt under 300 words that includes: current table status, missing-owner or missing-due-date records (handoff gaps), and immediate next actions.",
+            ].join(" "),
+          },
+        },
+      ],
+    })
+  );
 }

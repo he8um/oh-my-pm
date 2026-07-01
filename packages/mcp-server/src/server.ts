@@ -19,6 +19,14 @@ import { clickupListSpaces } from "./tools/clickup-list-spaces.js";
 import { clickupListFolders, clickupListFoldersSchema } from "./tools/clickup-list-folders.js";
 import { clickupListLists, clickupListListsSchema } from "./tools/clickup-list-lists.js";
 import { clickupGetWorkspaceContext } from "./tools/clickup-get-workspace-context.js";
+import { airtableListBases } from "./tools/airtable-list-bases.js";
+import { airtableListTables } from "./tools/airtable-list-tables.js";
+import { airtableDescribeTable, airtableDescribeTableSchema } from "./tools/airtable-describe-table.js";
+import { airtableListRecords, airtableListRecordsSchema } from "./tools/airtable-list-records.js";
+import {
+  airtableSummarizeBaseStatus,
+  airtableSummarizeBaseStatusSchema,
+} from "./tools/airtable-summarize-base-status.js";
 import { registerResources } from "./resources/registry.js";
 import { registerPrompts } from "./prompts/registry.js";
 import { enforceReadOnly } from "./policy/read-only.js";
@@ -26,7 +34,7 @@ import { enforceReadOnly } from "./policy/read-only.js";
 export async function startServer(): Promise<void> {
   const server = new McpServer({
     name: "oh-my-pm",
-    version: "0.9.0",
+    version: "0.10.0",
   });
 
   enforceReadOnly(server);
@@ -183,6 +191,58 @@ export async function startServer(): Promise<void> {
     {},
     async () => {
       const result = await clickupGetWorkspaceContext();
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  // ── Airtable connector tools (read-only) ────────────────────────────────────
+
+  server.tool(
+    "airtable_list_bases",
+    "List Airtable bases accessible to the configured token. Requires OH_MY_PM_AIRTABLE_TOKEN.",
+    {},
+    async () => {
+      const result = await airtableListBases();
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "airtable_list_tables",
+    "List tables in the configured Airtable base, with field counts. Requires OH_MY_PM_AIRTABLE_BASE_ID.",
+    {},
+    async () => {
+      const result = await airtableListTables();
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "airtable_describe_table",
+    "Describe an Airtable table's schema: field names, types, and views.",
+    airtableDescribeTableSchema,
+    async (params) => {
+      const result = await airtableDescribeTable(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "airtable_list_records",
+    "List records in an Airtable table with data-quality tags (missing owner, missing due date, missing required field, stale).",
+    airtableListRecordsSchema,
+    async (params) => {
+      const result = await airtableListRecords(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "airtable_summarize_base_status",
+    "Summarize delivery status of an Airtable table: record count, missing owners, missing due dates, missing required fields, stale records, next actions.",
+    airtableSummarizeBaseStatusSchema,
+    async (params) => {
+      const result = await airtableSummarizeBaseStatus(params);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     }
   );

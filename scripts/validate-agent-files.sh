@@ -315,6 +315,37 @@ for write_tool in \
 done
 
 echo ""
+echo "--- Airtable connector (Phase 10) ---"
+check_exists "docs/airtable-connector.md" "docs/airtable-connector.md"
+check_exists "packages/mcp-server/src/connectors/airtable/config.ts" "packages/mcp-server/src/connectors/airtable/config.ts"
+check_exists "packages/mcp-server/src/connectors/airtable/client.ts" "packages/mcp-server/src/connectors/airtable/client.ts"
+check_exists "packages/mcp-server/src/connectors/airtable/types.ts" "packages/mcp-server/src/connectors/airtable/types.ts"
+check_exists "packages/mcp-server/src/connectors/airtable/errors.ts" "packages/mcp-server/src/connectors/airtable/errors.ts"
+check_exists "packages/mcp-server/src/tools/airtable-list-bases.ts" "packages/mcp-server/src/tools/airtable-list-bases.ts"
+check_exists "packages/mcp-server/src/tools/airtable-list-tables.ts" "packages/mcp-server/src/tools/airtable-list-tables.ts"
+check_exists "packages/mcp-server/src/tools/airtable-describe-table.ts" "packages/mcp-server/src/tools/airtable-describe-table.ts"
+check_exists "packages/mcp-server/src/tools/airtable-list-records.ts" "packages/mcp-server/src/tools/airtable-list-records.ts"
+check_exists "packages/mcp-server/tests/airtable-config.test.ts" "packages/mcp-server/tests/airtable-config.test.ts"
+check_exists "packages/mcp-server/tests/airtable-read-only-policy.test.ts" "packages/mcp-server/tests/airtable-read-only-policy.test.ts"
+check_exists "packages/mcp-server/tests/airtable-tools.test.ts" "packages/mcp-server/tests/airtable-tools.test.ts"
+check_contains "docs/airtable-connector.md: no write actions" "docs/airtable-connector.md" "No write actions"
+check_contains "docs/airtable-connector.md: OH_MY_PM_AIRTABLE_TOKEN" "docs/airtable-connector.md" "OH_MY_PM_AIRTABLE_TOKEN"
+check_contains "packages/mcp-server/src/connectors/airtable/config.ts: OH_MY_PM_AIRTABLE_TOKEN" "packages/mcp-server/src/connectors/airtable/config.ts" "OH_MY_PM_AIRTABLE_TOKEN"
+
+# Confirm no Airtable write tool filenames exist
+for write_tool in \
+  "airtable-create-record" "airtable-update-record" "airtable-delete-record" \
+  "airtable-create-table" "airtable-upload-attachment"; do
+  if [ -f "$REPO_ROOT/packages/mcp-server/src/tools/${write_tool}.ts" ]; then
+    echo "FAIL: write tool ${write_tool}.ts must not exist in Phase 10"
+    FAIL=$((FAIL + 1))
+  else
+    echo "PASS: no write tool ${write_tool}.ts (correct for Phase 10)"
+    PASS=$((PASS + 1))
+  fi
+done
+
+echo ""
 echo "=== Summary ==="
 echo "Passed: $PASS"
 echo "Failed: $FAIL"

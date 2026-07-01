@@ -24,6 +24,14 @@ export const CLICKUP_READ_ONLY_TOOLS = new Set([
   "clickup_get_workspace_context",
 ]);
 
+export const AIRTABLE_READ_ONLY_TOOLS = new Set([
+  "airtable_list_bases",
+  "airtable_list_tables",
+  "airtable_describe_table",
+  "airtable_list_records",
+  "airtable_summarize_base_status",
+]);
+
 const LOCAL_READ_ONLY_TOOLS = new Set([
   "inspect_project_context",
   "diagnose_project",
@@ -36,6 +44,7 @@ export function isReadOnlyTool(toolName: string): boolean {
   return (
     LOCAL_READ_ONLY_TOOLS.has(toolName) ||
     GITHUB_READ_ONLY_TOOLS.has(toolName) ||
-    CLICKUP_READ_ONLY_TOOLS.has(toolName)
+    CLICKUP_READ_ONLY_TOOLS.has(toolName) ||
+    AIRTABLE_READ_ONLY_TOOLS.has(toolName)
   );
 }

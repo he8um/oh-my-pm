@@ -12,8 +12,8 @@ No connectors are implemented in v0.6.0. This is a planning document.
 | --- | --- | --- |
 | v0.7.0 | MCP server alpha — no external connector | Validate server architecture with local context only |
 | v0.8.0 | GitHub Issues / Projects | Released — Phase 8 |
-| **v0.9.0** | ClickUp | Released — Phase 9 |
-| v0.10.0 | Airtable | Lightweight project tracking, broad use in non-engineering teams |
+| v0.9.0 | ClickUp | Released — Phase 9 |
+| **v0.10.0** | Airtable | In progress — Phase 10 |
 | v0.11.0 | Linear | Engineering-focused, fast API, increasingly common |
 | v0.12.0 | Jira | Enterprise standard, complex API, higher integration cost |
 | v0.13.0 | Notion | Docs-as-PM hybrid, high user demand, API has limitations |
@@ -145,16 +145,17 @@ See `docs/clickup-connector.md` for the full connector scope.
 
 ---
 
-## v0.10.0 — Airtable Connector
+## v0.10.0 — Airtable Connector (In progress — Phase 10)
 
-**Purpose:** Give the agent access to Airtable-based project tracking for teams using Airtable as their PM tool.
+**Purpose:** Give the agent access to Airtable base, table, and record data for delivery diagnosis, operational data review, source-of-truth review, and delivery status summarization.
 
 **Read-only first capability:**
 
-- List records in a configured base and table
-- Filter by status field
-- List records assigned to a named team member
-- Get record details by ID
+- List bases accessible to the configured token
+- List tables in a configured base, with field counts
+- Describe a table's schema — field names, types, views
+- List records in a configured or specified table, with data-quality tags (missing owner, missing due date, missing required field, stale)
+- Summarize table delivery status: record count, data-quality issues, next actions
 
 **Potential future write capability (not in v0.10.0):**
 
@@ -166,10 +167,12 @@ See `docs/clickup-connector.md` for the full connector scope.
 ```txt
 OH_MY_PM_AIRTABLE_TOKEN=<personal-access-token>
 OH_MY_PM_AIRTABLE_BASE_ID=<base-id>
-OH_MY_PM_AIRTABLE_TABLE_NAME=<table-name>
 ```
 
-**Testing approach:** API responses mocked in unit tests. Airtable's schema-flexible structure requires the connector to be configured with field mappings.
+Airtable requires a token for all useful endpoints — unlike GitHub, there is
+no unauthenticated fallback. Missing token returns a degraded response.
+
+**Testing approach:** API responses mocked in unit tests. No real Airtable API calls in tests. Airtable's schema-flexible structure requires the connector to use heuristic field-name pattern matching (owner/status/due-date) rather than a fixed schema.
 
 **Risks:**
 
@@ -182,6 +185,9 @@ OH_MY_PM_AIRTABLE_TABLE_NAME=<table-name>
 - No Airtable automation integration
 - No attachment access
 - No multi-base joins
+- No linked-record dependency resolution (linked-record fields are listed, not resolved)
+
+See `docs/airtable-connector.md` for the full connector scope.
 
 ---
 

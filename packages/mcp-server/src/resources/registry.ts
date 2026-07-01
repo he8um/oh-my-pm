@@ -8,6 +8,13 @@ import { fetchOpenTasksInList } from "../connectors/clickup/tasks.js";
 import { extractDeliveryTags } from "../connectors/clickup/formatters.js";
 import { makeDegradedNoToken } from "../connectors/clickup/errors.js";
 import { HARD_MAX_TASKS } from "../connectors/clickup/limits.js";
+import { loadAirtableConfig } from "../connectors/airtable/config.js";
+import { AirtableClient } from "../connectors/airtable/client.js";
+import { fetchTables, resolveTableIdentifier } from "../connectors/airtable/tables.js";
+import { fetchRecords } from "../connectors/airtable/records.js";
+import { extractDataQualityTags } from "../connectors/airtable/formatters.js";
+import { makeDegradedNoToken as makeAirtableDegradedNoToken } from "../connectors/airtable/errors.js";
+import { HARD_MAX_RECORDS } from "../connectors/airtable/limits.js";
 
 export function registerResources(server: McpServer): void {
   const root = getProjectRoot();
@@ -105,6 +112,38 @@ export function registerResources(server: McpServer): void {
       return { contents: [{ uri: "clickup://tasks/open", text: content }] };
     }
   );
+
+  // ── Airtable connector resources (read-only, bounded) ────────────────────
+
+  server.resource(
+    "airtable://base/current",
+    "airtable://base/current",
+    { description: "Current configured Airtable base identity." },
+    async (_uri) => {
+      const content = JSON.stringify(await readAirtableBaseCurrent(), null, 2);
+      return { contents: [{ uri: "airtable://base/current", text: content }] };
+    }
+  );
+
+  server.resource(
+    "airtable://tables",
+    "airtable://tables",
+    { description: "Tables in the configured Airtable base (bounded)." },
+    async (_uri) => {
+      const content = JSON.stringify(await readAirtableTables(), null, 2);
+      return { contents: [{ uri: "airtable://tables", text: content }] };
+    }
+  );
+
+  server.resource(
+    "airtable://records/current",
+    "airtable://records/current",
+    { description: "Records in the configured Airtable table (bounded)." },
+    async (_uri) => {
+      const content = JSON.stringify(await readAirtableRecordsCurrent(), null, 2);
+      return { contents: [{ uri: "airtable://records/current", text: content }] };
+    }
+  );
 }
 
 async function readClickUpWorkspaceCurrent(): Promise<Record<string, unknown>> {
@@ -170,6 +209,63 @@ async function readClickUpOpenTasks(): Promise<Record<string, unknown>> {
       name: t.name,
       status: t.status,
       delivery_tags: extractDeliveryTags(t),
+    })),
+  };
+}
+
+async function readAirtableBaseCurrent(): Promise<Record<string, unknown>> {
+  const { config, error } = loadAirtableConfig();
+  if (error || !config) {
+    return { read_at: now(), status: "error", error_code: "config_missing", message: error };
+  }
+  if (!config.token) {
+    return { read_at: now(), ...makeAirtableDegradedNoToken() };
+  }
+  return { read_at: now(), status: "ok", base_id: config.baseId };
+}
+
+async function readAirtableTables(): Promise<Record<string, unknown>> {
+  const { config, error } = loadAirtableConfig();
+  if (error || !config) {
+    return { read_at: now(), status: "error", error_code: "config_missing", message: error };
+  }
+  if (!config.token) {
+    return { read_at: now(), ...makeAirtableDegradedNoToken() };
+  }
+  const client = new AirtableClient(config);
+  const { tables, error: fetchError } = await fetchTables(client);
+  if (fetchError) return { read_at: now(), ...(fetchError as Record<string, unknown>) };
+  return { read_at: now(), status: "ok", base_id: config.baseId, tables: tables ?? [] };
+}
+
+async function readAirtableRecordsCurrent(): Promise<Record<string, unknown>> {
+  const { config, error } = loadAirtableConfig();
+  if (error || !config) {
+    return { read_at: now(), status: "error", error_code: "config_missing", message: error };
+  }
+  if (!config.token) {
+    return { read_at: now(), ...makeAirtableDegradedNoToken() };
+  }
+  const client = new AirtableClient(config);
+  const table = resolveTableIdentifier(client);
+  if (!table) {
+    return {
+      read_at: now(),
+      status: "error",
+      error_code: "config_missing",
+      message: "OH_MY_PM_AIRTABLE_TABLE_ID / OH_MY_PM_AIRTABLE_TABLE_NAME is not set.",
+    };
+  }
+  const { records, error: fetchError } = await fetchRecords(client, table, HARD_MAX_RECORDS);
+  if (fetchError) return { read_at: now(), ...(fetchError as Record<string, unknown>) };
+  return {
+    read_at: now(),
+    status: "ok",
+    base_id: config.baseId,
+    table_id: table,
+    records: (records ?? []).map((r) => ({
+      id: r.id,
+      data_quality_tags: extractDataQualityTags(r),
     })),
   };
 }

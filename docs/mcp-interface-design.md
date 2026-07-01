@@ -94,9 +94,12 @@ configured at once:
   `clickup_summarize_list_status`, `clickup_list_spaces`,
   `clickup_list_folders`, `clickup_list_lists`,
   `clickup_get_workspace_context`
+- Airtable (v0.10.0): `airtable_list_bases`, `airtable_list_tables`,
+  `airtable_describe_table`, `airtable_list_records`,
+  `airtable_summarize_base_status`
 
-See `docs/github-connector.md` and `docs/clickup-connector.md` for the
-authoritative tool list per connector.
+See `docs/github-connector.md`, `docs/clickup-connector.md`, and
+`docs/airtable-connector.md` for the authoritative tool list per connector.
 
 ---
 

@@ -7,6 +7,40 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 
 ---
 
+## [Unreleased] — v0.10.0
+
+### Added in v0.10.0
+
+- `docs/airtable-connector.md`: new — Airtable connector scope, read-only policy, tools, resources, prompts, configuration, failure behavior, rate-limit behavior, pagination/limit behavior, delivery semantics, test approach, explicit write-action exclusions
+- `packages/mcp-server/src/connectors/airtable/`: Airtable connector — config.ts, errors.ts, types.ts, limits.ts, formatters.ts, client.ts, bases.ts, tables.ts, records.ts
+- `packages/mcp-server/src/tools/airtable-list-bases.ts`: list bases accessible to the configured token
+- `packages/mcp-server/src/tools/airtable-list-tables.ts`: list tables in the configured base, with field counts
+- `packages/mcp-server/src/tools/airtable-describe-table.ts`: describe a table's schema — field names, types, views
+- `packages/mcp-server/src/tools/airtable-list-records.ts`: list records with data-quality tags (missing owner, missing due date, missing required field, stale), bounded to 25 items by default
+- `packages/mcp-server/src/tools/airtable-summarize-base-status.ts`: table delivery status summary — record count, data-quality issues, handoff gaps, recommended next actions
+- `packages/mcp-server/src/resources/registry.ts`: added `airtable://base/current`, `airtable://tables`, `airtable://records/current` resources (bounded)
+- `packages/mcp-server/src/prompts/registry.ts`: added `summarize-airtable-base-status`, `diagnose-airtable-data-quality`, `prepare-airtable-project-handoff` prompts
+- `packages/mcp-server/tests/airtable-config.test.ts`: 6 config loading tests (missing base ID, defaults, custom base URL, optional table ID/name)
+- `packages/mcp-server/tests/airtable-read-only-policy.test.ts`: 3 read-only policy tests (Airtable tool allowlist, write-style rejections)
+- `packages/mcp-server/tests/airtable-formatting.test.ts`: 14 formatting tests (data-quality tag extraction, field value truncation, item clamping)
+- `packages/mcp-server/tests/airtable-tools.test.ts`: 15 integration tests (mocked Airtable API responses, config errors, missing-token degraded response, auth/rate-limit errors, token redaction)
+- `packages/mcp-server/src/policy/read-only.ts`: expanded — Airtable tool allowlist added, `AIRTABLE_READ_ONLY_TOOLS` exported
+
+### Changed in v0.10.0
+
+- `packages/mcp-server/src/server.ts`: registered 5 Airtable connector tools — `airtable_list_bases`, `airtable_list_tables`, `airtable_describe_table`, `airtable_list_records`, `airtable_summarize_base_status`
+- `packages/mcp-server/src/server.ts`: version bumped to `0.10.0`
+- `packages/mcp-server/package.json`: version bumped to `0.10.0`
+- `validate-agent-files.sh`: expanded with Phase 10 Airtable connector checks
+- `ROADMAP.md`: v0.10.0 marked as in progress, v0.11.0 marked as next
+- `docs/mcp-connector-roadmap.md`: Airtable marked as in progress — Phase 10
+- `docs/mcp-security-policy.md`: Airtable added to the connector allowlist and least-privilege guidance
+- `docs/mcp-interface-design.md`: documented implemented Airtable connector tool names
+- `docs/compatibility.md`, `docs/supported-tools.md`: Airtable connector marked shipped
+- `packages/mcp-server/README.md`: added Airtable connector tool, resource, prompt, and configuration documentation
+
+---
+
 ## [v0.9.0] — 2026-07-01
 
 ### Added in v0.9.0
