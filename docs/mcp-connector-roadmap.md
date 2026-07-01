@@ -13,7 +13,7 @@ No connectors are implemented in v0.6.0. This is a planning document.
 | v0.7.0 | MCP server alpha — no external connector | Validate server architecture with local context only |
 | v0.8.0 | GitHub Issues / Projects | Released — Phase 8 |
 | v0.9.0 | ClickUp | Released — Phase 9 |
-| **v0.10.0** | Airtable | In progress — Phase 10 |
+| v0.10.0 | Airtable | Released — Phase 10 |
 | v0.11.0 | Linear | Engineering-focused, fast API, increasingly common |
 | v0.12.0 | Jira | Enterprise standard, complex API, higher integration cost |
 | v0.13.0 | Notion | Docs-as-PM hybrid, high user demand, API has limitations |
@@ -145,7 +145,7 @@ See `docs/clickup-connector.md` for the full connector scope.
 
 ---
 
-## v0.10.0 — Airtable Connector (In progress — Phase 10)
+## v0.10.0 — Airtable Connector (Released — Phase 10)
 
 **Purpose:** Give the agent access to Airtable base, table, and record data for delivery diagnosis, operational data review, source-of-truth review, and delivery status summarization.
 

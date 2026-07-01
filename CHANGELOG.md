@@ -7,7 +7,7 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 
 ---
 
-## [Unreleased] — v0.10.0
+## [v0.10.0] — 2026-07-01
 
 ### Added in v0.10.0
 
