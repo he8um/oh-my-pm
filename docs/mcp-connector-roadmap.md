@@ -14,7 +14,7 @@ No connectors are implemented in v0.6.0. This is a planning document.
 | v0.8.0 | GitHub Issues / Projects | Released — Phase 8 |
 | v0.9.0 | ClickUp | Released — Phase 9 |
 | v0.10.0 | Airtable | Released — Phase 10 |
-| **v0.11.0** | Linear | In progress — Phase 11 |
+| v0.11.0 | Linear | Released — Phase 11 |
 | v0.12.0 | Jira | Enterprise standard, complex API, higher integration cost |
 | v0.13.0 | Notion | Docs-as-PM hybrid, high user demand, API has limitations |
 
@@ -191,7 +191,7 @@ See `docs/airtable-connector.md` for the full connector scope.
 
 ---
 
-## v0.11.0 — Linear Connector (In progress — Phase 11)
+## v0.11.0 — Linear Connector (Released — Phase 11)
 
 **Purpose:** Give the agent access to Linear team, project, and issue data for engineering-focused delivery diagnosis, issue backlog review, and delivery status summarization.
 
