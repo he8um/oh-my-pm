@@ -32,7 +32,7 @@ Always check the `CHANGELOG.md` before upgrading.
 ## Known limitations
 
 - v0.1.0-alpha: starter content only; deep playbooks and examples are planned for later phases.
-- MCP server alpha available in v0.7.0 — local context tools. GitHub connector added in v0.8.0 (in progress) — read-only, environment-variable configured. See `docs/github-connector.md`.
+- MCP server alpha available in v0.7.0 — local context tools. GitHub Issues / Projects connector added in v0.8.0 — read-only, environment-variable configured. See `docs/github-connector.md`. ClickUp connector planned for v0.9.0.
 - The install contract may change before v1.0.0.
 
 ## Related docs

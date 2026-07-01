@@ -13,8 +13,8 @@ Oh My PM follows the phased strategy: first become installable, then become usef
 | **v0.5.0** | Deep playbooks, templates, and examples expansion — released |
 | **v0.6.0** | MCP research, interface design, and architecture docs — released |
 | **v0.7.0** | Oh My PM MCP Server Alpha — TypeScript/Node, read-only — released |
-| **v0.8.0** | GitHub Issues / Projects connector — in progress |
-| v0.9.0 | ClickUp connector |
+| **v0.8.0** | GitHub Issues / Projects connector — released |
+| **v0.9.0** | ClickUp connector — next |
 | v0.10.0 | Airtable connector |
 | v0.11.0 | Linear connector |
 | v0.12.0 | Jira connector |

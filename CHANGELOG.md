@@ -7,7 +7,7 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 
 ---
 
-## [v0.8.0] — Unreleased
+## [v0.8.0] — 2026-07-01
 
 ### Added in v0.8.0
 
@@ -28,7 +28,7 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 - `packages/mcp-server/src/server.ts`: registered 4 GitHub connector tools — `github_list_issues`, `github_summarize_issue`, `github_list_milestones`, `github_get_repository_context`
 - `packages/mcp-server/src/server.ts`: version bumped to `0.8.0`
 - `validate-agent-files.sh`: expanded with Phase 8 GitHub connector checks
-- `ROADMAP.md`: v0.8.0 marked as in progress
+- `ROADMAP.md`: v0.8.0 marked as released, v0.9.0 marked as next
 
 ---
 
