@@ -16,7 +16,7 @@ No connectors are implemented in v0.6.0. This is a planning document.
 | v0.10.0 | Airtable | Released — Phase 10 |
 | v0.11.0 | Linear | Released — Phase 11 |
 | v0.12.0 | Jira | Released — Phase 12 |
-| v0.13.0 | Notion | Docs-as-PM hybrid, high user demand, API has limitations |
+| **v0.13.0** | Notion | In progress — Phase 13 |
 
 One connector per version. Connectors do not ship until their security review is complete.
 
@@ -283,16 +283,16 @@ See `docs/jira-connector.md` for the full connector scope.
 
 ---
 
-## v0.13.0 — Notion Connector
+## v0.13.0 — Notion Connector (In progress — Phase 13)
 
 **Purpose:** Give the agent access to Notion-based project pages and task databases for teams using Notion as their PM tool.
 
 **Read-only first capability:**
 
-- List items in a configured database (tasks, projects, milestones)
-- Filter by status property
-- Get page content for a specific page ID
-- List database items assigned to a named team member
+- Search the workspace for pages/databases accessible to the integration
+- List items in a configured database, with data-quality tags, optional status filter
+- Summarize database delivery status: item count, data-quality issues, next actions
+- Get page metadata and first-level content for a specific page ID
 
 **Potential future write capability (not in v0.13.0):**
 
@@ -303,24 +303,30 @@ See `docs/jira-connector.md` for the full connector scope.
 
 ```txt
 OH_MY_PM_NOTION_TOKEN=<integration-token>
-OH_MY_PM_NOTION_DATABASE_ID=<database-id>
 ```
 
-The Notion integration must be added to the target workspace by the user before use.
+At least one of `OH_MY_PM_NOTION_PAGE_ID` or `OH_MY_PM_NOTION_DATABASE_ID` is
+required for page/database-scoped tools. The Notion integration must be
+shared with the target page/database by the user before use — this cannot
+be automated by the connector.
 
-**Testing approach:** Notion API responses mocked in unit tests. Integration tests require a dedicated synthetic Notion workspace.
+**Testing approach:** Notion API responses mocked in unit tests. No real Notion API calls in tests. Notion's `search` and `database query` endpoints are `POST` requests despite being read-only — the connector calls only these two documented read-only POST paths plus `GET`, and never a create/update/append/delete endpoint.
 
 **Risks:**
 
-- Notion API is append-only for blocks — some update patterns require workarounds
-- Database schemas vary by team — field name assumptions break frequently
+- Notion API is append-only for blocks — some update patterns require workarounds; this connector never attempts any block mutation
+- Database schemas vary by team — field name assumptions break frequently, handled with the same heuristic pattern-matching approach used for Airtable
 - Notion API rate limits are stricter than other connectors
 
 **Non-goals:**
 
 - No Notion wiki or documentation page creation
 - No block-level editing
-- No workspace-level access beyond the configured database
+- No workspace-level access beyond the configured page/database
+- No nested block children beyond the first level
+- No relation/backlink resolution
+
+See `docs/notion-connector.md` for the full connector scope.
 
 ---
 

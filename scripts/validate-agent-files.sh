@@ -410,6 +410,38 @@ for write_tool in \
 done
 
 echo ""
+echo "--- Notion connector (Phase 13) ---"
+check_exists "docs/notion-connector.md" "docs/notion-connector.md"
+check_exists "packages/mcp-server/src/connectors/notion/config.ts" "packages/mcp-server/src/connectors/notion/config.ts"
+check_exists "packages/mcp-server/src/connectors/notion/client.ts" "packages/mcp-server/src/connectors/notion/client.ts"
+check_exists "packages/mcp-server/src/connectors/notion/types.ts" "packages/mcp-server/src/connectors/notion/types.ts"
+check_exists "packages/mcp-server/src/connectors/notion/errors.ts" "packages/mcp-server/src/connectors/notion/errors.ts"
+check_exists "packages/mcp-server/src/tools/notion-search-pages.ts" "packages/mcp-server/src/tools/notion-search-pages.ts"
+check_exists "packages/mcp-server/src/tools/notion-summarize-page.ts" "packages/mcp-server/src/tools/notion-summarize-page.ts"
+check_exists "packages/mcp-server/src/tools/notion-query-database.ts" "packages/mcp-server/src/tools/notion-query-database.ts"
+check_exists "packages/mcp-server/src/tools/notion-summarize-database.ts" "packages/mcp-server/src/tools/notion-summarize-database.ts"
+check_exists "packages/mcp-server/src/tools/notion-get-page-context.ts" "packages/mcp-server/src/tools/notion-get-page-context.ts"
+check_exists "packages/mcp-server/tests/notion-config.test.ts" "packages/mcp-server/tests/notion-config.test.ts"
+check_exists "packages/mcp-server/tests/notion-read-only-policy.test.ts" "packages/mcp-server/tests/notion-read-only-policy.test.ts"
+check_exists "packages/mcp-server/tests/notion-tools.test.ts" "packages/mcp-server/tests/notion-tools.test.ts"
+check_contains "docs/notion-connector.md: no write actions" "docs/notion-connector.md" "No write actions"
+check_contains "docs/notion-connector.md: OH_MY_PM_NOTION_TOKEN" "docs/notion-connector.md" "OH_MY_PM_NOTION_TOKEN"
+check_contains "packages/mcp-server/src/connectors/notion/config.ts: OH_MY_PM_NOTION_TOKEN" "packages/mcp-server/src/connectors/notion/config.ts" "OH_MY_PM_NOTION_TOKEN"
+
+# Confirm no Notion write tool filenames exist
+for write_tool in \
+  "notion-create-page" "notion-update-page" "notion-delete-page" \
+  "notion-append-block" "notion-create-database" "notion-create-comment"; do
+  if [ -f "$REPO_ROOT/packages/mcp-server/src/tools/${write_tool}.ts" ]; then
+    echo "FAIL: write tool ${write_tool}.ts must not exist in Phase 13"
+    FAIL=$((FAIL + 1))
+  else
+    echo "PASS: no write tool ${write_tool}.ts (correct for Phase 13)"
+    PASS=$((PASS + 1))
+  fi
+done
+
+echo ""
 echo "=== Summary ==="
 echo "Passed: $PASS"
 echo "Failed: $FAIL"

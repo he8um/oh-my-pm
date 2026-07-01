@@ -20,7 +20,7 @@
 | Airtable | v0.10.0 | MCP connector — read-only — shipped |
 | Linear | v0.11.0 | MCP connector — read-only — shipped |
 | Jira | v0.12.0 | MCP connector — read-only — shipped |
-| Notion | v0.13.0 | MCP connector — read-only — next |
+| Notion | v0.13.0 | MCP connector — read-only — shipped |
 
 ## MCP status
 
@@ -33,7 +33,8 @@ MCP (Model Context Protocol) is an optional integration layer available as an al
 - v0.10.0: Airtable connector — read-only, environment-variable configured — **shipped**
 - v0.11.0: Linear connector — read-only, environment-variable configured — **shipped**
 - v0.12.0: Jira connector — read-only, environment-variable configured — **shipped**
-- v0.13.0+: Additional connectors added one per version (Notion next)
+- v0.13.0: Notion connector — read-only, environment-variable configured — **shipped**
+- This completes the currently planned connector list. Future work moves toward stabilizing the existing connectors and the install contract on the path to v1.0.0 rather than adding further connectors.
 
 Install: `cd packages/mcp-server && npm install && npm run build`. Configure via `examples/client-config.example.json`.
 

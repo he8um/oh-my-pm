@@ -43,6 +43,14 @@ import {
 } from "./tools/jira-summarize-project-status.js";
 import { jiraListProjects } from "./tools/jira-list-projects.js";
 import { jiraListBoards } from "./tools/jira-list-boards.js";
+import { notionSearchPages, notionSearchPagesSchema } from "./tools/notion-search-pages.js";
+import { notionSummarizePage, notionSummarizePageSchema } from "./tools/notion-summarize-page.js";
+import { notionQueryDatabase, notionQueryDatabaseSchema } from "./tools/notion-query-database.js";
+import {
+  notionSummarizeDatabase,
+  notionSummarizeDatabaseSchema,
+} from "./tools/notion-summarize-database.js";
+import { notionGetPageContext, notionGetPageContextSchema } from "./tools/notion-get-page-context.js";
 import { registerResources } from "./resources/registry.js";
 import { registerPrompts } from "./prompts/registry.js";
 import { enforceReadOnly } from "./policy/read-only.js";
@@ -50,7 +58,7 @@ import { enforceReadOnly } from "./policy/read-only.js";
 export async function startServer(): Promise<void> {
   const server = new McpServer({
     name: "oh-my-pm",
-    version: "0.12.0",
+    version: "0.13.0",
   });
 
   enforceReadOnly(server);
@@ -363,6 +371,58 @@ export async function startServer(): Promise<void> {
     {},
     async () => {
       const result = await jiraListBoards();
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  // ── Notion connector tools (read-only) ──────────────────────────────────────
+
+  server.tool(
+    "notion_search_pages",
+    "Search the configured Notion workspace for pages/databases accessible to the integration. Requires OH_MY_PM_NOTION_TOKEN.",
+    notionSearchPagesSchema,
+    async (params) => {
+      const result = await notionSearchPages(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "notion_summarize_page",
+    "Get a structured summary of a single Notion page: properties and metadata.",
+    notionSummarizePageSchema,
+    async (params) => {
+      const result = await notionSummarizePage(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "notion_query_database",
+    "List items in a Notion database with data-quality tags (missing owner, missing status, missing due date, stale), optional status filter.",
+    notionQueryDatabaseSchema,
+    async (params) => {
+      const result = await notionQueryDatabase(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "notion_summarize_database",
+    "Summarize delivery status of a Notion database: item count, data-quality issues, handoff gaps, next actions.",
+    notionSummarizeDatabaseSchema,
+    async (params) => {
+      const result = await notionSummarizeDatabase(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "notion_get_page_context",
+    "Get a Notion page's properties plus its first-level block children as plain-text content, bounded.",
+    notionGetPageContextSchema,
+    async (params) => {
+      const result = await notionGetPageContext(params);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     }
   );

@@ -1,8 +1,8 @@
 # Oh My PM MCP Server
 
-Read-only MCP server for Oh My PM — local context tools, GitHub connector, ClickUp connector, Airtable connector, Linear connector, and Jira connector for delivery agents.
+Read-only MCP server for Oh My PM — local context tools, GitHub connector, ClickUp connector, Airtable connector, Linear connector, Jira connector, and Notion connector for delivery agents.
 
-**Version:** v0.12.0  
+**Version:** v0.13.0  
 **Transport:** stdio (local only)  
 **Status:** Alpha
 
@@ -10,7 +10,7 @@ Read-only MCP server for Oh My PM — local context tools, GitHub connector, Cli
 
 ## What this is
 
-The Oh My PM MCP server gives MCP-compatible clients (Claude Code, Cursor, etc.) structured access to local project context, GitHub Issues/Milestones, ClickUp workspace/list/task data, Airtable base/table/record data, Linear team/project/issue data, and Jira project/board/sprint/issue data.
+The Oh My PM MCP server gives MCP-compatible clients (Claude Code, Cursor, etc.) structured access to local project context, GitHub Issues/Milestones, ClickUp workspace/list/task data, Airtable base/table/record data, Linear team/project/issue data, Jira project/board/sprint/issue data, and Notion page/database/block data.
 
 All tools are read-only. No write actions. No mutations.
 
@@ -88,6 +88,18 @@ Linear tools require `OH_MY_PM_LINEAR_TEAM_ID` and `OH_MY_PM_LINEAR_TOKEN`. Like
 
 Jira tools require `OH_MY_PM_JIRA_BASE_URL`, `OH_MY_PM_JIRA_PROJECT_KEY`, `OH_MY_PM_JIRA_EMAIL`, and `OH_MY_PM_JIRA_TOKEN`. Unlike the bearer-token connectors, Jira authenticates with HTTP Basic auth (email + API token) — a missing email or token returns a degraded response rather than crashing. The client issues only `GET` requests. See `docs/jira-connector.md`.
 
+### Notion connector tools (v0.13.0)
+
+| Tool | Description |
+| --- | --- |
+| `notion_search_pages` | Search the workspace for pages/databases accessible to the integration |
+| `notion_summarize_page` | Structured summary of a single page: properties and metadata |
+| `notion_query_database` | List database items with data-quality tags (missing owner, missing status, missing due date, stale), optional status filter |
+| `notion_summarize_database` | Delivery status summary of a database: item count, data-quality issues, next actions |
+| `notion_get_page_context` | Page properties plus first-level block children as plain-text content, bounded |
+
+Notion tools require `OH_MY_PM_NOTION_TOKEN`, and at least one of `OH_MY_PM_NOTION_PAGE_ID` or `OH_MY_PM_NOTION_DATABASE_ID` for page/database-scoped tools. Like the ClickUp, Airtable, Linear, and Jira connectors, Notion has no unauthenticated fallback — a missing token returns a degraded response rather than crashing. Notion's `search` and `database query` endpoints are `POST` requests despite being read-only; the connector calls only these two documented read-only POST paths plus `GET`, and never a create/update/append/delete endpoint. See `docs/notion-connector.md`.
+
 ---
 
 ## Resources
@@ -109,6 +121,9 @@ Jira tools require `OH_MY_PM_JIRA_BASE_URL`, `OH_MY_PM_JIRA_PROJECT_KEY`, `OH_MY
 | `jira://site/current` | Current configured Jira site identity |
 | `jira://projects` | Projects accessible to the configured Jira site (bounded) |
 | `jira://issues/open` | Open issues in the configured Jira project (bounded) |
+| `notion://workspace/current` | Current configured Notion integration identity |
+| `notion://pages/current` | Current configured Notion page's properties (bounded) |
+| `notion://database/current` | Items in the configured Notion database (bounded) |
 
 ---
 
@@ -131,6 +146,9 @@ Jira tools require `OH_MY_PM_JIRA_BASE_URL`, `OH_MY_PM_JIRA_PROJECT_KEY`, `OH_MY
 | `summarize-jira-delivery-status` | Delivery status using Jira issue/board/sprint data |
 | `diagnose-jira-issue-backlog` | Jira issue backlog diagnosis |
 | `prepare-jira-project-handoff` | Handoff prompt seeded with Jira context |
+| `summarize-notion-delivery-status` | Delivery status using Notion database/page data |
+| `diagnose-notion-knowledge-base` | Notion knowledge-base diagnosis |
+| `prepare-notion-project-handoff` | Handoff prompt seeded with Notion context |
 
 ---
 
@@ -233,18 +251,29 @@ Add to your MCP client config (e.g. `~/.config/claude/claude_desktop_config.json
 
 **Token security:** The email and token are read from the environment at startup only. Neither is logged, returned in tool output, or included in error messages. When either is missing, tools return a degraded response instead of crashing.
 
+### Notion connector (v0.13.0)
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `OH_MY_PM_NOTION_TOKEN` | Yes | Notion internal integration token — required for all reads, no unauthenticated fallback |
+| `OH_MY_PM_NOTION_PAGE_ID` | No | Default page ID for page-scoped tools |
+| `OH_MY_PM_NOTION_DATABASE_ID` | No | Default database ID for database-scoped tools |
+| `OH_MY_PM_NOTION_API_BASE_URL` | No | Override API base URL (default: `https://api.notion.com/v1`) |
+
+**Token security:** The token is read from the environment at startup only. It is never logged, never returned in tool output, and never included in error messages. When missing, tools return a degraded response instead of crashing. The Notion integration must be shared with the target page/database by a workspace member before use.
+
 ---
 
 ## Security
 
 - Read-only. No write actions. No mutations in any tool.
-- GitHub, ClickUp, Airtable, Linear, and Jira tokens (if set) are never logged, never returned in tool output, never in error messages.
+- GitHub, ClickUp, Airtable, Linear, Jira, and Notion tokens (if set) are never logged, never returned in tool output, never in error messages.
 - Sensitive local file patterns (`.env`, `*.key`, `*.pem`) are excluded from reads.
 - Path traversal attempts are rejected.
 - No background polling. No telemetry. No credential storage.
-- The Linear connector never sends a GraphQL mutation. The Jira connector never calls a write endpoint (`POST`/`PUT`/`PATCH`/`DELETE`).
+- The Linear connector never sends a GraphQL mutation. The Jira connector never calls a write endpoint (`POST`/`PUT`/`PATCH`/`DELETE`). The Notion connector calls only `GET` plus its two documented read-only `POST` endpoints (`/search`, `/databases/{id}/query`) — never a create/update/append/delete endpoint.
 
-See `docs/mcp-security-policy.md`, `docs/github-connector.md`, `docs/clickup-connector.md`, `docs/airtable-connector.md`, `docs/linear-connector.md`, and `docs/jira-connector.md` in the repository root.
+See `docs/mcp-security-policy.md`, `docs/github-connector.md`, `docs/clickup-connector.md`, `docs/airtable-connector.md`, `docs/linear-connector.md`, `docs/jira-connector.md`, and `docs/notion-connector.md` in the repository root.
 
 ---
 
@@ -270,3 +299,4 @@ pnpm start       # start the server (requires pnpm build first)
 - `docs/airtable-connector.md` — Airtable connector scope, tools, configuration, and failure behavior
 - `docs/linear-connector.md` — Linear connector scope, tools, configuration, and failure behavior
 - `docs/jira-connector.md` — Jira connector scope, tools, configuration, and failure behavior
+- `docs/notion-connector.md` — Notion connector scope, tools, configuration, and failure behavior

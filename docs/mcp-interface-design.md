@@ -103,10 +103,13 @@ configured at once:
 - Jira (v0.12.0): `jira_list_issues`, `jira_summarize_issue`,
   `jira_summarize_project_status`, `jira_list_projects`,
   `jira_list_boards`
+- Notion (v0.13.0): `notion_search_pages`, `notion_summarize_page`,
+  `notion_query_database`, `notion_summarize_database`,
+  `notion_get_page_context`
 
 See `docs/github-connector.md`, `docs/clickup-connector.md`,
-`docs/airtable-connector.md`, `docs/linear-connector.md`, and
-`docs/jira-connector.md` for the
+`docs/airtable-connector.md`, `docs/linear-connector.md`,
+`docs/jira-connector.md`, and `docs/notion-connector.md` for the
 authoritative tool list per connector.
 
 ---

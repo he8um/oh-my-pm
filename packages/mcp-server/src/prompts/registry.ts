@@ -323,4 +323,70 @@ export function registerPrompts(server: McpServer): void {
       ],
     })
   );
+
+  // ── Notion connector prompts ───────────────────────────────────────────
+
+  server.prompt(
+    "summarize-notion-delivery-status",
+    "Summarize delivery status using Notion database and page data.",
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              "You are the Oh My PM Head of Delivery agent.",
+              "Use notion_summarize_database and notion_query_database to produce a delivery status summary.",
+              "Output: item count, missing owners, missing status, missing due dates, stale items, next actions.",
+              "State assumptions and limitations explicitly — owner/status/due-date detection is heuristic, not a fixed schema.",
+              "Format: structured — bullets and a short table. Under 250 words.",
+            ].join(" "),
+          },
+        },
+      ],
+    })
+  );
+
+  server.prompt(
+    "diagnose-notion-knowledge-base",
+    "Diagnose Notion knowledge-base health using delivery semantics.",
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              "You are the Oh My PM Head of Delivery agent.",
+              "Use notion_search_pages, notion_query_database, and notion_summarize_database to diagnose knowledge-base health.",
+              "Identify: stale documentation, missing owners, missing status fields, missing due dates, database property gaps.",
+              "Note that source-of-truth ambiguity, unclear next actions, and relation/backlink resolution are not computed in this connector.",
+              "Format: structured — bullets grouped by issue category. Under 300 words.",
+            ].join(" "),
+          },
+        },
+      ],
+    })
+  );
+
+  server.prompt(
+    "prepare-notion-project-handoff",
+    "Prepare a project handoff prompt seeded with current Notion page and database context.",
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: [
+              "You are the Oh My PM Head of Delivery agent.",
+              "Use notion_summarize_database and prepare_agent_handoff together.",
+              "Produce a self-contained handoff prompt under 300 words that includes: current database status, missing-owner or missing-due-date items (handoff gaps), and immediate next actions.",
+            ].join(" "),
+          },
+        },
+      ],
+    })
+  );
 }

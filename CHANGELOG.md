@@ -7,6 +7,40 @@ Versioning follows [VERSIONING.md](VERSIONING.md).
 
 ---
 
+## [Unreleased] — v0.13.0
+
+### Added in v0.13.0
+
+- `docs/notion-connector.md`: new — Notion connector scope, read-only policy, tools, resources, prompts, configuration, failure behavior, rate-limit behavior, pagination/limit behavior, delivery semantics, test approach, explicit write-action exclusions, and an explicit note on Notion's read-only-via-POST search/query endpoints
+- `packages/mcp-server/src/connectors/notion/`: Notion connector — config.ts, errors.ts, types.ts, limits.ts, formatters.ts, client.ts, pages.ts, databases.ts, blocks.ts, search.ts
+- `packages/mcp-server/src/tools/notion-search-pages.ts`: search the workspace for pages/databases accessible to the integration, bounded to 25 items by default
+- `packages/mcp-server/src/tools/notion-summarize-page.ts`: structured summary of a single page by ID
+- `packages/mcp-server/src/tools/notion-query-database.ts`: list database items with data-quality tags (missing owner, missing status, missing due date, stale), optional status filter
+- `packages/mcp-server/src/tools/notion-summarize-database.ts`: database delivery status summary — item count, data-quality issues, handoff gaps, recommended next actions
+- `packages/mcp-server/src/tools/notion-get-page-context.ts`: page properties plus first-level block children as plain-text content, bounded
+- `packages/mcp-server/src/resources/registry.ts`: added `notion://workspace/current`, `notion://pages/current`, `notion://database/current` resources (bounded)
+- `packages/mcp-server/src/prompts/registry.ts`: added `summarize-notion-delivery-status`, `diagnose-notion-knowledge-base`, `prepare-notion-project-handoff` prompts
+- `packages/mcp-server/tests/notion-config.test.ts`: 5 config loading tests (defaults, optional page/database IDs, custom base URL)
+- `packages/mcp-server/tests/notion-read-only-policy.test.ts`: 5 read-only policy tests (Notion tool allowlist, write-style rejections, client exposes only GET and the two documented read-only POST paths, connector source never calls a write endpoint)
+- `packages/mcp-server/tests/notion-formatting.test.ts`: 13 formatting tests (data-quality tag extraction, text truncation, item clamping)
+- `packages/mcp-server/tests/notion-tools.test.ts`: 14 integration tests (mocked Notion API responses, missing-token degraded response, config errors, token redaction)
+- `packages/mcp-server/src/policy/read-only.ts`: expanded — Notion tool allowlist added, `NOTION_READ_ONLY_TOOLS` exported
+
+### Changed in v0.13.0
+
+- `packages/mcp-server/src/server.ts`: registered 5 Notion connector tools — `notion_search_pages`, `notion_summarize_page`, `notion_query_database`, `notion_summarize_database`, `notion_get_page_context`
+- `packages/mcp-server/src/server.ts`: version bumped to `0.13.0`
+- `packages/mcp-server/package.json`: version bumped to `0.13.0`
+- `validate-agent-files.sh`: expanded with Phase 13 Notion connector checks
+- `ROADMAP.md`: v0.13.0 marked as in progress; v1.0.0 stabilization noted as next since this completes the currently planned connector list
+- `docs/mcp-connector-roadmap.md`: Notion marked as in progress — Phase 13
+- `docs/mcp-security-policy.md`: Notion added to the connector allowlist and least-privilege guidance
+- `docs/mcp-interface-design.md`: documented implemented Notion connector tool names
+- `docs/compatibility.md`, `docs/supported-tools.md`: Notion connector marked shipped; supported-tools notes the connector list is now complete
+- `packages/mcp-server/README.md`: added Notion connector tool, resource, prompt, and configuration documentation
+
+---
+
 ## [v0.12.0] — 2026-07-01
 
 ### Added in v0.12.0

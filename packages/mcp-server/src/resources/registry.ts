@@ -29,6 +29,13 @@ import { fetchOpenIssuesInProject } from "../connectors/jira/issues.js";
 import { extractDeliveryTags as extractJiraDeliveryTags } from "../connectors/jira/formatters.js";
 import { makeDegradedNoToken as makeJiraDegradedNoToken } from "../connectors/jira/errors.js";
 import { HARD_MAX_ISSUES as JIRA_HARD_MAX_ISSUES } from "../connectors/jira/limits.js";
+import { loadNotionConfig } from "../connectors/notion/config.js";
+import { NotionClient } from "../connectors/notion/client.js";
+import { fetchPage as fetchNotionPage } from "../connectors/notion/pages.js";
+import { queryDatabase as queryNotionDatabase } from "../connectors/notion/databases.js";
+import { extractDataQualityTags as extractNotionDataQualityTags } from "../connectors/notion/formatters.js";
+import { makeDegradedNoToken as makeNotionDegradedNoToken } from "../connectors/notion/errors.js";
+import { HARD_MAX_ITEMS as NOTION_HARD_MAX_ITEMS } from "../connectors/notion/limits.js";
 
 export function registerResources(server: McpServer): void {
   const root = getProjectRoot();
@@ -220,6 +227,38 @@ export function registerResources(server: McpServer): void {
     async (_uri) => {
       const content = JSON.stringify(await readJiraOpenIssues(), null, 2);
       return { contents: [{ uri: "jira://issues/open", text: content }] };
+    }
+  );
+
+  // ── Notion connector resources (read-only, bounded) ──────────────────────
+
+  server.resource(
+    "notion://workspace/current",
+    "notion://workspace/current",
+    { description: "Current configured Notion integration identity." },
+    async (_uri) => {
+      const content = JSON.stringify(await readNotionWorkspaceCurrent(), null, 2);
+      return { contents: [{ uri: "notion://workspace/current", text: content }] };
+    }
+  );
+
+  server.resource(
+    "notion://pages/current",
+    "notion://pages/current",
+    { description: "Current configured Notion page's properties (bounded)." },
+    async (_uri) => {
+      const content = JSON.stringify(await readNotionPageCurrent(), null, 2);
+      return { contents: [{ uri: "notion://pages/current", text: content }] };
+    }
+  );
+
+  server.resource(
+    "notion://database/current",
+    "notion://database/current",
+    { description: "Items in the configured Notion database (bounded)." },
+    async (_uri) => {
+      const content = JSON.stringify(await readNotionDatabaseCurrent(), null, 2);
+      return { contents: [{ uri: "notion://database/current", text: content }] };
     }
   );
 }
@@ -453,6 +492,78 @@ async function readJiraOpenIssues(): Promise<Record<string, unknown>> {
       summary: i.summary,
       status: i.status_name,
       delivery_tags: extractJiraDeliveryTags(i),
+    })),
+  };
+}
+
+async function readNotionWorkspaceCurrent(): Promise<Record<string, unknown>> {
+  const { config } = loadNotionConfig();
+  if (!config?.token) {
+    return { read_at: now(), ...makeNotionDegradedNoToken() };
+  }
+  return { read_at: now(), status: "ok", configured: true };
+}
+
+async function readNotionPageCurrent(): Promise<Record<string, unknown>> {
+  const { config } = loadNotionConfig();
+  if (!config?.token) {
+    return { read_at: now(), ...makeNotionDegradedNoToken() };
+  }
+  if (!config.pageId) {
+    return {
+      read_at: now(),
+      status: "error",
+      error_code: "config_missing",
+      message: "OH_MY_PM_NOTION_PAGE_ID is not set.",
+    };
+  }
+  const client = new NotionClient(config);
+  const { page, error: fetchError } = await fetchNotionPage(client, config.pageId);
+  if (fetchError) return { read_at: now(), ...(fetchError as Record<string, unknown>) };
+  if (!page) {
+    return {
+      read_at: now(),
+      status: "error",
+      error_code: "resource_not_found",
+      message: `Page ${config.pageId} not found or not shared with the integration.`,
+    };
+  }
+  return {
+    read_at: now(),
+    status: "ok",
+    page: { id: page.id, title: page.title, last_edited_time: page.last_edited_time },
+  };
+}
+
+async function readNotionDatabaseCurrent(): Promise<Record<string, unknown>> {
+  const { config } = loadNotionConfig();
+  if (!config?.token) {
+    return { read_at: now(), ...makeNotionDegradedNoToken() };
+  }
+  if (!config.databaseId) {
+    return {
+      read_at: now(),
+      status: "error",
+      error_code: "config_missing",
+      message: "OH_MY_PM_NOTION_DATABASE_ID is not set.",
+    };
+  }
+  const client = new NotionClient(config);
+  const { items, error: fetchError } = await queryNotionDatabase(
+    client,
+    config.databaseId,
+    undefined,
+    NOTION_HARD_MAX_ITEMS
+  );
+  if (fetchError) return { read_at: now(), ...(fetchError as Record<string, unknown>) };
+  return {
+    read_at: now(),
+    status: "ok",
+    database_id: config.databaseId,
+    items: (items ?? []).map((i) => ({
+      id: i.id,
+      title: i.title,
+      data_quality_tags: extractNotionDataQualityTags(i),
     })),
   };
 }
