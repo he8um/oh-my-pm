@@ -100,11 +100,16 @@ fi
 # Cursor checks
 if [ "$TARGET_SCOPE" = "cursor" ] || [ "$TARGET_SCOPE" = "all" ]; then
   echo "--- Cursor ---"
-  check ".cursor/rules directory"    "$TARGET_DIR/.cursor/rules"
-  check "00-oh-my-pm-core.mdc"       "$TARGET_DIR/.cursor/rules/00-oh-my-pm-core.mdc"
-  check "10-project-management.mdc"  "$TARGET_DIR/.cursor/rules/10-project-management.mdc"
-  check "70-bilingual-fa-en.mdc"     "$TARGET_DIR/.cursor/rules/70-bilingual-fa-en.mdc"
-  check "90-token-discipline.mdc"    "$TARGET_DIR/.cursor/rules/90-token-discipline.mdc"
+  check ".cursor/rules directory"       "$TARGET_DIR/.cursor/rules"
+  check "00-oh-my-pm-core.mdc"          "$TARGET_DIR/.cursor/rules/00-oh-my-pm-core.mdc"
+  check "10-project-management.mdc"     "$TARGET_DIR/.cursor/rules/10-project-management.mdc"
+  check "20-delivery-management.mdc"    "$TARGET_DIR/.cursor/rules/20-delivery-management.mdc"
+  check "30-software-delivery.mdc"      "$TARGET_DIR/.cursor/rules/30-software-delivery.mdc"
+  check "40-marketing-ops.mdc"          "$TARGET_DIR/.cursor/rules/40-marketing-ops.mdc"
+  check "50-product-management.mdc"     "$TARGET_DIR/.cursor/rules/50-product-management.mdc"
+  check "60-product-marketing.mdc"      "$TARGET_DIR/.cursor/rules/60-product-marketing.mdc"
+  check "70-bilingual-fa-en.mdc"        "$TARGET_DIR/.cursor/rules/70-bilingual-fa-en.mdc"
+  check "90-token-discipline.mdc"       "$TARGET_DIR/.cursor/rules/90-token-discipline.mdc"
   echo ""
 fi
 

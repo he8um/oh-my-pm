@@ -442,6 +442,65 @@ for write_tool in \
 done
 
 echo ""
+echo "--- v1.0.0 stabilization readiness ---"
+check_exists "docs/release-readiness-v1.0.0.md" "docs/release-readiness-v1.0.0.md"
+
+for connector in github clickup airtable linear jira notion; do
+  check_exists "docs/${connector}-connector.md" "docs/${connector}-connector.md"
+  check_exists "packages/mcp-server/src/connectors/${connector}" "packages/mcp-server/src/connectors/${connector}"
+done
+
+# Confirm no invented post-Notion connector phase is referenced anywhere checked by this script
+if grep -RqiE "v0\.14\.0|Phase 14" "$REPO_ROOT/docs" "$REPO_ROOT/README.md" "$REPO_ROOT/ROADMAP.md" "$REPO_ROOT/CHANGELOG.md" "$REPO_ROOT/packages/mcp-server/README.md" 2>/dev/null; then
+  echo "FAIL: found a reference to v0.14.0 or Phase 14 — no further connector is currently planned"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS: no v0.14.0 / Phase 14 references (connector list is complete as of v0.13.0)"
+  PASS=$((PASS + 1))
+fi
+
+check_contains "ROADMAP.md: v1.0.0 stabilization target" "ROADMAP.md" "v1.0.0"
+
+# Confirm pack VERSION files stay in lockstep with each other
+CLAUDE_PACK_VERSION="$(cat "$REPO_ROOT/packs/claude/VERSION" 2>/dev/null | tr -d '[:space:]')"
+PACK_VERSION_MISMATCH=0
+for pack_version_file in packs/cursor/VERSION packs/codex/VERSION packs/generic/VERSION chatgpt-skill/oh-my-pm/VERSION codex-skill/oh-my-pm/VERSION; do
+  other_version="$(cat "$REPO_ROOT/$pack_version_file" 2>/dev/null | tr -d '[:space:]')"
+  if [ "$other_version" != "$CLAUDE_PACK_VERSION" ]; then
+    echo "FAIL: $pack_version_file ($other_version) does not match packs/claude/VERSION ($CLAUDE_PACK_VERSION)"
+    PACK_VERSION_MISMATCH=1
+  fi
+done
+if [ "$PACK_VERSION_MISMATCH" = "1" ]; then
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS: all pack VERSION files match packs/claude/VERSION ($CLAUDE_PACK_VERSION)"
+  PASS=$((PASS + 1))
+fi
+
+# Confirm .cursor/rules/*.mdc are identical between root and the installable Cursor pack
+RULES_DRIFT=0
+for rule_file in "$REPO_ROOT"/.cursor/rules/*.mdc; do
+  rule_name="$(basename "$rule_file")"
+  pack_rule_file="$REPO_ROOT/packs/cursor/.cursor/rules/$rule_name"
+  if [ -f "$pack_rule_file" ]; then
+    if ! diff -q "$rule_file" "$pack_rule_file" >/dev/null 2>&1; then
+      echo "FAIL: .cursor/rules/$rule_name differs from packs/cursor/.cursor/rules/$rule_name"
+      RULES_DRIFT=1
+    fi
+  else
+    echo "FAIL: packs/cursor/.cursor/rules/$rule_name is missing"
+    RULES_DRIFT=1
+  fi
+done
+if [ "$RULES_DRIFT" = "1" ]; then
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS: .cursor/rules/*.mdc are identical between root and packs/cursor"
+  PASS=$((PASS + 1))
+fi
+
+echo ""
 echo "=== Summary ==="
 echo "Passed: $PASS"
 echo "Failed: $FAIL"

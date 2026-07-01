@@ -30,13 +30,14 @@ Oh My PM is a local agent kit. It makes no network calls, collects no telemetry,
 - No realistic-looking secret examples that could be confused with real credentials.
 - No Digikala or private company references.
 
-## MCP security (future)
+## MCP security
 
-When the MCP server is implemented (v0.7.0+), the following security model applies:
+The MCP server (`packages/mcp-server/`, shipped starting at v0.7.0) follows
+this security model:
 
 **Credentials:** No credentials in the repository. Connector tokens are provided via environment variables at runtime only. No credentials appear in logs, error messages, or tool responses.
 
-**Read-only default:** The v0.7.0 MCP server is read-only. No connector will support write actions in the alpha. Write actions require explicit user confirmation and per-action policy review before any connector enables them.
+**Read-only default:** The MCP server is read-only. No connector — GitHub, ClickUp, Airtable, Linear, Jira, or Notion — supports write actions. Write actions would require explicit user confirmation and per-action policy review before any connector enables them.
 
 **Connector allowlist:** Only connectors explicitly configured by the user are accessible. The server does not attempt to connect to any unconfigured system.
 

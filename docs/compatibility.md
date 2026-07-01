@@ -2,9 +2,15 @@
 
 ## Version compatibility
 
-| Oh My PM version | Claude Code | Cursor | Codex | ChatGPT |
-| --- | --- | --- | --- | --- |
-| v0.1.0-alpha | ✅ | ✅ | ✅ | ✅ |
+| Oh My PM version | Claude Code | Cursor | Codex | ChatGPT | MCP |
+| --- | --- | --- | --- | --- | --- |
+| v0.1.0-alpha – v0.6.0 | ✅ | ✅ | ✅ | ✅ | — |
+| v0.7.0 – v0.13.0 | ✅ | ✅ | ✅ | ✅ | ✅ (read-only alpha) |
+
+Pack-based install (Claude Code, Cursor, Codex, ChatGPT) has been supported
+since v0.1.0-alpha and has not changed its compatibility surface across
+releases. MCP support (`packages/mcp-server/`) is additive and optional,
+starting at v0.7.0 — it does not affect pack-based compatibility.
 
 ## Install contract stability
 

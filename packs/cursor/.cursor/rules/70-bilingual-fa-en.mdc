@@ -16,22 +16,39 @@ Apply this rule when the user writes in Persian or asks for bilingual (FA/EN) ou
 - Do not force literal Persian translations. Use natural, professional Persian.
 - For bilingual outputs, separate FA and EN sections clearly.
 
+## When to preserve English
+
+Always keep English for: code, CLI commands, API names, package names, filenames, config keys, environment variables, tool names, and delivery terms used as transliterations (rollback, backlog, sprint, release, kickoff).
+
+## How to handle mixed input
+
+When the user writes mixed Persian/English: respond in Persian for the management layer, preserve all English technical identifiers exactly as written. Do not translate identifiers even if a Persian equivalent exists.
+
 ## Technical term conventions
 
 | English | Persian usage |
-|---|---|
+| --- | --- |
 | scope | اسکوپ |
 | roadmap | رودمپ |
 | backlog | بک‌لاگ |
 | delivery | دلیوری |
 | stakeholder | استیک‌هولدر |
 | release | ریلیز |
+| launch | لانچ |
 | risk | ریسک |
+| dependency | وابستگی |
 | milestone | مایلستون |
+| acceptance criteria | معیار پذیرش |
+| rollback | رول‌بک |
+| escalation | اسکالیشن |
+| blocker | بلاکر |
+| owner | مالک |
+| critical path | مسیر بحرانی |
 | PRD | PRD |
 | MVP | MVP |
 | KPI | KPI |
 | OKR | OKR |
+| GTM | GTM |
 
 ## Useful resources
 
@@ -39,3 +56,4 @@ Apply this rule when the user writes in Persian or asks for bilingual (FA/EN) ou
 - `templates/fa/`
 - `prompts/fa/`
 - `docs/bilingual-support.md`
+- `chatgpt-skill/oh-my-pm/references/bilingual-fa-en.md`

@@ -1,8 +1,15 @@
 # MCP Integration
 
-MCP (Model Context Protocol) support is planned as a **future optional integration layer** for Oh My PM.
+MCP (Model Context Protocol) support is an **optional integration layer** for Oh My PM.
 
-MCP is **not implemented** in this version. Planning and interface design are documented here. Implementation begins at v0.7.0.
+MCP shipped as a read-only alpha starting at v0.7.0. As of v0.13.0, the MCP
+server includes six read-only external connectors (GitHub, ClickUp,
+Airtable, Linear, Jira, Notion) in addition to local repository context
+tools. This document originally described the pre-implementation plan; the
+sections below now describe what shipped, with the original planning intent
+preserved where it still applies. See `docs/mcp-alpha-scope.md` for the
+resolved implementation decisions and `packages/mcp-server/README.md` for
+the current tool/resource/prompt list.
 
 ---
 
@@ -26,21 +33,20 @@ Teams that provide context manually still benefit fully from the delivery layer.
 
 ---
 
-## What MCP will do
+## What MCP does
 
-- Provide read-only access to PM tool data: issues, tasks, milestones, members, project state
-- Allow agents to inspect the current state of a project from connected tools
-- Surface information that improves diagnosis, planning, risk review, and stakeholder updates
-- Follow the same PM-focused, token-efficient output principles as the rest of Oh My PM
+- Provides read-only access to PM tool data: issues, tasks, milestones, members, project state
+- Lets agents inspect the current state of a project from connected tools
+- Surfaces information that improves diagnosis, planning, risk review, and stakeholder updates
+- Follows the same PM-focused, token-efficient output principles as the rest of Oh My PM
 
 ---
 
-## What MCP will not do
+## What MCP does not do
 
 - Replace `AGENTS.md`, `CLAUDE.md`, Cursor rules, Skill files, or any existing packs
-- Become a generic integration platform
-- Perform write actions in v0.7.0 alpha (read-only only)
-- Perform write actions in any version without explicit user confirmation and per-connector safety controls
+- Act as a generic integration platform
+- Perform any write action, in any shipped connector or version (read-only only)
 - Collect telemetry or send data without user action
 - Connect to systems outside the configured connector list
 - Scan repositories broadly without a specific user request
@@ -50,74 +56,71 @@ Teams that provide context manually still benefit fully from the delivery layer.
 
 ## Read-only-first policy
 
-The v0.7.0 MCP server will be read-only. No connector will support write actions in the alpha.
+The MCP server is read-only. No shipped connector supports write actions.
 
-Write actions (creating tasks, updating statuses, commenting on issues) require:
+Write actions (creating tasks, updating statuses, commenting on issues) would require:
 
 1. Per-connector explicit user confirmation
 2. Per-action confirmation at the MCP tool call layer
 3. Connector-specific safety controls reviewed before release
 4. A written policy in `docs/mcp-security-policy.md` for the specific action
 
-Write actions will not be added until these conditions are met.
+No write action has been added, and none will be until these conditions are met.
 
 ---
 
-## Planned stack
+## Stack
 
 ```txt
 Runtime:         Node.js
 Language:        TypeScript
 Package manager: pnpm
-Future path:     packages/mcp-server/
+Path:            packages/mcp-server/
 ```
-
-The MCP server will live in `packages/mcp-server/` when implemented. This directory does not exist in v0.6.0.
 
 ---
 
-## Planned tool categories
+## Implemented tool naming
 
 MCP tools are the callable functions the agent uses to fetch data. All tool names are English.
 
-Planned tool categories:
+Local context tools use a `verb_noun` pattern (e.g. `inspect_project_context`,
+`summarize_delivery_status`). Connector tools use a
+`<connector>_<verb>_<noun>` pattern (e.g. `github_list_issues`,
+`clickup_summarize_list_status`, `jira_list_boards`) so that tools remain
+unambiguous when multiple connectors are configured at once.
 
-| Category | Example tools |
-| --- | --- |
-| Project inspection | `inspect_project_context`, `summarize_delivery_status` |
-| Risk and blockers | `list_open_risks`, `list_blockers` |
-| Issue and task data | `list_open_issues`, `get_milestone_status` |
-| Stakeholder context | `list_team_members`, `summarize_stakeholder_updates` |
-| Agent workflow | `prepare_agent_handoff`, `diagnose_project` |
-
-These are design-phase names. Final names will be defined in `docs/mcp-interface-design.md` before v0.7.0 implementation.
+See `docs/mcp-interface-design.md` for the naming convention and
+`packages/mcp-server/README.md` for the authoritative, current tool list
+across local context and all six connectors.
 
 ---
 
-## Planned resources
+## Resources
 
-MCP resources are read-only data objects exposed to the agent:
+MCP resources are read-only data objects exposed to the agent, using a
+`scheme://path` URI per connector (`project://`, `github://`, `clickup://`,
+`airtable://`, `linear://`, `jira://`, `notion://`).
 
-- `project://current` — current project context (name, status, milestone state)
-- `risks://open` — current open risk register
-- `issues://open` — open issues from a connected connector
-- `team://members` — team member list from a connected connector
+See `packages/mcp-server/README.md` for the authoritative, current resource
+list.
 
 ---
 
-## Planned prompts
+## Prompts
 
-MCP prompts are pre-built prompt templates exposed to the client:
+MCP prompts are pre-built prompt templates exposed to the client, one set
+per local-context and connector surface (e.g. `diagnose-project`,
+`summarize-jira-delivery-status`, `diagnose-notion-knowledge-base`).
 
-- `diagnose-project` — run a full project diagnosis using connected data
-- `create-delivery-plan` — structured delivery plan from connected milestone data
-- `prepare-stakeholder-update` — generate a stakeholder update from live data
+See `packages/mcp-server/README.md` for the authoritative, current prompt
+list.
 
 ---
 
 ## Connector roadmap
 
-One connector per version after the MCP alpha. Connector sequencing is based on team coverage and integration complexity.
+One connector per version, shipped in this order:
 
 | Version | Connector | Primary use case |
 | --- | --- | --- |
@@ -129,7 +132,9 @@ One connector per version after the MCP alpha. Connector sequencing is based on 
 | v0.12.0 | Jira | Enterprise project management |
 | v0.13.0 | Notion | Docs-as-PM hybrid workflows |
 
-See `docs/mcp-connector-roadmap.md` for connector-level detail.
+As of v0.13.0, this completes the currently planned connector list. See
+`docs/mcp-connector-roadmap.md` for connector-level detail and current
+status.
 
 ---
 
@@ -138,7 +143,7 @@ See `docs/mcp-connector-roadmap.md` for connector-level detail.
 - No credentials in the repository
 - Environment variables only for runtime auth
 - Read-only by default
-- Write actions require explicit confirmation — not enabled in v0.7.0
+- No connector supports write actions
 - No telemetry
 - No background network calls without a user-initiated tool call
 - No broad repository scans by default
@@ -153,70 +158,36 @@ See `docs/mcp-security-policy.md` for the full security policy.
 
 MCP tool names and resource identifiers are English. Agent output language follows the user/project language setting — Persian or English.
 
-A Persian-language project using MCP will receive Persian-language delivery outputs backed by English-named tool calls. Technical identifiers (API, rollback, sprint, backlog) remain in English in all outputs.
+A Persian-language project using MCP receives Persian-language delivery outputs backed by English-named tool calls. Technical identifiers (API, rollback, sprint, backlog) remain in English in all outputs.
 
 ---
 
 ## Token-efficient behavior
 
-MCP tool responses will be structured for agent consumption, not human reading. Raw data returned by MCP tools will be summarized and formatted by the agent before presenting to the user.
+MCP tool responses are structured for agent consumption, not human reading. Raw data returned by MCP tools is summarized and formatted by the agent before presenting to the user.
 
-Agents will not dump raw connector data into responses. They will extract what is relevant to the delivery question and present it in the standard Oh My PM structured format.
+Agents do not dump raw connector data into responses. They extract what is relevant to the delivery question and present it in the standard Oh My PM structured format.
 
 ---
 
 ## Non-goals
 
 - MCP is not a generic automation platform
-- MCP will not manage every possible project tool
-- MCP will not replace manual context for teams that do not use connected tools
-- MCP will not enable agents to take actions without user knowledge
+- MCP does not manage every possible project tool
+- MCP does not replace manual context for teams that do not use connected tools
+- MCP does not enable agents to take actions without user knowledge
 - MCP will not introduce write capability before safety controls are defined and reviewed
 - No dashboard before stable MCP and v1.0.0
 
 ---
 
-## v0.6.0 scope
+## Implementation history
 
-Phase 6 is documentation-only:
+- **v0.6.0** — Documentation-only phase: interface design, security policy, connector roadmap, and architecture docs written before any implementation.
+- **v0.7.0** — MCP server alpha shipped: `packages/mcp-server/`, read-only local-context tools, no external connector required.
+- **v0.8.0 – v0.13.0** — One read-only external connector shipped per version: GitHub, ClickUp, Airtable, Linear, Jira, Notion.
 
-- `docs/mcp.md` — this file — deepened and finalized
-- `docs/mcp-interface-design.md` — future MCP interface design
-- `docs/mcp-security-policy.md` — security policy for future MCP
-- `docs/mcp-connector-roadmap.md` — connector sequencing and design
-- `docs/architecture.md` — MCP layer added to architecture diagram
-- `docs/security-model.md` — MCP-specific security section added
-
-No implementation. No `packages/mcp-server/`. No connector code.
-
----
-
-## v0.7.0 scope
-
-Phase 7 will implement the MCP server alpha:
-
-- `packages/mcp-server/` — TypeScript/Node.js MCP server
-- Read-only tool implementations
-- Local repo context inspection (no external connector required)
-- MCP client compatibility verified with Claude Code
-- No write actions
-- No external connector required for the alpha
-
----
-
-## Open questions
-
-All open questions from Phase 6 have been resolved in `docs/mcp-alpha-scope.md`.
-
-Summary of decisions:
-
-1. **MCP client version targeting:** Protocol version `2024-11-05` (stable base, supported by `@modelcontextprotocol/sdk` and Claude Code).
-2. **Auth model:** No authentication in v0.7.0 local-only alpha. stdio transport runs as a client subprocess — no network exposure.
-3. **Project root discovery:** `OH_MY_PM_PROJECT_ROOT` environment variable; falls back to `process.cwd()`. Single root per instance.
-4. **Stale/unavailable data:** Tools return `status: "partial"` with a `warnings` array for missing files; `status: "error"` when project root is unreadable.
-5. **Connector error degradation:** Structured `status: "error"` response; agent continues without data. (v0.7.0 has no external connectors.)
-
-See `docs/mcp-alpha-scope.md` for full resolution details.
+See `docs/mcp-alpha-scope.md` for the resolved v0.7.0 implementation decisions, including MCP protocol version targeting, the local-only auth model, project root discovery (`OH_MY_PM_PROJECT_ROOT`), and the stale/unavailable-data response shape (`status: "partial"` with a `warnings` array; `status: "error"` when project root is unreadable).
 
 ---
 
