@@ -16,9 +16,16 @@ No connectors are implemented in v0.6.0. This is a planning document.
 | v0.10.0 | Airtable | Released — Phase 10 |
 | v0.11.0 | Linear | Released — Phase 11 |
 | v0.12.0 | Jira | Released — Phase 12 |
-| **v0.13.0** | Notion | In progress — Phase 13 |
+| v0.13.0 | Notion | Released — Phase 13 |
 
 One connector per version. Connectors do not ship until their security review is complete.
+
+As of v0.13.0, this completes the currently planned connector list (GitHub,
+ClickUp, Airtable, Linear, Jira, Notion). No further connector is planned at
+this time. Future MCP work moves toward stabilizing the existing connectors
+and the install contract on the path to v1.0.0. Additional connectors may be
+considered later as separate, explicitly-scoped proposals, each requiring
+the same read-only-first security review as every connector above.
 
 ---
 
@@ -283,7 +290,7 @@ See `docs/jira-connector.md` for the full connector scope.
 
 ---
 
-## v0.13.0 — Notion Connector (In progress — Phase 13)
+## v0.13.0 — Notion Connector (Released — Phase 13)
 
 **Purpose:** Give the agent access to Notion-based project pages and task databases for teams using Notion as their PM tool.
 

@@ -94,7 +94,7 @@ This copies `AGENTS.md` and the Codex Skill into your project.
 
 ### Install as ChatGPT Skill
 
-1. Download the latest `oh-my-pm-v0.12.0-chatgpt-skill.zip` from [Releases](https://github.com/he8um/oh-my-pm/releases).
+1. Download the latest `oh-my-pm-v0.13.0-chatgpt-skill.zip` from [Releases](https://github.com/he8um/oh-my-pm/releases).
 2. Unzip and upload `SKILL.md` as a custom GPT context file, or follow the ChatGPT Skill import process.
 
 ---
