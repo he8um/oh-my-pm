@@ -1,8 +1,6 @@
 # MCP Interface Design
 
-This document defines the future interface design for the Oh My PM MCP server.
-
-This is a planning document. No implementation exists in v0.6.0. Implementation begins at v0.7.0.
+This document defines the implemented interface design for the Oh My PM MCP server and the constraints that should remain stable. It was originally written as a v0.6.0 planning document; implementation began at v0.7.0 and the server is shipped as of v1.0.0.
 
 ---
 

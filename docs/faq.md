@@ -30,7 +30,7 @@ No. Installers are local and network-free. No telemetry. No credentials required
 
 ## What is MCP support?
 
-MCP integration is planned for v0.7.0 as a future optional layer. It is not available in the current version.
+MCP support is optional and read-only. It ships with six connectors — GitHub, ClickUp, Airtable, Linear, Jira, and Notion — that give your agent project context without granting write access. It requires local configuration and environment variables; it does not collect telemetry or store credentials.
 
 See `docs/mcp.md`.
 

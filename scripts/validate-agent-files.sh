@@ -501,6 +501,24 @@ else
 fi
 
 echo ""
+echo "--- No stale 'MCP is not shipped yet' language ---"
+STALE_MCP_DOCS="AGENTS.md docs/faq.md docs/philosophy.md docs/mcp-connector-roadmap.md docs/mcp-security-policy.md docs/mcp-interface-design.md docs/mcp-alpha-scope.md docs/compatibility.md docs/supported-tools.md"
+STALE_MCP_PATTERN="not available in the current version|No MCP implementation exists|No connectors are implemented in v0\.6\.0|MCP integration is planned|MCP connectors are planned for future versions|^## Planned support|may change before v1\.0\.0|If HTTP transport is added \(v0\.9\.0\+\)"
+STALE_MCP_FOUND=0
+for stale_doc in $STALE_MCP_DOCS; do
+  if [ -f "$REPO_ROOT/$stale_doc" ] && grep -qE "$STALE_MCP_PATTERN" "$REPO_ROOT/$stale_doc"; then
+    echo "FAIL: $stale_doc contains stale 'MCP is planned/unavailable' language — MCP shipped as of v1.0.0"
+    STALE_MCP_FOUND=1
+  fi
+done
+if [ "$STALE_MCP_FOUND" = "1" ]; then
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS: no stale MCP planned/unavailable language in current docs"
+  PASS=$((PASS + 1))
+fi
+
+echo ""
 echo "=== Summary ==="
 echo "Passed: $PASS"
 echo "Failed: $FAIL"

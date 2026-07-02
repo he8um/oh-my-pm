@@ -1,8 +1,6 @@
 # MCP Security Policy
 
-This document defines the security policy for the future Oh My PM MCP integration.
-
-This is a planning document. No MCP implementation exists in v0.6.0.
+This document defines the security policy for the Oh My PM MCP integration. It was originally written as a v0.6.0 planning document; the MCP server is now implemented and shipped as optional read-only support as of v1.0.0. This policy governs all six shipped connectors (GitHub, ClickUp, Airtable, Linear, Jira, Notion) and any future connector or write-action proposal. Write actions remain out of scope unless explicitly designed and approved later.
 
 ---
 
@@ -19,7 +17,7 @@ The Oh My PM MCP server is designed with a read-only-first, minimal-surface, no-
 - **Environment variables only.** All connector credentials are provided at runtime via environment variables.
 - **No credential logging.** Credentials must not appear in any log output, error message, or tool response.
 
-### Expected environment variable pattern (future)
+### Environment variable pattern
 
 ```txt
 OH_MY_PM_GITHUB_TOKEN=<personal-access-token>

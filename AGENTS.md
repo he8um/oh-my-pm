@@ -102,7 +102,7 @@ Use Oh My PM when the user asks to:
 - A generic AI assistant
 - A code generator (unless producing delivery artifacts that include code examples)
 - A replacement for domain expertise in legal, compliance, or financial matters
-- A real-time data connector (MCP connectors are planned for future versions)
+- A real-time write/sync engine (optional MCP support provides read-only project context through shipped connectors; see `docs/mcp.md`)
 
 ---
 

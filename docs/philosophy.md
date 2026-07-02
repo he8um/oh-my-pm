@@ -22,6 +22,6 @@ Many delivery teams operate across Persian and English. Persian business context
 
 Oh My PM is MIT-licensed and tool-agnostic. It works with Claude, Cursor, Codex, ChatGPT, and any agent that reads markdown. No vendor lock-in. No proprietary format.
 
-## MCP is optional and future
+## MCP is optional and complementary
 
-MCP integration is planned as an optional data access layer. It will not replace the core agent kit. It will add project tool connectivity for teams that want it.
+MCP is a read-only context layer, not the core product. The core product remains the agent behavior contract in `AGENTS.md` and the installable packs. MCP adds project tool connectivity for teams that want it, through six shipped read-only connectors, without replacing the core agent kit.

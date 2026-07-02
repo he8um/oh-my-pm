@@ -10,21 +10,23 @@
 | ChatGPT | ✅ Supported | Download ChatGPT Skill zip from Releases |
 | Generic (AGENTS.md) | ✅ Supported | Copy `packs/generic/AGENTS.md` |
 
-## Planned support
+## MCP connector support
 
-| Tool | Planned version | Notes |
+| Tool | Shipped version | Notes |
 | --- | --- | --- |
-| MCP-compatible agents | v0.7.0 | Read-only MCP server alpha — local context only — shipped |
-| GitHub Issues / Projects connector | v0.8.0 | Read-only — shipped |
-| ClickUp | v0.9.0 | MCP connector — read-only — shipped |
-| Airtable | v0.10.0 | MCP connector — read-only — shipped |
-| Linear | v0.11.0 | MCP connector — read-only — shipped |
-| Jira | v0.12.0 | MCP connector — read-only — shipped |
-| Notion | v0.13.0 | MCP connector — read-only — shipped |
+| MCP-compatible agents | v0.7.0 | Read-only MCP server — local context only |
+| GitHub Issues / Projects connector | v0.8.0 | Read-only |
+| ClickUp | v0.9.0 | MCP connector — read-only |
+| Airtable | v0.10.0 | MCP connector — read-only |
+| Linear | v0.11.0 | MCP connector — read-only |
+| Jira | v0.12.0 | MCP connector — read-only |
+| Notion | v0.13.0 | MCP connector — read-only |
+
+No further connector is currently planned; the list above is complete as of v1.0.0.
 
 ## MCP status
 
-MCP (Model Context Protocol) is an optional integration layer available as an alpha in v0.7.0.
+MCP (Model Context Protocol) is an optional, read-only integration layer, first shipped as an alpha in v0.7.0 and stable as of v1.0.0.
 
 - v0.6.0: Interface design, security policy, and connector roadmap documented
 - v0.7.0: MCP server alpha — read-only, local context only, stdio transport, no external connector required — **shipped**

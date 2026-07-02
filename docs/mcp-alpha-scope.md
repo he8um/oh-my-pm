@@ -1,8 +1,6 @@
 # MCP Server Alpha — Scope Definition
 
-This document resolves the open questions from `docs/mcp.md` and defines the final scope for the v0.7.0 Oh My PM MCP server alpha.
-
-This is a public planning document. It supersedes the open-question sections of `docs/mcp.md` for v0.7.0 implementation purposes.
+This document records the original alpha scope decisions that resolved the open questions from `docs/mcp.md` and defined the final scope for the v0.7.0 Oh My PM MCP server alpha. The MCP server has since shipped through v1.0.0; current shipped state is documented in `docs/mcp.md` and `docs/mcp-connector-roadmap.md`. This document remains as a historical record of those v0.7.0 scoping decisions.
 
 ---
 
@@ -30,7 +28,7 @@ Resolved and ready for implementation. All open questions from Phase 6 are answe
 
 **Implementation note:** The `mcpServers` config entry in the client's config file (`claude_desktop_config.json` or equivalent) launches the server as a subprocess. No token, no API key, no auth header is required.
 
-**Future note:** If HTTP transport is added (v0.9.0+), authentication must be revisited. At that point, environment variable tokens (already defined in `docs/mcp-security-policy.md`) will be used.
+**Status at v1.0.0:** HTTP transport was not added — it was resolved as out of scope (see the sequencing table below and `docs/release-readiness-v1.0.0.md`). The server remains stdio-only, so this no-authentication decision still holds; there is no network-exposed listener requiring a separate auth layer.
 
 ---
 

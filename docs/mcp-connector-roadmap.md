@@ -1,8 +1,6 @@
 # MCP Connector Roadmap
 
-This document defines the sequencing, design, and non-goals for each planned Oh My PM MCP connector.
-
-No connectors are implemented in v0.6.0. This is a planning document.
+This document originally defined the sequencing, design, and non-goals for each planned Oh My PM MCP connector, starting from the v0.6.0 planning stage. All six planned connectors have since shipped as of v1.0.0 — see the sequencing table below for status and `docs/mcp.md` for the current connector documentation index.
 
 ---
 
