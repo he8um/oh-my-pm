@@ -41,6 +41,24 @@ check_exists() {
   fi
 }
 
+check_contains() {
+  label="$1"
+  path="$2"
+  expected="$3"
+  if [ -f "$REPO_ROOT/$path" ]; then
+    if grep -qF "$expected" "$REPO_ROOT/$path"; then
+      echo "PASS: $label"
+      PASS=$((PASS + 1))
+    else
+      echo "FAIL: $label — expected to find '$expected' in $path"
+      FAIL=$((FAIL + 1))
+    fi
+  else
+    echo "FAIL: $label — $path not found"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
 echo "=== validate-release ==="
 echo ""
 
@@ -51,6 +69,16 @@ check_version "packs/claude VERSION" "packs/claude/VERSION"
 check_version "packs/cursor VERSION" "packs/cursor/VERSION"
 check_version "packs/codex VERSION" "packs/codex/VERSION"
 check_version "packs/generic VERSION" "packs/generic/VERSION"
+check_version "packs/codex nested skill VERSION" "packs/codex/.agents/skills/oh-my-pm/VERSION"
+
+echo ""
+echo "--- Version metadata consistency ---"
+EXPECTED_PKG_VERSION="$(echo "$EXPECTED_VERSION" | sed 's/^v//')"
+check_contains "root package.json version" "package.json" "\"version\": \"$EXPECTED_PKG_VERSION\""
+check_contains "chatgpt-skill openai.yaml version" "chatgpt-skill/oh-my-pm/agents/openai.yaml" "version: $EXPECTED_VERSION"
+check_contains "codex-skill openai.yaml version" "codex-skill/oh-my-pm/agents/openai.yaml" "version: $EXPECTED_VERSION"
+check_contains "packs/codex nested openai.yaml version" "packs/codex/.agents/skills/oh-my-pm/agents/openai.yaml" "version: $EXPECTED_VERSION"
+check_contains "packs/generic AGENTS.md prose version" "packs/generic/AGENTS.md" "Version: $EXPECTED_VERSION"
 
 echo ""
 echo "--- dist assets (after build) ---"

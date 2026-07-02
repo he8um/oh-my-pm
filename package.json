@@ -1,7 +1,7 @@
 {
   "name": "oh-my-pm",
   "private": true,
-  "version": "0.7.0",
+  "version": "1.0.0",
   "description": "Oh My PM — Head of Delivery agent kit",
   "license": "MIT",
   "packageManager": "pnpm@8",
