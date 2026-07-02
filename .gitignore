@@ -3,6 +3,13 @@ _dev/
 .local/
 *.local.md
 
+# Local project reports / audit outputs
+/PROJECT_STATE_REPORT.md
+/PROJECT_STATE_REPORT*.md
+/*STATE_REPORT*.md
+/*AUDIT*.md
+/*audit*.md
+
 # Generated release/build output
 dist/*
 !dist/.gitkeep
@@ -10,9 +17,15 @@ dist/*
 *.tar
 *.tar.gz
 
+# Generated checks/release files
+checksums.txt
+validation-report.md
+release-notes-*.md
+
 # Secrets and environment files
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 *.crt
@@ -21,13 +34,60 @@ dist/*
 # Dependencies
 node_modules/
 
+# Package manager generated lockfiles
+# Keep ignored unless the project intentionally decides to track them.
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
 # MCP server build and test output
 packages/mcp-server/dist/
 packages/mcp-server/coverage/
+packages/mcp-server/node_modules/
 
-# Logs and OS/editor noise
+# Test / coverage output
+coverage/
+.nyc_output/
+.junit/
+test-results/
+
+# Logs
 *.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS files
 .DS_Store
+.AppleDouble
+.LSOverride
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editor / IDE local settings
 .vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
 .idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/
+.cache/
+*.tmp
+*.temp
+
+# Local screenshots / drafts
+*.local.png
+*.local.jpg
+*.local.jpeg
+*.local.webp
+
+# Public image assets are allowed.
+# Do not ignore assets/ because README cover images may live there.
