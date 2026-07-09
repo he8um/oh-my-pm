@@ -1,0 +1,72 @@
+# Private planning and local-only development context
+_dev/
+_AGENT_OVERRIDE.md
+.agent/
+.agents/
+.codex/
+.claude/
+.cursor-private/
+*.prompt.md
+*.scratch.md
+
+# Secrets and local env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+credentials/
+tokens/
+
+# Local runtime data
+.oh-my-pm/
+.omp/
+.cache/
+.tmp/
+tmp/
+logs/
+*.log
+
+# Dependencies / package managers
+node_modules/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+out/
+coverage/
+.nyc_output/
+
+# Rust
+target/
+
+# Generated release artifacts
+release-artifacts/
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+checksums.txt
+validation-report.md
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# Local databases
+*.sqlite
+*.sqlite3
+*.db
