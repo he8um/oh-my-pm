@@ -109,4 +109,56 @@ describe("cli core execution", () => {
     }));
     expect(requests[0]?.id).toBe("custom-status");
   });
+
+  it("sends a plan request with the joined input", () => {
+    const requests: RuntimeRequest[] = [];
+    const runtime: Runtime = {
+      handle(request: RuntimeRequest): RuntimeResponse {
+        requests.push(request);
+        return {
+          id: request.id,
+          ok: true,
+          data: { output: { tasks: [{ id: "1", title: "Fix login" }] } },
+        };
+      },
+    };
+    const result = runCli(["plan", "review", "risks"], { runtime });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toBe("OH MY PM plan: ok\ntasks: 1\n- Fix login\n");
+    expect(requests[0]).toEqual({
+      id: "cli-plan",
+      kind: "plan",
+      locale: "en",
+      payload: { source: "cli", request: "review risks", context: {} },
+    });
+  });
+
+  it("returns exit 1 for a failed plan response", () => {
+    const result = runCli(["plan", "x"], { runtime: failingRuntime });
+    expect(result.ok).toBe(false);
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toBe("error OMP-R-2001: request failed kernel validation\n");
+  });
+
+  it("returns exit 2 for a plan parse failure", () => {
+    const { runtime } = respondingRuntime();
+    const result = runCli(["plan"], { runtime });
+    expect(result.exitCode).toBe(2);
+    expect(result.stderr).toBe("error OMP-C-3002: missing plan request\n");
+  });
+
+  it("passes command and input to a custom request factory", () => {
+    const { runtime } = respondingRuntime();
+    const seen: Array<{ command: string; input?: string }> = [];
+    runCli(["plan", "create", "handoff"], { runtime }, (command, input) => {
+      seen.push(input === undefined ? { command } : { command, input });
+      return {
+        id: "custom-plan",
+        kind: "plan",
+        locale: "en",
+        payload: { source: "custom", request: input ?? "", context: {} },
+      };
+    });
+    expect(seen).toEqual([{ command: "plan", input: "create handoff" }]);
+  });
 });

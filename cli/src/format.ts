@@ -29,6 +29,92 @@ function asDoctorChecks(data: unknown): DoctorCheck[] | null {
   return checks;
 }
 
+function stringFrom(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed === "" ? undefined : trimmed;
+}
+
+function arrayFrom(value: unknown): readonly unknown[] | undefined {
+  return Array.isArray(value) ? value : undefined;
+}
+
+function titlesFrom(entries: readonly unknown[], key: string): string[] {
+  const titles: string[] = [];
+  for (const entry of entries) {
+    if (isRecord(entry)) {
+      const title = stringFrom(entry[key]);
+      if (title !== undefined) {
+        titles.push(title);
+      }
+    }
+  }
+  return titles;
+}
+
+function planBriefList(label: string, count: number, titles: readonly string[]): string {
+  return ["OH MY PM plan: ok", `${label}: ${count}`, ...titles.map((t) => `- ${t}`), ""].join("\n");
+}
+
+function formatPlanBrief(output: Record<string, unknown>): string {
+  const summary = stringFrom(output["summary"]);
+  if (summary !== undefined) {
+    return `OH MY PM plan: ok\n${summary}\n`;
+  }
+  const tasks = arrayFrom(output["tasks"]);
+  if (tasks !== undefined) {
+    return planBriefList("tasks", tasks.length, titlesFrom(tasks, "title").slice(0, 5));
+  }
+  const risks = arrayFrom(output["risks"]);
+  if (risks !== undefined) {
+    return planBriefList("risks", risks.length, titlesFrom(risks, "title").slice(0, 5));
+  }
+  const sections = arrayFrom(output["sections"]);
+  if (sections !== undefined) {
+    return planBriefList("sections", sections.length, titlesFrom(sections, "heading").slice(0, 5));
+  }
+  return "OH MY PM plan: ok\n";
+}
+
+function planMarkdownList(heading: string, titles: readonly string[]): string {
+  return ["# OH MY PM Plan", "", `## ${heading}`, "", ...titles.map((t) => `- ${t}`), ""].join("\n");
+}
+
+function formatPlanMarkdown(output: Record<string, unknown>): string {
+  const summary = stringFrom(output["summary"]);
+  if (summary !== undefined) {
+    return `# OH MY PM Plan\n\n${summary}\n`;
+  }
+  const tasks = arrayFrom(output["tasks"]);
+  if (tasks !== undefined) {
+    return planMarkdownList("Tasks", titlesFrom(tasks, "title"));
+  }
+  const risks = arrayFrom(output["risks"]);
+  if (risks !== undefined) {
+    return planMarkdownList("Risks", titlesFrom(risks, "title"));
+  }
+  const sections = arrayFrom(output["sections"]);
+  if (sections !== undefined) {
+    const lines = ["# OH MY PM Plan"];
+    for (const entry of sections) {
+      if (!isRecord(entry)) continue;
+      const heading = stringFrom(entry["heading"]);
+      if (heading === undefined) continue;
+      lines.push("", `## ${heading}`, "");
+      const items = arrayFrom(entry["items"]) ?? [];
+      for (const item of items) {
+        const text = stringFrom(item);
+        if (text !== undefined) {
+          lines.push(`- ${text}`);
+        }
+      }
+    }
+    lines.push("");
+    return lines.join("\n");
+  }
+  return "# OH MY PM Plan\n\nOK\n";
+}
+
 function errorParts(response: RuntimeResponse): { code: string; message: string } {
   return {
     code: response.error?.code ?? "unknown",
@@ -89,6 +175,14 @@ export function formatRuntimeResponse(response: RuntimeResponse, mode: CliOutput
     const overall = checks.every((check) => check.status === "ok") ? "ok" : "attention";
     const lines = checks.map((check) => `${check.id}: ${check.status} - ${check.message}`);
     return [`OH MY PM doctor: ${overall}`, ...lines, ""].join("\n");
+  }
+
+  if (isRecord(response.data) && "output" in response.data) {
+    const output = response.data["output"];
+    if (isRecord(output)) {
+      return mode === "markdown" ? formatPlanMarkdown(output) : formatPlanBrief(output);
+    }
+    return mode === "markdown" ? "# OH MY PM Plan\n\nOK\n" : "OH MY PM plan: ok\n";
   }
 
   if (mode === "markdown") {

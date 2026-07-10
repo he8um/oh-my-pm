@@ -34,7 +34,7 @@ export function runCli(
 
   try {
     const factory = requestFactory ?? createRuntimeRequest;
-    const response = deps.runtime.handle(factory(parsed.command));
+    const response = deps.runtime.handle(factory(parsed.command, parsed.input));
     return {
       ok: response.ok,
       exitCode: response.ok ? 0 : 1,

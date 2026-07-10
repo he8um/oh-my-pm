@@ -1,13 +1,14 @@
 import type { CliOutputMode, RuntimeRequest, RuntimeResponse } from "@oh-my-pm/contracts";
 import type { Runtime } from "@oh-my-pm/runtime";
 
-export type CliCommand = "status" | "doctor";
+export type CliCommand = "status" | "doctor" | "plan";
 
 export type CliParseResult =
   | {
       ok: true;
       command: CliCommand;
       outputMode: CliOutputMode;
+      input?: string;
     }
   | {
       ok: false;
@@ -27,4 +28,4 @@ export type CliDeps = {
   runtime: Runtime;
 };
 
-export type RuntimeRequestFactory = (command: CliCommand) => RuntimeRequest;
+export type RuntimeRequestFactory = (command: CliCommand, input?: string) => RuntimeRequest;

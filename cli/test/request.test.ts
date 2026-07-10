@@ -19,4 +19,13 @@ describe("cli runtime request factory", () => {
       payload: { source: "cli" },
     });
   });
+
+  it("creates a deterministic plan request with the input text", () => {
+    expect(createRuntimeRequest("plan", "review risks")).toEqual({
+      id: "cli-plan",
+      kind: "plan",
+      locale: "en",
+      payload: { source: "cli", request: "review risks", context: {} },
+    });
+  });
 });
