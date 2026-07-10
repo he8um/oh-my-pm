@@ -21,7 +21,14 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.43)
 
-  cli: {}
+  cli:
+    dependencies:
+      '@oh-my-pm/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@oh-my-pm/runtime':
+        specifier: workspace:*
+        version: link:../runtime
 
   contracts: {}
 

@@ -31,13 +31,14 @@
 - Version registry checks (in place)
 - Update guard shell (in place)
 - Rust test coverage (in place)
-- Runtime foundation: injected Kernel boundary, pre-dispatch validation, structured responses, deterministic traces, status and doctor foundations
+- Runtime foundation: injected Kernel boundary, pre-dispatch validation, structured responses, deterministic traces (in place)
 
 ## Phase 4 — CLI foundation
 
-- Doctor command
-- Status command
-- Structured output modes
+- `status` and `doctor` commands
+- Brief, JSON, and markdown output modes
+- Structured execution result for a future binary wrapper
+- No process exit inside CLI core
 
 ## Phase 5 — Context providers and skills
 

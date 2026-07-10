@@ -147,6 +147,24 @@ for (const file of RUNTIME_SOURCES) {
   if (!existsSync(file)) err(`runtime foundation file missing: ${file}`);
 }
 
+// 7c. CLI foundation files exist.
+const CLI_SOURCES = [
+  "cli/src/index.ts",
+  "cli/src/types.ts",
+  "cli/src/parser.ts",
+  "cli/src/request.ts",
+  "cli/src/format.ts",
+  "cli/src/cli.ts",
+  "cli/test/parser.test.ts",
+  "cli/test/request.test.ts",
+  "cli/test/format.test.ts",
+  "cli/test/cli.test.ts",
+  "cli/test/purity.test.ts",
+];
+for (const file of CLI_SOURCES) {
+  if (!existsSync(file)) err(`cli foundation file missing: ${file}`);
+}
+
 // 8. Generated contract domain files and barrels exist.
 const CONTRACT_DOMAINS = ["core", "kernel", "runtime", "planner", "providers", "skills", "cli", "installer"];
 const REQUIRED_GENERATED = [
