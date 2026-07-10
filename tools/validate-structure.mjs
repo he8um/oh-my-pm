@@ -1,0 +1,158 @@
+#!/usr/bin/env node
+// Repository structure validator (scaffold phase).
+// Required paths are checked on disk; allowed/forbidden checks use tracked
+// files only, so ignored local folders (e.g. _dev/) never cause failures.
+
+import { execFileSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
+
+let fail = false;
+const err = (msg) => {
+  console.error(`FAIL: ${msg}`);
+  fail = true;
+};
+
+// Index + untracked-but-not-ignored files: everything `git add .` would commit.
+const trackedFiles = execFileSync(
+  "git",
+  ["ls-files", "--cached", "--others", "--exclude-standard"],
+  { encoding: "utf8" },
+)
+  .split("\n")
+  .filter(Boolean);
+
+const REQUIRED_FOLDERS = [
+  ".github",
+  "docs",
+  "contracts",
+  "kernel",
+  "runtime",
+  "planner",
+  "providers",
+  "skills",
+  "cli",
+  "installer",
+  "tests",
+  "tools",
+  "examples",
+];
+
+const ALLOWED_TOP_FILES = [
+  ".editorconfig",
+  ".gitignore",
+  ".npmrc",
+  ".prettierignore",
+  ".prettierrc",
+  "Cargo.lock",
+  "Cargo.toml",
+  "CHANGELOG.md",
+  "CODE_OF_CONDUCT.md",
+  "CONTRIBUTING.md",
+  "LICENSE",
+  "README.md",
+  "ROADMAP.md",
+  "SECURITY.md",
+  "SUPPORT.md",
+  "package.json",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "rust-toolchain.toml",
+  "tsconfig.base.json",
+];
+
+const FORBIDDEN_TOP_FOLDERS = ["specs", "_dev", "scripts", "brain", "mcp"];
+
+// 1. Required top-level folders exist on disk.
+for (const folder of REQUIRED_FOLDERS) {
+  if (!existsSync(folder) || !statSync(folder).isDirectory()) {
+    err(`required top-level folder missing: ${folder}/`);
+  }
+}
+
+// 2 + 4. Tracked top-level folders must be exactly the required set;
+// forbidden folders must not be tracked.
+const trackedTopFolders = new Set(
+  trackedFiles.filter((f) => f.includes("/")).map((f) => f.split("/")[0]),
+);
+for (const folder of trackedTopFolders) {
+  if (FORBIDDEN_TOP_FOLDERS.includes(folder)) {
+    err(`forbidden top-level folder is tracked: ${folder}/`);
+  } else if (!REQUIRED_FOLDERS.includes(folder)) {
+    err(`unexpected top-level folder is tracked: ${folder}/`);
+  }
+}
+
+// 3. Tracked top-level files must be within the allowed set.
+const trackedTopFiles = trackedFiles.filter((f) => !f.includes("/"));
+for (const file of trackedTopFiles) {
+  if (!ALLOWED_TOP_FILES.includes(file)) {
+    err(`unexpected top-level file is tracked: ${file}`);
+  }
+}
+
+// 5 + 6. Package skeleton files and required package.json fields.
+const PACKAGES = [
+  "contracts",
+  "kernel/binding",
+  "runtime",
+  "planner",
+  "providers",
+  "skills",
+  "cli",
+  "installer",
+];
+for (const pkg of PACKAGES) {
+  for (const file of ["package.json", "tsconfig.json", "src/index.ts", "README.md"]) {
+    if (!existsSync(join(pkg, file))) {
+      err(`package file missing: ${pkg}/${file}`);
+    }
+  }
+  const pkgJsonPath = join(pkg, "package.json");
+  if (existsSync(pkgJsonPath)) {
+    const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf8"));
+    if (pkgJson.private !== true) err(`${pkg}/package.json must set "private": true`);
+    if (pkgJson.version !== "2.0.0-alpha.0")
+      err(`${pkg}/package.json must set "version": "2.0.0-alpha.0"`);
+    if (pkgJson.type !== "module") err(`${pkg}/package.json must set "type": "module"`);
+  }
+}
+
+// 7. Kernel crate manifest exists.
+if (!existsSync("kernel/crate/Cargo.toml")) {
+  err("kernel/crate/Cargo.toml missing");
+}
+
+// 8. Generated contract placeholders exist.
+for (const file of ["contracts/generated/ts/index.ts", "contracts/generated/rust/mod.rs"]) {
+  if (!existsSync(file)) err(`generated contracts file missing: ${file}`);
+}
+
+// 9 + 10. CI workflow exists; no release workflow.
+const workflowsDir = ".github/workflows";
+if (!existsSync(join(workflowsDir, "ci.yml"))) {
+  err(".github/workflows/ci.yml missing");
+}
+const RELEASE_MARKERS = ["npm publish", "gh release", "softprops/action-gh-release", "refs/tags"];
+if (existsSync(workflowsDir)) {
+  for (const name of readdirSync(workflowsDir)) {
+    const path = join(workflowsDir, name);
+    if (!statSync(path).isFile()) continue;
+    if (name.toLowerCase().includes("release")) {
+      err(`release workflow is not allowed in this phase: ${path}`);
+      continue;
+    }
+    const contents = readFileSync(path, "utf8");
+    for (const marker of RELEASE_MARKERS) {
+      if (contents.includes(marker)) {
+        err(`workflow ${path} contains release marker "${marker}"`);
+      }
+    }
+  }
+}
+
+if (fail) {
+  console.error("validate-structure: FAILED");
+  process.exit(1);
+}
+console.log("validate-structure: OK");

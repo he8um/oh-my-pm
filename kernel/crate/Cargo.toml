@@ -1,0 +1,11 @@
+[package]
+name = "oh-my-pm-kernel"
+version = "2.0.0-alpha.0"
+edition = "2021"
+license = "MIT"
+description = "Kernel scaffold for OH MY PM"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]

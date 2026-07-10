@@ -1,0 +1,28 @@
+{
+  "name": "oh-my-pm",
+  "version": "2.0.0-alpha.0",
+  "private": true,
+  "description": "Local project intelligence system for structured project and product delivery.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build:contracts": "node tools/gen-contracts.mjs",
+    "build:kernel": "cargo build --workspace && cargo build --target wasm32-unknown-unknown -p oh-my-pm-kernel",
+    "build": "pnpm -r build",
+    "test": "vitest run && cargo test --workspace",
+    "validate:public": "./tools/check-public-surface.sh",
+    "validate:structure": "node tools/validate-structure.mjs",
+    "validate:boundaries": "node tools/validate-boundaries.mjs",
+    "validate": "pnpm validate:public && pnpm validate:structure && pnpm validate:boundaries"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  }
+}

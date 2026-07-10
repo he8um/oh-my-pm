@@ -10,6 +10,8 @@
 ## Phase 1 — Repository scaffold
 
 - Workspace structure
+- TypeScript package skeletons
+- Rust Kernel crate skeleton
 - Tooling baseline
 - Validation scripts
 - CI foundation

@@ -1,0 +1,9 @@
+packages:
+  - "contracts"
+  - "kernel/binding"
+  - "runtime"
+  - "planner"
+  - "providers"
+  - "skills"
+  - "cli"
+  - "installer"

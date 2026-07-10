@@ -48,7 +48,7 @@ See [`docs/architecture.md`](docs/architecture.md).
 
 ## Current phase
 
-The repository is in the public foundation phase.
+The repository scaffold is in progress.
 
 Implementation will begin with:
 

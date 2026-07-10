@@ -26,7 +26,7 @@ if git check-ignore -q .gitignore 2>/dev/null; then
 fi
 
 pattern='oh-my-pm-core|OH MY PM Core|implementation agent|AI-generated|Codex|Claude|ChatGPT|_AGENT_OVERRIDE|specs/[0-9][0-9]-|specs/INDEX|Required Documentation Pack|execution-grade specification|documentation pack'
-files=$(git ls-files | grep -v -e '^tools/check-public-surface.sh$' -e '^\.gitignore$' || true)
+files=$(git ls-files | grep -v -e '^tools/check-public-surface.sh$' -e '^tools/validate-boundaries.mjs$' -e '^\.gitignore$' || true)
 
 if [ -n "$files" ]; then
   if printf '%s\n' "$files" | xargs grep -InE "$pattern" >/tmp/oh-my-pm-public-surface-grep.txt 2>/dev/null; then

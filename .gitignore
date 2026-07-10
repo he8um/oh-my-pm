@@ -45,6 +45,7 @@ build/
 out/
 coverage/
 .nyc_output/
+kernel/binding/wasm/
 
 # Rust
 target/
