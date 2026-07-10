@@ -48,7 +48,7 @@ See [`docs/architecture.md`](docs/architecture.md).
 
 ## Current phase
 
-The repository scaffold, shared contracts, Kernel foundation, Runtime foundation, and CLI status/doctor foundation are in place. The current focus is the provider framework foundation.
+The repository scaffold, shared contracts, Kernel foundation, Runtime foundation, CLI status/doctor foundation, and provider framework foundation are in place. The current focus is the Planner foundation.
 
 Implementation will begin with:
 

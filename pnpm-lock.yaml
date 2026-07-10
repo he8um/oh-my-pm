@@ -40,7 +40,14 @@ importers:
         specifier: workspace:*
         version: link:../../contracts
 
-  planner: {}
+  planner:
+    dependencies:
+      '@oh-my-pm/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@oh-my-pm/providers':
+        specifier: workspace:*
+        version: link:../providers
 
   providers:
     dependencies:

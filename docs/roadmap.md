@@ -40,12 +40,13 @@
 - Structured execution result for a future binary wrapper (in place)
 - No process exit inside CLI core (in place)
 
-## Phase 5 — Context providers and skills
+## Phase 5 — Context providers, planner, and skills
 
-- Read-only provider interface and registry
-- Normalized provider items
-- Local in-memory provider
+- Read-only provider interface and registry (in place)
+- Normalized provider items (in place)
+- Local in-memory provider (in place)
 - No external provider integrations yet
+- Planner foundation: intent classification, structured context extraction, provider request planning, deterministic task graphs, missing-context responses, runtime request adapter — no provider or skill execution yet
 - Deterministic skill registry
 - Initial project-management transformations
 

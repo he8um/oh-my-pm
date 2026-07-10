@@ -182,6 +182,27 @@ for (const file of PROVIDER_SOURCES) {
   if (!existsSync(file)) err(`provider framework file missing: ${file}`);
 }
 
+// 7e. Planner foundation files exist.
+const PLANNER_SOURCES = [
+  "planner/src/index.ts",
+  "planner/src/types.ts",
+  "planner/src/intent.ts",
+  "planner/src/context.ts",
+  "planner/src/graph.ts",
+  "planner/src/providers.ts",
+  "planner/src/planner.ts",
+  "planner/src/runtime.ts",
+  "planner/test/intent.test.ts",
+  "planner/test/context.test.ts",
+  "planner/test/graph.test.ts",
+  "planner/test/planner.test.ts",
+  "planner/test/runtime.test.ts",
+  "planner/test/purity.test.ts",
+];
+for (const file of PLANNER_SOURCES) {
+  if (!existsSync(file)) err(`planner foundation file missing: ${file}`);
+}
+
 // 8. Generated contract domain files and barrels exist.
 const CONTRACT_DOMAINS = ["core", "kernel", "runtime", "planner", "providers", "skills", "cli", "installer"];
 const REQUIRED_GENERATED = [
