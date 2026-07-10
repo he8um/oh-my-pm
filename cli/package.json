@@ -6,6 +6,9 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "oh-my-pm": "./bin/oh-my-pm.mjs"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -18,6 +21,8 @@
   },
   "dependencies": {
     "@oh-my-pm/contracts": "workspace:*",
-    "@oh-my-pm/runtime": "workspace:*"
+    "@oh-my-pm/runtime": "workspace:*",
+    "@oh-my-pm/providers": "workspace:*",
+    "@oh-my-pm/skills": "workspace:*"
   }
 }

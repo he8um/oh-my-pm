@@ -50,7 +50,8 @@
 - Skills foundation: deterministic skill interface, built-in registry, summarize status, extract risks, derive next tasks, create handoff, review changes (in place)
 - Runtime plan execution shell: request-to-planner adapter, planner-driven task graphs, Kernel graph validation before execution, injected read-only provider execution, deterministic skill execution, structured trace and response data (in place)
 - CLI plan command: `plan <request>` with brief/JSON/markdown output and Runtime plan request creation (in place)
-- Package-level examples: status, doctor, plan, and provider-backed plan through injected Runtime dependencies — no published binary yet
+- Package-level examples: status, doctor, plan, and provider-backed plan through injected Runtime dependencies (in place)
+- Private CLI binary wrapper: local `oh-my-pm` bin entry with status/doctor/plan, injected deterministic local Kernel boundary, local provider seed data — no publish or release workflow; production Kernel binding still pending
 
 ## Phase 6 — Release lifecycle
 

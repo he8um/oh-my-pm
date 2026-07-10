@@ -164,6 +164,10 @@ const CLI_SOURCES = [
   "cli/test/format.test.ts",
   "cli/test/cli.test.ts",
   "cli/test/purity.test.ts",
+  "cli/README.md",
+  "cli/bin/oh-my-pm.mjs",
+  "cli/test/bin.test.ts",
+  "cli/test/local-runtime-smoke.test.ts",
 ];
 for (const file of CLI_SOURCES) {
   if (!existsSync(file)) err(`cli foundation file missing: ${file}`);
