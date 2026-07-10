@@ -17,6 +17,10 @@ export { planInstallOperations, planRollbackCapture } from "./filesystem-plan.js
 export { createInstaller } from "./installer.js";
 export { cloneFilesystemSnapshot, createMemoryFilesystem } from "./memory-filesystem.js";
 export {
+  createNodeFilesystemAdapter,
+  describeNodeFilesystemAdapter,
+} from "./node-filesystem.js";
+export {
   isSafeRelativePath,
   joinInstallerPath,
   normalizeInstallerPath,
@@ -31,6 +35,7 @@ export {
   INSTALL_SCHEMA_VERSION,
 } from "./manifest.js";
 export type {
+  ChecksumAlgorithm,
   FileContent,
   FilesystemAdapter,
   FilesystemEntry,
@@ -45,6 +50,8 @@ export type {
   InstallerState,
   InstallInput,
   InstallPlan,
+  NodeFilesystemAdapterInfo,
+  NodeFilesystemAdapterOptions,
   PlannedFileOperation,
   PlannedFileOperationKind,
   RollbackCaptureInput,

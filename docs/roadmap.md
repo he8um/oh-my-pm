@@ -54,7 +54,8 @@
 - Private CLI binary wrapper: local `oh-my-pm` bin entry with status/doctor/plan, local provider seed data — no publish or release workflow (in place)
 - Real WASM Kernel binding: Rust WASM exports, deterministic build tooling, Node-loadable KernelApi, validation through WASM, update guard through WASM, state transition through WASM, private CLI wrapper using the real Kernel binding (in place)
 - Installer foundation: package manifest validation, install manifest/report creation, Kernel-backed install manifest validation, update guard integration, rollback report shell, in-memory deterministic installer state (in place)
-- Installer filesystem adapter design: explicit filesystem adapter interface, in-memory filesystem adapter, install dry-run planning, rollback capture planning, path safety validation — no real filesystem writes yet
+- Installer filesystem adapter design: explicit filesystem adapter interface, in-memory filesystem adapter, install dry-run planning, rollback capture planning, path safety validation (in place)
+- Read-only Node filesystem adapter: explicit root boundary, recursive listing, file reading, SHA-256 checksums, symlink avoidance — no writes or release packaging
 
 ## Phase 6 — Release lifecycle
 

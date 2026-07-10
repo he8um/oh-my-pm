@@ -122,6 +122,21 @@ export type FilesystemPlannerDeps = {
   filesystem: FilesystemAdapter;
 };
 
+/** Options for the read-only Node filesystem adapter. */
+export type NodeFilesystemAdapterOptions = {
+  root: string;
+};
+
+/** Checksum algorithm used by filesystem adapters. */
+export type ChecksumAlgorithm = "sha256";
+
+/** Description of a configured Node filesystem adapter. */
+export type NodeFilesystemAdapterInfo = {
+  root: string;
+  checksumAlgorithm: ChecksumAlgorithm;
+  readOnly: true;
+};
+
 /** Input for planning a rollback capture. */
 export type RollbackCaptureInput = {
   id: string;

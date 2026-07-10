@@ -77,8 +77,33 @@ for (const file of trackedFiles) {
     if (spec.includes("kernel/crate")) {
       err(`${file} imports from kernel/crate: "${spec}"`);
     }
-    if (file.startsWith("installer/src/") && (spec === "fs" || spec.startsWith("node:fs"))) {
+    if (
+      file.startsWith("installer/src/") &&
+      file !== "installer/src/node-filesystem.ts" &&
+      (spec === "fs" || spec.startsWith("node:fs"))
+    ) {
       err(`${file} imports a Node filesystem module: "${spec}"`);
+    }
+  }
+}
+
+// 4b. The Node filesystem adapter is the only installer source file allowed
+// to import Node fs/path/crypto, and it must stay read-only.
+const NODE_ADAPTER = "installer/src/node-filesystem.ts";
+const NODE_WRITE_APIS = [
+  "writeFile",
+  "rmSync",
+  "unlink",
+  "mkdir",
+  "rmdir",
+  "rename",
+  "appendFile",
+];
+if (trackedFiles.includes(NODE_ADAPTER)) {
+  const contents = readFileSync(NODE_ADAPTER, "utf8");
+  for (const api of NODE_WRITE_APIS) {
+    if (contents.includes(api)) {
+      err(`${NODE_ADAPTER} contains forbidden write API "${api}"`);
     }
   }
 }

@@ -13,3 +13,11 @@ The installer exposes filesystem planning through explicit adapters.
 The current package includes an in-memory filesystem adapter for deterministic tests and examples. The installer core does not read or write the real filesystem.
 
 Real filesystem installation will be added behind the same adapter boundary in a later phase.
+
+## Node filesystem adapter
+
+The package includes a read-only Node filesystem adapter for planning and inspection.
+
+The adapter can list and read files under an explicit root and produces SHA-256 checksums. It refuses paths outside the configured root and ignores symlinks.
+
+The adapter does not write, delete, rename, or mutate files. Real installation execution remains out of scope.
