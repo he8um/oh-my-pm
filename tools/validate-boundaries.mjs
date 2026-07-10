@@ -62,7 +62,7 @@ for (const prefix of ["specs/", "_dev/", "scripts/"]) {
 }
 
 // 3 + 4. No cross-package src imports; no imports from kernel/crate.
-const PACKAGE_SRC = /^(contracts|kernel\/binding|runtime|planner|providers|skills|cli|installer)\/src\/.*\.ts$/;
+const PACKAGE_SRC = /^(contracts|kernel\/binding|runtime|planner|providers|skills|cli|installer|examples)\/src\/.*\.ts$/;
 const IMPORT_SPECIFIER = /(?:from\s+|import\s*\(\s*|import\s+)["']([^"']+)["']/g;
 const CROSS_SRC =
   /(?:@oh-my-pm\/[a-z-]+|(?:\.\.\/)+(?:contracts|kernel|runtime|planner|providers|skills|cli|installer))\/src\//;

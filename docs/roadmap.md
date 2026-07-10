@@ -49,7 +49,8 @@
 - Planner foundation: intent classification, structured context extraction, provider request planning, deterministic task graphs, missing-context responses, runtime request adapter (in place)
 - Skills foundation: deterministic skill interface, built-in registry, summarize status, extract risks, derive next tasks, create handoff, review changes (in place)
 - Runtime plan execution shell: request-to-planner adapter, planner-driven task graphs, Kernel graph validation before execution, injected read-only provider execution, deterministic skill execution, structured trace and response data (in place)
-- CLI plan command: `plan <request>` with brief/JSON/markdown output and Runtime plan request creation — no published binary yet, no real external integrations
+- CLI plan command: `plan <request>` with brief/JSON/markdown output and Runtime plan request creation (in place)
+- Package-level examples: status, doctor, plan, and provider-backed plan through injected Runtime dependencies — no published binary yet
 
 ## Phase 6 — Release lifecycle
 

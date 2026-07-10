@@ -231,6 +231,26 @@ for (const file of SKILLS_SOURCES) {
   if (!existsSync(file)) err(`skills foundation file missing: ${file}`);
 }
 
+// 7g. Examples package files exist.
+const EXAMPLES_SOURCES = [
+  "examples/README.md",
+  "examples/package.json",
+  "examples/tsconfig.json",
+  "examples/src/index.ts",
+  "examples/src/kernel.ts",
+  "examples/src/runtime.ts",
+  "examples/src/status.ts",
+  "examples/src/doctor.ts",
+  "examples/src/plan.ts",
+  "examples/test/status.test.ts",
+  "examples/test/doctor.test.ts",
+  "examples/test/plan.test.ts",
+  "examples/test/purity.test.ts",
+];
+for (const file of EXAMPLES_SOURCES) {
+  if (!existsSync(file)) err(`examples file missing: ${file}`);
+}
+
 // 8. Generated contract domain files and barrels exist.
 const CONTRACT_DOMAINS = ["core", "kernel", "runtime", "planner", "providers", "skills", "cli", "installer"];
 const REQUIRED_GENERATED = [

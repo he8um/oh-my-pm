@@ -48,7 +48,7 @@ See [`docs/architecture.md`](docs/architecture.md).
 
 ## Current phase
 
-The repository scaffold, shared contracts, Kernel foundation, Runtime foundation, CLI status/doctor foundation, provider framework foundation, Planner foundation, Skills foundation, and Runtime plan execution shell are in place. The current focus is the CLI plan command.
+The repository scaffold, shared contracts, Kernel foundation, Runtime foundation, CLI status/doctor/plan foundation, provider framework foundation, Planner foundation, Skills foundation, and Runtime plan execution shell are in place. The current focus is package-level examples.
 
 Implementation will begin with:
 
