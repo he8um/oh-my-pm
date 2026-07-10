@@ -118,9 +118,18 @@ for (const pkg of PACKAGES) {
   }
 }
 
-// 7. Kernel crate manifest exists.
-if (!existsSync("kernel/crate/Cargo.toml")) {
-  err("kernel/crate/Cargo.toml missing");
+// 7. Kernel crate manifest and source modules exist.
+const KERNEL_SOURCES = [
+  "kernel/crate/Cargo.toml",
+  "kernel/crate/src/lib.rs",
+  "kernel/crate/src/errors.rs",
+  "kernel/crate/src/state.rs",
+  "kernel/crate/src/registry.rs",
+  "kernel/crate/src/validation.rs",
+  "kernel/crate/src/update_guard.rs",
+];
+for (const file of KERNEL_SOURCES) {
+  if (!existsSync(file)) err(`kernel source file missing: ${file}`);
 }
 
 // 8. Generated contract domain files and barrels exist.

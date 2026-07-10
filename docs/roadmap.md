@@ -26,10 +26,13 @@
 
 ## Phase 3 — Kernel and runtime
 
-- Kernel control plane
+- Kernel state machine
+- Validation shell
+- Version registry checks
+- Update guard shell
+- Rust test coverage
 - Runtime orchestration
 - Basic request lifecycle
-- Validation integration
 
 ## Phase 4 — CLI foundation
 

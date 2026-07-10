@@ -22,6 +22,26 @@
       }
     },
     {
+      "kind": "struct",
+      "name": "StateTransitionInput",
+      "doc": "Requested release state transition.",
+      "fields": [
+        { "name": "from", "type": { "ref": "ReleaseState" }, "doc": "Current state." },
+        { "name": "to", "type": { "ref": "ReleaseState" }, "doc": "Requested target state." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "StateTransitionDecision",
+      "doc": "Decision for a requested release state transition.",
+      "fields": [
+        { "name": "from", "type": { "ref": "ReleaseState" }, "doc": "Current state." },
+        { "name": "to", "type": { "ref": "ReleaseState" }, "doc": "Requested target state." },
+        { "name": "allowed", "type": "boolean", "doc": "Whether the transition is allowed." },
+        { "name": "reason", "type": "string", "doc": "Decision reason." }
+      ]
+    },
+    {
       "kind": "enum",
       "name": "ComponentId",
       "doc": "Known component identifier.",

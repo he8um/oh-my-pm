@@ -32,6 +32,30 @@ pub fn allowed_transitions() -> BTreeMap<String, Vec<ReleaseState>> {
     }
 }
 
+/// Requested release state transition.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StateTransitionInput {
+    /// Current state.
+    pub from: ReleaseState,
+    /// Requested target state.
+    pub to: ReleaseState,
+}
+
+/// Decision for a requested release state transition.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StateTransitionDecision {
+    /// Current state.
+    pub from: ReleaseState,
+    /// Requested target state.
+    pub to: ReleaseState,
+    /// Whether the transition is allowed.
+    pub allowed: bool,
+    /// Decision reason.
+    pub reason: String,
+}
+
 /// Known component identifier.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

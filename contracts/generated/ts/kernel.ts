@@ -30,6 +30,26 @@ export const ALLOWED_TRANSITIONS = {
   ]
 } as const;
 
+/** Requested release state transition. */
+export interface StateTransitionInput {
+  /** Current state. */
+  from: ReleaseState;
+  /** Requested target state. */
+  to: ReleaseState;
+}
+
+/** Decision for a requested release state transition. */
+export interface StateTransitionDecision {
+  /** Current state. */
+  from: ReleaseState;
+  /** Requested target state. */
+  to: ReleaseState;
+  /** Whether the transition is allowed. */
+  allowed: boolean;
+  /** Decision reason. */
+  reason: string;
+}
+
 /** Known component identifier. */
 export const COMPONENT_ID_VALUES = ["contracts", "kernel", "runtime", "planner", "providers", "skills", "cli", "installer", "validation"] as const;
 export type ComponentId = (typeof COMPONENT_ID_VALUES)[number];
