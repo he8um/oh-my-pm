@@ -35,15 +35,17 @@
 
 ## Phase 4 — CLI foundation
 
-- `status` and `doctor` commands
-- Brief, JSON, and markdown output modes
-- Structured execution result for a future binary wrapper
-- No process exit inside CLI core
+- `status` and `doctor` commands (in place)
+- Brief, JSON, and markdown output modes (in place)
+- Structured execution result for a future binary wrapper (in place)
+- No process exit inside CLI core (in place)
 
 ## Phase 5 — Context providers and skills
 
-- Read-only provider contracts
-- Provider registry
+- Read-only provider interface and registry
+- Normalized provider items
+- Local in-memory provider
+- No external provider integrations yet
 - Deterministic skill registry
 - Initial project-management transformations
 

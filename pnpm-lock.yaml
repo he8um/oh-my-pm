@@ -42,7 +42,11 @@ importers:
 
   planner: {}
 
-  providers: {}
+  providers:
+    dependencies:
+      '@oh-my-pm/contracts':
+        specifier: workspace:*
+        version: link:../contracts
 
   runtime:
     dependencies:

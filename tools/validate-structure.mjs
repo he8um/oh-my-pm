@@ -165,6 +165,23 @@ for (const file of CLI_SOURCES) {
   if (!existsSync(file)) err(`cli foundation file missing: ${file}`);
 }
 
+// 7d. Provider framework files exist.
+const PROVIDER_SOURCES = [
+  "providers/src/index.ts",
+  "providers/src/types.ts",
+  "providers/src/errors.ts",
+  "providers/src/normalize.ts",
+  "providers/src/local.ts",
+  "providers/src/registry.ts",
+  "providers/test/normalize.test.ts",
+  "providers/test/local.test.ts",
+  "providers/test/registry.test.ts",
+  "providers/test/purity.test.ts",
+];
+for (const file of PROVIDER_SOURCES) {
+  if (!existsSync(file)) err(`provider framework file missing: ${file}`);
+}
+
 // 8. Generated contract domain files and barrels exist.
 const CONTRACT_DOMAINS = ["core", "kernel", "runtime", "planner", "providers", "skills", "cli", "installer"];
 const REQUIRED_GENERATED = [
