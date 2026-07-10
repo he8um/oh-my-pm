@@ -62,7 +62,14 @@ importers:
         specifier: workspace:*
         version: link:../skills
 
-  installer: {}
+  installer:
+    dependencies:
+      '@oh-my-pm/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@oh-my-pm/kernel':
+        specifier: workspace:*
+        version: link:../kernel/binding
 
   kernel/binding:
     dependencies:

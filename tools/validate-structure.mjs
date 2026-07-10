@@ -267,6 +267,26 @@ for (const file of EXAMPLES_SOURCES) {
   if (!existsSync(file)) err(`examples file missing: ${file}`);
 }
 
+// 7h. Installer foundation files exist.
+const INSTALLER_SOURCES = [
+  "installer/README.md",
+  "installer/src/index.ts",
+  "installer/src/types.ts",
+  "installer/src/errors.ts",
+  "installer/src/validate.ts",
+  "installer/src/manifest.ts",
+  "installer/src/installer.ts",
+  "installer/src/fixtures.ts",
+  "installer/test/validate.test.ts",
+  "installer/test/manifest.test.ts",
+  "installer/test/installer.test.ts",
+  "installer/test/fixtures.test.ts",
+  "installer/test/purity.test.ts",
+];
+for (const file of INSTALLER_SOURCES) {
+  if (!existsSync(file)) err(`installer foundation file missing: ${file}`);
+}
+
 // 8. Generated contract domain files and barrels exist.
 const CONTRACT_DOMAINS = ["core", "kernel", "runtime", "planner", "providers", "skills", "cli", "installer"];
 const REQUIRED_GENERATED = [

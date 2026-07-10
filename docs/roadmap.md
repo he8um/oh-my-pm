@@ -52,7 +52,8 @@
 - CLI plan command: `plan <request>` with brief/JSON/markdown output and Runtime plan request creation (in place)
 - Package-level examples: status, doctor, plan, and provider-backed plan through injected Runtime dependencies (in place)
 - Private CLI binary wrapper: local `oh-my-pm` bin entry with status/doctor/plan, local provider seed data — no publish or release workflow (in place)
-- Real WASM Kernel binding: Rust WASM exports, deterministic build tooling, Node-loadable KernelApi, validation through WASM, update guard through WASM, state transition through WASM, private CLI wrapper using the real Kernel binding — no release or publish yet
+- Real WASM Kernel binding: Rust WASM exports, deterministic build tooling, Node-loadable KernelApi, validation through WASM, update guard through WASM, state transition through WASM, private CLI wrapper using the real Kernel binding (in place)
+- Installer foundation: package manifest validation, install manifest/report creation, Kernel-backed install manifest validation, update guard integration, rollback report shell, in-memory deterministic installer state — no filesystem writes yet
 
 ## Phase 6 — Release lifecycle
 
