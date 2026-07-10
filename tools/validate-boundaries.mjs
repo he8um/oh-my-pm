@@ -77,6 +77,9 @@ for (const file of trackedFiles) {
     if (spec.includes("kernel/crate")) {
       err(`${file} imports from kernel/crate: "${spec}"`);
     }
+    if (file.startsWith("installer/src/") && (spec === "fs" || spec.startsWith("node:fs"))) {
+      err(`${file} imports a Node filesystem module: "${spec}"`);
+    }
   }
 }
 

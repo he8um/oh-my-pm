@@ -277,11 +277,17 @@ const INSTALLER_SOURCES = [
   "installer/src/manifest.ts",
   "installer/src/installer.ts",
   "installer/src/fixtures.ts",
+  "installer/src/paths.ts",
+  "installer/src/memory-filesystem.ts",
+  "installer/src/filesystem-plan.ts",
   "installer/test/validate.test.ts",
   "installer/test/manifest.test.ts",
   "installer/test/installer.test.ts",
   "installer/test/fixtures.test.ts",
   "installer/test/purity.test.ts",
+  "installer/test/paths.test.ts",
+  "installer/test/memory-filesystem.test.ts",
+  "installer/test/filesystem-plan.test.ts",
 ];
 for (const file of INSTALLER_SOURCES) {
   if (!existsSync(file)) err(`installer foundation file missing: ${file}`);

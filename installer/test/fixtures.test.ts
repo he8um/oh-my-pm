@@ -1,6 +1,7 @@
 import { createNodeWasmKernelApi } from "@oh-my-pm/kernel";
 import { describe, expect, it } from "vitest";
 import {
+  exampleFilesystemEntries,
   examplePackageManifest,
   exampleRollbackManifest,
   exampleUpdatePlan,
@@ -11,12 +12,28 @@ describe("installer fixtures", () => {
     expect(examplePackageManifest()).toEqual(examplePackageManifest());
     expect(exampleRollbackManifest()).toEqual(exampleRollbackManifest());
     expect(exampleUpdatePlan()).toEqual(exampleUpdatePlan());
+    expect(exampleFilesystemEntries()).toEqual(exampleFilesystemEntries());
   });
 
   it("return fresh objects, not shared references", () => {
     const first = examplePackageManifest();
     first.files.push("mutated");
     expect(examplePackageManifest().files).toEqual(["bin/oh-my-pm", "README.md"]);
+  });
+
+  it("filesystem entries use the documented fixed values", () => {
+    expect(exampleFilesystemEntries()).toEqual([
+      {
+        path: "/tmp/oh-my-pm/bin/oh-my-pm",
+        content: "old binary",
+        checksum: "sha256:old",
+      },
+      {
+        path: "/tmp/oh-my-pm/README.md",
+        content: "old readme",
+        checksum: "sha256:old-readme",
+      },
+    ]);
   });
 
   it("use the documented fixed values", () => {

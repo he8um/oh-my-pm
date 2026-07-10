@@ -3,6 +3,8 @@ import type { KernelApi } from "@oh-my-pm/kernel";
 import { describe, expect, it } from "vitest";
 import {
   createInstaller,
+  createMemoryFilesystem,
+  exampleFilesystemEntries,
   examplePackageManifest,
   exampleRollbackManifest,
   exampleUpdatePlan,
@@ -174,6 +176,110 @@ describe("rollback", () => {
       "invalid rollback manifest: missing_rollback_id, rollback_paths_must_not_be_empty, missing_rollback_created_at",
     );
     expect(installer.snapshot().rollbacks).toEqual([]);
+  });
+});
+
+describe("planInstall", () => {
+  const plannerDeps = () => ({
+    filesystem: createMemoryFilesystem(exampleFilesystemEntries()),
+  });
+
+  it("returns a dry-run plan without mutating state", () => {
+    const installer = createInstaller({ kernel: fakeKernel() });
+    const input = { ...installInput(), root: "/tmp/oh-my-pm" };
+    const report = installer.planInstall(input, plannerDeps());
+    expect(report).toEqual({
+      ok: true,
+      plan: {
+        root: "/tmp/oh-my-pm",
+        packageManifest: examplePackageManifest(),
+        operations: [
+          { kind: "replace", path: "/tmp/oh-my-pm/bin/oh-my-pm", checksum: "sha256:example" },
+          { kind: "replace", path: "/tmp/oh-my-pm/README.md", checksum: "sha256:example" },
+        ],
+      },
+    });
+    expect(installer.snapshot()).toEqual({ rollbacks: [], appliedUpdates: [] });
+  });
+
+  it("rejects an invalid package manifest with OMP-I-6001", () => {
+    const installer = createInstaller({ kernel: fakeKernel() });
+    const result = installer.planInstall(
+      { ...installInput(), packageManifest: { name: "", version: "", checksum: "", files: [] } },
+      plannerDeps(),
+    ) as InstallerFailure;
+    expect(result.code).toBe("OMP-I-6001");
+  });
+
+  it("rejects unsafe package file paths with OMP-I-6001", () => {
+    const installer = createInstaller({ kernel: fakeKernel() });
+    const input = installInput();
+    input.packageManifest.files = ["../outside"];
+    const result = installer.planInstall(input, plannerDeps()) as InstallerFailure;
+    expect(result.code).toBe("OMP-I-6001");
+    expect(result.message).toBe("invalid package manifest: unsafe_package_file_path");
+  });
+
+  it("rejects missing root/installedAt with OMP-I-6002", () => {
+    const installer = createInstaller({ kernel: fakeKernel() });
+    const result = installer.planInstall(
+      { ...installInput(), root: "", installedAt: " " },
+      plannerDeps(),
+    ) as InstallerFailure;
+    expect(result.code).toBe("OMP-I-6002");
+    expect(result.message).toBe("invalid install input: missing_root, missing_installed_at");
+  });
+});
+
+describe("planRollbackCapture", () => {
+  const plannerDeps = () => ({
+    filesystem: createMemoryFilesystem(exampleFilesystemEntries()),
+  });
+
+  const captureInput = () => ({
+    id: "rollback-1",
+    root: "/tmp/oh-my-pm",
+    paths: ["bin/oh-my-pm", "docs/new.md"],
+    createdAt: "2026-01-01T00:00:00.000Z",
+  });
+
+  it("returns a capture plan without mutating state", () => {
+    const installer = createInstaller({ kernel: fakeKernel() });
+    const plan = installer.planRollbackCapture(captureInput(), plannerDeps());
+    expect(plan).toEqual({
+      rollback: {
+        id: "rollback-1",
+        paths: ["bin/oh-my-pm", "docs/new.md"],
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+      operations: [
+        { kind: "backup", path: "/tmp/oh-my-pm/bin/oh-my-pm" },
+        { kind: "remove", path: "/tmp/oh-my-pm/docs/new.md" },
+      ],
+    });
+    expect(installer.snapshot()).toEqual({ rollbacks: [], appliedUpdates: [] });
+  });
+
+  it("rejects unsafe rollback paths with OMP-I-6004", () => {
+    const installer = createInstaller({ kernel: fakeKernel() });
+    const result = installer.planRollbackCapture(
+      { ...captureInput(), paths: ["../outside"] },
+      plannerDeps(),
+    ) as InstallerFailure;
+    expect(result.code).toBe("OMP-I-6004");
+    expect(result.message).toBe("invalid rollback capture input: unsafe_rollback_path");
+  });
+
+  it("rejects missing capture fields with OMP-I-6004", () => {
+    const installer = createInstaller({ kernel: fakeKernel() });
+    const result = installer.planRollbackCapture(
+      { id: "", root: " ", paths: [], createdAt: "" },
+      plannerDeps(),
+    ) as InstallerFailure;
+    expect(result.code).toBe("OMP-I-6004");
+    expect(result.message).toBe(
+      "invalid rollback capture input: missing_rollback_id, missing_root, missing_rollback_created_at, rollback_paths_must_not_be_empty",
+    );
   });
 });
 

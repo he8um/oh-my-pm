@@ -4,11 +4,15 @@
 
 import type { JsonValue } from "@oh-my-pm/contracts";
 import type {
+  FilesystemPlannerDeps,
+  InstallDryRunReport,
   InstallInput,
   Installer,
   InstallerDeps,
   InstallerFailure,
   InstallerState,
+  RollbackCaptureInput,
+  RollbackCapturePlan,
   RollbackInput,
   UpdateInput,
 } from "./types.js";
@@ -26,11 +30,16 @@ import {
   OMP_I_UPDATE_BLOCKED,
 } from "./errors.js";
 import {
+  planInstallOperations,
+  planRollbackCapture as planRollbackCaptureOperations,
+} from "./filesystem-plan.js";
+import {
   createInstallManifest,
   createInstallReport,
   createRollbackReport,
   createUpdateApplyReport,
 } from "./manifest.js";
+import { isSafeRelativePath, validatePackageFilePaths } from "./paths.js";
 import { isNonEmptyString, validatePackageManifest, validateRollbackManifest } from "./validate.js";
 
 function clone<T>(value: T): T {
@@ -134,6 +143,75 @@ export function createInstaller(
     return createRollbackReport(clone(input.rollback));
   }
 
+  function planInstall(
+    input: InstallInput,
+    plannerDeps: FilesystemPlannerDeps,
+  ): InstallDryRunReport | InstallerFailure {
+    const packageReasons = validatePackageManifest(input.packageManifest);
+    if (packageReasons.length > 0) {
+      return installerFailure(
+        OMP_I_INVALID_PACKAGE,
+        `invalid package manifest: ${packageReasons.join(", ")}`,
+      );
+    }
+
+    const inputReasons: string[] = [];
+    if (!isNonEmptyString(input.root)) {
+      inputReasons.push("missing_root");
+    }
+    if (!isNonEmptyString(input.installedAt)) {
+      inputReasons.push("missing_installed_at");
+    }
+    if (inputReasons.length > 0) {
+      return installerFailure(
+        OMP_I_INVALID_INSTALL_INPUT,
+        `invalid install input: ${inputReasons.join(", ")}`,
+      );
+    }
+
+    const pathReasons = validatePackageFilePaths(input.packageManifest.files);
+    if (pathReasons.length > 0) {
+      return installerFailure(
+        OMP_I_INVALID_PACKAGE,
+        `invalid package manifest: ${pathReasons.join(", ")}`,
+      );
+    }
+
+    // Filesystem plan preview only: no state change and no Kernel manifest
+    // validation; install() remains the authoritative path.
+    return { ok: true, plan: planInstallOperations(clone(input), plannerDeps.filesystem) };
+  }
+
+  function planRollbackCapture(
+    input: RollbackCaptureInput,
+    plannerDeps: FilesystemPlannerDeps,
+  ): RollbackCapturePlan | InstallerFailure {
+    const reasons: string[] = [];
+    if (!isNonEmptyString(input.id)) {
+      reasons.push("missing_rollback_id");
+    }
+    if (!isNonEmptyString(input.root)) {
+      reasons.push("missing_root");
+    }
+    if (!isNonEmptyString(input.createdAt)) {
+      reasons.push("missing_rollback_created_at");
+    }
+    if (input.paths.length === 0) {
+      reasons.push("rollback_paths_must_not_be_empty");
+    }
+    if (input.paths.some((path) => !isSafeRelativePath(path))) {
+      reasons.push("unsafe_rollback_path");
+    }
+    if (reasons.length > 0) {
+      return installerFailure(
+        OMP_I_ROLLBACK_INVALID,
+        `invalid rollback capture input: ${reasons.join(", ")}`,
+      );
+    }
+
+    return planRollbackCaptureOperations(clone(input), plannerDeps.filesystem);
+  }
+
   function snapshot(): InstallerState {
     const snap: InstallerState = {
       rollbacks: clone(state.rollbacks),
@@ -145,5 +223,5 @@ export function createInstaller(
     return snap;
   }
 
-  return { install, applyUpdate, rollback, snapshot };
+  return { install, applyUpdate, rollback, snapshot, planInstall, planRollbackCapture };
 }

@@ -2,6 +2,7 @@
 // fixed literals; nothing here reads a clock.
 
 import type { PackageManifest, RollbackManifest, UpdatePlan } from "@oh-my-pm/contracts";
+import type { FilesystemEntry } from "./types.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -20,6 +21,22 @@ export function exampleRollbackManifest(): RollbackManifest {
     paths: ["bin/oh-my-pm"],
     createdAt: "2026-01-01T00:00:00.000Z",
   };
+}
+
+/** Example entries for an in-memory filesystem adapter. */
+export function exampleFilesystemEntries(): FilesystemEntry[] {
+  return [
+    {
+      path: "/tmp/oh-my-pm/bin/oh-my-pm",
+      content: "old binary",
+      checksum: "sha256:old",
+    },
+    {
+      path: "/tmp/oh-my-pm/README.md",
+      content: "old readme",
+      checksum: "sha256:old-readme",
+    },
+  ];
 }
 
 /** Example update plan accepted by the Kernel update guard. */
