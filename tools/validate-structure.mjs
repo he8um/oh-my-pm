@@ -203,6 +203,30 @@ for (const file of PLANNER_SOURCES) {
   if (!existsSync(file)) err(`planner foundation file missing: ${file}`);
 }
 
+// 7f. Skills foundation files exist.
+const SKILLS_SOURCES = [
+  "skills/src/index.ts",
+  "skills/src/types.ts",
+  "skills/src/helpers.ts",
+  "skills/src/summarize-status.ts",
+  "skills/src/extract-risks.ts",
+  "skills/src/derive-next-tasks.ts",
+  "skills/src/create-handoff.ts",
+  "skills/src/review-changes.ts",
+  "skills/src/registry.ts",
+  "skills/test/helpers.test.ts",
+  "skills/test/summarize-status.test.ts",
+  "skills/test/extract-risks.test.ts",
+  "skills/test/derive-next-tasks.test.ts",
+  "skills/test/create-handoff.test.ts",
+  "skills/test/review-changes.test.ts",
+  "skills/test/registry.test.ts",
+  "skills/test/purity.test.ts",
+];
+for (const file of SKILLS_SOURCES) {
+  if (!existsSync(file)) err(`skills foundation file missing: ${file}`);
+}
+
 // 8. Generated contract domain files and barrels exist.
 const CONTRACT_DOMAINS = ["core", "kernel", "runtime", "planner", "providers", "skills", "cli", "installer"];
 const REQUIRED_GENERATED = [

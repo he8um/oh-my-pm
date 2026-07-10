@@ -46,9 +46,8 @@
 - Normalized provider items (in place)
 - Local in-memory provider (in place)
 - No external provider integrations yet
-- Planner foundation: intent classification, structured context extraction, provider request planning, deterministic task graphs, missing-context responses, runtime request adapter — no provider or skill execution yet
-- Deterministic skill registry
-- Initial project-management transformations
+- Planner foundation: intent classification, structured context extraction, provider request planning, deterministic task graphs, missing-context responses, runtime request adapter (in place)
+- Skills foundation: deterministic skill interface, built-in registry, summarize status, extract risks, derive next tasks, create handoff, review changes — no AI or external execution
 
 ## Phase 6 — Release lifecycle
 
