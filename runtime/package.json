@@ -18,6 +18,9 @@
   },
   "dependencies": {
     "@oh-my-pm/contracts": "workspace:*",
-    "@oh-my-pm/kernel": "workspace:*"
+    "@oh-my-pm/kernel": "workspace:*",
+    "@oh-my-pm/planner": "workspace:*",
+    "@oh-my-pm/providers": "workspace:*",
+    "@oh-my-pm/skills": "workspace:*"
   }
 }

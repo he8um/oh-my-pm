@@ -11,6 +11,7 @@ import {
   OMP_R_VALIDATION_FAILED,
   failureResponse,
 } from "./errors.js";
+import { handlePlanRequest } from "./plan.js";
 import type { Runtime, RuntimeDeps } from "./types.js";
 
 function toJsonValue(value: unknown): JsonValue {
@@ -86,6 +87,10 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
             },
             trace,
           };
+        }
+
+        if (request.kind === "plan") {
+          return handlePlanRequest(request, deps, trace);
         }
 
         trace.push({

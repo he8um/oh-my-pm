@@ -63,6 +63,15 @@ importers:
       '@oh-my-pm/kernel':
         specifier: workspace:*
         version: link:../kernel/binding
+      '@oh-my-pm/planner':
+        specifier: workspace:*
+        version: link:../planner
+      '@oh-my-pm/providers':
+        specifier: workspace:*
+        version: link:../providers
+      '@oh-my-pm/skills':
+        specifier: workspace:*
+        version: link:../skills
 
   skills:
     dependencies:

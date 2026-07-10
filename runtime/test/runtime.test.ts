@@ -99,12 +99,12 @@ describe("runtime foundation", () => {
     expect(traceSteps(response)).not.toContain("runtime.doctor");
   });
 
-  it.each(["plan", "executeSkill"] as const)("rejects unimplemented kind %s", (kind) => {
+  it("rejects the unimplemented executeSkill kind", () => {
     const runtime = createRuntime({ kernel: fakeKernel().api, version: "2.0.0-alpha.0" });
-    const response = runtime.handle(request(kind));
+    const response = runtime.handle(request("executeSkill"));
     expect(response.ok).toBe(false);
     expect(response.error?.code).toBe("OMP-R-2002");
-    expect(response.error?.message).toContain(kind);
+    expect(response.error?.message).toContain("executeSkill");
   });
 
   it("converts thrown kernel errors into OMP-R-2003 without stack traces", () => {
