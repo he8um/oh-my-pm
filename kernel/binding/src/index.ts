@@ -7,6 +7,13 @@ import type {
   ValidationReport,
   ValidationTarget,
 } from "@oh-my-pm/contracts";
+import type { BindingMarkers } from "./status.js";
+import { UNAVAILABLE_REASON, WASM_MODE } from "./status.js";
+
+export {
+  createNodeWasmKernelApi,
+  isNodeWasmKernelAvailable,
+} from "./node.js";
 
 /** Public boundary the rest of the workspace uses to reach the Kernel. */
 export type KernelApi = {
@@ -17,12 +24,10 @@ export type KernelApi = {
 };
 
 export type KernelBindingStatus =
-  | { status: "configured"; mode: "injected" }
+  | { status: "configured"; mode: "injected" | "wasm" }
   | { status: "unavailable"; reason: string };
 
-const UNAVAILABLE_REASON = Symbol("kernel-binding-unavailable");
-
-type MarkedKernelApi = KernelApi & { [UNAVAILABLE_REASON]?: string };
+type MarkedKernelApi = KernelApi & BindingMarkers;
 
 /**
  * Deterministic fail-closed Kernel boundary used until a real binding is
@@ -73,9 +78,13 @@ export function createUnavailableKernelApi(
 
 /** Report whether a KernelApi is a configured binding or the fail-closed stub. */
 export function describeKernelBinding(api: KernelApi): KernelBindingStatus {
-  const reason = (api as MarkedKernelApi)[UNAVAILABLE_REASON];
+  const marked = api as MarkedKernelApi;
+  const reason = marked[UNAVAILABLE_REASON];
   if (reason !== undefined) {
     return { status: "unavailable", reason };
+  }
+  if (marked[WASM_MODE] === true) {
+    return { status: "configured", mode: "wasm" };
   }
   return { status: "configured", mode: "injected" };
 }

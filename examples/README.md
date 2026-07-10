@@ -10,4 +10,4 @@ Current examples:
 - doctor through the CLI and injected Runtime
 - plan through the CLI, Runtime, Planner, local Provider, and deterministic Skills
 
-The example Kernel is an injected deterministic boundary used only for examples. It is not the real Kernel binding.
+The example Kernel is an injected deterministic boundary used only for examples, demonstrating dependency injection. The private CLI wrapper now uses the real WASM Kernel binding instead.

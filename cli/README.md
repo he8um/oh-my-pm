@@ -12,4 +12,8 @@ Current commands:
 - `doctor`
 - `plan <request>`
 
-The wrapper currently uses an injected deterministic local Kernel boundary and local provider seed data. It does not load the production Kernel binding yet.
+The wrapper uses the real WASM Kernel binding from `@oh-my-pm/kernel`, so validation, update guard, and state transition decisions come from the Rust Kernel. Provider seed data remains local. Build the workspace first so the generated binding exists:
+
+```bash
+pnpm build
+```

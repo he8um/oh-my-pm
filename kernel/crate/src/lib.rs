@@ -9,6 +9,9 @@ pub mod state;
 pub mod update_guard;
 pub mod validation;
 
+#[cfg(target_arch = "wasm32")]
+pub mod wasm;
+
 #[path = "../../../contracts/generated/rust/mod.rs"]
 pub mod contracts;
 

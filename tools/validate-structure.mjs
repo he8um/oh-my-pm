@@ -147,6 +147,18 @@ const RUNTIME_SOURCES = [
   "kernel/binding/src/index.ts",
   "kernel/binding/test/kernel-api.test.ts",
 ];
+
+// 7b2. Kernel WASM binding files exist.
+const WASM_BINDING_SOURCES = [
+  "tools/build-kernel-wasm.mjs",
+  "kernel/crate/src/wasm.rs",
+  "kernel/binding/src/node.ts",
+  "kernel/binding/src/status.ts",
+  "kernel/binding/test/wasm-kernel-api.test.ts",
+];
+for (const file of WASM_BINDING_SOURCES) {
+  if (!existsSync(file)) err(`kernel wasm binding file missing: ${file}`);
+}
 for (const file of RUNTIME_SOURCES) {
   if (!existsSync(file)) err(`runtime foundation file missing: ${file}`);
 }

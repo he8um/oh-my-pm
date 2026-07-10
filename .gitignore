@@ -47,6 +47,9 @@ coverage/
 .nyc_output/
 kernel/binding/wasm/
 
+# Generated Kernel WASM binding output
+/kernel/binding/generated-node/
+
 # Rust
 target/
 

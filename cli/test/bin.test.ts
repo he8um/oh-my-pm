@@ -29,6 +29,12 @@ describe("bin wrapper source", () => {
     expect(binSource).toContain("process.exitCode");
   });
 
+  it("uses the real WASM Kernel binding instead of a local fake", () => {
+    expect(binSource).toContain('from "@oh-my-pm/kernel"');
+    expect(binSource).toContain("createNodeWasmKernelApi");
+    expect(binSource).not.toContain("createLocalCliKernelApi");
+  });
+
   it("avoids forbidden side effects beyond stdio and exit code", () => {
     for (const forbidden of [
       "console.",
@@ -49,7 +55,7 @@ describe("cli readme", () => {
   it("documents the private local wrapper", () => {
     expect(readme).toContain("private");
     expect(readme).toContain("not published");
-    expect(readme).toContain("deterministic local Kernel boundary");
+    expect(readme).toContain("real WASM Kernel binding");
     expect(readme).toContain("`status`");
     expect(readme).toContain("`doctor`");
     expect(readme).toContain("`plan <request>`");

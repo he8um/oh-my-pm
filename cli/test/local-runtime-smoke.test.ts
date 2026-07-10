@@ -1,4 +1,4 @@
-import type { ValidationReport, ValidationTarget } from "@oh-my-pm/contracts";
+import { createNodeWasmKernelApi } from "@oh-my-pm/kernel";
 import { createLocalProvider, createProviderRegistry } from "@oh-my-pm/providers";
 import { createRuntime } from "@oh-my-pm/runtime";
 import { createDefaultSkillRegistry } from "@oh-my-pm/skills";
@@ -6,28 +6,11 @@ import { describe, expect, it } from "vitest";
 import { runCli } from "../src/index.js";
 import type { RuntimeRequestFactory } from "../src/index.js";
 
-function passingReport(target: ValidationTarget): ValidationReport {
-  return { target, passed: true, errors: [], warnings: [] };
-}
-
 function localRuntime() {
+  // Real WASM Kernel binding; fails with a clear build hint when the
+  // generated binding is missing.
   return createRuntime({
-    kernel: {
-      version: () => "2.0.0-alpha.0-local",
-      validateJson: (target) => passingReport(target),
-      checkUpdatePlan: (plan) => ({
-        status: "allowed",
-        planId: plan.id,
-        planHash: `local:${plan.id}`,
-        reasons: [],
-      }),
-      decideTransition: (input) => ({
-        from: input.from,
-        to: input.to,
-        allowed: true,
-        reason: "local_cli_wrapper",
-      }),
-    },
+    kernel: createNodeWasmKernelApi(),
     providers: createProviderRegistry([
       createLocalProvider({
         items: [
