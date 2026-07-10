@@ -48,7 +48,7 @@ See [`docs/architecture.md`](docs/architecture.md).
 
 ## Current phase
 
-The repository scaffold and shared contracts are in place. The current focus is the Kernel foundation.
+The repository scaffold, shared contracts, and Kernel foundation are in place. The current focus is the Runtime foundation.
 
 Implementation will begin with:
 

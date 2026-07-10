@@ -26,13 +26,12 @@
 
 ## Phase 3 — Kernel and runtime
 
-- Kernel state machine
-- Validation shell
-- Version registry checks
-- Update guard shell
-- Rust test coverage
-- Runtime orchestration
-- Basic request lifecycle
+- Kernel state machine (in place)
+- Validation shell (in place)
+- Version registry checks (in place)
+- Update guard shell (in place)
+- Rust test coverage (in place)
+- Runtime foundation: injected Kernel boundary, pre-dispatch validation, structured responses, deterministic traces, status and doctor foundations
 
 ## Phase 4 — CLI foundation
 

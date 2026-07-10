@@ -27,13 +27,24 @@ importers:
 
   installer: {}
 
-  kernel/binding: {}
+  kernel/binding:
+    dependencies:
+      '@oh-my-pm/contracts':
+        specifier: workspace:*
+        version: link:../../contracts
 
   planner: {}
 
   providers: {}
 
-  runtime: {}
+  runtime:
+    dependencies:
+      '@oh-my-pm/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@oh-my-pm/kernel':
+        specifier: workspace:*
+        version: link:../kernel/binding
 
   skills: {}
 

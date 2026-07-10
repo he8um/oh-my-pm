@@ -132,6 +132,21 @@ for (const file of KERNEL_SOURCES) {
   if (!existsSync(file)) err(`kernel source file missing: ${file}`);
 }
 
+// 7b. Runtime foundation and kernel binding files exist.
+const RUNTIME_SOURCES = [
+  "runtime/src/index.ts",
+  "runtime/src/types.ts",
+  "runtime/src/errors.ts",
+  "runtime/src/runtime.ts",
+  "runtime/test/runtime.test.ts",
+  "runtime/test/purity.test.ts",
+  "kernel/binding/src/index.ts",
+  "kernel/binding/test/kernel-api.test.ts",
+];
+for (const file of RUNTIME_SOURCES) {
+  if (!existsSync(file)) err(`runtime foundation file missing: ${file}`);
+}
+
 // 8. Generated contract domain files and barrels exist.
 const CONTRACT_DOMAINS = ["core", "kernel", "runtime", "planner", "providers", "skills", "cli", "installer"];
 const REQUIRED_GENERATED = [

@@ -2,7 +2,7 @@
 // Do not edit by hand.
 
 use serde::{Deserialize, Serialize};
-use super::core::{JsonValue, KernelWarning, Locale};
+use super::core::{JsonValue, KernelError, KernelWarning, Locale};
 
 /// Kind of runtime request.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -41,6 +41,12 @@ pub struct RuntimeResponse {
     /// Warnings.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub warnings: Option<Vec<KernelWarning>>,
+    /// Error when the response failed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<KernelError>,
+    /// Deterministic execution trace.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace: Option<Vec<ExecutionTraceEntry>>,
 }
 
 /// Single entry in an execution trace.

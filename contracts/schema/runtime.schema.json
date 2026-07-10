@@ -26,7 +26,9 @@
         { "name": "id", "type": "string", "doc": "Request identifier." },
         { "name": "ok", "type": "boolean", "doc": "Whether the request succeeded." },
         { "name": "data", "type": "json", "doc": "Response payload." },
-        { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings.", "optional": true }
+        { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings.", "optional": true },
+        { "name": "error", "type": { "ref": "KernelError" }, "doc": "Error when the response failed.", "optional": true },
+        { "name": "trace", "type": { "array": { "ref": "ExecutionTraceEntry" } }, "doc": "Deterministic execution trace.", "optional": true }
       ]
     },
     {
