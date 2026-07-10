@@ -1,0 +1,41 @@
+{
+  "domain": "skills",
+  "declarations": [
+    {
+      "kind": "enum",
+      "name": "SkillId",
+      "doc": "Known deterministic skill identifier.",
+      "values": ["summarizeStatus", "extractRisks", "deriveNextTasks", "createHandoff", "reviewChanges"]
+    },
+    {
+      "kind": "struct",
+      "name": "SkillExecutionContext",
+      "doc": "Deterministic execution context injected into skills.",
+      "fields": [
+        { "name": "locale", "type": { "ref": "Locale" }, "doc": "Requested output locale." },
+        { "name": "now", "type": "string", "doc": "Injected clock value." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "SkillInputEnvelope",
+      "doc": "Envelope for a skill execution input.",
+      "fields": [
+        { "name": "skillId", "type": { "ref": "SkillId" }, "doc": "Target skill." },
+        { "name": "context", "type": { "ref": "SkillExecutionContext" }, "doc": "Execution context." },
+        { "name": "input", "type": "json", "doc": "Skill-specific input." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "SkillOutputEnvelope",
+      "doc": "Envelope for a skill execution output.",
+      "fields": [
+        { "name": "skillId", "type": { "ref": "SkillId" }, "doc": "Executed skill." },
+        { "name": "ok", "type": "boolean", "doc": "Whether execution succeeded." },
+        { "name": "output", "type": "json", "doc": "Skill-specific output." },
+        { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings.", "optional": true }
+      ]
+    }
+  ]
+}

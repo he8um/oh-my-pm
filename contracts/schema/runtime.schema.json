@@ -1,0 +1,53 @@
+{
+  "domain": "runtime",
+  "declarations": [
+    {
+      "kind": "enum",
+      "name": "RuntimeRequestKind",
+      "doc": "Kind of runtime request.",
+      "values": ["status", "doctor", "plan", "executeSkill"]
+    },
+    {
+      "kind": "struct",
+      "name": "RuntimeRequest",
+      "doc": "Request handled by the runtime.",
+      "fields": [
+        { "name": "id", "type": "string", "doc": "Request identifier." },
+        { "name": "kind", "type": { "ref": "RuntimeRequestKind" }, "doc": "Request kind." },
+        { "name": "locale", "type": { "ref": "Locale" }, "doc": "Requested output locale." },
+        { "name": "payload", "type": "json", "doc": "Kind-specific payload." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "RuntimeResponse",
+      "doc": "Response produced by the runtime.",
+      "fields": [
+        { "name": "id", "type": "string", "doc": "Request identifier." },
+        { "name": "ok", "type": "boolean", "doc": "Whether the request succeeded." },
+        { "name": "data", "type": "json", "doc": "Response payload." },
+        { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings.", "optional": true }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "ExecutionTraceEntry",
+      "doc": "Single entry in an execution trace.",
+      "fields": [
+        { "name": "step", "type": "string", "doc": "Step name." },
+        { "name": "status", "type": "string", "doc": "Step status." },
+        { "name": "message", "type": "string", "doc": "Optional detail message.", "optional": true }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "NodeResult",
+      "doc": "Result of executing a single task node.",
+      "fields": [
+        { "name": "nodeId", "type": "string", "doc": "Task node identifier." },
+        { "name": "ok", "type": "boolean", "doc": "Whether the node succeeded." },
+        { "name": "data", "type": "json", "doc": "Node output." }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,178 @@
+{
+  "domain": "kernel",
+  "declarations": [
+    {
+      "kind": "enum",
+      "name": "ReleaseState",
+      "doc": "Release lifecycle state.",
+      "values": ["idea", "source", "validation", "ready", "released", "published", "frozen"]
+    },
+    {
+      "kind": "constant",
+      "name": "ALLOWED_TRANSITIONS",
+      "doc": "Allowed release state transitions.",
+      "type": { "map": { "array": { "ref": "ReleaseState" } } },
+      "value": {
+        "idea": ["source"],
+        "source": ["validation"],
+        "validation": ["ready", "source"],
+        "ready": ["released"],
+        "released": ["published"],
+        "published": ["frozen"]
+      }
+    },
+    {
+      "kind": "enum",
+      "name": "ComponentId",
+      "doc": "Known component identifier.",
+      "values": [
+        "contracts",
+        "kernel",
+        "runtime",
+        "planner",
+        "providers",
+        "skills",
+        "cli",
+        "installer",
+        "validation"
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "ComponentVersion",
+      "doc": "Version entry for a single component.",
+      "fields": [
+        { "name": "id", "type": { "ref": "ComponentId" }, "doc": "Component identifier." },
+        { "name": "version", "type": "string", "doc": "Semantic version." },
+        { "name": "state", "type": { "ref": "ReleaseState" }, "doc": "Release state." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "VersionRegistryManifest",
+      "doc": "Single source of installed component versions.",
+      "fields": [
+        { "name": "schemaVersion", "type": "string", "doc": "Manifest schema version." },
+        { "name": "systemVersion", "type": "string", "doc": "Overall system version." },
+        { "name": "components", "type": { "array": { "ref": "ComponentVersion" } }, "doc": "Component entries." }
+      ]
+    },
+    {
+      "kind": "enum",
+      "name": "FeatureFlagKey",
+      "doc": "Known feature flag key.",
+      "values": ["releaseEnabled", "assistedPlanning", "dashboardPreview"]
+    },
+    {
+      "kind": "struct",
+      "name": "FeatureFlags",
+      "doc": "Resolved feature flag values.",
+      "fields": [
+        { "name": "releaseEnabled", "type": "boolean", "doc": "Whether releases are enabled." },
+        { "name": "assistedPlanning", "type": "boolean", "doc": "Whether assisted planning is enabled." },
+        { "name": "dashboardPreview", "type": "boolean", "doc": "Whether the dashboard preview is enabled." }
+      ]
+    },
+    {
+      "kind": "enum",
+      "name": "ValidationTarget",
+      "doc": "Payload kind accepted by the validation engine.",
+      "values": [
+        "systemRequest",
+        "taskGraph",
+        "providerResponse",
+        "skillInput",
+        "skillOutput",
+        "versionRegistry",
+        "updatePlan",
+        "installManifest"
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "ValidationFinding",
+      "doc": "Single validation finding.",
+      "fields": [
+        { "name": "code", "type": { "ref": "OmpErrorCode" }, "doc": "Registered error code." },
+        { "name": "message", "type": "string", "doc": "Human-readable message." },
+        { "name": "path", "type": "string", "doc": "JSON pointer into the payload." },
+        { "name": "blocking", "type": "boolean", "doc": "Whether the finding blocks the operation." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "ValidationReport",
+      "doc": "Aggregated validation findings for one payload.",
+      "fields": [
+        { "name": "target", "type": { "ref": "ValidationTarget" }, "doc": "Validated payload kind." },
+        { "name": "passed", "type": "boolean", "doc": "True when no blocking errors exist." },
+        { "name": "errors", "type": { "array": { "ref": "ValidationFinding" } }, "doc": "Blocking findings." },
+        { "name": "warnings", "type": { "array": { "ref": "ValidationFinding" } }, "doc": "Non-blocking findings." }
+      ]
+    },
+    {
+      "kind": "enum",
+      "name": "UpdatePlanStepKind",
+      "doc": "Kind of update plan step.",
+      "values": ["create", "replace", "delete", "verify"]
+    },
+    {
+      "kind": "struct",
+      "name": "UpdatePlanStep",
+      "doc": "Single step in an update plan.",
+      "fields": [
+        { "name": "kind", "type": { "ref": "UpdatePlanStepKind" }, "doc": "Step kind." },
+        { "name": "path", "type": "string", "doc": "Install-root-relative path." },
+        { "name": "checksum", "type": "string", "doc": "Expected content checksum.", "optional": true }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "RollbackPoint",
+      "doc": "Snapshot allowing an update to be reverted.",
+      "fields": [
+        { "name": "id", "type": "string", "doc": "Rollback point identifier." },
+        { "name": "createdAt", "type": "string", "doc": "Creation time supplied by the caller." },
+        { "name": "paths", "type": { "array": "string" }, "doc": "Captured paths." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "UpdatePlan",
+      "doc": "Guarded plan describing an update.",
+      "fields": [
+        { "name": "id", "type": "string", "doc": "Plan identifier." },
+        { "name": "fromVersion", "type": "string", "doc": "Currently installed version." },
+        { "name": "toVersion", "type": "string", "doc": "Target version." },
+        { "name": "steps", "type": { "array": { "ref": "UpdatePlanStep" } }, "doc": "Ordered steps." },
+        { "name": "rollback", "type": { "ref": "RollbackPoint" }, "doc": "Rollback snapshot." }
+      ]
+    },
+    {
+      "kind": "union",
+      "name": "UpdateGuardDecision",
+      "doc": "Guard verdict for an update plan.",
+      "tag": "status",
+      "variants": [
+        {
+          "name": "UpdateGuardAllowed",
+          "tagValue": "allowed",
+          "fields": [
+            { "name": "planId", "type": "string", "doc": "Plan identifier." },
+            { "name": "planHash", "type": "string", "doc": "Hash binding the decision to the plan." },
+            { "name": "reasons", "type": { "array": "string" }, "doc": "Decision reasons." }
+          ]
+        },
+        {
+          "name": "UpdateGuardBlocked",
+          "tagValue": "blocked",
+          "fields": [
+            { "name": "planId", "type": "string", "doc": "Plan identifier." },
+            { "name": "planHash", "type": "string", "doc": "Hash binding the decision to the plan." },
+            { "name": "reasons", "type": { "array": "string" }, "doc": "Decision reasons." }
+          ]
+        }
+      ]
+    }
+  ]
+}

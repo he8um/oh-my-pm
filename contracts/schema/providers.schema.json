@@ -1,0 +1,57 @@
+{
+  "domain": "providers",
+  "declarations": [
+    {
+      "kind": "enum",
+      "name": "ProviderId",
+      "doc": "Known context provider identifier.",
+      "values": ["local", "github", "clickup", "airtable", "linear", "jira", "notion"]
+    },
+    {
+      "kind": "enum",
+      "name": "ProviderAction",
+      "doc": "Read-only provider action.",
+      "values": ["search", "fetch", "list"]
+    },
+    {
+      "kind": "struct",
+      "name": "ProviderRequest",
+      "doc": "Read-only request to a context provider.",
+      "fields": [
+        { "name": "providerId", "type": { "ref": "ProviderId" }, "doc": "Target provider." },
+        { "name": "action", "type": { "ref": "ProviderAction" }, "doc": "Requested action." },
+        { "name": "query", "type": "string", "doc": "Query text or identifier." },
+        { "name": "limit", "type": "integer", "doc": "Maximum item count.", "optional": true }
+      ]
+    },
+    {
+      "kind": "enum",
+      "name": "NormalizedItemType",
+      "doc": "Normalized item type across providers.",
+      "values": ["task", "document", "issue", "pullRequest", "record", "note", "unknown"]
+    },
+    {
+      "kind": "struct",
+      "name": "NormalizedProviderItem",
+      "doc": "Provider item normalized to the shared shape.",
+      "fields": [
+        { "name": "id", "type": "string", "doc": "Provider-scoped item identifier." },
+        { "name": "type", "type": { "ref": "NormalizedItemType" }, "doc": "Normalized item type." },
+        { "name": "title", "type": "string", "doc": "Item title." },
+        { "name": "url", "type": "string", "doc": "Canonical item URL.", "optional": true },
+        { "name": "source", "type": { "ref": "ProviderId" }, "doc": "Originating provider." },
+        { "name": "data", "type": "json", "doc": "Normalized item payload." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "NormalizedProviderResponse",
+      "doc": "Normalized response from a context provider.",
+      "fields": [
+        { "name": "providerId", "type": { "ref": "ProviderId" }, "doc": "Responding provider." },
+        { "name": "items", "type": { "array": { "ref": "NormalizedProviderItem" } }, "doc": "Normalized items." },
+        { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings.", "optional": true }
+      ]
+    }
+  ]
+}

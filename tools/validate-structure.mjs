@@ -123,8 +123,15 @@ if (!existsSync("kernel/crate/Cargo.toml")) {
   err("kernel/crate/Cargo.toml missing");
 }
 
-// 8. Generated contract placeholders exist.
-for (const file of ["contracts/generated/ts/index.ts", "contracts/generated/rust/mod.rs"]) {
+// 8. Generated contract domain files and barrels exist.
+const CONTRACT_DOMAINS = ["core", "kernel", "runtime", "planner", "providers", "skills", "cli", "installer"];
+const REQUIRED_GENERATED = [
+  ...CONTRACT_DOMAINS.map((d) => `contracts/generated/ts/${d}.ts`),
+  "contracts/generated/ts/index.ts",
+  ...CONTRACT_DOMAINS.map((d) => `contracts/generated/rust/${d}.rs`),
+  "contracts/generated/rust/mod.rs",
+];
+for (const file of REQUIRED_GENERATED) {
   if (!existsSync(file)) err(`generated contracts file missing: ${file}`);
 }
 

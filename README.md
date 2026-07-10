@@ -48,7 +48,7 @@ See [`docs/architecture.md`](docs/architecture.md).
 
 ## Current phase
 
-The repository scaffold is in progress.
+The repository scaffold is in place. The current focus is the shared contracts package.
 
 Implementation will begin with:
 

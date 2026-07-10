@@ -2,6 +2,9 @@
 //!
 //! Real Kernel logic is implemented after shared contracts are complete.
 
+#[path = "../../../contracts/generated/rust/mod.rs"]
+pub mod contracts;
+
 /// Scaffold-only version marker.
 pub fn kernel_scaffold_version() -> &'static str {
     "2.0.0-alpha.0"

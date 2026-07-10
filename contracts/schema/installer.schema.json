@@ -1,0 +1,67 @@
+{
+  "domain": "installer",
+  "declarations": [
+    {
+      "kind": "struct",
+      "name": "InstallManifest",
+      "doc": "Record of a completed local installation.",
+      "fields": [
+        { "name": "schemaVersion", "type": "string", "doc": "Manifest schema version." },
+        { "name": "version", "type": "string", "doc": "Installed system version." },
+        { "name": "installedAt", "type": "string", "doc": "Installation time supplied by the caller." },
+        { "name": "root", "type": "string", "doc": "Install root path." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "PackageManifest",
+      "doc": "Manifest describing an installable package.",
+      "fields": [
+        { "name": "name", "type": "string", "doc": "Package name." },
+        { "name": "version", "type": "string", "doc": "Package version." },
+        { "name": "checksum", "type": "string", "doc": "Package content checksum." },
+        { "name": "files", "type": { "array": "string" }, "doc": "Package-relative file paths." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "InstallReport",
+      "doc": "Result of an installation run.",
+      "fields": [
+        { "name": "ok", "type": "boolean", "doc": "Whether installation succeeded." },
+        { "name": "manifest", "type": { "ref": "InstallManifest" }, "doc": "Resulting install manifest." },
+        { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings.", "optional": true }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "UpdateApplyReport",
+      "doc": "Result of applying an update plan.",
+      "fields": [
+        { "name": "ok", "type": "boolean", "doc": "Whether the update applied cleanly." },
+        { "name": "planId", "type": "string", "doc": "Applied plan identifier." },
+        { "name": "appliedSteps", "type": { "array": "string" }, "doc": "Applied step descriptions." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "RollbackManifest",
+      "doc": "Manifest describing a stored rollback point.",
+      "fields": [
+        { "name": "id", "type": "string", "doc": "Rollback point identifier." },
+        { "name": "paths", "type": { "array": "string" }, "doc": "Captured paths." },
+        { "name": "createdAt", "type": "string", "doc": "Creation time supplied by the caller." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "RollbackReport",
+      "doc": "Result of restoring a rollback point.",
+      "fields": [
+        { "name": "ok", "type": "boolean", "doc": "Whether the rollback succeeded." },
+        { "name": "rollbackId", "type": "string", "doc": "Restored rollback point identifier." },
+        { "name": "restoredPaths", "type": { "array": "string" }, "doc": "Restored paths." }
+      ]
+    }
+  ]
+}

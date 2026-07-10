@@ -1,0 +1,93 @@
+{
+  "domain": "core",
+  "declarations": [
+    {
+      "kind": "alias",
+      "name": "JsonValue",
+      "doc": "JSON-compatible value.",
+      "of": "json"
+    },
+    {
+      "kind": "alias",
+      "name": "OmpErrorCode",
+      "doc": "Stable machine-readable error code.",
+      "of": "string"
+    },
+    {
+      "kind": "struct",
+      "name": "KernelWarning",
+      "doc": "Non-blocking warning returned by the Kernel.",
+      "fields": [
+        { "name": "code", "type": "string", "doc": "Warning code." },
+        { "name": "message", "type": "string", "doc": "Human-readable message." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "KernelError",
+      "doc": "Stable machine-readable error returned by the Kernel.",
+      "fields": [
+        { "name": "code", "type": { "ref": "OmpErrorCode" }, "doc": "Registered error code." },
+        { "name": "message", "type": "string", "doc": "Human-readable message." },
+        { "name": "path", "type": "string", "doc": "Location of the failure.", "optional": true },
+        { "name": "blocking", "type": "boolean", "doc": "Whether the failure blocks the operation." },
+        { "name": "details", "type": "json", "doc": "Structured, secret-free context.", "optional": true }
+      ]
+    },
+    {
+      "kind": "union",
+      "name": "KernelResult",
+      "doc": "Kernel operation result.",
+      "tag": "status",
+      "variants": [
+        {
+          "name": "KernelResultOk",
+          "tagValue": "ok",
+          "fields": [
+            { "name": "data", "type": "json", "doc": "Operation data." },
+            { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings." }
+          ]
+        },
+        {
+          "name": "KernelResultErr",
+          "tagValue": "error",
+          "fields": [
+            { "name": "error", "type": { "ref": "KernelError" }, "doc": "Error." },
+            { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings." }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "enum",
+      "name": "Locale",
+      "doc": "Supported output locale.",
+      "values": ["en", "fa"]
+    },
+    {
+      "kind": "enum",
+      "name": "Severity",
+      "doc": "Finding severity.",
+      "values": ["info", "warning", "error"]
+    },
+    {
+      "kind": "enum",
+      "name": "ReportFormat",
+      "doc": "Report output format.",
+      "values": ["brief", "json", "markdown"]
+    },
+    {
+      "kind": "struct",
+      "name": "ReportEnvelope",
+      "doc": "Envelope for machine-readable reports.",
+      "fields": [
+        { "name": "schemaVersion", "type": "string", "doc": "Envelope schema version." },
+        { "name": "kind", "type": "string", "doc": "Report kind identifier." },
+        { "name": "generatedAt", "type": "string", "doc": "Report creation time supplied by the caller." },
+        { "name": "format", "type": { "ref": "ReportFormat" }, "doc": "Report format." },
+        { "name": "data", "type": "json", "doc": "Report payload." },
+        { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings.", "optional": true }
+      ]
+    }
+  ]
+}

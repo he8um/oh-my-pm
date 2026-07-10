@@ -18,9 +18,10 @@
 
 ## Phase 2 — Shared contracts
 
-- Shared data contracts
-- Type generation
-- Deterministic generated outputs
+- JSON schema declarations
+- Deterministic TypeScript and Rust generation
+- Committed generated outputs
+- Drift validation
 - Cross-language compatibility checks
 
 ## Phase 3 — Kernel and runtime

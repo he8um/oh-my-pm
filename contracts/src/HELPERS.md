@@ -1,5 +1,5 @@
 # Contracts Helpers
 
-No hand-written helpers are currently allowed.
+No hand-written runtime helpers are exported in this phase.
 
-The contracts phase may add type-only helpers listed here.
+The public entry currently re-exports generated contract types and constants only.

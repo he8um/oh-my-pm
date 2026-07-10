@@ -1,0 +1,65 @@
+{
+  "domain": "cli",
+  "declarations": [
+    {
+      "kind": "enum",
+      "name": "CliOutputMode",
+      "doc": "CLI output mode.",
+      "values": ["brief", "json", "markdown"]
+    },
+    {
+      "kind": "struct",
+      "name": "CliJsonOutput",
+      "doc": "Canonical machine-readable CLI output envelope.",
+      "fields": [
+        { "name": "ok", "type": "boolean", "doc": "Whether the command succeeded." },
+        { "name": "command", "type": "string", "doc": "Executed command name." },
+        { "name": "data", "type": "json", "doc": "Command payload." },
+        { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings.", "optional": true }
+      ]
+    },
+    {
+      "kind": "enum",
+      "name": "DoctorCheckStatus",
+      "doc": "Status of a single doctor check.",
+      "values": ["ok", "warn", "fail"]
+    },
+    {
+      "kind": "struct",
+      "name": "DoctorCheckResult",
+      "doc": "Result of a single doctor check.",
+      "fields": [
+        { "name": "id", "type": "string", "doc": "Check identifier." },
+        { "name": "status", "type": { "ref": "DoctorCheckStatus" }, "doc": "Check status." },
+        { "name": "message", "type": "string", "doc": "Human-readable message." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "DoctorResult",
+      "doc": "Aggregated doctor check results.",
+      "fields": [
+        { "name": "checks", "type": { "array": { "ref": "DoctorCheckResult" } }, "doc": "Individual checks." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "SystemStatus",
+      "doc": "Overall system status.",
+      "fields": [
+        { "name": "version", "type": "string", "doc": "Installed system version." },
+        { "name": "healthy", "type": "boolean", "doc": "Whether the system is healthy." },
+        { "name": "checks", "type": { "array": { "ref": "DoctorCheckResult" } }, "doc": "Supporting checks." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "OmpConfig",
+      "doc": "User-editable configuration.",
+      "fields": [
+        { "name": "locale", "type": { "ref": "Locale" }, "doc": "Preferred output locale." },
+        { "name": "outputMode", "type": { "ref": "CliOutputMode" }, "doc": "Preferred output mode." }
+      ]
+    }
+  ]
+}

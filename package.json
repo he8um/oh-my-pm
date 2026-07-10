@@ -17,7 +17,8 @@
     "validate:public": "./tools/check-public-surface.sh",
     "validate:structure": "node tools/validate-structure.mjs",
     "validate:boundaries": "node tools/validate-boundaries.mjs",
-    "validate": "pnpm validate:public && pnpm validate:structure && pnpm validate:boundaries"
+    "validate:contracts": "node tools/validate-contracts.mjs",
+    "validate": "pnpm validate:public && pnpm validate:structure && pnpm validate:boundaries && pnpm validate:contracts"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

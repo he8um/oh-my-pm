@@ -1,0 +1,78 @@
+{
+  "domain": "planner",
+  "declarations": [
+    {
+      "kind": "enum",
+      "name": "IntentCategory",
+      "doc": "Recognized planning intent.",
+      "values": ["status", "riskReview", "nextTask", "planning", "handoff"]
+    },
+    {
+      "kind": "enum",
+      "name": "TaskNodeKind",
+      "doc": "Kind of task node.",
+      "values": ["providerRead", "skillExecution"]
+    },
+    {
+      "kind": "struct",
+      "name": "TaskNode",
+      "doc": "Single node in a task graph.",
+      "fields": [
+        { "name": "id", "type": "string", "doc": "Node identifier." },
+        { "name": "kind", "type": { "ref": "TaskNodeKind" }, "doc": "Node kind." },
+        { "name": "title", "type": "string", "doc": "Human-readable title." },
+        { "name": "dependsOn", "type": { "array": "string" }, "doc": "Identifiers of prerequisite nodes." },
+        { "name": "payload", "type": "json", "doc": "Kind-specific payload." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "TaskGraph",
+      "doc": "Directed acyclic graph of task nodes.",
+      "fields": [
+        { "name": "nodes", "type": { "array": { "ref": "TaskNode" } }, "doc": "Graph nodes." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "MissingContextRequest",
+      "doc": "Request for context the planner still needs.",
+      "fields": [
+        { "name": "reason", "type": "string", "doc": "Why the context is needed." },
+        { "name": "requestedContext", "type": { "array": "string" }, "doc": "Requested context keys." }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "PlannerInput",
+      "doc": "Input for a planning run.",
+      "fields": [
+        { "name": "request", "type": "string", "doc": "User request text." },
+        { "name": "locale", "type": { "ref": "Locale" }, "doc": "Requested output locale." },
+        { "name": "context", "type": "json", "doc": "Available project context." }
+      ]
+    },
+    {
+      "kind": "union",
+      "name": "PlannerResult",
+      "doc": "Result of a planning run.",
+      "tag": "status",
+      "variants": [
+        {
+          "name": "PlannerResultOk",
+          "tagValue": "ok",
+          "fields": [
+            { "name": "graph", "type": { "ref": "TaskGraph" }, "doc": "Planned task graph." }
+          ]
+        },
+        {
+          "name": "PlannerResultMissingContext",
+          "tagValue": "missingContext",
+          "fields": [
+            { "name": "missingContext", "type": { "ref": "MissingContextRequest" }, "doc": "Missing context request." }
+          ]
+        }
+      ]
+    }
+  ]
+}
