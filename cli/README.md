@@ -11,6 +11,9 @@ Current commands:
 - `status`
 - `doctor`
 - `plan <request>`
+- `install-preview <root>`
+
+`install-preview` is dry-run only. It reads the target root through the installer read-only adapter and prints planned operations. It does not write files and it does not execute installation.
 
 The wrapper uses the real WASM Kernel binding from `@oh-my-pm/kernel`, so validation, update guard, and state transition decisions come from the Rust Kernel. Provider seed data remains local. Build the workspace first so the generated binding exists:
 

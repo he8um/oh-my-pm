@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { RuntimeRequest, RuntimeResponse } from "@oh-my-pm/contracts";
 import type { Runtime } from "@oh-my-pm/runtime";
 import { describe, expect, it } from "vitest";
@@ -145,6 +148,47 @@ describe("cli core execution", () => {
     const result = runCli(["plan"], { runtime });
     expect(result.exitCode).toBe(2);
     expect(result.stderr).toBe("error OMP-C-3002: missing plan request\n");
+  });
+
+  it("runs install-preview locally without touching the Runtime", () => {
+    const root = mkdtempSync(join(tmpdir(), "oh-my-pm-cli-preview-"));
+    try {
+      mkdirSync(join(root, "bin"));
+      writeFileSync(join(root, "bin", "oh-my-pm"), "old binary", "utf8");
+      const { runtime, requests } = respondingRuntime();
+
+      const result = runCli(["install-preview", root], { runtime });
+      expect(result.ok).toBe(true);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("OH MY PM install-preview: ok");
+      expect(result.stderr).toBe("");
+      expect(requests).toEqual([]);
+
+      const jsonResult = runCli(["install-preview", root, "--json"], { runtime });
+      expect(jsonResult.exitCode).toBe(0);
+      const parsed = JSON.parse(jsonResult.stdout);
+      expect(parsed.ok).toBe(true);
+      expect(parsed.root).toBe(root);
+      expect(requests).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("returns exit 2 for install-preview without a root", () => {
+    const { runtime } = respondingRuntime();
+    const result = runCli(["install-preview"], { runtime });
+    expect(result.exitCode).toBe(2);
+    expect(result.stderr).toBe("error OMP-C-3002: missing install-preview root\n");
+  });
+
+  it("returns exit 1 for a failing install-preview root", () => {
+    const { runtime, requests } = respondingRuntime();
+    const result = runCli(["install-preview", " "], { runtime });
+    expect(result.ok).toBe(false);
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain("OH MY PM install-preview: failed");
+    expect(requests).toEqual([]);
   });
 
   it("passes command and input to a custom request factory", () => {

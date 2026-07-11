@@ -131,4 +131,55 @@ describe("cli parser", () => {
       message: "unsupported option: --bad",
     });
   });
+
+  it("parses install-preview with a root", () => {
+    expect(parseCliArgs(["install-preview", "/tmp/oh-my-pm"])).toEqual({
+      ok: true,
+      command: "install-preview",
+      outputMode: "brief",
+      input: "/tmp/oh-my-pm",
+    });
+  });
+
+  it("parses install-preview with json output", () => {
+    expect(parseCliArgs(["install-preview", "/tmp/oh-my-pm", "--json"])).toEqual({
+      ok: true,
+      command: "install-preview",
+      outputMode: "json",
+      input: "/tmp/oh-my-pm",
+    });
+  });
+
+  it("parses install-preview with markdown before the command", () => {
+    expect(parseCliArgs(["--markdown", "install-preview", "/tmp/oh-my-pm"])).toEqual({
+      ok: true,
+      command: "install-preview",
+      outputMode: "markdown",
+      input: "/tmp/oh-my-pm",
+    });
+  });
+
+  it("rejects install-preview without a root", () => {
+    expect(parseCliArgs(["install-preview"])).toEqual({
+      ok: false,
+      code: "OMP-C-3002",
+      message: "missing install-preview root",
+    });
+  });
+
+  it("rejects a second install-preview positional argument", () => {
+    expect(parseCliArgs(["install-preview", "/a", "/b"])).toEqual({
+      ok: false,
+      code: "OMP-C-3002",
+      message: "unsupported argument: /b",
+    });
+  });
+
+  it("keeps install unsupported", () => {
+    expect(parseCliArgs(["install"])).toEqual({
+      ok: false,
+      code: "OMP-C-3001",
+      message: "unsupported command: install",
+    });
+  });
 });

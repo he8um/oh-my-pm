@@ -12,6 +12,13 @@ export {
   formatRuntimeResponse,
 } from "./format.js";
 export {
+  formatInstallerPreview,
+  runInstallerPreview,
+} from "./install-preview.js";
+export type {
+  InstallerPreviewResult,
+} from "./install-preview.js";
+export {
   createRuntimeRequest,
 } from "./request.js";
 export type {
@@ -19,5 +26,6 @@ export type {
   CliDeps,
   CliExecutionResult,
   CliParseResult,
+  RuntimeCliCommand,
   RuntimeRequestFactory,
 } from "./types.js";

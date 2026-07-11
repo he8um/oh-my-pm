@@ -180,6 +180,8 @@ const CLI_SOURCES = [
   "cli/bin/oh-my-pm.mjs",
   "cli/test/bin.test.ts",
   "cli/test/local-runtime-smoke.test.ts",
+  "cli/src/install-preview.ts",
+  "cli/test/install-preview.test.ts",
 ];
 for (const file of CLI_SOURCES) {
   if (!existsSync(file)) err(`cli foundation file missing: ${file}`);

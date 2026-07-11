@@ -1,5 +1,6 @@
 import type { CliOutputMode } from "@oh-my-pm/contracts";
 import { formatCliError, formatRuntimeResponse } from "./format.js";
+import { formatInstallerPreview, runInstallerPreview } from "./install-preview.js";
 import { parseCliArgs } from "./parser.js";
 import { createRuntimeRequest } from "./request.js";
 import type { CliDeps, CliExecutionResult, RuntimeRequestFactory } from "./types.js";
@@ -29,6 +30,17 @@ export function runCli(
       exitCode: 2,
       stdout: "",
       stderr: formatCliError(parsed.code, parsed.message, inferOutputMode(args)),
+    };
+  }
+
+  // install-preview is a local dry-run command; it never reaches the Runtime.
+  if (parsed.command === "install-preview") {
+    const result = runInstallerPreview(parsed.input ?? "");
+    return {
+      ok: result.ok,
+      exitCode: result.ok ? 0 : 1,
+      stdout: formatInstallerPreview(result, parsed.outputMode),
+      stderr: "",
     };
   }
 

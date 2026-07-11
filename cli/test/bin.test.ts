@@ -59,5 +59,7 @@ describe("cli readme", () => {
     expect(readme).toContain("`status`");
     expect(readme).toContain("`doctor`");
     expect(readme).toContain("`plan <request>`");
+    expect(readme).toContain("`install-preview <root>`");
+    expect(readme).toContain("dry-run only");
   });
 });

@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@oh-my-pm/contracts": "workspace:*",
+    "@oh-my-pm/installer": "workspace:*",
     "@oh-my-pm/kernel": "workspace:*",
     "@oh-my-pm/runtime": "workspace:*",
     "@oh-my-pm/providers": "workspace:*",

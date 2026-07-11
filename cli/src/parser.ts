@@ -4,7 +4,7 @@ import type { CliCommand, CliParseResult } from "./types.js";
 export const OMP_C_INVALID_COMMAND = "OMP-C-3001";
 export const OMP_C_INVALID_OPTION = "OMP-C-3002";
 
-const COMMANDS: readonly CliCommand[] = ["status", "doctor", "plan"];
+const COMMANDS: readonly CliCommand[] = ["status", "doctor", "plan", "install-preview"];
 
 const OUTPUT_OPTIONS: Readonly<Record<string, CliOutputMode>> = {
   "--json": "json",
@@ -19,6 +19,7 @@ export function parseCliArgs(args: readonly string[]): CliParseResult {
   let command: CliCommand | null = null;
   let outputMode: CliOutputMode = "brief";
   const planTokens: string[] = [];
+  let installPreviewRoot: string | null = null;
 
   for (const arg of args) {
     const optionMode = OUTPUT_OPTIONS[arg];
@@ -41,6 +42,10 @@ export function parseCliArgs(args: readonly string[]): CliParseResult {
       planTokens.push(arg);
       continue;
     }
+    if (command === "install-preview" && installPreviewRoot === null) {
+      installPreviewRoot = arg;
+      continue;
+    }
     return { ok: false, code: OMP_C_INVALID_OPTION, message: `unsupported argument: ${arg}` };
   }
 
@@ -54,6 +59,13 @@ export function parseCliArgs(args: readonly string[]): CliParseResult {
       return { ok: false, code: OMP_C_INVALID_OPTION, message: "missing plan request" };
     }
     return { ok: true, command, outputMode, input };
+  }
+
+  if (command === "install-preview") {
+    if (installPreviewRoot === null) {
+      return { ok: false, code: OMP_C_INVALID_OPTION, message: "missing install-preview root" };
+    }
+    return { ok: true, command, outputMode, input: installPreviewRoot };
   }
 
   return { ok: true, command, outputMode };

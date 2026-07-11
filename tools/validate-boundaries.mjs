@@ -88,6 +88,9 @@ for (const file of trackedFiles) {
     if (file.startsWith("examples/src/") && (spec === "fs" || spec.startsWith("node:fs"))) {
       err(`${file} imports a Node filesystem module: "${spec}"`);
     }
+    if (file.startsWith("cli/src/") && (spec === "fs" || spec.startsWith("node:fs"))) {
+      err(`${file} imports a Node filesystem module: "${spec}"`);
+    }
   }
 }
 
@@ -118,7 +121,9 @@ const INSTALLER_NONDETERMINISM = [
   "console.",
 ];
 for (const file of trackedFiles) {
-  if (!file.startsWith("installer/src/") || !file.endsWith(".ts")) continue;
+  const scanned =
+    (file.startsWith("installer/src/") || file.startsWith("cli/src/")) && file.endsWith(".ts");
+  if (!scanned) continue;
   const contents = readFileSync(file, "utf8");
   if (file === NODE_READ_ADAPTER) {
     for (const api of NODE_WRITE_APIS) {
