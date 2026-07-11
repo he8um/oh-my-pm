@@ -29,3 +29,11 @@ The installer can execute planned operations only through explicit write adapter
 The in-memory write adapter is intended for deterministic tests and examples. The Node write adapter is root-confined and refuses unsafe paths and symlinks.
 
 This package still does not package releases, download artifacts, or expose a production install command.
+
+## Release package manifest design
+
+The installer defines package manifests before real release packaging exists.
+
+A package manifest can include per-file metadata such as path, checksum, and byte size. The package-level checksum is deterministic and derived from the manifest content for planning purposes.
+
+This design does not create archives, publish packages, download artifacts, or execute updates.

@@ -18,6 +18,18 @@ pub struct InstallManifest {
     pub root: String,
 }
 
+/// Metadata for a single package file.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PackageFileEntry {
+    /// Package-relative file path.
+    pub path: String,
+    /// File content checksum.
+    pub checksum: String,
+    /// File size in bytes.
+    pub size_bytes: i64,
+}
+
 /// Manifest describing an installable package.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -30,6 +42,21 @@ pub struct PackageManifest {
     pub checksum: String,
     /// Package-relative file paths.
     pub files: Vec<String>,
+    /// Manifest schema version.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub schema_version: Option<String>,
+    /// Supported target platform.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub platform: Option<String>,
+    /// Supported target architecture.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub architecture: Option<String>,
+    /// Package creation time supplied by the caller.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    /// Package file metadata.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_entries: Option<Vec<PackageFileEntry>>,
 }
 
 /// Result of an installation run.

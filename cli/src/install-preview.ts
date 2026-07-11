@@ -14,7 +14,7 @@ import type {
 import {
   createInstaller,
   createNodeFilesystemAdapter,
-  examplePackageManifest,
+  exampleRichPackageManifest,
 } from "@oh-my-pm/installer";
 
 export type InstallerPreviewResult = {
@@ -57,7 +57,7 @@ function createPreviewKernelApi() {
 
 /** Plan what installing the example package under `root` would do. */
 export function runInstallerPreview(root: string): InstallerPreviewResult {
-  const packageManifest = examplePackageManifest();
+  const packageManifest = exampleRichPackageManifest();
   const installer = createInstaller({ kernel: createPreviewKernelApi() });
   const result = installer.planInstall(
     { packageManifest, root, installedAt: "preview-installed-at" },

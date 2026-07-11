@@ -1,8 +1,14 @@
 // Deterministic example inputs for tests and examples. All time values are
 // fixed literals; nothing here reads a clock.
 
-import type { PackageManifest, RollbackManifest, UpdatePlan } from "@oh-my-pm/contracts";
+import type {
+  PackageFileEntry,
+  PackageManifest,
+  RollbackManifest,
+  UpdatePlan,
+} from "@oh-my-pm/contracts";
 import type { FilesystemEntry } from "./types.js";
+import { createPackageManifest } from "./package-manifest.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -21,6 +27,29 @@ export function exampleRollbackManifest(): RollbackManifest {
     paths: ["bin/oh-my-pm"],
     createdAt: "2026-01-01T00:00:00.000Z",
   };
+}
+
+/** Example per-file metadata matching the rich package manifest. */
+export function examplePackageFileEntries(): PackageFileEntry[] {
+  return [
+    { path: "bin/oh-my-pm", checksum: "sha256:example-bin", sizeBytes: 14 },
+    { path: "README.md", checksum: "sha256:example-readme", sizeBytes: 14 },
+  ];
+}
+
+/** Example release package manifest with per-file metadata. */
+export function exampleRichPackageManifest(): PackageManifest {
+  return createPackageManifest({
+    name: "oh-my-pm-local",
+    version: "2.0.0-alpha.0",
+    platform: "linux",
+    architecture: "x64",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    files: [
+      { path: "bin/oh-my-pm", content: "example binary", checksum: "sha256:example-bin" },
+      { path: "README.md", content: "example readme", checksum: "sha256:example-readme" },
+    ],
+  });
 }
 
 /** Example entries for an in-memory filesystem adapter. */

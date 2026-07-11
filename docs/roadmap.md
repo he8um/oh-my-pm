@@ -58,7 +58,8 @@
 - Read-only Node filesystem adapter: explicit root boundary, recursive listing, file reading, SHA-256 checksums, symlink avoidance (in place)
 - Controlled installer execution: explicit write adapter interface, in-memory write adapter, root-confined Node write adapter, execute planned install operations, execute rollback capture operations (in place)
 - Installer examples: dry-run planning, controlled in-memory execution, rollback capture, test-only Node adapter demonstration (in place)
-- CLI installer preview: `install-preview <root>`, dry-run only, read-only filesystem inspection, planned operations output, brief/json/markdown formatting — no install execution, no release packaging
+- CLI installer preview: `install-preview <root>`, dry-run only, read-only filesystem inspection, planned operations output, brief/json/markdown formatting (in place)
+- Release package manifest design: richer package manifest schema, per-file metadata, deterministic manifest construction, manifest validation, planning integration — no downloads, no packaging, no publishing
 
 ## Phase 6 — Release lifecycle
 

@@ -6,6 +6,7 @@ import type {
   PackageManifest,
   RollbackManifest,
 } from "@oh-my-pm/contracts";
+import { validatePackageFileEntries } from "./package-manifest.js";
 
 /** Whether a string has non-whitespace content. */
 export function isNonEmptyString(value: string): boolean {
@@ -33,6 +34,7 @@ export function validatePackageManifest(manifest: PackageManifest): string[] {
   if (new Set(manifest.files).size !== manifest.files.length) {
     reasons.push("duplicate_package_file_path");
   }
+  reasons.push(...validatePackageFileEntries(manifest));
   return reasons;
 }
 

@@ -72,6 +72,35 @@ describe("validatePackageManifest", () => {
       "duplicate_package_file_path",
     ]);
   });
+
+  it("accepts matching rich file entries", () => {
+    const reasons = validatePackageManifest({
+      ...validPackage,
+      fileEntries: [
+        { path: "bin/oh-my-pm", checksum: "sha256:bin", sizeBytes: 1 },
+        { path: "README.md", checksum: "sha256:readme", sizeBytes: 2 },
+      ],
+    });
+    expect(reasons).toEqual([]);
+  });
+
+  it("appends file-entry reasons after the existing reasons", () => {
+    const reasons = validatePackageManifest({
+      ...validPackage,
+      name: "",
+      fileEntries: [
+        { path: "other", checksum: " ", sizeBytes: -1 },
+        { path: "other", checksum: "c", sizeBytes: 1 },
+      ],
+    });
+    expect(reasons).toEqual([
+      "missing_package_name",
+      "package_file_entries_path_mismatch",
+      "package_file_entry_checksum_must_not_be_empty",
+      "package_file_entry_size_must_be_non_negative",
+      "duplicate_package_file_entry_path",
+    ]);
+  });
 });
 
 describe("validateInstallManifest", () => {

@@ -15,6 +15,16 @@ export interface InstallManifest {
   root: string;
 }
 
+/** Metadata for a single package file. */
+export interface PackageFileEntry {
+  /** Package-relative file path. */
+  path: string;
+  /** File content checksum. */
+  checksum: string;
+  /** File size in bytes. */
+  sizeBytes: number;
+}
+
 /** Manifest describing an installable package. */
 export interface PackageManifest {
   /** Package name. */
@@ -25,6 +35,16 @@ export interface PackageManifest {
   checksum: string;
   /** Package-relative file paths. */
   files: string[];
+  /** Manifest schema version. */
+  schemaVersion?: string;
+  /** Supported target platform. */
+  platform?: string;
+  /** Supported target architecture. */
+  architecture?: string;
+  /** Package creation time supplied by the caller. */
+  createdAt?: string;
+  /** Package file metadata. */
+  fileEntries?: PackageFileEntry[];
 }
 
 /** Result of an installation run. */

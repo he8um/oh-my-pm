@@ -9,34 +9,40 @@ import type {
   RollbackCaptureInput,
   RollbackCapturePlan,
 } from "./types.js";
+import { packageManifestFiles } from "./package-manifest.js";
 import { joinInstallerPath } from "./paths.js";
+
+function clonePackageManifest(manifest: InstallInput["packageManifest"]) {
+  return JSON.parse(JSON.stringify(manifest)) as InstallInput["packageManifest"];
+}
 
 /**
  * Plan the file operations installing a package under a root. Callers
  * validate the package and its paths before planning; this helper only maps
- * files to operations in package order.
+ * files to operations in package order. Rich fileEntries, when present, are
+ * the source of truth for both paths and per-file checksums.
  */
 export function planInstallOperations(
   input: InstallInput,
   filesystem: FilesystemAdapter,
 ): InstallPlan {
-  const operations: PlannedFileOperation[] = input.packageManifest.files.map((file) => {
+  const manifest = input.packageManifest;
+  const checksumByPath = new Map(
+    (manifest.fileEntries ?? []).map((entry) => [entry.path, entry.checksum]),
+  );
+
+  const operations: PlannedFileOperation[] = packageManifestFiles(manifest).map((file) => {
     const fullPath = joinInstallerPath(input.root, file);
     return {
       kind: filesystem.exists(fullPath) ? "replace" : "create",
       path: fullPath,
-      checksum: input.packageManifest.checksum,
+      checksum: checksumByPath.get(file) ?? manifest.checksum,
     };
   });
 
   return {
     root: input.root,
-    packageManifest: {
-      name: input.packageManifest.name,
-      version: input.packageManifest.version,
-      checksum: input.packageManifest.checksum,
-      files: [...input.packageManifest.files],
-    },
+    packageManifest: clonePackageManifest(manifest),
     operations,
   };
 }

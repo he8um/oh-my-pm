@@ -290,6 +290,8 @@ const INSTALLER_SOURCES = [
   "installer/src/memory-write-filesystem.ts",
   "installer/src/executor.ts",
   "installer/src/node-write-filesystem.ts",
+  "installer/src/package-manifest.ts",
+  "installer/test/package-manifest.test.ts",
   "installer/test/validate.test.ts",
   "installer/test/manifest.test.ts",
   "installer/test/installer.test.ts",

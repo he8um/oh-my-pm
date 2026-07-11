@@ -41,10 +41,25 @@ describe("runInstallerPreview", () => {
         "replace",
         "create",
       ]);
+      expect(result.operations.map((operation) => operation.checksum)).toEqual([
+        "sha256:example-bin",
+        "sha256:example-readme",
+      ]);
       expect(result.warnings).toEqual([]);
 
       expect(readdirSync(root).sort()).toEqual(before);
       expect(readFileSync(join(root, "bin", "oh-my-pm"), "utf8")).toBe("old binary");
+    });
+  });
+
+  it("carries per-file checksums into json output", () => {
+    withTempRoot((root) => {
+      const result = runInstallerPreview(root);
+      const parsed = JSON.parse(formatInstallerPreview(result, "json"));
+      expect(parsed.operations.map((operation: { checksum?: string }) => operation.checksum)).toEqual([
+        "sha256:example-bin",
+        "sha256:example-readme",
+      ]);
     });
   });
 

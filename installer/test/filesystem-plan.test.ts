@@ -53,6 +53,29 @@ describe("planInstallOperations", () => {
     input.packageManifest.files.push("mutated");
     expect(plan.packageManifest.files).toEqual(["bin/oh-my-pm", "README.md"]);
   });
+
+  it("lets fileEntries drive operation order and per-file checksums", () => {
+    const input = installInput();
+    input.packageManifest = {
+      ...input.packageManifest,
+      files: ["bin/oh-my-pm", "README.md"],
+      fileEntries: [
+        { path: "README.md", checksum: "sha256:readme", sizeBytes: 6 },
+        { path: "bin/oh-my-pm", checksum: "sha256:bin", sizeBytes: 6 },
+      ],
+    };
+    const plan = planInstallOperations(input, createMemoryFilesystem());
+    expect(plan.operations).toEqual([
+      { kind: "create", path: "/tmp/oh-my-pm/README.md", checksum: "sha256:readme" },
+      { kind: "create", path: "/tmp/oh-my-pm/bin/oh-my-pm", checksum: "sha256:bin" },
+    ]);
+  });
+
+  it("falls back to the manifest checksum when a file has no entry", () => {
+    const input = installInput();
+    const plan = planInstallOperations(input, createMemoryFilesystem());
+    expect(plan.operations.every((op) => op.checksum === "sha256:example")).toBe(true);
+  });
 });
 
 describe("planRollbackCapture", () => {

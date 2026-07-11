@@ -14,13 +14,28 @@
     },
     {
       "kind": "struct",
+      "name": "PackageFileEntry",
+      "doc": "Metadata for a single package file.",
+      "fields": [
+        { "name": "path", "type": "string", "doc": "Package-relative file path." },
+        { "name": "checksum", "type": "string", "doc": "File content checksum." },
+        { "name": "sizeBytes", "type": "integer", "doc": "File size in bytes." }
+      ]
+    },
+    {
+      "kind": "struct",
       "name": "PackageManifest",
       "doc": "Manifest describing an installable package.",
       "fields": [
         { "name": "name", "type": "string", "doc": "Package name." },
         { "name": "version", "type": "string", "doc": "Package version." },
         { "name": "checksum", "type": "string", "doc": "Package content checksum." },
-        { "name": "files", "type": { "array": "string" }, "doc": "Package-relative file paths." }
+        { "name": "files", "type": { "array": "string" }, "doc": "Package-relative file paths." },
+        { "name": "schemaVersion", "type": "string", "doc": "Manifest schema version.", "optional": true },
+        { "name": "platform", "type": "string", "doc": "Supported target platform.", "optional": true },
+        { "name": "architecture", "type": "string", "doc": "Supported target architecture.", "optional": true },
+        { "name": "createdAt", "type": "string", "doc": "Package creation time supplied by the caller.", "optional": true },
+        { "name": "fileEntries", "type": { "array": { "ref": "PackageFileEntry" } }, "doc": "Package file metadata.", "optional": true }
       ]
     },
     {

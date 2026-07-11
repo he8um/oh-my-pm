@@ -2,9 +2,12 @@ import { createNodeWasmKernelApi } from "@oh-my-pm/kernel";
 import { describe, expect, it } from "vitest";
 import {
   exampleFilesystemEntries,
+  examplePackageFileEntries,
   examplePackageManifest,
+  exampleRichPackageManifest,
   exampleRollbackManifest,
   exampleUpdatePlan,
+  validatePackageManifest,
 } from "../src/index.js";
 
 describe("installer fixtures", () => {
@@ -19,6 +22,18 @@ describe("installer fixtures", () => {
     const first = examplePackageManifest();
     first.files.push("mutated");
     expect(examplePackageManifest().files).toEqual(["bin/oh-my-pm", "README.md"]);
+  });
+
+  it("rich package manifest is deterministic and valid", () => {
+    const manifest = exampleRichPackageManifest();
+    expect(manifest).toEqual(exampleRichPackageManifest());
+    expect(validatePackageManifest(manifest)).toEqual([]);
+    expect(manifest.schemaVersion).toBe("1");
+    expect(manifest.platform).toBe("linux");
+    expect(manifest.architecture).toBe("x64");
+    expect(manifest.createdAt).toBe("2026-01-01T00:00:00.000Z");
+    expect(manifest.fileEntries).toEqual(examplePackageFileEntries());
+    expect(manifest.fileEntries?.map((entry) => entry.path)).toEqual(manifest.files);
   });
 
   it("filesystem entries use the documented fixed values", () => {
