@@ -27,6 +27,10 @@ const NONDETERMINISM = [
   "console.",
 ];
 
+// No installer source may create archives or streamed artifacts; assembly
+// stays a dry run until a later distribution phase.
+const ARCHIVE_FORBIDDEN = ["createWriteStream", "archiver", ".zip", ".tar", ".tgz"];
+
 // Node filesystem usage is matched precisely because installer type names
 // legitimately contain the word "filesystem".
 const CORE_FORBIDDEN = [
@@ -36,6 +40,7 @@ const CORE_FORBIDDEN = [
   "fs.",
   "node:fs",
   ...NONDETERMINISM,
+  ...ARCHIVE_FORBIDDEN,
 ];
 
 // The read-only adapter may read through node:fs/node:path/node:crypto but
@@ -50,11 +55,19 @@ const READ_ADAPTER_FORBIDDEN = [
   "appendFile",
   "copyFile",
   ...NONDETERMINISM,
+  ...ARCHIVE_FORBIDDEN,
 ];
 
 // The write adapter may use writeFileSync/mkdirSync/rmSync/copyFileSync but
 // nothing beyond that allow-list, and no nondeterminism.
-const WRITE_ADAPTER_FORBIDDEN = ["unlink", "rmdir", "rename", "appendFile", ...NONDETERMINISM];
+const WRITE_ADAPTER_FORBIDDEN = [
+  "unlink",
+  "rmdir",
+  "rename",
+  "appendFile",
+  ...NONDETERMINISM,
+  ...ARCHIVE_FORBIDDEN,
+];
 
 describe("installer purity", () => {
   it("core source files contain no I/O or nondeterministic APIs", () => {

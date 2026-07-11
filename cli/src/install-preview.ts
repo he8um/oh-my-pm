@@ -14,7 +14,7 @@ import type {
 import {
   createInstaller,
   createNodeFilesystemAdapter,
-  exampleRichPackageManifest,
+  createPackageAssemblyDryRun,
 } from "@oh-my-pm/installer";
 
 export type InstallerPreviewResult = {
@@ -55,13 +55,33 @@ function createPreviewKernelApi() {
   };
 }
 
-/** Plan what installing the example package under `root` would do. */
+/**
+ * Assemble the local preview package from the target root as a dry run,
+ * then plan what installing it would do. Missing source files surface as
+ * warnings without failing the preview by themselves.
+ */
 export function runInstallerPreview(root: string): InstallerPreviewResult {
-  const packageManifest = exampleRichPackageManifest();
+  const filesystem = createNodeFilesystemAdapter({ root });
+  const assembly = createPackageAssemblyDryRun(
+    {
+      name: "oh-my-pm-local",
+      version: "2.0.0-alpha.0",
+      root,
+      include: ["bin/oh-my-pm", "README.md"],
+      platform: "local",
+      architecture: "local",
+      createdAt: "preview-created-at",
+    },
+    filesystem,
+  );
+  const warnings =
+    assembly.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+  const packageManifest = assembly.manifest;
+
   const installer = createInstaller({ kernel: createPreviewKernelApi() });
   const result = installer.planInstall(
     { packageManifest, root, installedAt: "preview-installed-at" },
-    { filesystem: createNodeFilesystemAdapter({ root }) },
+    { filesystem },
   );
 
   if ("code" in result) {
@@ -71,7 +91,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       operations: [],
       packageName: packageManifest.name,
       packageVersion: packageManifest.version,
-      warnings: [result.message],
+      warnings: [...warnings, result.message],
     };
   }
 
@@ -85,7 +105,10 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     })),
     packageName: packageManifest.name,
     packageVersion: packageManifest.version,
-    warnings: result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [],
+    warnings: [
+      ...warnings,
+      ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
+    ],
   };
 }
 

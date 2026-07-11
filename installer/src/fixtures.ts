@@ -7,7 +7,7 @@ import type {
   RollbackManifest,
   UpdatePlan,
 } from "@oh-my-pm/contracts";
-import type { FilesystemEntry } from "./types.js";
+import type { FilesystemEntry, PackageAssemblyInput } from "./types.js";
 import { createPackageManifest } from "./package-manifest.js";
 
 /** Example installable package manifest. */
@@ -50,6 +50,19 @@ export function exampleRichPackageManifest(): PackageManifest {
       { path: "README.md", content: "example readme", checksum: "sha256:example-readme" },
     ],
   });
+}
+
+/** Example package assembly dry-run input. */
+export function examplePackageAssemblyInput(): PackageAssemblyInput {
+  return {
+    name: "oh-my-pm-local",
+    version: "2.0.0-alpha.0",
+    root: "/tmp/oh-my-pm",
+    include: ["bin/oh-my-pm", "README.md"],
+    platform: "linux",
+    architecture: "x64",
+    createdAt: "2026-01-01T00:00:00.000Z",
+  };
 }
 
 /** Example entries for an in-memory filesystem adapter. */

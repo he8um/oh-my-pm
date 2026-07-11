@@ -3,6 +3,7 @@ import * as examples from "../src/index.js";
 import {
   runInstallerControlledExecutionExample,
   runInstallerDryRunExample,
+  runInstallerPackageAssemblyDryRunExample,
   runInstallerRollbackExample,
   runInstallerUpdateExample,
 } from "../src/index.js";
@@ -55,11 +56,25 @@ describe("runInstallerUpdateExample", () => {
   });
 });
 
+describe("runInstallerPackageAssemblyDryRunExample", () => {
+  it("assembles the example package without archive or output fields", () => {
+    const result = runInstallerPackageAssemblyDryRunExample();
+    expect(result.assembly.ok).toBe(true);
+    expect(result.assembly.manifest.fileEntries?.length).toBeGreaterThan(0);
+    expect(result.assembly.manifest.files).toEqual(["bin/oh-my-pm", "README.md"]);
+    expect(Object.keys(result.assembly).sort()).toEqual(["manifest", "ok", "plan"]);
+    for (const key of Object.keys(result.assembly.plan)) {
+      expect(key).not.toMatch(/archive|output|target/i);
+    }
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
     expect(typeof examples.runInstallerDryRunExample).toBe("function");
     expect(typeof examples.runInstallerControlledExecutionExample).toBe("function");
     expect(typeof examples.runInstallerRollbackExample).toBe("function");
     expect(typeof examples.runInstallerUpdateExample).toBe("function");
+    expect(typeof examples.runInstallerPackageAssemblyDryRunExample).toBe("function");
   });
 });

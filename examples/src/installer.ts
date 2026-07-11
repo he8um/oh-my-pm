@@ -7,6 +7,7 @@ import type {
   InstallDryRunReport,
   InstallerFailure,
   InstallExecutionReport,
+  PackageAssemblyDryRunReport,
   RollbackCapturePlan,
   RollbackExecutionReport,
 } from "@oh-my-pm/installer";
@@ -14,7 +15,9 @@ import {
   createInstaller,
   createMemoryFilesystem,
   createMemoryWriteFilesystem,
+  createPackageAssemblyDryRun,
   exampleFilesystemEntries,
+  examplePackageAssemblyInput,
   examplePackageManifest,
   exampleRollbackManifest,
   exampleUpdatePlan,
@@ -37,6 +40,10 @@ export type InstallerControlledExecutionExample = {
 export type InstallerRollbackExample = {
   capturePlan: RollbackCapturePlan;
   execution: RollbackExecutionReport;
+};
+
+export type InstallerPackageAssemblyExample = {
+  assembly: PackageAssemblyDryRunReport;
 };
 
 export type InstallerUpdateExample = {
@@ -130,6 +137,13 @@ export function runInstallerRollbackExample(): InstallerRollbackExample {
   );
 
   return { capturePlan, execution };
+}
+
+/** Assemble the example package as a dry run; nothing is archived. */
+export function runInstallerPackageAssemblyDryRunExample(): InstallerPackageAssemblyExample {
+  const filesystem = createMemoryFilesystem(exampleFilesystemEntries());
+  const assembly = createPackageAssemblyDryRun(examplePackageAssemblyInput(), filesystem);
+  return { assembly };
 }
 
 /** Install the example package, then apply the example update plan. */

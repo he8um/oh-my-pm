@@ -191,6 +191,35 @@ export type RollbackExecutionInput = {
   rollback: RollbackManifest;
 };
 
+/**
+ * Input for a package assembly dry run. `include` lists package-relative
+ * file paths; there is no output path or write target — nothing is packaged.
+ */
+export type PackageAssemblyInput = {
+  name: string;
+  version: string;
+  root: InstallerPath;
+  include: string[];
+  platform?: string;
+  architecture?: string;
+  createdAt?: string;
+};
+
+/** Files resolved for an assembly through a read-only adapter. */
+export type PackageAssemblyPlan = {
+  root: InstallerPath;
+  include: string[];
+  files: FilesystemEntry[];
+};
+
+/** Result of an assembly dry run; no archive is ever created. */
+export type PackageAssemblyDryRunReport = {
+  ok: boolean;
+  plan: PackageAssemblyPlan;
+  manifest: PackageManifest;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

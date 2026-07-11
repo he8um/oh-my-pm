@@ -37,3 +37,9 @@ The installer defines package manifests before real release packaging exists.
 A package manifest can include per-file metadata such as path, checksum, and byte size. The package-level checksum is deterministic and derived from the manifest content for planning purposes.
 
 This design does not create archives, publish packages, download artifacts, or execute updates.
+
+## Package assembly dry-run
+
+The installer can create a package assembly dry-run from an explicit include list and a read-only filesystem adapter.
+
+The dry-run collects file metadata, builds a rich package manifest, and reports missing include paths. It does not create archives, write files, upload artifacts, or publish releases.

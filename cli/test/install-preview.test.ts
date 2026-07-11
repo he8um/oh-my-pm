@@ -27,10 +27,11 @@ const failureResult: InstallerPreviewResult = {
 };
 
 describe("runInstallerPreview", () => {
-  it("plans replace/create operations without writing anything", () => {
+  it("assembles from the root and plans operations without writing anything", () => {
     withTempRoot((root) => {
       mkdirSync(join(root, "bin"));
       writeFileSync(join(root, "bin", "oh-my-pm"), "old binary", "utf8");
+      writeFileSync(join(root, "README.md"), "old readme", "utf8");
       const before = readdirSync(root).sort();
 
       const result = runInstallerPreview(root);
@@ -39,11 +40,7 @@ describe("runInstallerPreview", () => {
       expect(result.packageVersion).toBe("2.0.0-alpha.0");
       expect(result.operations.map((operation) => operation.kind)).toEqual([
         "replace",
-        "create",
-      ]);
-      expect(result.operations.map((operation) => operation.checksum)).toEqual([
-        "sha256:example-bin",
-        "sha256:example-readme",
+        "replace",
       ]);
       expect(result.warnings).toEqual([]);
 
@@ -52,14 +49,27 @@ describe("runInstallerPreview", () => {
     });
   });
 
-  it("carries per-file checksums into json output", () => {
+  it("warns about missing include files but still previews found files", () => {
     withTempRoot((root) => {
+      writeFileSync(join(root, "README.md"), "old readme", "utf8");
       const result = runInstallerPreview(root);
-      const parsed = JSON.parse(formatInstallerPreview(result, "json"));
-      expect(parsed.operations.map((operation: { checksum?: string }) => operation.checksum)).toEqual([
-        "sha256:example-bin",
-        "sha256:example-readme",
-      ]);
+      expect(result.ok).toBe(true);
+      expect(result.warnings).toEqual(["OMP-I-6001: assembly_include_file_missing"]);
+      expect(result.operations).toHaveLength(1);
+      expect(result.operations[0].path.endsWith("README.md")).toBe(true);
+    });
+  });
+
+  it("carries manifest-derived per-file checksums into json output", () => {
+    withTempRoot((root) => {
+      mkdirSync(join(root, "bin"));
+      writeFileSync(join(root, "bin", "oh-my-pm"), "old binary", "utf8");
+      writeFileSync(join(root, "README.md"), "old readme", "utf8");
+      const parsed = JSON.parse(formatInstallerPreview(runInstallerPreview(root), "json"));
+      expect(parsed.operations).toHaveLength(2);
+      for (const operation of parsed.operations as { checksum?: string }[]) {
+        expect(operation.checksum).toMatch(/^sha256:[0-9a-f]{64}$/);
+      }
     });
   });
 
@@ -67,7 +77,10 @@ describe("runInstallerPreview", () => {
     const result = runInstallerPreview("");
     expect(result.ok).toBe(false);
     expect(result.operations).toEqual([]);
-    expect(result.warnings).toEqual(["invalid install input: missing_root"]);
+    expect(result.warnings).toEqual([
+      "OMP-I-6001: missing_root",
+      "invalid package manifest: package_files_must_not_be_empty",
+    ]);
   });
 });
 

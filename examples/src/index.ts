@@ -5,12 +5,14 @@ export {
 export {
   runInstallerControlledExecutionExample,
   runInstallerDryRunExample,
+  runInstallerPackageAssemblyDryRunExample,
   runInstallerRollbackExample,
   runInstallerUpdateExample,
 } from "./installer.js";
 export type {
   InstallerControlledExecutionExample,
   InstallerDryRunExample,
+  InstallerPackageAssemblyExample,
   InstallerRollbackExample,
   InstallerUpdateExample,
 } from "./installer.js";

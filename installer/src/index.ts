@@ -9,6 +9,7 @@ export {
 } from "./errors.js";
 export {
   exampleFilesystemEntries,
+  examplePackageAssemblyInput,
   examplePackageFileEntries,
   examplePackageManifest,
   exampleRichPackageManifest,
@@ -24,6 +25,11 @@ export { executeInstallPlan, executeRollbackPlan } from "./executor.js";
 export { planInstallOperations, planRollbackCapture } from "./filesystem-plan.js";
 export { createInstaller } from "./installer.js";
 export { cloneFilesystemSnapshot, createMemoryFilesystem } from "./memory-filesystem.js";
+export {
+  createPackageAssemblyDryRun,
+  planPackageAssembly,
+  validatePackageAssemblyInput,
+} from "./package-assembly.js";
 export {
   createPackageFileEntry,
   createPackageManifest,
@@ -75,6 +81,9 @@ export type {
   InstallInput,
   InstallPlan,
   NodeFilesystemAdapterInfo,
+  PackageAssemblyDryRunReport,
+  PackageAssemblyInput,
+  PackageAssemblyPlan,
   NodeFilesystemAdapterOptions,
   PlannedFileOperation,
   PlannedFileOperationKind,
