@@ -65,7 +65,8 @@
 - Signed release metadata design: metadata schema, deterministic signing payload, placeholder signature shape, metadata validation, CLI preview summary (in place)
 - Release integrity verification design: metadata validation, archive-vs-metadata consistency checks, deterministic placeholder signature checks, CLI preview summary (in place)
 - Release channel metadata design: local channel metadata, deterministic latest selection, verified release entries, CLI preview summary (in place)
-- Local update policy evaluation design: local policy validation, update candidate selection, installed-vs-candidate evaluation, downgrade and integrity rules, CLI preview summary — no remote retrieval, no install execution, no publishing
+- Local update policy evaluation design: local policy validation, update candidate selection, installed-vs-candidate evaluation, downgrade and integrity rules, CLI preview summary (in place)
+- Update impact preview design: impact operation planning (create/replace/remove/unchanged), size/checksum summaries, policy-aware impact dry-run, CLI preview summary — no remote retrieval, no install execution, no write path
 
 ## Phase 6 — Release lifecycle
 

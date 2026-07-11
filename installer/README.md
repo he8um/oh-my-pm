@@ -73,3 +73,9 @@ Channel metadata groups release entries by channel name and selects the latest e
 The installer can evaluate whether a local channel entry is eligible for update from an installed manifest.
 
 The evaluation is local and policy-based. It checks channel allowance, candidate integrity, current version, candidate version, and downgrade rules. It does not retrieve packages remotely, execute installation, contact remote endpoints, or write files.
+
+## Update impact preview
+
+The installer can preview the impact of a locally eligible update before any installation runs.
+
+The preview compares current files with candidate release entries and reports create, replace, remove, and unchanged operations with size/checksum summaries. It does not retrieve packages remotely, execute installation, call write adapters, or write files.

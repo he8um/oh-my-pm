@@ -10,6 +10,7 @@ import type {
   InstallExecutionReport,
   LocalUpdatePolicyDryRunReport,
   PackageAssemblyDryRunReport,
+  UpdateImpactDryRunReport,
   ReleaseChannelDryRunReport,
   ReleaseIntegrityDryRunReport,
   ReleaseMetadataDryRunReport,
@@ -22,6 +23,7 @@ import {
   createMemoryFilesystem,
   createMemoryWriteFilesystem,
   createLocalUpdatePolicyDryRun,
+  createUpdateImpactDryRun,
   createPackageAssemblyDryRun,
   createReleaseChannelDryRun,
   createReleaseIntegrityDryRun,
@@ -75,6 +77,10 @@ export type InstallerReleaseChannelExample = {
 
 export type InstallerUpdatePolicyExample = {
   updatePolicy: LocalUpdatePolicyDryRunReport;
+};
+
+export type InstallerUpdateImpactExample = {
+  impact: UpdateImpactDryRunReport;
 };
 
 export type InstallerUpdateExample = {
@@ -238,6 +244,22 @@ export function runInstallerUpdatePolicyExample(): InstallerUpdatePolicyExample 
   });
   // channel.channel is the ReleaseChannelMetadata carried by the dry-run report.
   return { updatePolicy };
+}
+
+/** Preview what an eligible update would change; no files are touched. */
+export function runInstallerUpdateImpactExample(): InstallerUpdateImpactExample {
+  const { archive } = runInstallerArchivePlanExample();
+  const { updatePolicy } = runInstallerUpdatePolicyExample();
+  const impact = createUpdateImpactDryRun({
+    root: "/tmp/oh-my-pm",
+    currentFiles: [
+      { path: "bin/oh-my-pm", content: "different!", checksum: "sha256:old-bin" },
+      { path: "README.md", content: "old readme", checksum: "sha256:old-readme" },
+    ],
+    candidateEntries: archive.plan.entries,
+    policy: updatePolicy.report,
+  });
+  return { impact };
 }
 
 /** Install the example package, then apply the example update plan. */

@@ -12,6 +12,7 @@ export {
   runInstallerRollbackExample,
   runInstallerSignedMetadataExample,
   runInstallerUpdateExample,
+  runInstallerUpdateImpactExample,
   runInstallerUpdatePolicyExample,
 } from "./installer.js";
 export type {
@@ -24,6 +25,7 @@ export type {
   InstallerRollbackExample,
   InstallerSignedMetadataExample,
   InstallerUpdateExample,
+  InstallerUpdateImpactExample,
   InstallerUpdatePolicyExample,
 } from "./installer.js";
 export {

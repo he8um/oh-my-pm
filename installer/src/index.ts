@@ -11,6 +11,7 @@ export {
   exampleArchivePlanInput,
   exampleFilesystemEntries,
   exampleLocalUpdatePolicyInput,
+  exampleUpdateImpactPreviewInput,
   examplePackageAssemblyInput,
   examplePackageFileEntries,
   examplePackageManifest,
@@ -52,6 +53,13 @@ export {
   validatePackageFileEntries,
 } from "./package-manifest.js";
 export type { PackageManifestInput } from "./package-manifest.js";
+export {
+  createUpdateImpactDryRun,
+  createUpdateImpactOperations,
+  createUpdateImpactPreview,
+  normalizeImpactPath,
+  summarizeUpdateImpact,
+} from "./update-impact.js";
 export {
   compareVersionStrings,
   createLocalUpdatePolicyDryRun,
@@ -160,6 +168,12 @@ export type {
   ReleaseMetadataValidationReport,
   ReleaseSignature,
   ReleaseSignatureAlgorithm,
+  UpdateImpactDryRunReport,
+  UpdateImpactOperation,
+  UpdateImpactOperationKind,
+  UpdateImpactPreviewInput,
+  UpdateImpactPreviewReport,
+  UpdateImpactSummary,
   UpdatePolicyDecision,
   UpdatePolicyMode,
   RollbackCaptureInput,

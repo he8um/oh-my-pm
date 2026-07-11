@@ -304,6 +304,8 @@ const INSTALLER_SOURCES = [
   "installer/test/release-channel.test.ts",
   "installer/src/update-policy.ts",
   "installer/test/update-policy.test.ts",
+  "installer/src/update-impact.ts",
+  "installer/test/update-impact.test.ts",
   "installer/test/validate.test.ts",
   "installer/test/manifest.test.ts",
   "installer/test/installer.test.ts",

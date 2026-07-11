@@ -69,6 +69,15 @@ describe("runInstallerPreview", () => {
         candidateVersion: "2.0.0-alpha.0",
         reasons: [],
       });
+      expect(result.impact?.ok).toBe(true);
+      expect(result.impact?.operations).toBe(2);
+      expect(result.impact?.unchanged).toBe(2);
+      expect(
+        (result.impact?.creates ?? 0) +
+          (result.impact?.replaces ?? 0) +
+          (result.impact?.removes ?? 0) +
+          (result.impact?.unchanged ?? 0),
+      ).toBe(result.impact?.operations);
 
       expect(readdirSync(root).sort()).toEqual(before);
       expect(readFileSync(join(root, "bin", "oh-my-pm"), "utf8")).toBe("old binary");
@@ -109,6 +118,13 @@ describe("runInstallerPreview", () => {
       expect(parsed.updatePolicy.decision).toBe("allowed");
       expect(parsed.updatePolicy.currentVersion).toBe("1.0.0");
       expect(parsed.updatePolicy.candidateVersion).toBe("2.0.0-alpha.0");
+      expect(parsed.impact.ok).toBe(true);
+      expect(parsed.impact.operations).toBe(
+        parsed.impact.creates +
+          parsed.impact.replaces +
+          parsed.impact.removes +
+          parsed.impact.unchanged,
+      );
       expect(output).not.toContain("placeholder:preview-key:");
       expect(output).not.toMatch(/https?:\/\//);
     });
@@ -125,6 +141,9 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: release_channel_entry_metadata_invalid",
       "OMP-I-6001: release_channel_entry_integrity_failed",
       "OMP-I-6001: candidate_integrity_failed",
+      "OMP-I-6001: update_impact_root_missing",
+      "OMP-I-6001: update_policy_not_allowed",
+      "OMP-I-6001: update_impact_candidate_entries_empty",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);
@@ -135,6 +154,8 @@ describe("runInstallerPreview", () => {
     expect(result.updatePolicy?.ok).toBe(false);
     expect(result.updatePolicy?.decision).toBe("blocked");
     expect(result.updatePolicy?.reasons).toContain("candidate_integrity_failed");
+    expect(result.impact?.ok).toBe(false);
+    expect(result.impact?.operations).toBe(0);
   });
 });
 

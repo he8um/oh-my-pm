@@ -20,6 +20,7 @@ import {
   createReleaseChannelDryRun,
   createReleaseIntegrityDryRun,
   createReleaseMetadataDryRun,
+  createUpdateImpactDryRun,
   DEFAULT_LOCAL_UPDATE_POLICY,
 } from "@oh-my-pm/installer";
 
@@ -66,6 +67,18 @@ export type InstallerPreviewResult = {
     decision: string;
     currentVersion?: string;
     candidateVersion?: string;
+    reasons: string[];
+  };
+  /** Update impact preview; comparison only, no files are touched. */
+  impact?: {
+    ok: boolean;
+    operations: number;
+    creates: number;
+    replaces: number;
+    removes: number;
+    unchanged: number;
+    beforeSizeBytes: number;
+    afterSizeBytes: number;
     reasons: string[];
   };
 };
@@ -205,6 +218,29 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const updatePolicyWarnings =
     updatePolicyReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Impact preview: compare the assembly's current files with the archive's
+  // candidate entries. Comparison only — nothing is fetched or written.
+  const impactReport = createUpdateImpactDryRun({
+    root,
+    currentFiles: assembly.plan.files,
+    candidateEntries: archiveReport.plan.entries,
+    policy: policyReport,
+  });
+  const impactSummary = impactReport.preview.summary;
+  const impact = {
+    ok: impactReport.ok,
+    operations: impactReport.preview.operations.length,
+    creates: impactSummary.creates,
+    replaces: impactSummary.replaces,
+    removes: impactSummary.removes,
+    unchanged: impactSummary.unchanged,
+    beforeSizeBytes: impactSummary.beforeSizeBytes,
+    afterSizeBytes: impactSummary.afterSizeBytes,
+    reasons: [...impactReport.preview.reasons],
+  };
+  const impactWarnings =
+    impactReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   const uniqueWarnings = (values: string[]): string[] => [...new Set(values)];
   const packageManifest = assembly.manifest;
 
@@ -227,6 +263,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...integrityWarnings,
         ...channelWarnings,
         ...updatePolicyWarnings,
+        ...impactWarnings,
         result.message,
       ]),
       archive,
@@ -234,6 +271,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       integrity,
       channel,
       updatePolicy,
+      impact,
     };
   }
 
@@ -253,6 +291,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...integrityWarnings,
       ...channelWarnings,
       ...updatePolicyWarnings,
+      ...impactWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -260,6 +299,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     integrity,
     channel,
     updatePolicy,
+    impact,
   };
 }
 

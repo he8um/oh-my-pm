@@ -15,13 +15,14 @@ import type {
   ReleaseChannelMetadataInput,
   ReleaseIntegrityVerificationInput,
   ReleaseMetadataInput,
+  UpdateImpactPreviewInput,
 } from "./types.js";
 import { createArchivePlan } from "./archive-plan.js";
 import { createPackageManifest } from "./package-manifest.js";
 import { createReleaseChannelMetadata } from "./release-channel.js";
 import { createReleaseIntegrityDryRun } from "./release-integrity.js";
 import { createReleaseMetadataDryRun } from "./release-metadata.js";
-import { DEFAULT_LOCAL_UPDATE_POLICY } from "./update-policy.js";
+import { DEFAULT_LOCAL_UPDATE_POLICY, evaluateLocalUpdatePolicy } from "./update-policy.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -126,6 +127,25 @@ export function exampleLocalUpdatePolicyInput(): LocalUpdatePolicyInput {
     },
     channel: createReleaseChannelMetadata(exampleReleaseChannelMetadataInput()),
     policy: DEFAULT_LOCAL_UPDATE_POLICY,
+  };
+}
+
+/**
+ * Example update impact input. The candidate archive entries carry
+ * checksum `sha256:old` (bin) and `sha256:old-readme` (README), both size 10.
+ * README's current file matches exactly (unchanged); bin differs (replace).
+ */
+export function exampleUpdateImpactPreviewInput(): UpdateImpactPreviewInput {
+  const archive = createArchivePlan(exampleArchivePlanInput());
+  const policy = evaluateLocalUpdatePolicy(exampleLocalUpdatePolicyInput());
+  return {
+    root: "/tmp/oh-my-pm",
+    currentFiles: [
+      { path: "bin/oh-my-pm", content: "different!", checksum: "sha256:old-bin" },
+      { path: "README.md", content: "old readme", checksum: "sha256:old-readme" },
+    ],
+    candidateEntries: archive.entries,
+    policy,
   };
 }
 

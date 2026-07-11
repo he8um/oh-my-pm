@@ -410,6 +410,54 @@ export type LocalUpdatePolicyDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** How a candidate file compares to the currently installed file. */
+export type UpdateImpactOperationKind = "create" | "replace" | "remove" | "unchanged";
+
+/** One file's before/after comparison for an update impact preview. */
+export type UpdateImpactOperation = {
+  kind: UpdateImpactOperationKind;
+  path: InstallerPath;
+  beforeChecksum?: string;
+  afterChecksum?: string;
+  beforeSizeBytes?: number;
+  afterSizeBytes?: number;
+};
+
+/** Aggregate counts and byte totals for an impact preview. */
+export type UpdateImpactSummary = {
+  creates: number;
+  replaces: number;
+  removes: number;
+  unchanged: number;
+  beforeSizeBytes: number;
+  afterSizeBytes: number;
+};
+
+/** Input for previewing the impact of an eligible update; no execution. */
+export type UpdateImpactPreviewInput = {
+  root: InstallerPath;
+  currentFiles: FilesystemEntry[];
+  candidateEntries: ArchivePlanEntry[];
+  policy: LocalUpdatePolicyReport;
+};
+
+/** Result of an update impact preview. */
+export type UpdateImpactPreviewReport = {
+  ok: boolean;
+  root: InstallerPath;
+  operations: UpdateImpactOperation[];
+  summary: UpdateImpactSummary;
+  policyDecision: UpdatePolicyDecision;
+  reasons: string[];
+};
+
+/** Result of an update impact dry run; nothing is fetched or executed. */
+export type UpdateImpactDryRunReport = {
+  ok: boolean;
+  preview: UpdateImpactPreviewReport;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

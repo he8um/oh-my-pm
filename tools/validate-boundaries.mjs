@@ -159,7 +159,7 @@ for (const file of trackedFiles) {
     file.endsWith(".ts");
   if (!scanned) continue;
   const contents = readFileSync(file, "utf8");
-  if (file === NODE_READ_ADAPTER) {
+  if (file === NODE_READ_ADAPTER || file === "installer/src/update-impact.ts") {
     for (const api of NODE_WRITE_APIS) {
       if (contents.includes(api)) {
         err(`${file} contains forbidden write API "${api}"`);
