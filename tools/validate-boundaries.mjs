@@ -101,6 +101,15 @@ for (const file of trackedFiles) {
     ) {
       err(`${file} imports an archive/compression module: "${spec}"`);
     }
+    if (
+      (file.startsWith("installer/src/") ||
+        file.startsWith("cli/src/") ||
+        file.startsWith("examples/src/")) &&
+      file !== "installer/src/node-filesystem.ts" &&
+      (spec === "crypto" || spec === "node:crypto")
+    ) {
+      err(`${file} imports a crypto module: "${spec}"`);
+    }
   }
 }
 
@@ -130,9 +139,21 @@ const INSTALLER_NONDETERMINISM = [
   "crypto.randomUUID",
   "console.",
 ];
+// No source may hold key/certificate material or real signing calls; the
+// release metadata signature is a deterministic placeholder only.
+const SIGNING_MATERIAL = [
+  "BEGIN PRIVATE KEY",
+  "BEGIN PUBLIC KEY",
+  "BEGIN CERTIFICATE",
+  "generateKey",
+  "subtle.",
+];
 for (const file of trackedFiles) {
   const scanned =
-    (file.startsWith("installer/src/") || file.startsWith("cli/src/")) && file.endsWith(".ts");
+    (file.startsWith("installer/src/") ||
+      file.startsWith("cli/src/") ||
+      file.startsWith("examples/src/")) &&
+    file.endsWith(".ts");
   if (!scanned) continue;
   const contents = readFileSync(file, "utf8");
   if (file === NODE_READ_ADAPTER) {
@@ -145,6 +166,11 @@ for (const file of trackedFiles) {
   for (const marker of INSTALLER_NONDETERMINISM) {
     if (contents.includes(marker)) {
       err(`${file} contains forbidden pattern "${marker}"`);
+    }
+  }
+  for (const marker of SIGNING_MATERIAL) {
+    if (contents.includes(marker)) {
+      err(`${file} contains forbidden signing/key material pattern "${marker}"`);
     }
   }
 }

@@ -259,6 +259,54 @@ export type ArchiveDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/**
+ * Placeholder-only signature algorithm. This phase models the metadata
+ * shape; no keys exist and no cryptographic signing happens anywhere.
+ */
+export type ReleaseSignatureAlgorithm = "deterministic-placeholder";
+
+/** Placeholder signature over a release signing payload. */
+export type ReleaseSignature = {
+  algorithm: ReleaseSignatureAlgorithm;
+  keyId: string;
+  value: string;
+};
+
+/** Metadata describing a future signed release; nothing is written. */
+export type ReleaseMetadata = {
+  schemaVersion: string;
+  packageName: string;
+  packageVersion: string;
+  archiveName: string;
+  archiveFormat: ArchiveFormat;
+  archiveChecksum: string;
+  archiveEntries: ArchivePlanEntry[];
+  createdAt: string;
+  signature?: ReleaseSignature;
+};
+
+/** Input for building release metadata from an archive plan. */
+export type ReleaseMetadataInput = {
+  archive: ArchivePlan;
+  createdAt: string;
+  keyId?: string;
+};
+
+/** Result of validating release metadata. */
+export type ReleaseMetadataValidationReport = {
+  ok: boolean;
+  reasons: string[];
+};
+
+/** Result of a release metadata dry run; no file, key, or upload exists. */
+export type ReleaseMetadataDryRunReport = {
+  ok: boolean;
+  metadata: ReleaseMetadata;
+  signingPayload: string;
+  validation: ReleaseMetadataValidationReport;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

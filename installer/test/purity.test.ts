@@ -27,6 +27,20 @@ const NONDETERMINISM = [
   "console.",
 ];
 
+// No installer source may sign for real or hold key material. The word
+// "signature" is allowed because release metadata models signatures; real
+// signing arrives in a later phase behind explicit review.
+const SIGNING_FORBIDDEN = [
+  "subtle",
+  "generateKey",
+  "sign(",
+  "privateKey",
+  "publicKey",
+  "BEGIN PRIVATE KEY",
+  "BEGIN PUBLIC KEY",
+  "BEGIN CERTIFICATE",
+];
+
 // No installer source may create archives or streamed artifacts; assembly
 // and archive planning stay dry runs until a later distribution phase.
 // Bare "zip"/"tar" plan values are allowed; library/API usage is not.
@@ -51,8 +65,11 @@ const CORE_FORBIDDEN = [
   'require("fs")',
   "fs.",
   "node:fs",
+  "node:crypto",
+  "crypto.",
   ...NONDETERMINISM,
   ...ARCHIVE_FORBIDDEN,
+  ...SIGNING_FORBIDDEN,
 ];
 
 // The read-only adapter may read through node:fs/node:path/node:crypto but
@@ -68,6 +85,7 @@ const READ_ADAPTER_FORBIDDEN = [
   "copyFile",
   ...NONDETERMINISM,
   ...ARCHIVE_FORBIDDEN,
+  ...SIGNING_FORBIDDEN,
 ];
 
 // The write adapter may use writeFileSync/mkdirSync/rmSync/copyFileSync but
@@ -77,8 +95,10 @@ const WRITE_ADAPTER_FORBIDDEN = [
   "rmdir",
   "rename",
   "appendFile",
+  "node:crypto",
   ...NONDETERMINISM,
   ...ARCHIVE_FORBIDDEN,
+  ...SIGNING_FORBIDDEN,
 ];
 
 describe("installer purity", () => {

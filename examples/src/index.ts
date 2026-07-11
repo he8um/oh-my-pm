@@ -8,6 +8,7 @@ export {
   runInstallerDryRunExample,
   runInstallerPackageAssemblyDryRunExample,
   runInstallerRollbackExample,
+  runInstallerSignedMetadataExample,
   runInstallerUpdateExample,
 } from "./installer.js";
 export type {
@@ -16,6 +17,7 @@ export type {
   InstallerDryRunExample,
   InstallerPackageAssemblyExample,
   InstallerRollbackExample,
+  InstallerSignedMetadataExample,
   InstallerUpdateExample,
 } from "./installer.js";
 export {

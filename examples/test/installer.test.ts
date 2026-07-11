@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as examples from "../src/index.js";
 import {
   runInstallerArchivePlanExample,
+  runInstallerSignedMetadataExample,
   runInstallerControlledExecutionExample,
   runInstallerDryRunExample,
   runInstallerPackageAssemblyDryRunExample,
@@ -83,6 +84,21 @@ describe("runInstallerArchivePlanExample", () => {
   });
 });
 
+describe("runInstallerSignedMetadataExample", () => {
+  it("builds placeholder-signed metadata without key material", () => {
+    const result = runInstallerSignedMetadataExample();
+    expect(result.metadata.ok).toBe(true);
+    expect(result.metadata.metadata.signature?.algorithm).toBe("deterministic-placeholder");
+    expect(result.metadata.metadata.signature?.keyId).toBe("example-key");
+    expect(result.metadata.signingPayload.startsWith("release:")).toBe(true);
+
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("BEGIN");
+    expect(serialized).not.toContain("PRIVATE KEY");
+    expect(serialized).not.toContain("-----");
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
     expect(typeof examples.runInstallerDryRunExample).toBe("function");
@@ -91,5 +107,6 @@ describe("examples index", () => {
     expect(typeof examples.runInstallerUpdateExample).toBe("function");
     expect(typeof examples.runInstallerPackageAssemblyDryRunExample).toBe("function");
     expect(typeof examples.runInstallerArchivePlanExample).toBe("function");
+    expect(typeof examples.runInstallerSignedMetadataExample).toBe("function");
   });
 });

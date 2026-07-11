@@ -49,3 +49,9 @@ The dry-run collects file metadata, builds a rich package manifest, and reports 
 The installer can produce archive dry-run plans from package assembly results.
 
 Archive plans include a planned archive name, format, deterministic checksum, and file entries. They do not create archive files, write artifacts, upload packages, or publish releases.
+
+## Signed release metadata design
+
+The installer can build signed release metadata dry-runs from archive plans.
+
+The current signature is a deterministic placeholder used only to model metadata shape and validation. No signing keys are generated, read, stored, or used. No release files are written or published.

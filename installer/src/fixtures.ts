@@ -7,7 +7,13 @@ import type {
   RollbackManifest,
   UpdatePlan,
 } from "@oh-my-pm/contracts";
-import type { ArchivePlanInput, FilesystemEntry, PackageAssemblyInput } from "./types.js";
+import type {
+  ArchivePlanInput,
+  FilesystemEntry,
+  PackageAssemblyInput,
+  ReleaseMetadataInput,
+} from "./types.js";
+import { createArchivePlan } from "./archive-plan.js";
 import { createPackageManifest } from "./package-manifest.js";
 
 /** Example installable package manifest. */
@@ -62,6 +68,15 @@ export function exampleArchivePlanInput(): ArchivePlanInput {
       ...entry,
       path: entry.path.slice("/tmp/oh-my-pm/".length),
     })),
+  };
+}
+
+/** Example release metadata input with a placeholder-only key id. */
+export function exampleReleaseMetadataInput(): ReleaseMetadataInput {
+  return {
+    archive: createArchivePlan(exampleArchivePlanInput()),
+    createdAt: "2026-01-01T00:00:00.000Z",
+    keyId: "example-key",
   };
 }
 

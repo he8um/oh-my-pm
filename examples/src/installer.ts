@@ -9,6 +9,7 @@ import type {
   InstallerFailure,
   InstallExecutionReport,
   PackageAssemblyDryRunReport,
+  ReleaseMetadataDryRunReport,
   RollbackCapturePlan,
   RollbackExecutionReport,
 } from "@oh-my-pm/installer";
@@ -18,6 +19,7 @@ import {
   createMemoryFilesystem,
   createMemoryWriteFilesystem,
   createPackageAssemblyDryRun,
+  createReleaseMetadataDryRun,
   exampleFilesystemEntries,
   examplePackageAssemblyInput,
   examplePackageManifest,
@@ -50,6 +52,10 @@ export type InstallerPackageAssemblyExample = {
 
 export type InstallerArchivePlanExample = {
   archive: ArchiveDryRunReport;
+};
+
+export type InstallerSignedMetadataExample = {
+  metadata: ReleaseMetadataDryRunReport;
 };
 
 export type InstallerUpdateExample = {
@@ -156,6 +162,17 @@ export function runInstallerPackageAssemblyDryRunExample(): InstallerPackageAsse
 export function runInstallerArchivePlanExample(): InstallerArchivePlanExample {
   const { assembly } = runInstallerPackageAssemblyDryRunExample();
   return { archive: createArchiveDryRunFromAssembly(assembly, "zip") };
+}
+
+/** Build signed release metadata with a placeholder signature only. */
+export function runInstallerSignedMetadataExample(): InstallerSignedMetadataExample {
+  const { archive } = runInstallerArchivePlanExample();
+  const metadata = createReleaseMetadataDryRun({
+    archive: archive.plan,
+    createdAt: EXAMPLE_INSTALLED_AT,
+    keyId: "example-key",
+  });
+  return { metadata };
 }
 
 /** Install the example package, then apply the example update plan. */

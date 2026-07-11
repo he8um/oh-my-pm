@@ -32,6 +32,15 @@ const FORBIDDEN = [
   "zlib",
   "AdmZip",
   "JSZip",
+  "node:crypto",
+  "subtle",
+  "generateKey",
+  "sign(",
+  "privateKey",
+  "publicKey",
+  "BEGIN PRIVATE KEY",
+  "BEGIN PUBLIC KEY",
+  "BEGIN CERTIFICATE",
 ];
 
 describe("cli purity", () => {

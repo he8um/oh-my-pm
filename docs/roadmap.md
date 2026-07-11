@@ -61,7 +61,8 @@
 - CLI installer preview: `install-preview <root>`, dry-run only, read-only filesystem inspection, planned operations output, brief/json/markdown formatting (in place)
 - Release package manifest design: richer package manifest schema, per-file metadata, deterministic manifest construction, manifest validation, planning integration (in place)
 - Local package assembly dry-run: explicit include list, read-only file collection, rich manifest generation, missing-file warnings (in place)
-- Archive plan design: planned archive name, archive format value, deterministic archive checksum, archive entries, assembly integration — no archive creation, no publishing, no downloads
+- Archive plan design: planned archive name, archive format value, deterministic archive checksum, archive entries, assembly integration (in place)
+- Signed release metadata design: metadata schema, deterministic signing payload, placeholder signature shape, metadata validation, CLI preview summary — no signing keys, no real signatures, no publishing
 
 ## Phase 6 — Release lifecycle
 

@@ -16,6 +16,7 @@ import {
   createInstaller,
   createNodeFilesystemAdapter,
   createPackageAssemblyDryRun,
+  createReleaseMetadataDryRun,
 } from "@oh-my-pm/installer";
 
 export type InstallerPreviewResult = {
@@ -35,6 +36,13 @@ export type InstallerPreviewResult = {
     archiveName: string;
     entries: number;
     checksum: string;
+  };
+  /** Release metadata summary; placeholder only, no signature value. */
+  releaseMetadata?: {
+    schemaVersion: string;
+    signed: boolean;
+    signatureAlgorithm?: string;
+    keyId?: string;
   };
 };
 
@@ -93,6 +101,23 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     entries: archiveReport.plan.entries.length,
     checksum: archiveReport.plan.checksum,
   };
+
+  // Summary only: the placeholder signature value never reaches the output.
+  const metadataReport = createReleaseMetadataDryRun({
+    archive: archiveReport.plan,
+    createdAt: "preview-created-at",
+    keyId: "preview-key",
+  });
+  const signature = metadataReport.metadata.signature;
+  const releaseMetadata = {
+    schemaVersion: metadataReport.metadata.schemaVersion,
+    signed: signature !== undefined,
+    ...(signature === undefined
+      ? {}
+      : { signatureAlgorithm: signature.algorithm, keyId: signature.keyId }),
+  };
+  const metadataWarnings =
+    metadataReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
   const packageManifest = assembly.manifest;
 
   const installer = createInstaller({ kernel: createPreviewKernelApi() });
@@ -108,8 +133,9 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       operations: [],
       packageName: packageManifest.name,
       packageVersion: packageManifest.version,
-      warnings: [...warnings, result.message],
+      warnings: [...warnings, ...metadataWarnings, result.message],
       archive,
+      releaseMetadata,
     };
   }
 
@@ -125,9 +151,11 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     packageVersion: packageManifest.version,
     warnings: [
       ...warnings,
+      ...metadataWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ],
     archive,
+    releaseMetadata,
   };
 }
 

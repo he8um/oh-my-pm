@@ -13,6 +13,7 @@ export {
   examplePackageAssemblyInput,
   examplePackageFileEntries,
   examplePackageManifest,
+  exampleReleaseMetadataInput,
   exampleRichPackageManifest,
   exampleRollbackManifest,
   exampleUpdatePlan,
@@ -48,6 +49,16 @@ export {
   validatePackageFileEntries,
 } from "./package-manifest.js";
 export type { PackageManifestInput } from "./package-manifest.js";
+export {
+  attachPlaceholderSignature,
+  createPlaceholderReleaseSignature,
+  createReleaseMetadataDryRun,
+  createReleaseSigningPayload,
+  createUnsignedReleaseMetadata,
+  PLACEHOLDER_SIGNATURE_ALGORITHM,
+  RELEASE_METADATA_SCHEMA_VERSION,
+  validateReleaseMetadata,
+} from "./release-metadata.js";
 export { createMemoryWriteFilesystem } from "./memory-write-filesystem.js";
 export {
   createNodeFilesystemAdapter,
@@ -102,6 +113,12 @@ export type {
   NodeFilesystemAdapterOptions,
   PlannedFileOperation,
   PlannedFileOperationKind,
+  ReleaseMetadata,
+  ReleaseMetadataDryRunReport,
+  ReleaseMetadataInput,
+  ReleaseMetadataValidationReport,
+  ReleaseSignature,
+  ReleaseSignatureAlgorithm,
   RollbackCaptureInput,
   RollbackCapturePlan,
   RollbackExecutionInput,

@@ -49,6 +49,12 @@ describe("runInstallerPreview", () => {
         entries: 2,
         checksum: expect.stringMatching(/^archive:zip:oh-my-pm-local:2\.0\.0-alpha\.0:/),
       });
+      expect(result.releaseMetadata).toEqual({
+        schemaVersion: "1",
+        signed: true,
+        signatureAlgorithm: "deterministic-placeholder",
+        keyId: "preview-key",
+      });
 
       expect(readdirSync(root).sort()).toEqual(before);
       expect(readFileSync(join(root, "bin", "oh-my-pm"), "utf8")).toBe("old binary");
@@ -72,13 +78,17 @@ describe("runInstallerPreview", () => {
       mkdirSync(join(root, "bin"));
       writeFileSync(join(root, "bin", "oh-my-pm"), "old binary", "utf8");
       writeFileSync(join(root, "README.md"), "old readme", "utf8");
-      const parsed = JSON.parse(formatInstallerPreview(runInstallerPreview(root), "json"));
+      const output = formatInstallerPreview(runInstallerPreview(root), "json");
+      const parsed = JSON.parse(output);
       expect(parsed.operations).toHaveLength(2);
       for (const operation of parsed.operations as { checksum?: string }[]) {
         expect(operation.checksum).toMatch(/^sha256:[0-9a-f]{64}$/);
       }
       expect(parsed.archive.archiveName).toBe("oh-my-pm-local-2.0.0-alpha.0.zip");
       expect(parsed.archive.entries).toBe(2);
+      expect(parsed.releaseMetadata.signed).toBe(true);
+      expect(parsed.releaseMetadata.signatureAlgorithm).toBe("deterministic-placeholder");
+      expect(output).not.toContain("placeholder:preview-key:");
     });
   });
 
@@ -89,9 +99,11 @@ describe("runInstallerPreview", () => {
     expect(result.warnings).toEqual([
       "OMP-I-6001: archive_files_must_not_be_empty",
       "OMP-I-6001: missing_root",
+      "OMP-I-6001: release_archive_entries_must_not_be_empty",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);
+    expect(result.releaseMetadata?.signed).toBe(true);
   });
 });
 
