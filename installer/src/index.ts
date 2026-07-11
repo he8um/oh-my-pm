@@ -13,6 +13,7 @@ export {
   examplePackageAssemblyInput,
   examplePackageFileEntries,
   examplePackageManifest,
+  exampleReleaseIntegrityVerificationInput,
   exampleReleaseMetadataInput,
   exampleRichPackageManifest,
   exampleRollbackManifest,
@@ -49,6 +50,13 @@ export {
   validatePackageFileEntries,
 } from "./package-manifest.js";
 export type { PackageManifestInput } from "./package-manifest.js";
+export {
+  createReleaseIntegrityDryRun,
+  expectedPlaceholderSignatureValue,
+  verifyPlaceholderSignature,
+  verifyReleaseIntegrity,
+  verifyReleaseMetadataAgainstArchive,
+} from "./release-integrity.js";
 export {
   attachPlaceholderSignature,
   createPlaceholderReleaseSignature,
@@ -113,6 +121,9 @@ export type {
   NodeFilesystemAdapterOptions,
   PlannedFileOperation,
   PlannedFileOperationKind,
+  ReleaseIntegrityDryRunReport,
+  ReleaseIntegrityVerificationInput,
+  ReleaseIntegrityVerificationReport,
   ReleaseMetadata,
   ReleaseMetadataDryRunReport,
   ReleaseMetadataInput,

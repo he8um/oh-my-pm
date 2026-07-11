@@ -36,6 +36,7 @@ const FORBIDDEN = [
   "subtle",
   "generateKey",
   "sign(",
+  "verify(",
   "privateKey",
   "publicKey",
   "BEGIN PRIVATE KEY",

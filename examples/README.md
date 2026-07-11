@@ -15,7 +15,8 @@ Current examples:
 - installer package assembly dry-run through in-memory adapters
 - installer archive planning from assembly dry-run results
 - installer signed release metadata from archive plans
+- installer release integrity verification of metadata against archive plans
 
-Installer examples do not add a CLI install command and do not package or download release artifacts. The assembly example builds a manifest only, and the archive plan example plans a name, checksum, and entries only; no archive file is created and nothing is published. The signed metadata example uses a deterministic placeholder signature only: no signing keys exist and nothing is signed for real.
+Installer examples do not add a CLI install command and do not package or download release artifacts. The assembly example builds a manifest only, and the archive plan example plans a name, checksum, and entries only; no archive file is created and nothing is published. The signed metadata example uses a deterministic placeholder signature only: no signing keys exist and nothing is signed for real. The integrity example checks consistency between metadata, archive plan, and the placeholder signature shape only; it does not verify real cryptographic signatures.
 
 The example Kernel is an injected deterministic boundary used only for examples, demonstrating dependency injection. The private CLI wrapper now uses the real WASM Kernel binding instead.

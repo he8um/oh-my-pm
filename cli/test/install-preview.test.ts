@@ -55,6 +55,7 @@ describe("runInstallerPreview", () => {
         signatureAlgorithm: "deterministic-placeholder",
         keyId: "preview-key",
       });
+      expect(result.integrity).toEqual({ ok: true, reasons: [] });
 
       expect(readdirSync(root).sort()).toEqual(before);
       expect(readFileSync(join(root, "bin", "oh-my-pm"), "utf8")).toBe("old binary");
@@ -88,6 +89,8 @@ describe("runInstallerPreview", () => {
       expect(parsed.archive.entries).toBe(2);
       expect(parsed.releaseMetadata.signed).toBe(true);
       expect(parsed.releaseMetadata.signatureAlgorithm).toBe("deterministic-placeholder");
+      expect(parsed.integrity.ok).toBe(true);
+      expect(parsed.integrity.reasons).toEqual([]);
       expect(output).not.toContain("placeholder:preview-key:");
     });
   });
@@ -104,6 +107,8 @@ describe("runInstallerPreview", () => {
     ]);
     expect(result.archive?.entries).toBe(0);
     expect(result.releaseMetadata?.signed).toBe(true);
+    expect(result.integrity?.ok).toBe(false);
+    expect(result.integrity?.reasons).toContain("release_archive_entries_must_not_be_empty");
   });
 });
 

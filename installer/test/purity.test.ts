@@ -30,10 +30,13 @@ const NONDETERMINISM = [
 // No installer source may sign for real or hold key material. The word
 // "signature" is allowed because release metadata models signatures; real
 // signing arrives in a later phase behind explicit review.
+// Deterministic consistency helpers (verifyReleaseIntegrity and friends)
+// are allowed; a bare lowercase `verify(` call is not.
 const SIGNING_FORBIDDEN = [
   "subtle",
   "generateKey",
   "sign(",
+  "verify(",
   "privateKey",
   "publicKey",
   "BEGIN PRIVATE KEY",

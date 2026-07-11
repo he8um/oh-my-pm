@@ -9,6 +9,7 @@ import type {
   InstallerFailure,
   InstallExecutionReport,
   PackageAssemblyDryRunReport,
+  ReleaseIntegrityDryRunReport,
   ReleaseMetadataDryRunReport,
   RollbackCapturePlan,
   RollbackExecutionReport,
@@ -19,6 +20,7 @@ import {
   createMemoryFilesystem,
   createMemoryWriteFilesystem,
   createPackageAssemblyDryRun,
+  createReleaseIntegrityDryRun,
   createReleaseMetadataDryRun,
   exampleFilesystemEntries,
   examplePackageAssemblyInput,
@@ -56,6 +58,10 @@ export type InstallerArchivePlanExample = {
 
 export type InstallerSignedMetadataExample = {
   metadata: ReleaseMetadataDryRunReport;
+};
+
+export type InstallerReleaseIntegrityExample = {
+  integrity: ReleaseIntegrityDryRunReport;
 };
 
 export type InstallerUpdateExample = {
@@ -173,6 +179,17 @@ export function runInstallerSignedMetadataExample(): InstallerSignedMetadataExam
     keyId: "example-key",
   });
   return { metadata };
+}
+
+/** Verify placeholder-signed metadata against its archive plan. */
+export function runInstallerReleaseIntegrityExample(): InstallerReleaseIntegrityExample {
+  const { archive } = runInstallerArchivePlanExample();
+  const signed = runInstallerSignedMetadataExample();
+  const integrity = createReleaseIntegrityDryRun({
+    metadata: signed.metadata.metadata,
+    archive: archive.plan,
+  });
+  return { integrity };
 }
 
 /** Install the example package, then apply the example update plan. */

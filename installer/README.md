@@ -55,3 +55,9 @@ Archive plans include a planned archive name, format, deterministic checksum, an
 The installer can build signed release metadata dry-runs from archive plans.
 
 The current signature is a deterministic placeholder used only to model metadata shape and validation. No signing keys are generated, read, stored, or used. No release files are written or published.
+
+## Release integrity verification design
+
+The installer can verify release metadata against an archive plan and a deterministic placeholder signature.
+
+This verification checks internal consistency only. It does not verify a real cryptographic signature, read keys, generate keys, download artifacts, or publish releases.

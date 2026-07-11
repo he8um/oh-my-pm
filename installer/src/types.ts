@@ -307,6 +307,29 @@ export type ReleaseMetadataDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Input for verifying release metadata against an archive plan. */
+export type ReleaseIntegrityVerificationInput = {
+  metadata: ReleaseMetadata;
+  archive: ArchivePlan;
+};
+
+/**
+ * Result of a consistency-only integrity verification. No cryptographic
+ * authenticity is checked and no key material exists anywhere.
+ */
+export type ReleaseIntegrityVerificationReport = {
+  ok: boolean;
+  reasons: string[];
+  metadataValidation: ReleaseMetadataValidationReport;
+};
+
+/** Result of an integrity verification dry run; nothing is written. */
+export type ReleaseIntegrityDryRunReport = {
+  ok: boolean;
+  verification: ReleaseIntegrityVerificationReport;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

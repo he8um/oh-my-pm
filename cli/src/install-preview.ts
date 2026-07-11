@@ -16,6 +16,7 @@ import {
   createInstaller,
   createNodeFilesystemAdapter,
   createPackageAssemblyDryRun,
+  createReleaseIntegrityDryRun,
   createReleaseMetadataDryRun,
 } from "@oh-my-pm/installer";
 
@@ -43,6 +44,11 @@ export type InstallerPreviewResult = {
     signed: boolean;
     signatureAlgorithm?: string;
     keyId?: string;
+  };
+  /** Consistency-only integrity verdict; no real signature verification. */
+  integrity?: {
+    ok: boolean;
+    reasons: string[];
   };
 };
 
@@ -118,6 +124,21 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   };
   const metadataWarnings =
     metadataReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
+  // Consistency-only integrity check of the planned metadata against the
+  // planned archive; duplicates with metadata warnings are dropped below.
+  const integrityReport = createReleaseIntegrityDryRun({
+    metadata: metadataReport.metadata,
+    archive: archiveReport.plan,
+  });
+  const integrity = {
+    ok: integrityReport.ok,
+    reasons: [...integrityReport.verification.reasons],
+  };
+  const integrityWarnings =
+    integrityReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
+  const uniqueWarnings = (values: string[]): string[] => [...new Set(values)];
   const packageManifest = assembly.manifest;
 
   const installer = createInstaller({ kernel: createPreviewKernelApi() });
@@ -133,9 +154,15 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       operations: [],
       packageName: packageManifest.name,
       packageVersion: packageManifest.version,
-      warnings: [...warnings, ...metadataWarnings, result.message],
+      warnings: uniqueWarnings([
+        ...warnings,
+        ...metadataWarnings,
+        ...integrityWarnings,
+        result.message,
+      ]),
       archive,
       releaseMetadata,
+      integrity,
     };
   }
 
@@ -149,13 +176,15 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     })),
     packageName: packageManifest.name,
     packageVersion: packageManifest.version,
-    warnings: [
+    warnings: uniqueWarnings([
       ...warnings,
       ...metadataWarnings,
+      ...integrityWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
-    ],
+    ]),
     archive,
     releaseMetadata,
+    integrity,
   };
 }
 

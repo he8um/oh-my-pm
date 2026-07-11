@@ -11,10 +11,12 @@ import type {
   ArchivePlanInput,
   FilesystemEntry,
   PackageAssemblyInput,
+  ReleaseIntegrityVerificationInput,
   ReleaseMetadataInput,
 } from "./types.js";
 import { createArchivePlan } from "./archive-plan.js";
 import { createPackageManifest } from "./package-manifest.js";
+import { createReleaseMetadataDryRun } from "./release-metadata.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -78,6 +80,17 @@ export function exampleReleaseMetadataInput(): ReleaseMetadataInput {
     createdAt: "2026-01-01T00:00:00.000Z",
     keyId: "example-key",
   };
+}
+
+/** Example verification input pairing metadata with its archive plan. */
+export function exampleReleaseIntegrityVerificationInput(): ReleaseIntegrityVerificationInput {
+  const archive = createArchivePlan(exampleArchivePlanInput());
+  const metadata = createReleaseMetadataDryRun({
+    archive,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    keyId: "example-key",
+  });
+  return { archive, metadata: metadata.metadata };
 }
 
 /** Example package assembly dry-run input. */
