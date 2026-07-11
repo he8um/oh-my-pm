@@ -49,6 +49,9 @@ importers:
       '@oh-my-pm/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@oh-my-pm/installer':
+        specifier: workspace:*
+        version: link:../installer
       '@oh-my-pm/kernel':
         specifier: workspace:*
         version: link:../kernel/binding

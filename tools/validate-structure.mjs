@@ -262,6 +262,9 @@ const EXAMPLES_SOURCES = [
   "examples/test/doctor.test.ts",
   "examples/test/plan.test.ts",
   "examples/test/purity.test.ts",
+  "examples/src/installer.ts",
+  "examples/test/installer.test.ts",
+  "examples/test/installer-node-adapter.test.ts",
 ];
 for (const file of EXAMPLES_SOURCES) {
   if (!existsSync(file)) err(`examples file missing: ${file}`);

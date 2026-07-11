@@ -9,5 +9,10 @@ Current examples:
 - status through the CLI and injected Runtime
 - doctor through the CLI and injected Runtime
 - plan through the CLI, Runtime, Planner, local Provider, and deterministic Skills
+- installer dry-run planning through in-memory adapters
+- controlled installer execution through explicit write adapters
+- rollback capture examples
+
+Installer examples do not add a CLI install command and do not package or download release artifacts.
 
 The example Kernel is an injected deterministic boundary used only for examples, demonstrating dependency injection. The private CLI wrapper now uses the real WASM Kernel binding instead.

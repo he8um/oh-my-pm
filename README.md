@@ -48,7 +48,7 @@ See [`docs/architecture.md`](docs/architecture.md).
 
 ## Current phase
 
-The repository scaffold, shared contracts, Kernel foundation, Runtime foundation, CLI status/doctor/plan foundation, provider framework foundation, Planner foundation, Skills foundation, Runtime plan execution shell, package-level examples, private CLI wrapper, real WASM Kernel binding, Installer foundation, installer filesystem planning, and read-only Node filesystem adapter are in place. The current focus is controlled installer execution behind explicit write adapters.
+The repository scaffold, shared contracts, Kernel foundation, Runtime foundation, CLI status/doctor/plan foundation, provider framework foundation, Planner foundation, Skills foundation, Runtime plan execution shell, package-level examples, private CLI wrapper, real WASM Kernel binding, Installer foundation, installer filesystem planning, read-only Node filesystem adapter, and controlled installer execution are in place. The current focus is installer examples.
 
 Implementation will begin with:
 

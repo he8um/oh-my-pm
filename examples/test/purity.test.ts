@@ -9,8 +9,14 @@ import { describe, expect, it } from "vitest";
 
 const srcDir = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
 
+// Node filesystem usage is matched precisely because installer example
+// helpers legitimately use names containing the word "filesystem".
 const FORBIDDEN = [
-  "fs",
+  'from "fs"',
+  'from "node:fs"',
+  'require("fs")',
+  "fs.",
+  "node:fs",
   "process.env",
   "process.exit",
   "child_process",
@@ -26,7 +32,7 @@ const FORBIDDEN = [
 describe("examples purity", () => {
   it("source files contain no I/O or nondeterministic APIs", () => {
     const files = readdirSync(srcDir).filter((f) => f.endsWith(".ts"));
-    expect(files.length).toBeGreaterThanOrEqual(6);
+    expect(files.length).toBeGreaterThanOrEqual(7);
     for (const file of files) {
       const contents = readFileSync(join(srcDir, file), "utf8");
       for (const forbidden of FORBIDDEN) {

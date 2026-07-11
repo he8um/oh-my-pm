@@ -85,6 +85,9 @@ for (const file of trackedFiles) {
     ) {
       err(`${file} imports a Node filesystem module: "${spec}"`);
     }
+    if (file.startsWith("examples/src/") && (spec === "fs" || spec.startsWith("node:fs"))) {
+      err(`${file} imports a Node filesystem module: "${spec}"`);
+    }
   }
 }
 

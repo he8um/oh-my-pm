@@ -3,6 +3,18 @@ export {
   runDoctorMarkdownExample,
 } from "./doctor.js";
 export {
+  runInstallerControlledExecutionExample,
+  runInstallerDryRunExample,
+  runInstallerRollbackExample,
+  runInstallerUpdateExample,
+} from "./installer.js";
+export type {
+  InstallerControlledExecutionExample,
+  InstallerDryRunExample,
+  InstallerRollbackExample,
+  InstallerUpdateExample,
+} from "./installer.js";
+export {
   createExampleKernelApi,
 } from "./kernel.js";
 export {
