@@ -10,6 +10,7 @@ import type {
   InstallExecutionReport,
   LocalUpdatePolicyDryRunReport,
   PackageAssemblyDryRunReport,
+  RollbackImpactDryRunReport,
   UpdateImpactDryRunReport,
   ReleaseChannelDryRunReport,
   ReleaseIntegrityDryRunReport,
@@ -23,8 +24,10 @@ import {
   createMemoryFilesystem,
   createMemoryWriteFilesystem,
   createLocalUpdatePolicyDryRun,
+  createRollbackImpactDryRun,
   createUpdateImpactDryRun,
   createPackageAssemblyDryRun,
+  exampleRollbackImpactPreviewInput,
   createReleaseChannelDryRun,
   createReleaseIntegrityDryRun,
   createReleaseMetadataDryRun,
@@ -81,6 +84,10 @@ export type InstallerUpdatePolicyExample = {
 
 export type InstallerUpdateImpactExample = {
   impact: UpdateImpactDryRunReport;
+};
+
+export type InstallerRollbackImpactExample = {
+  rollbackImpact: RollbackImpactDryRunReport;
 };
 
 export type InstallerUpdateExample = {
@@ -260,6 +267,12 @@ export function runInstallerUpdateImpactExample(): InstallerUpdateImpactExample 
     policy: updatePolicy.report,
   });
   return { impact };
+}
+
+/** Preview what a rollback would change; no files are touched. */
+export function runInstallerRollbackImpactExample(): InstallerRollbackImpactExample {
+  const rollbackImpact = createRollbackImpactDryRun(exampleRollbackImpactPreviewInput());
+  return { rollbackImpact };
 }
 
 /** Install the example package, then apply the example update plan. */

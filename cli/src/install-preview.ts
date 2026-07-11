@@ -20,6 +20,7 @@ import {
   createReleaseChannelDryRun,
   createReleaseIntegrityDryRun,
   createReleaseMetadataDryRun,
+  createRollbackImpactDryRun,
   createUpdateImpactDryRun,
   DEFAULT_LOCAL_UPDATE_POLICY,
 } from "@oh-my-pm/installer";
@@ -76,6 +77,19 @@ export type InstallerPreviewResult = {
     creates: number;
     replaces: number;
     removes: number;
+    unchanged: number;
+    beforeSizeBytes: number;
+    afterSizeBytes: number;
+    reasons: string[];
+  };
+  /** Rollback impact preview; comparison only, no rollback is executed. */
+  rollbackImpact?: {
+    ok: boolean;
+    rollbackId: string;
+    operations: number;
+    restores: number;
+    removes: number;
+    missing: number;
     unchanged: number;
     beforeSizeBytes: number;
     afterSizeBytes: number;
@@ -241,6 +255,41 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const impactWarnings =
     impactReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Rollback impact preview: treat the assembly's current files as both the
+  // installed files and, re-keyed to package-relative paths, the backup set.
+  // Comparison only — no rollback runs and nothing is written.
+  const rootPrefix = `${root.replace(/\/+$/, "")}/`;
+  const backupFiles = assembly.plan.files.map((file) => ({
+    ...file,
+    path: file.path.startsWith(rootPrefix) ? file.path.slice(rootPrefix.length) : file.path,
+  }));
+  const rollbackPaths = backupFiles.map((file) => file.path);
+  const rollbackImpactReport = createRollbackImpactDryRun({
+    root,
+    currentFiles: assembly.plan.files,
+    rollback: {
+      id: "preview-rollback",
+      paths: rollbackPaths.length > 0 ? rollbackPaths : ["bin/oh-my-pm", "README.md"],
+      createdAt: "preview-created-at",
+    },
+    backupFiles,
+  });
+  const rollbackSummary = rollbackImpactReport.preview.summary;
+  const rollbackImpact = {
+    ok: rollbackImpactReport.ok,
+    rollbackId: rollbackImpactReport.preview.rollbackId,
+    operations: rollbackImpactReport.preview.operations.length,
+    restores: rollbackSummary.restores,
+    removes: rollbackSummary.removes,
+    missing: rollbackSummary.missing,
+    unchanged: rollbackSummary.unchanged,
+    beforeSizeBytes: rollbackSummary.beforeSizeBytes,
+    afterSizeBytes: rollbackSummary.afterSizeBytes,
+    reasons: [...rollbackImpactReport.preview.reasons],
+  };
+  const rollbackImpactWarnings =
+    rollbackImpactReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   const uniqueWarnings = (values: string[]): string[] => [...new Set(values)];
   const packageManifest = assembly.manifest;
 
@@ -264,6 +313,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...channelWarnings,
         ...updatePolicyWarnings,
         ...impactWarnings,
+        ...rollbackImpactWarnings,
         result.message,
       ]),
       archive,
@@ -272,6 +322,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       channel,
       updatePolicy,
       impact,
+      rollbackImpact,
     };
   }
 
@@ -292,6 +343,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...channelWarnings,
       ...updatePolicyWarnings,
       ...impactWarnings,
+      ...rollbackImpactWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -300,6 +352,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     channel,
     updatePolicy,
     impact,
+    rollbackImpact,
   };
 }
 

@@ -11,6 +11,7 @@ export {
   exampleArchivePlanInput,
   exampleFilesystemEntries,
   exampleLocalUpdatePolicyInput,
+  exampleRollbackImpactPreviewInput,
   exampleUpdateImpactPreviewInput,
   examplePackageAssemblyInput,
   examplePackageFileEntries,
@@ -53,6 +54,13 @@ export {
   validatePackageFileEntries,
 } from "./package-manifest.js";
 export type { PackageManifestInput } from "./package-manifest.js";
+export {
+  createRollbackImpactDryRun,
+  createRollbackImpactOperations,
+  createRollbackImpactPreview,
+  normalizeRollbackImpactPath,
+  summarizeRollbackImpact,
+} from "./rollback-impact.js";
 export {
   createUpdateImpactDryRun,
   createUpdateImpactOperations,
@@ -168,6 +176,12 @@ export type {
   ReleaseMetadataValidationReport,
   ReleaseSignature,
   ReleaseSignatureAlgorithm,
+  RollbackImpactDryRunReport,
+  RollbackImpactOperation,
+  RollbackImpactOperationKind,
+  RollbackImpactPreviewInput,
+  RollbackImpactPreviewReport,
+  RollbackImpactSummary,
   UpdateImpactDryRunReport,
   UpdateImpactOperation,
   UpdateImpactOperationKind,

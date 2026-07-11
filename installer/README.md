@@ -79,3 +79,9 @@ The evaluation is local and policy-based. It checks channel allowance, candidate
 The installer can preview the impact of a locally eligible update before any installation runs.
 
 The preview compares current files with candidate release entries and reports create, replace, remove, and unchanged operations with size/checksum summaries. It does not retrieve packages remotely, execute installation, call write adapters, or write files.
+
+## Rollback impact preview
+
+The installer can preview the impact of a rollback before any rollback operation runs.
+
+The preview compares current files with rollback backup entries and reports restore, remove, missing, and unchanged operations with size/checksum summaries. It does not retrieve packages remotely, execute rollback, call write adapters, or write files.

@@ -458,6 +458,54 @@ export type UpdateImpactDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** How a rollback backup compares to the current file. */
+export type RollbackImpactOperationKind = "restore" | "remove" | "missing" | "unchanged";
+
+/** One file's before/after comparison for a rollback impact preview. */
+export type RollbackImpactOperation = {
+  kind: RollbackImpactOperationKind;
+  path: InstallerPath;
+  beforeChecksum?: string;
+  afterChecksum?: string;
+  beforeSizeBytes?: number;
+  afterSizeBytes?: number;
+};
+
+/** Aggregate counts and byte totals for a rollback impact preview. */
+export type RollbackImpactSummary = {
+  restores: number;
+  removes: number;
+  missing: number;
+  unchanged: number;
+  beforeSizeBytes: number;
+  afterSizeBytes: number;
+};
+
+/** Input for previewing the impact of a rollback; no execution. */
+export type RollbackImpactPreviewInput = {
+  root: InstallerPath;
+  currentFiles: FilesystemEntry[];
+  rollback: RollbackManifest;
+  backupFiles: FilesystemEntry[];
+};
+
+/** Result of a rollback impact preview. */
+export type RollbackImpactPreviewReport = {
+  ok: boolean;
+  root: InstallerPath;
+  rollbackId: string;
+  operations: RollbackImpactOperation[];
+  summary: RollbackImpactSummary;
+  reasons: string[];
+};
+
+/** Result of a rollback impact dry run; nothing is restored or executed. */
+export type RollbackImpactDryRunReport = {
+  ok: boolean;
+  preview: RollbackImpactPreviewReport;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

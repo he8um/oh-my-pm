@@ -78,6 +78,14 @@ describe("runInstallerPreview", () => {
           (result.impact?.removes ?? 0) +
           (result.impact?.unchanged ?? 0),
       ).toBe(result.impact?.operations);
+      expect(result.rollbackImpact?.ok).toBe(true);
+      expect(result.rollbackImpact?.rollbackId).toBe("preview-rollback");
+      expect(
+        (result.rollbackImpact?.restores ?? 0) +
+          (result.rollbackImpact?.removes ?? 0) +
+          (result.rollbackImpact?.missing ?? 0) +
+          (result.rollbackImpact?.unchanged ?? 0),
+      ).toBe(result.rollbackImpact?.operations);
 
       expect(readdirSync(root).sort()).toEqual(before);
       expect(readFileSync(join(root, "bin", "oh-my-pm"), "utf8")).toBe("old binary");
@@ -144,6 +152,8 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: update_impact_root_missing",
       "OMP-I-6001: update_policy_not_allowed",
       "OMP-I-6001: update_impact_candidate_entries_empty",
+      "OMP-I-6001: rollback_impact_root_missing",
+      "OMP-I-6001: rollback_impact_backup_files_empty",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);
@@ -156,6 +166,8 @@ describe("runInstallerPreview", () => {
     expect(result.updatePolicy?.reasons).toContain("candidate_integrity_failed");
     expect(result.impact?.ok).toBe(false);
     expect(result.impact?.operations).toBe(0);
+    expect(result.rollbackImpact?.ok).toBe(false);
+    expect(result.rollbackImpact?.rollbackId).toBe("preview-rollback");
   });
 });
 

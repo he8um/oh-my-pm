@@ -126,7 +126,7 @@ describe("installer purity", () => {
       (f) =>
         f.endsWith(".ts") && f !== NODE_READ_ADAPTER_FILE && f !== NODE_WRITE_ADAPTER_FILE,
     );
-    expect(files.length).toBeGreaterThanOrEqual(15);
+    expect(files.length).toBeGreaterThanOrEqual(16);
     for (const file of files) {
       const contents = readFileSync(join(srcDir, file), "utf8");
       for (const forbidden of CORE_FORBIDDEN) {
@@ -135,8 +135,8 @@ describe("installer purity", () => {
     }
   });
 
-  it("update policy and impact never execute installation", () => {
-    for (const file of ["update-policy.ts", "update-impact.ts"]) {
+  it("policy and impact previews never execute installation or rollback", () => {
+    for (const file of ["update-policy.ts", "update-impact.ts", "rollback-impact.ts"]) {
       const contents = readFileSync(join(srcDir, file), "utf8");
       for (const forbidden of ["executeInstall", "executeRollback"]) {
         expect(contents, `${file} must not contain "${forbidden}"`).not.toContain(forbidden);

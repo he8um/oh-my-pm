@@ -10,6 +10,7 @@ import {
   runInstallerDryRunExample,
   runInstallerPackageAssemblyDryRunExample,
   runInstallerRollbackExample,
+  runInstallerRollbackImpactExample,
   runInstallerUpdateExample,
   runInstallerUpdateImpactExample,
 } from "../src/index.js";
@@ -163,6 +164,21 @@ describe("runInstallerUpdateImpactExample", () => {
   });
 });
 
+describe("runInstallerRollbackImpactExample", () => {
+  it("previews rollback operations without remote or execution fields", () => {
+    const result = runInstallerRollbackImpactExample();
+    expect(result.rollbackImpact.ok).toBe(true);
+    expect(result.rollbackImpact.preview.summary.restores).toBeGreaterThanOrEqual(1);
+    expect(result.rollbackImpact.preview.summary.unchanged).toBeGreaterThanOrEqual(1);
+    expect(result.rollbackImpact.preview.summary.removes).toBeGreaterThanOrEqual(1);
+
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toMatch(/https?:\/\//);
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toContain("writeFile");
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
     expect(typeof examples.runInstallerDryRunExample).toBe("function");
@@ -176,5 +192,6 @@ describe("examples index", () => {
     expect(typeof examples.runInstallerReleaseChannelExample).toBe("function");
     expect(typeof examples.runInstallerUpdatePolicyExample).toBe("function");
     expect(typeof examples.runInstallerUpdateImpactExample).toBe("function");
+    expect(typeof examples.runInstallerRollbackImpactExample).toBe("function");
   });
 });

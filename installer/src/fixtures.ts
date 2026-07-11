@@ -15,6 +15,7 @@ import type {
   ReleaseChannelMetadataInput,
   ReleaseIntegrityVerificationInput,
   ReleaseMetadataInput,
+  RollbackImpactPreviewInput,
   UpdateImpactPreviewInput,
 } from "./types.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -146,6 +147,31 @@ export function exampleUpdateImpactPreviewInput(): UpdateImpactPreviewInput {
     ],
     candidateEntries: archive.entries,
     policy,
+  };
+}
+
+/**
+ * Example rollback impact input. bin/oh-my-pm differs from its backup
+ * (restore); README.md matches its backup (unchanged); old-file.txt is
+ * current-only with no backup (remove).
+ */
+export function exampleRollbackImpactPreviewInput(): RollbackImpactPreviewInput {
+  return {
+    root: "/tmp/oh-my-pm",
+    rollback: {
+      id: "rollback-1",
+      paths: ["bin/oh-my-pm", "README.md", "old-file.txt"],
+      createdAt: "2026-01-01T00:00:00.000Z",
+    },
+    currentFiles: [
+      { path: "bin/oh-my-pm", content: "new binary", checksum: "sha256:new-bin" },
+      { path: "README.md", content: "old readme", checksum: "sha256:old-readme" },
+      { path: "old-file.txt", content: "leftover!", checksum: "sha256:leftover" },
+    ],
+    backupFiles: [
+      { path: "bin/oh-my-pm", content: "old binary", checksum: "sha256:old-bin" },
+      { path: "README.md", content: "old readme", checksum: "sha256:old-readme" },
+    ],
   };
 }
 
