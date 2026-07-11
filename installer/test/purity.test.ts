@@ -126,12 +126,19 @@ describe("installer purity", () => {
       (f) =>
         f.endsWith(".ts") && f !== NODE_READ_ADAPTER_FILE && f !== NODE_WRITE_ADAPTER_FILE,
     );
-    expect(files.length).toBeGreaterThanOrEqual(12);
+    expect(files.length).toBeGreaterThanOrEqual(14);
     for (const file of files) {
       const contents = readFileSync(join(srcDir, file), "utf8");
       for (const forbidden of CORE_FORBIDDEN) {
         expect(contents, `${file} must not contain "${forbidden}"`).not.toContain(forbidden);
       }
+    }
+  });
+
+  it("update policy evaluation never executes installation", () => {
+    const contents = readFileSync(join(srcDir, "update-policy.ts"), "utf8");
+    for (const forbidden of ["executeInstall", "executeRollback"]) {
+      expect(contents, `update-policy.ts must not contain "${forbidden}"`).not.toContain(forbidden);
     }
   });
 

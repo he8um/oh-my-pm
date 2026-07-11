@@ -4,6 +4,7 @@ import {
   runInstallerArchivePlanExample,
   runInstallerReleaseChannelExample,
   runInstallerReleaseIntegrityExample,
+  runInstallerUpdatePolicyExample,
   runInstallerSignedMetadataExample,
   runInstallerControlledExecutionExample,
   runInstallerDryRunExample,
@@ -131,6 +132,22 @@ describe("runInstallerReleaseChannelExample", () => {
   });
 });
 
+describe("runInstallerUpdatePolicyExample", () => {
+  it("allows the update from 1.0.0 to the channel candidate", () => {
+    const result = runInstallerUpdatePolicyExample();
+    expect(result.updatePolicy.ok).toBe(true);
+    expect(result.updatePolicy.report.decision).toBe("allowed");
+    expect(result.updatePolicy.report.currentVersion).toBe("1.0.0");
+    expect(result.updatePolicy.report.candidateVersion).toBe("2.0.0-alpha.0");
+
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toMatch(/https?:\/\//);
+    for (const key of Object.keys(result.updatePolicy.report)) {
+      expect(key).not.toMatch(/url|endpoint|download|remote/i);
+    }
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
     expect(typeof examples.runInstallerDryRunExample).toBe("function");
@@ -142,5 +159,6 @@ describe("examples index", () => {
     expect(typeof examples.runInstallerSignedMetadataExample).toBe("function");
     expect(typeof examples.runInstallerReleaseIntegrityExample).toBe("function");
     expect(typeof examples.runInstallerReleaseChannelExample).toBe("function");
+    expect(typeof examples.runInstallerUpdatePolicyExample).toBe("function");
   });
 });

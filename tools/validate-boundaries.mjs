@@ -181,6 +181,14 @@ for (const file of trackedFiles) {
       err(`${file} contains forbidden remote/distribution pattern "${marker}"`);
     }
   }
+  // CLI source must never trigger real install execution; it previews only.
+  if (file.startsWith("cli/src/")) {
+    for (const marker of ["executeInstall", "executeRollback"]) {
+      if (contents.includes(marker)) {
+        err(`${file} contains forbidden install-execution call "${marker}"`);
+      }
+    }
+  }
 }
 
 // 5. contracts/generated/** must be generator output: header present, no

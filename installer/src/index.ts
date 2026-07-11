@@ -10,6 +10,7 @@ export {
 export {
   exampleArchivePlanInput,
   exampleFilesystemEntries,
+  exampleLocalUpdatePolicyInput,
   examplePackageAssemblyInput,
   examplePackageFileEntries,
   examplePackageManifest,
@@ -51,6 +52,15 @@ export {
   validatePackageFileEntries,
 } from "./package-manifest.js";
 export type { PackageManifestInput } from "./package-manifest.js";
+export {
+  compareVersionStrings,
+  createLocalUpdatePolicyDryRun,
+  DEFAULT_LOCAL_UPDATE_POLICY,
+  evaluateLocalUpdatePolicy,
+  selectUpdateCandidate,
+  validateLocalUpdatePolicy,
+  validateUpdatePolicyMode,
+} from "./update-policy.js";
 export {
   compareReleaseChannelEntries,
   createReleaseChannelDryRun,
@@ -124,6 +134,10 @@ export type {
   InstallerState,
   InstallInput,
   InstallPlan,
+  LocalUpdatePolicy,
+  LocalUpdatePolicyDryRunReport,
+  LocalUpdatePolicyInput,
+  LocalUpdatePolicyReport,
   NodeFilesystemAdapterInfo,
   PackageAssemblyDryRunReport,
   PackageAssemblyInput,
@@ -146,6 +160,8 @@ export type {
   ReleaseMetadataValidationReport,
   ReleaseSignature,
   ReleaseSignatureAlgorithm,
+  UpdatePolicyDecision,
+  UpdatePolicyMode,
   RollbackCaptureInput,
   RollbackCapturePlan,
   RollbackExecutionInput,

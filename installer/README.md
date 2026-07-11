@@ -67,3 +67,9 @@ This verification checks internal consistency only. It does not verify a real cr
 The installer can build local release channel metadata from verified release metadata.
 
 Channel metadata groups release entries by channel name and selects the latest entry deterministically. It does not publish channel files, expose download URLs, fetch updates, upload artifacts, or create releases.
+
+## Local update policy evaluation
+
+The installer can evaluate whether a local channel entry is eligible for update from an installed manifest.
+
+The evaluation is local and policy-based. It checks channel allowance, candidate integrity, current version, candidate version, and downgrade rules. It does not retrieve packages remotely, execute installation, contact remote endpoints, or write files.

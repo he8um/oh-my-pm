@@ -15,10 +15,12 @@ import {
   createArchiveDryRunFromAssembly,
   createInstaller,
   createNodeFilesystemAdapter,
+  createLocalUpdatePolicyDryRun,
   createPackageAssemblyDryRun,
   createReleaseChannelDryRun,
   createReleaseIntegrityDryRun,
   createReleaseMetadataDryRun,
+  DEFAULT_LOCAL_UPDATE_POLICY,
 } from "@oh-my-pm/installer";
 
 export type InstallerPreviewResult = {
@@ -57,6 +59,14 @@ export type InstallerPreviewResult = {
     latestVersion: string;
     entries: number;
     ok: boolean;
+  };
+  /** Local update policy verdict; evaluated only, never executed. */
+  updatePolicy?: {
+    ok: boolean;
+    decision: string;
+    currentVersion?: string;
+    candidateVersion?: string;
+    reasons: string[];
   };
 };
 
@@ -168,6 +178,33 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const channelWarnings =
     channelReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Local, evaluation-only update decision against a hypothetical installed
+  // 1.0.0 manifest; nothing is fetched or installed.
+  const updatePolicyReport = createLocalUpdatePolicyDryRun({
+    installed: {
+      schemaVersion: "1",
+      version: "1.0.0",
+      installedAt: "preview-installed-at",
+      root,
+    },
+    channel: channelReport.channel,
+    policy: DEFAULT_LOCAL_UPDATE_POLICY,
+  });
+  const policyReport = updatePolicyReport.report;
+  const updatePolicy = {
+    ok: updatePolicyReport.ok,
+    decision: policyReport.decision,
+    ...(policyReport.currentVersion === undefined
+      ? {}
+      : { currentVersion: policyReport.currentVersion }),
+    ...(policyReport.candidateVersion === undefined
+      ? {}
+      : { candidateVersion: policyReport.candidateVersion }),
+    reasons: [...policyReport.reasons],
+  };
+  const updatePolicyWarnings =
+    updatePolicyReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   const uniqueWarnings = (values: string[]): string[] => [...new Set(values)];
   const packageManifest = assembly.manifest;
 
@@ -189,12 +226,14 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...metadataWarnings,
         ...integrityWarnings,
         ...channelWarnings,
+        ...updatePolicyWarnings,
         result.message,
       ]),
       archive,
       releaseMetadata,
       integrity,
       channel,
+      updatePolicy,
     };
   }
 
@@ -213,12 +252,14 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...metadataWarnings,
       ...integrityWarnings,
       ...channelWarnings,
+      ...updatePolicyWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
     releaseMetadata,
     integrity,
     channel,
+    updatePolicy,
   };
 }
 

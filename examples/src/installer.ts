@@ -8,6 +8,7 @@ import type {
   InstallDryRunReport,
   InstallerFailure,
   InstallExecutionReport,
+  LocalUpdatePolicyDryRunReport,
   PackageAssemblyDryRunReport,
   ReleaseChannelDryRunReport,
   ReleaseIntegrityDryRunReport,
@@ -20,10 +21,12 @@ import {
   createInstaller,
   createMemoryFilesystem,
   createMemoryWriteFilesystem,
+  createLocalUpdatePolicyDryRun,
   createPackageAssemblyDryRun,
   createReleaseChannelDryRun,
   createReleaseIntegrityDryRun,
   createReleaseMetadataDryRun,
+  DEFAULT_LOCAL_UPDATE_POLICY,
   exampleFilesystemEntries,
   examplePackageAssemblyInput,
   examplePackageManifest,
@@ -68,6 +71,10 @@ export type InstallerReleaseIntegrityExample = {
 
 export type InstallerReleaseChannelExample = {
   channel: ReleaseChannelDryRunReport;
+};
+
+export type InstallerUpdatePolicyExample = {
+  updatePolicy: LocalUpdatePolicyDryRunReport;
 };
 
 export type InstallerUpdateExample = {
@@ -214,6 +221,23 @@ export function runInstallerReleaseChannelExample(): InstallerReleaseChannelExam
     ],
   });
   return { channel };
+}
+
+/** Evaluate a local update policy against the example channel; no execution. */
+export function runInstallerUpdatePolicyExample(): InstallerUpdatePolicyExample {
+  const { channel } = runInstallerReleaseChannelExample();
+  const updatePolicy = createLocalUpdatePolicyDryRun({
+    installed: {
+      schemaVersion: "1",
+      version: "1.0.0",
+      installedAt: EXAMPLE_INSTALLED_AT,
+      root: "/tmp/oh-my-pm",
+    },
+    channel: channel.channel,
+    policy: DEFAULT_LOCAL_UPDATE_POLICY,
+  });
+  // channel.channel is the ReleaseChannelMetadata carried by the dry-run report.
+  return { updatePolicy };
 }
 
 /** Install the example package, then apply the example update plan. */

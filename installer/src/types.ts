@@ -372,6 +372,44 @@ export type ReleaseChannelDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** How updates are applied under a local policy; a label only. */
+export type UpdatePolicyMode = "manual" | "automatic";
+
+/** Outcome of evaluating a candidate against an installed manifest. */
+export type UpdatePolicyDecision = "allowed" | "blocked" | "already-current";
+
+/** Local, policy-based update rules. No remote locations are involved. */
+export type LocalUpdatePolicy = {
+  mode: UpdatePolicyMode;
+  allowedChannels: ReleaseChannelName[];
+  allowDowngrade: boolean;
+  requireIntegrity: boolean;
+};
+
+/** Input for evaluating a channel candidate against the installed manifest. */
+export type LocalUpdatePolicyInput = {
+  installed: InstallManifest | undefined;
+  channel: ReleaseChannelMetadata;
+  policy: LocalUpdatePolicy;
+};
+
+/** Result of evaluating a local update policy. */
+export type LocalUpdatePolicyReport = {
+  ok: boolean;
+  decision: UpdatePolicyDecision;
+  currentVersion?: string;
+  candidateVersion?: string;
+  channel: ReleaseChannelName;
+  reasons: string[];
+};
+
+/** Result of an update policy dry run; nothing is fetched or executed. */
+export type LocalUpdatePolicyDryRunReport = {
+  ok: boolean;
+  report: LocalUpdatePolicyReport;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

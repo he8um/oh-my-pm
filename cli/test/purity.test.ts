@@ -50,6 +50,8 @@ const FORBIDDEN = [
   "cdn",
   "bucket",
   "registry",
+  "executeInstall",
+  "executeRollback",
 ];
 
 describe("cli purity", () => {

@@ -10,6 +10,7 @@ import type {
 import type {
   ArchivePlanInput,
   FilesystemEntry,
+  LocalUpdatePolicyInput,
   PackageAssemblyInput,
   ReleaseChannelMetadataInput,
   ReleaseIntegrityVerificationInput,
@@ -17,8 +18,10 @@ import type {
 } from "./types.js";
 import { createArchivePlan } from "./archive-plan.js";
 import { createPackageManifest } from "./package-manifest.js";
+import { createReleaseChannelMetadata } from "./release-channel.js";
 import { createReleaseIntegrityDryRun } from "./release-integrity.js";
 import { createReleaseMetadataDryRun } from "./release-metadata.js";
+import { DEFAULT_LOCAL_UPDATE_POLICY } from "./update-policy.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -109,6 +112,20 @@ export function exampleReleaseChannelMetadataInput(): ReleaseChannelMetadataInpu
         integrity: integrity.verification,
       },
     ],
+  };
+}
+
+/** Example update policy input; the candidate (2.0.0-alpha.0) is newer. */
+export function exampleLocalUpdatePolicyInput(): LocalUpdatePolicyInput {
+  return {
+    installed: {
+      schemaVersion: "1",
+      version: "1.0.0",
+      installedAt: "2026-01-01T00:00:00.000Z",
+      root: "/tmp/oh-my-pm",
+    },
+    channel: createReleaseChannelMetadata(exampleReleaseChannelMetadataInput()),
+    policy: DEFAULT_LOCAL_UPDATE_POLICY,
   };
 }
 
