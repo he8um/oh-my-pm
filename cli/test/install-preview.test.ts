@@ -43,9 +43,16 @@ describe("runInstallerPreview", () => {
         "replace",
       ]);
       expect(result.warnings).toEqual([]);
+      expect(result.archive).toEqual({
+        format: "zip",
+        archiveName: "oh-my-pm-local-2.0.0-alpha.0.zip",
+        entries: 2,
+        checksum: expect.stringMatching(/^archive:zip:oh-my-pm-local:2\.0\.0-alpha\.0:/),
+      });
 
       expect(readdirSync(root).sort()).toEqual(before);
       expect(readFileSync(join(root, "bin", "oh-my-pm"), "utf8")).toBe("old binary");
+      expect(readdirSync(root).some((name) => name.endsWith(".zip"))).toBe(false);
     });
   });
 
@@ -70,6 +77,8 @@ describe("runInstallerPreview", () => {
       for (const operation of parsed.operations as { checksum?: string }[]) {
         expect(operation.checksum).toMatch(/^sha256:[0-9a-f]{64}$/);
       }
+      expect(parsed.archive.archiveName).toBe("oh-my-pm-local-2.0.0-alpha.0.zip");
+      expect(parsed.archive.entries).toBe(2);
     });
   });
 
@@ -78,9 +87,11 @@ describe("runInstallerPreview", () => {
     expect(result.ok).toBe(false);
     expect(result.operations).toEqual([]);
     expect(result.warnings).toEqual([
+      "OMP-I-6001: archive_files_must_not_be_empty",
       "OMP-I-6001: missing_root",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
+    expect(result.archive?.entries).toBe(0);
   });
 });
 
@@ -143,6 +154,24 @@ describe("formatInstallerPreview", () => {
         "warning: invalid install input: missing_root",
         "",
       ].join("\n"),
+    );
+  });
+
+  it("adds an archive-plan line to brief output when planned", () => {
+    const withArchive = {
+      ...successResult,
+      archive: {
+        format: "zip",
+        archiveName: "oh-my-pm-local-2.0.0-alpha.0.zip",
+        entries: 2,
+        checksum: "archive:zip:oh-my-pm-local:2.0.0-alpha.0:x",
+      },
+    };
+    expect(formatInstallerPreview(withArchive, "brief")).toContain(
+      "archive-plan: oh-my-pm-local-2.0.0-alpha.0.zip\n",
+    );
+    expect(formatInstallerPreview(withArchive, "markdown")).toContain(
+      "## Archive Plan\n\nPlanned archive: `oh-my-pm-local-2.0.0-alpha.0.zip`\n",
     );
   });
 

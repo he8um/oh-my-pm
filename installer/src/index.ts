@@ -8,6 +8,7 @@ export {
   OMP_I_UPDATE_BLOCKED,
 } from "./errors.js";
 export {
+  exampleArchivePlanInput,
   exampleFilesystemEntries,
   examplePackageAssemblyInput,
   examplePackageFileEntries,
@@ -26,6 +27,15 @@ export { planInstallOperations, planRollbackCapture } from "./filesystem-plan.js
 export { createInstaller } from "./installer.js";
 export { cloneFilesystemSnapshot, createMemoryFilesystem } from "./memory-filesystem.js";
 export {
+  archiveExtension,
+  createArchiveDryRun,
+  createArchiveName,
+  createArchivePlan,
+  createArchivePlanEntry,
+  validateArchiveFormat,
+} from "./archive-plan.js";
+export {
+  createArchiveDryRunFromAssembly,
   createPackageAssemblyDryRun,
   planPackageAssembly,
   validatePackageAssemblyInput,
@@ -59,6 +69,11 @@ export {
   INSTALL_SCHEMA_VERSION,
 } from "./manifest.js";
 export type {
+  ArchiveDryRunReport,
+  ArchiveFormat,
+  ArchivePlan,
+  ArchivePlanEntry,
+  ArchivePlanInput,
   BackupFileInput,
   ChecksumAlgorithm,
   ExecutedFileOperation,

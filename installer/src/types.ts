@@ -220,6 +220,45 @@ export type PackageAssemblyDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Planned archive format; a plan value only, never an instruction to create. */
+export type ArchiveFormat = "zip" | "tar";
+
+/** Single file planned into a future archive. */
+export type ArchivePlanEntry = {
+  path: InstallerPath;
+  checksum: string;
+  sizeBytes: number;
+};
+
+/**
+ * Deterministic description of a future archive. `archiveName` is a planned
+ * name, not a written path — there is no output directory, artifact path, or
+ * write target anywhere in this model.
+ */
+export type ArchivePlan = {
+  format: ArchiveFormat;
+  archiveName: string;
+  packageName: string;
+  packageVersion: string;
+  checksum: string;
+  entries: ArchivePlanEntry[];
+};
+
+/** Input for planning an archive. */
+export type ArchivePlanInput = {
+  format: ArchiveFormat;
+  packageName: string;
+  packageVersion: string;
+  files: FilesystemEntry[];
+};
+
+/** Result of an archive dry run; no archive is ever created. */
+export type ArchiveDryRunReport = {
+  ok: boolean;
+  plan: ArchivePlan;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

@@ -13,7 +13,8 @@ Current examples:
 - controlled installer execution through explicit write adapters
 - rollback capture examples
 - installer package assembly dry-run through in-memory adapters
+- installer archive planning from assembly dry-run results
 
-Installer examples do not add a CLI install command and do not package or download release artifacts. The assembly example builds a manifest only; no archive is created and nothing is published.
+Installer examples do not add a CLI install command and do not package or download release artifacts. The assembly example builds a manifest only, and the archive plan example plans a name, checksum, and entries only; no archive file is created and nothing is published.
 
 The example Kernel is an injected deterministic boundary used only for examples, demonstrating dependency injection. The private CLI wrapper now uses the real WASM Kernel binding instead.

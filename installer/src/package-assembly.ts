@@ -4,12 +4,15 @@
 
 import type { KernelWarning } from "@oh-my-pm/contracts";
 import type {
+  ArchiveDryRunReport,
+  ArchiveFormat,
   FilesystemAdapter,
   FilesystemEntry,
   PackageAssemblyDryRunReport,
   PackageAssemblyInput,
   PackageAssemblyPlan,
 } from "./types.js";
+import { createArchiveDryRun } from "./archive-plan.js";
 import { installerWarning, OMP_I_INVALID_PACKAGE } from "./errors.js";
 import { createPackageManifest } from "./package-manifest.js";
 import { isSafeRelativePath, joinInstallerPath, normalizeInstallerPath } from "./paths.js";
@@ -57,6 +60,35 @@ export function planPackageAssembly(
     }
   }
   return { root: input.root, include: [...input.include], files };
+}
+
+/**
+ * Plan an archive from an assembly dry run. Assembly warnings are carried
+ * into the report after any archive warnings; the archive itself may still
+ * be ok when its own inputs are valid. Nothing is created or written.
+ */
+export function createArchiveDryRunFromAssembly(
+  assembly: PackageAssemblyDryRunReport,
+  format: ArchiveFormat,
+): ArchiveDryRunReport {
+  const archive = createArchiveDryRun({
+    format,
+    packageName: assembly.manifest.name,
+    packageVersion: assembly.manifest.version,
+    files: assembly.plan.files.map((file) => ({ ...file })),
+  });
+
+  const assemblyWarnings = assembly.warnings ?? [];
+  if (assemblyWarnings.length === 0) {
+    return archive;
+  }
+  return {
+    ...archive,
+    warnings: [
+      ...(archive.warnings ?? []),
+      ...assemblyWarnings.map((warning) => ({ ...warning })),
+    ],
+  };
 }
 
 /**

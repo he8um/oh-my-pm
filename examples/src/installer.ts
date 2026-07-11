@@ -4,6 +4,7 @@
 // packaging, and no downloads.
 
 import type {
+  ArchiveDryRunReport,
   InstallDryRunReport,
   InstallerFailure,
   InstallExecutionReport,
@@ -12,6 +13,7 @@ import type {
   RollbackExecutionReport,
 } from "@oh-my-pm/installer";
 import {
+  createArchiveDryRunFromAssembly,
   createInstaller,
   createMemoryFilesystem,
   createMemoryWriteFilesystem,
@@ -44,6 +46,10 @@ export type InstallerRollbackExample = {
 
 export type InstallerPackageAssemblyExample = {
   assembly: PackageAssemblyDryRunReport;
+};
+
+export type InstallerArchivePlanExample = {
+  archive: ArchiveDryRunReport;
 };
 
 export type InstallerUpdateExample = {
@@ -144,6 +150,12 @@ export function runInstallerPackageAssemblyDryRunExample(): InstallerPackageAsse
   const filesystem = createMemoryFilesystem(exampleFilesystemEntries());
   const assembly = createPackageAssemblyDryRun(examplePackageAssemblyInput(), filesystem);
   return { assembly };
+}
+
+/** Plan an archive from the assembly dry run; no archive file is created. */
+export function runInstallerArchivePlanExample(): InstallerArchivePlanExample {
+  const { assembly } = runInstallerPackageAssemblyDryRunExample();
+  return { archive: createArchiveDryRunFromAssembly(assembly, "zip") };
 }
 
 /** Install the example package, then apply the example update plan. */

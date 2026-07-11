@@ -43,3 +43,9 @@ This design does not create archives, publish packages, download artifacts, or e
 The installer can create a package assembly dry-run from an explicit include list and a read-only filesystem adapter.
 
 The dry-run collects file metadata, builds a rich package manifest, and reports missing include paths. It does not create archives, write files, upload artifacts, or publish releases.
+
+## Archive plan design
+
+The installer can produce archive dry-run plans from package assembly results.
+
+Archive plans include a planned archive name, format, deterministic checksum, and file entries. They do not create archive files, write artifacts, upload packages, or publish releases.

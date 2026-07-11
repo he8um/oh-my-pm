@@ -3,6 +3,7 @@ export {
   runDoctorMarkdownExample,
 } from "./doctor.js";
 export {
+  runInstallerArchivePlanExample,
   runInstallerControlledExecutionExample,
   runInstallerDryRunExample,
   runInstallerPackageAssemblyDryRunExample,
@@ -10,6 +11,7 @@ export {
   runInstallerUpdateExample,
 } from "./installer.js";
 export type {
+  InstallerArchivePlanExample,
   InstallerControlledExecutionExample,
   InstallerDryRunExample,
   InstallerPackageAssemblyExample,

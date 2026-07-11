@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as examples from "../src/index.js";
 import {
+  runInstallerArchivePlanExample,
   runInstallerControlledExecutionExample,
   runInstallerDryRunExample,
   runInstallerPackageAssemblyDryRunExample,
@@ -69,6 +70,19 @@ describe("runInstallerPackageAssemblyDryRunExample", () => {
   });
 });
 
+describe("runInstallerArchivePlanExample", () => {
+  it("plans a zip archive without creating any file", () => {
+    const result = runInstallerArchivePlanExample();
+    expect(result.archive.ok).toBe(true);
+    expect(result.archive.plan.archiveName.endsWith(".zip")).toBe(true);
+    expect(result.archive.plan.entries.length).toBeGreaterThan(0);
+    expect(Object.keys(result.archive).sort()).toEqual(["ok", "plan"]);
+    for (const key of Object.keys(result.archive.plan)) {
+      expect(key).not.toMatch(/output|target|directory|writtenTo/i);
+    }
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
     expect(typeof examples.runInstallerDryRunExample).toBe("function");
@@ -76,5 +90,6 @@ describe("examples index", () => {
     expect(typeof examples.runInstallerRollbackExample).toBe("function");
     expect(typeof examples.runInstallerUpdateExample).toBe("function");
     expect(typeof examples.runInstallerPackageAssemblyDryRunExample).toBe("function");
+    expect(typeof examples.runInstallerArchivePlanExample).toBe("function");
   });
 });

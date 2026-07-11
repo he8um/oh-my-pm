@@ -12,6 +12,7 @@ import type {
   ValidationTarget,
 } from "@oh-my-pm/contracts";
 import {
+  createArchiveDryRunFromAssembly,
   createInstaller,
   createNodeFilesystemAdapter,
   createPackageAssemblyDryRun,
@@ -28,6 +29,13 @@ export type InstallerPreviewResult = {
   packageName: string;
   packageVersion: string;
   warnings: string[];
+  /** Planned archive summary; nothing is created. */
+  archive?: {
+    format: string;
+    archiveName: string;
+    entries: number;
+    checksum: string;
+  };
 };
 
 // Preview-only Kernel stand-in. planInstall never consults the Kernel; this
@@ -74,8 +82,17 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     },
     filesystem,
   );
+  // Archive planning only: the report already carries assembly warnings
+  // after its own, so it is the single warning source for the preview.
+  const archiveReport = createArchiveDryRunFromAssembly(assembly, "zip");
   const warnings =
-    assembly.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+    archiveReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+  const archive = {
+    format: archiveReport.plan.format,
+    archiveName: archiveReport.plan.archiveName,
+    entries: archiveReport.plan.entries.length,
+    checksum: archiveReport.plan.checksum,
+  };
   const packageManifest = assembly.manifest;
 
   const installer = createInstaller({ kernel: createPreviewKernelApi() });
@@ -92,6 +109,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       packageName: packageManifest.name,
       packageVersion: packageManifest.version,
       warnings: [...warnings, result.message],
+      archive,
     };
   }
 
@@ -109,6 +127,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...warnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ],
+    archive,
   };
 }
 
@@ -127,6 +146,9 @@ function formatBrief(result: InstallerPreviewResult): string {
     for (const warning of result.warnings) {
       lines.push(`warning: ${warning}`);
     }
+  }
+  if (result.archive !== undefined) {
+    lines.push(`archive-plan: ${result.archive.archiveName}`);
   }
   return `${lines.join("\n")}\n`;
 }
@@ -151,6 +173,9 @@ function formatMarkdown(result: InstallerPreviewResult): string {
     for (const warning of result.warnings) {
       lines.push(`- ${warning}`);
     }
+  }
+  if (result.archive !== undefined) {
+    lines.push("", "## Archive Plan", "", `Planned archive: \`${result.archive.archiveName}\``);
   }
   return `${lines.join("\n")}\n`;
 }

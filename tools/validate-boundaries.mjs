@@ -91,6 +91,16 @@ for (const file of trackedFiles) {
     if (file.startsWith("cli/src/") && (spec === "fs" || spec.startsWith("node:fs"))) {
       err(`${file} imports a Node filesystem module: "${spec}"`);
     }
+    if (
+      (file.startsWith("installer/src/") ||
+        file.startsWith("cli/src/") ||
+        file.startsWith("examples/src/")) &&
+      ["zlib", "node:zlib", "archiver", "adm-zip", "jszip", "tar", "stream", "node:stream"].includes(
+        spec,
+      )
+    ) {
+      err(`${file} imports an archive/compression module: "${spec}"`);
+    }
   }
 }
 

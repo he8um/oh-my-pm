@@ -294,6 +294,8 @@ const INSTALLER_SOURCES = [
   "installer/test/package-manifest.test.ts",
   "installer/src/package-assembly.ts",
   "installer/test/package-assembly.test.ts",
+  "installer/src/archive-plan.ts",
+  "installer/test/archive-plan.test.ts",
   "installer/test/validate.test.ts",
   "installer/test/manifest.test.ts",
   "installer/test/installer.test.ts",

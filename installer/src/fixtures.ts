@@ -7,7 +7,7 @@ import type {
   RollbackManifest,
   UpdatePlan,
 } from "@oh-my-pm/contracts";
-import type { FilesystemEntry, PackageAssemblyInput } from "./types.js";
+import type { ArchivePlanInput, FilesystemEntry, PackageAssemblyInput } from "./types.js";
 import { createPackageManifest } from "./package-manifest.js";
 
 /** Example installable package manifest. */
@@ -50,6 +50,19 @@ export function exampleRichPackageManifest(): PackageManifest {
       { path: "README.md", content: "example readme", checksum: "sha256:example-readme" },
     ],
   });
+}
+
+/** Example archive plan input with package-relative file paths. */
+export function exampleArchivePlanInput(): ArchivePlanInput {
+  return {
+    format: "zip",
+    packageName: "oh-my-pm-local",
+    packageVersion: "2.0.0-alpha.0",
+    files: exampleFilesystemEntries().map((entry) => ({
+      ...entry,
+      path: entry.path.slice("/tmp/oh-my-pm/".length),
+    })),
+  };
 }
 
 /** Example package assembly dry-run input. */

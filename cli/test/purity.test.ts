@@ -27,6 +27,11 @@ const FORBIDDEN = [
   "Math.random",
   "crypto.randomUUID",
   "console.",
+  "createWriteStream",
+  "archiver",
+  "zlib",
+  "AdmZip",
+  "JSZip",
 ];
 
 describe("cli purity", () => {
