@@ -56,6 +56,12 @@ describe("runInstallerPreview", () => {
         keyId: "preview-key",
       });
       expect(result.integrity).toEqual({ ok: true, reasons: [] });
+      expect(result.channel).toEqual({
+        name: "dev",
+        latestVersion: "2.0.0-alpha.0",
+        entries: 1,
+        ok: true,
+      });
 
       expect(readdirSync(root).sort()).toEqual(before);
       expect(readFileSync(join(root, "bin", "oh-my-pm"), "utf8")).toBe("old binary");
@@ -91,7 +97,10 @@ describe("runInstallerPreview", () => {
       expect(parsed.releaseMetadata.signatureAlgorithm).toBe("deterministic-placeholder");
       expect(parsed.integrity.ok).toBe(true);
       expect(parsed.integrity.reasons).toEqual([]);
+      expect(parsed.channel.name).toBe("dev");
+      expect(parsed.channel.latestVersion).toBe("2.0.0-alpha.0");
       expect(output).not.toContain("placeholder:preview-key:");
+      expect(output).not.toMatch(/https?:\/\//);
     });
   });
 
@@ -103,12 +112,15 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: archive_files_must_not_be_empty",
       "OMP-I-6001: missing_root",
       "OMP-I-6001: release_archive_entries_must_not_be_empty",
+      "OMP-I-6001: release_channel_entry_metadata_invalid",
+      "OMP-I-6001: release_channel_entry_integrity_failed",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);
     expect(result.releaseMetadata?.signed).toBe(true);
     expect(result.integrity?.ok).toBe(false);
     expect(result.integrity?.reasons).toContain("release_archive_entries_must_not_be_empty");
+    expect(result.channel?.ok).toBe(false);
   });
 });
 

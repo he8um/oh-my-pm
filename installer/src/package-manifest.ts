@@ -1,5 +1,5 @@
 // Release package manifest builders and validation. Everything here is pure
-// data construction: no archives, no downloads, no publishing, and no
+// data construction: no archives, no remote retrieval, no distribution, and no
 // filesystem access. Real distribution arrives in a later phase.
 
 import type { PackageFileEntry, PackageManifest } from "@oh-my-pm/contracts";

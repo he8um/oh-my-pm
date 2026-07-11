@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as examples from "../src/index.js";
 import {
   runInstallerArchivePlanExample,
+  runInstallerReleaseChannelExample,
   runInstallerReleaseIntegrityExample,
   runInstallerSignedMetadataExample,
   runInstallerControlledExecutionExample,
@@ -114,6 +115,22 @@ describe("runInstallerReleaseIntegrityExample", () => {
   });
 });
 
+describe("runInstallerReleaseChannelExample", () => {
+  it("groups the verified release into local dev channel metadata", () => {
+    const result = runInstallerReleaseChannelExample();
+    expect(result.channel.ok).toBe(true);
+    expect(result.channel.channel.channel).toBe("dev");
+    expect(result.channel.channel.latestVersion).toBe("2.0.0-alpha.0");
+    expect(result.channel.channel.entries).toHaveLength(1);
+
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toMatch(/https?:\/\//);
+    for (const key of Object.keys(result.channel.channel)) {
+      expect(key).not.toMatch(/url|endpoint|remote|mirror/i);
+    }
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
     expect(typeof examples.runInstallerDryRunExample).toBe("function");
@@ -124,5 +141,6 @@ describe("examples index", () => {
     expect(typeof examples.runInstallerArchivePlanExample).toBe("function");
     expect(typeof examples.runInstallerSignedMetadataExample).toBe("function");
     expect(typeof examples.runInstallerReleaseIntegrityExample).toBe("function");
+    expect(typeof examples.runInstallerReleaseChannelExample).toBe("function");
   });
 });

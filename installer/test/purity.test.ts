@@ -44,6 +44,19 @@ const SIGNING_FORBIDDEN = [
   "BEGIN CERTIFICATE",
 ];
 
+// Channel metadata is local-only: no remote locations, no distribution
+// terms, and no transfer verbs anywhere in installer source.
+const REMOTE_FORBIDDEN = [
+  "http://",
+  "https://",
+  "publish",
+  "upload",
+  "download",
+  "cdn",
+  "bucket",
+  "registry",
+];
+
 // No installer source may create archives or streamed artifacts; assembly
 // and archive planning stay dry runs until a later distribution phase.
 // Bare "zip"/"tar" plan values are allowed; library/API usage is not.
@@ -73,11 +86,13 @@ const CORE_FORBIDDEN = [
   ...NONDETERMINISM,
   ...ARCHIVE_FORBIDDEN,
   ...SIGNING_FORBIDDEN,
+  ...REMOTE_FORBIDDEN,
 ];
 
 // The read-only adapter may read through node:fs/node:path/node:crypto but
 // must never write or mutate.
 const READ_ADAPTER_FORBIDDEN = [
+  ...REMOTE_FORBIDDEN,
   "writeFile",
   "rmSync",
   "unlink",
@@ -102,6 +117,7 @@ const WRITE_ADAPTER_FORBIDDEN = [
   ...NONDETERMINISM,
   ...ARCHIVE_FORBIDDEN,
   ...SIGNING_FORBIDDEN,
+  ...REMOTE_FORBIDDEN,
 ];
 
 describe("installer purity", () => {

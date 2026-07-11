@@ -61,3 +61,9 @@ The current signature is a deterministic placeholder used only to model metadata
 The installer can verify release metadata against an archive plan and a deterministic placeholder signature.
 
 This verification checks internal consistency only. It does not verify a real cryptographic signature, read keys, generate keys, download artifacts, or publish releases.
+
+## Release channel metadata design
+
+The installer can build local release channel metadata from verified release metadata.
+
+Channel metadata groups release entries by channel name and selects the latest entry deterministically. It does not publish channel files, expose download URLs, fetch updates, upload artifacts, or create releases.

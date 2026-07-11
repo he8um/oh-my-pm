@@ -178,7 +178,7 @@ export type FilesystemExecutorDeps = {
 
 /**
  * Input for executing an install plan. `files` carries already available
- * package file contents; no download occurs.
+ * package file contents; no remote retrieval occurs.
  */
 export type InstallExecutionInput = {
   input: InstallInput;
@@ -298,7 +298,7 @@ export type ReleaseMetadataValidationReport = {
   reasons: string[];
 };
 
-/** Result of a release metadata dry run; no file, key, or upload exists. */
+/** Result of a release metadata dry run; no file, key, or remote transfer exists. */
 export type ReleaseMetadataDryRunReport = {
   ok: boolean;
   metadata: ReleaseMetadata;
@@ -327,6 +327,48 @@ export type ReleaseIntegrityVerificationReport = {
 export type ReleaseIntegrityDryRunReport = {
   ok: boolean;
   verification: ReleaseIntegrityVerificationReport;
+  warnings?: KernelWarning[];
+};
+
+/** Local release channel name; a grouping label only. */
+export type ReleaseChannelName = "stable" | "beta" | "nightly" | "dev";
+
+/** One verified release inside a channel. */
+export type ReleaseChannelEntry = {
+  version: string;
+  createdAt: string;
+  metadata: ReleaseMetadata;
+  integrity: ReleaseIntegrityVerificationReport;
+};
+
+/**
+ * Local channel metadata grouping verified releases. There are no remote
+ * locations, endpoints, or artifact paths anywhere in this model.
+ */
+export type ReleaseChannelMetadata = {
+  schemaVersion: string;
+  channel: ReleaseChannelName;
+  latestVersion: string;
+  entries: ReleaseChannelEntry[];
+};
+
+/** Input for building channel metadata. */
+export type ReleaseChannelMetadataInput = {
+  channel: ReleaseChannelName;
+  entries: ReleaseChannelEntry[];
+};
+
+/** Result of validating channel metadata. */
+export type ReleaseChannelValidationReport = {
+  ok: boolean;
+  reasons: string[];
+};
+
+/** Result of a channel metadata dry run; nothing is written or fetched. */
+export type ReleaseChannelDryRunReport = {
+  ok: boolean;
+  channel: ReleaseChannelMetadata;
+  validation: ReleaseChannelValidationReport;
   warnings?: KernelWarning[];
 };
 

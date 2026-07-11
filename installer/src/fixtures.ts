@@ -11,11 +11,13 @@ import type {
   ArchivePlanInput,
   FilesystemEntry,
   PackageAssemblyInput,
+  ReleaseChannelMetadataInput,
   ReleaseIntegrityVerificationInput,
   ReleaseMetadataInput,
 } from "./types.js";
 import { createArchivePlan } from "./archive-plan.js";
 import { createPackageManifest } from "./package-manifest.js";
+import { createReleaseIntegrityDryRun } from "./release-integrity.js";
 import { createReleaseMetadataDryRun } from "./release-metadata.js";
 
 /** Example installable package manifest. */
@@ -91,6 +93,23 @@ export function exampleReleaseIntegrityVerificationInput(): ReleaseIntegrityVeri
     keyId: "example-key",
   });
   return { archive, metadata: metadata.metadata };
+}
+
+/** Example channel input holding one verified release entry. */
+export function exampleReleaseChannelMetadataInput(): ReleaseChannelMetadataInput {
+  const integrityInput = exampleReleaseIntegrityVerificationInput();
+  const integrity = createReleaseIntegrityDryRun(integrityInput);
+  return {
+    channel: "dev",
+    entries: [
+      {
+        version: "2.0.0-alpha.0",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        metadata: integrityInput.metadata,
+        integrity: integrity.verification,
+      },
+    ],
+  };
 }
 
 /** Example package assembly dry-run input. */

@@ -13,6 +13,7 @@ export {
   examplePackageAssemblyInput,
   examplePackageFileEntries,
   examplePackageManifest,
+  exampleReleaseChannelMetadataInput,
   exampleReleaseIntegrityVerificationInput,
   exampleReleaseMetadataInput,
   exampleRichPackageManifest,
@@ -50,6 +51,15 @@ export {
   validatePackageFileEntries,
 } from "./package-manifest.js";
 export type { PackageManifestInput } from "./package-manifest.js";
+export {
+  compareReleaseChannelEntries,
+  createReleaseChannelDryRun,
+  createReleaseChannelMetadata,
+  RELEASE_CHANNEL_SCHEMA_VERSION,
+  selectLatestReleaseChannelEntry,
+  validateReleaseChannelMetadata,
+  validateReleaseChannelName,
+} from "./release-channel.js";
 export {
   createReleaseIntegrityDryRun,
   expectedPlaceholderSignatureValue,
@@ -121,6 +131,12 @@ export type {
   NodeFilesystemAdapterOptions,
   PlannedFileOperation,
   PlannedFileOperationKind,
+  ReleaseChannelDryRunReport,
+  ReleaseChannelEntry,
+  ReleaseChannelMetadata,
+  ReleaseChannelMetadataInput,
+  ReleaseChannelName,
+  ReleaseChannelValidationReport,
   ReleaseIntegrityDryRunReport,
   ReleaseIntegrityVerificationInput,
   ReleaseIntegrityVerificationReport,

@@ -1,6 +1,6 @@
 // Package assembly dry run: collect candidate files through a read-only
 // adapter and build a rich package manifest. Nothing here creates archives,
-// writes package files, uploads artifacts, or publishes releases.
+// writes package files, transfers artifacts, or distributes releases.
 
 import type { KernelWarning } from "@oh-my-pm/contracts";
 import type {

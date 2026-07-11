@@ -148,6 +148,9 @@ const SIGNING_MATERIAL = [
   "generateKey",
   "subtle.",
 ];
+// Channel metadata is local-only; no remote locations or transfer verbs may
+// appear in installer, CLI, or examples source.
+const REMOTE_MARKERS = ["http://", "https://", "publish", "upload", "download", "cdn", "bucket"];
 for (const file of trackedFiles) {
   const scanned =
     (file.startsWith("installer/src/") ||
@@ -171,6 +174,11 @@ for (const file of trackedFiles) {
   for (const marker of SIGNING_MATERIAL) {
     if (contents.includes(marker)) {
       err(`${file} contains forbidden signing/key material pattern "${marker}"`);
+    }
+  }
+  for (const marker of REMOTE_MARKERS) {
+    if (contents.includes(marker)) {
+      err(`${file} contains forbidden remote/distribution pattern "${marker}"`);
     }
   }
 }

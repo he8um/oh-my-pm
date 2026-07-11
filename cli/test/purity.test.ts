@@ -42,6 +42,14 @@ const FORBIDDEN = [
   "BEGIN PRIVATE KEY",
   "BEGIN PUBLIC KEY",
   "BEGIN CERTIFICATE",
+  "http://",
+  "https://",
+  "publish",
+  "upload",
+  "download",
+  "cdn",
+  "bucket",
+  "registry",
 ];
 
 describe("cli purity", () => {

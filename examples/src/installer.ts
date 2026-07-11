@@ -1,7 +1,7 @@
 // Installer examples: dry-run planning, controlled execution, rollback
 // capture, and update guard flow — all through in-memory adapters and the
 // injected example Kernel boundary. No CLI install command, no release
-// packaging, and no downloads.
+// packaging, and no remote retrieval.
 
 import type {
   ArchiveDryRunReport,
@@ -9,6 +9,7 @@ import type {
   InstallerFailure,
   InstallExecutionReport,
   PackageAssemblyDryRunReport,
+  ReleaseChannelDryRunReport,
   ReleaseIntegrityDryRunReport,
   ReleaseMetadataDryRunReport,
   RollbackCapturePlan,
@@ -20,6 +21,7 @@ import {
   createMemoryFilesystem,
   createMemoryWriteFilesystem,
   createPackageAssemblyDryRun,
+  createReleaseChannelDryRun,
   createReleaseIntegrityDryRun,
   createReleaseMetadataDryRun,
   exampleFilesystemEntries,
@@ -62,6 +64,10 @@ export type InstallerSignedMetadataExample = {
 
 export type InstallerReleaseIntegrityExample = {
   integrity: ReleaseIntegrityDryRunReport;
+};
+
+export type InstallerReleaseChannelExample = {
+  channel: ReleaseChannelDryRunReport;
 };
 
 export type InstallerUpdateExample = {
@@ -190,6 +196,24 @@ export function runInstallerReleaseIntegrityExample(): InstallerReleaseIntegrity
     archive: archive.plan,
   });
   return { integrity };
+}
+
+/** Group one verified release into local dev channel metadata. */
+export function runInstallerReleaseChannelExample(): InstallerReleaseChannelExample {
+  const signed = runInstallerSignedMetadataExample();
+  const { integrity } = runInstallerReleaseIntegrityExample();
+  const channel = createReleaseChannelDryRun({
+    channel: "dev",
+    entries: [
+      {
+        version: signed.metadata.metadata.packageVersion,
+        createdAt: EXAMPLE_INSTALLED_AT,
+        metadata: signed.metadata.metadata,
+        integrity: integrity.verification,
+      },
+    ],
+  });
+  return { channel };
 }
 
 /** Install the example package, then apply the example update plan. */

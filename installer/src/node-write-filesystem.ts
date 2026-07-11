@@ -3,7 +3,7 @@
 // This is the only installer source file allowed to mutate the real
 // filesystem. Every operation stays inside the resolved root, refuses
 // symlinks, and fails closed with a structured result instead of throwing.
-// No release packaging, downloads, or install command live here.
+// No release packaging, remote retrieval, or install command live here.
 
 import { copyFileSync, existsSync, lstatSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";

@@ -63,7 +63,8 @@
 - Local package assembly dry-run: explicit include list, read-only file collection, rich manifest generation, missing-file warnings (in place)
 - Archive plan design: planned archive name, archive format value, deterministic archive checksum, archive entries, assembly integration (in place)
 - Signed release metadata design: metadata schema, deterministic signing payload, placeholder signature shape, metadata validation, CLI preview summary (in place)
-- Release integrity verification design: metadata validation, archive-vs-metadata consistency checks, deterministic placeholder signature checks, CLI preview summary — no real signature verification, no signing keys, no publishing
+- Release integrity verification design: metadata validation, archive-vs-metadata consistency checks, deterministic placeholder signature checks, CLI preview summary (in place)
+- Release channel metadata design: local channel metadata, deterministic latest selection, verified release entries, CLI preview summary — no publishing, no downloads, no remote URLs
 
 ## Phase 6 — Release lifecycle
 

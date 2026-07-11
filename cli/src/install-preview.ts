@@ -16,6 +16,7 @@ import {
   createInstaller,
   createNodeFilesystemAdapter,
   createPackageAssemblyDryRun,
+  createReleaseChannelDryRun,
   createReleaseIntegrityDryRun,
   createReleaseMetadataDryRun,
 } from "@oh-my-pm/installer";
@@ -49,6 +50,13 @@ export type InstallerPreviewResult = {
   integrity?: {
     ok: boolean;
     reasons: string[];
+  };
+  /** Local channel metadata summary; no remote locations exist. */
+  channel?: {
+    name: string;
+    latestVersion: string;
+    entries: number;
+    ok: boolean;
   };
 };
 
@@ -138,6 +146,28 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const integrityWarnings =
     integrityReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Local channel metadata only: one dev entry pairing the planned metadata
+  // with its integrity verdict.
+  const channelReport = createReleaseChannelDryRun({
+    channel: "dev",
+    entries: [
+      {
+        version: metadataReport.metadata.packageVersion,
+        createdAt: "preview-created-at",
+        metadata: metadataReport.metadata,
+        integrity: integrityReport.verification,
+      },
+    ],
+  });
+  const channel = {
+    name: channelReport.channel.channel,
+    latestVersion: channelReport.channel.latestVersion,
+    entries: channelReport.channel.entries.length,
+    ok: channelReport.ok,
+  };
+  const channelWarnings =
+    channelReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   const uniqueWarnings = (values: string[]): string[] => [...new Set(values)];
   const packageManifest = assembly.manifest;
 
@@ -158,11 +188,13 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...warnings,
         ...metadataWarnings,
         ...integrityWarnings,
+        ...channelWarnings,
         result.message,
       ]),
       archive,
       releaseMetadata,
       integrity,
+      channel,
     };
   }
 
@@ -180,11 +212,13 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...warnings,
       ...metadataWarnings,
       ...integrityWarnings,
+      ...channelWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
     releaseMetadata,
     integrity,
+    channel,
   };
 }
 

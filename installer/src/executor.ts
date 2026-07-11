@@ -1,6 +1,6 @@
 // Controlled execution of previously planned operations. Execution goes
 // through injected adapters only; this module never touches Node APIs and
-// never downloads anything — file contents arrive with the input.
+// never retrieves remote artifacts — file contents arrive with the input.
 
 import type {
   ExecutedFileOperation,

@@ -1,7 +1,7 @@
 // Release integrity verification design. These are deterministic
 // consistency checks between release metadata, an archive plan, and the
 // placeholder signature shape. Nothing here verifies cryptographic
-// authenticity: no keys, no crypto, no downloads, no publishing.
+// authenticity: no keys, no crypto, no remote transfers of any kind.
 
 import type {
   ReleaseIntegrityDryRunReport,

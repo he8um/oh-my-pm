@@ -1,7 +1,7 @@
 // Signed release metadata design. This models the metadata shape, the
 // deterministic signing payload, and validation only. The signature is a
 // deterministic placeholder: no keys are generated, read, or stored, no
-// cryptography runs, and nothing is written, uploaded, or published.
+// cryptography runs, and nothing is written, transferred, or distributed.
 
 import type {
   ReleaseMetadata,

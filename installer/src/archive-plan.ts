@@ -1,6 +1,6 @@
 // Archive plan design: deterministic descriptions of future archives.
 // Planning only — nothing here creates, writes, streams, compresses,
-// uploads, or publishes anything.
+// transfers, or distributes anything.
 
 import type {
   ArchiveDryRunReport,
