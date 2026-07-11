@@ -122,6 +122,75 @@ export type FilesystemPlannerDeps = {
   filesystem: FilesystemAdapter;
 };
 
+/** Outcome of one executed file operation. */
+export type ExecutedFileOperation = {
+  kind: PlannedFileOperationKind;
+  path: InstallerPath;
+  ok: boolean;
+  checksum?: string;
+  message?: string;
+};
+
+/** Result of executing an install plan through a write adapter. */
+export type InstallExecutionReport = {
+  ok: boolean;
+  root: InstallerPath;
+  operations: ExecutedFileOperation[];
+  warnings?: KernelWarning[];
+};
+
+/** Result of executing a rollback capture through a write adapter. */
+export type RollbackExecutionReport = {
+  ok: boolean;
+  rollbackId: string;
+  operations: ExecutedFileOperation[];
+  warnings?: KernelWarning[];
+};
+
+/** Input for writing one file through a write adapter. */
+export type WriteFileInput = {
+  path: InstallerPath;
+  content: FileContent;
+  checksum: string;
+};
+
+/** Input for backing up one file through a write adapter. */
+export type BackupFileInput = {
+  path: InstallerPath;
+  rollbackId: string;
+};
+
+/**
+ * Explicit write boundary. Installer core never mutates anything itself;
+ * every write implementation is injected by the caller.
+ */
+export type FilesystemWriteAdapter = {
+  writeFile(input: WriteFileInput): ExecutedFileOperation;
+  removeFile(path: InstallerPath): ExecutedFileOperation;
+  backupFile(input: BackupFileInput): ExecutedFileOperation;
+};
+
+/** Injected dependencies for controlled execution. */
+export type FilesystemExecutorDeps = {
+  filesystem: FilesystemAdapter;
+  writer: FilesystemWriteAdapter;
+};
+
+/**
+ * Input for executing an install plan. `files` carries already available
+ * package file contents; no download occurs.
+ */
+export type InstallExecutionInput = {
+  input: InstallInput;
+  plan: InstallPlan;
+  files: FilesystemEntry[];
+};
+
+/** Input for executing a rollback capture. */
+export type RollbackExecutionInput = {
+  rollback: RollbackManifest;
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;
@@ -159,4 +228,12 @@ export type Installer = {
     input: RollbackCaptureInput,
     deps: FilesystemPlannerDeps,
   ): RollbackCapturePlan | InstallerFailure;
+  executeInstall(
+    input: InstallExecutionInput,
+    deps: FilesystemExecutorDeps,
+  ): InstallExecutionReport | InstallerFailure;
+  executeRollback(
+    input: RollbackExecutionInput,
+    deps: FilesystemExecutorDeps,
+  ): RollbackExecutionReport | InstallerFailure;
 };

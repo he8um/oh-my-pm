@@ -281,6 +281,10 @@ const INSTALLER_SOURCES = [
   "installer/src/memory-filesystem.ts",
   "installer/src/filesystem-plan.ts",
   "installer/src/node-filesystem.ts",
+  "installer/src/execution-validate.ts",
+  "installer/src/memory-write-filesystem.ts",
+  "installer/src/executor.ts",
+  "installer/src/node-write-filesystem.ts",
   "installer/test/validate.test.ts",
   "installer/test/manifest.test.ts",
   "installer/test/installer.test.ts",
@@ -290,6 +294,10 @@ const INSTALLER_SOURCES = [
   "installer/test/memory-filesystem.test.ts",
   "installer/test/filesystem-plan.test.ts",
   "installer/test/node-filesystem.test.ts",
+  "installer/test/execution-validate.test.ts",
+  "installer/test/memory-write-filesystem.test.ts",
+  "installer/test/executor.test.ts",
+  "installer/test/node-write-filesystem.test.ts",
 ];
 for (const file of INSTALLER_SOURCES) {
   if (!existsSync(file)) err(`installer foundation file missing: ${file}`);

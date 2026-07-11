@@ -13,13 +13,21 @@ export {
   exampleRollbackManifest,
   exampleUpdatePlan,
 } from "./fixtures.js";
+export {
+  fileForOperation,
+  validateExecutionFiles,
+  validateExecutionPlan,
+} from "./execution-validate.js";
+export { executeInstallPlan, executeRollbackPlan } from "./executor.js";
 export { planInstallOperations, planRollbackCapture } from "./filesystem-plan.js";
 export { createInstaller } from "./installer.js";
 export { cloneFilesystemSnapshot, createMemoryFilesystem } from "./memory-filesystem.js";
+export { createMemoryWriteFilesystem } from "./memory-write-filesystem.js";
 export {
   createNodeFilesystemAdapter,
   describeNodeFilesystemAdapter,
 } from "./node-filesystem.js";
+export { createNodeWriteFilesystemAdapter } from "./node-write-filesystem.js";
 export {
   isSafeRelativePath,
   joinInstallerPath,
@@ -35,15 +43,21 @@ export {
   INSTALL_SCHEMA_VERSION,
 } from "./manifest.js";
 export type {
+  BackupFileInput,
   ChecksumAlgorithm,
+  ExecutedFileOperation,
   FileContent,
   FilesystemAdapter,
+  FilesystemExecutorDeps,
+  FilesystemWriteAdapter,
   FilesystemEntry,
   FilesystemPlannerDeps,
   FilesystemSnapshot,
   InstallDryRunReport,
   Installer,
   InstallerDeps,
+  InstallExecutionInput,
+  InstallExecutionReport,
   InstallerErrorCode,
   InstallerFailure,
   InstallerPath,
@@ -56,8 +70,11 @@ export type {
   PlannedFileOperationKind,
   RollbackCaptureInput,
   RollbackCapturePlan,
+  RollbackExecutionInput,
+  RollbackExecutionReport,
   RollbackInput,
   UpdateInput,
+  WriteFileInput,
 } from "./types.js";
 export {
   isNonEmptyString,

@@ -80,6 +80,7 @@ for (const file of trackedFiles) {
     if (
       file.startsWith("installer/src/") &&
       file !== "installer/src/node-filesystem.ts" &&
+      file !== "installer/src/node-write-filesystem.ts" &&
       (spec === "fs" || spec.startsWith("node:fs"))
     ) {
       err(`${file} imports a Node filesystem module: "${spec}"`);
@@ -87,9 +88,10 @@ for (const file of trackedFiles) {
   }
 }
 
-// 4b. The Node filesystem adapter is the only installer source file allowed
-// to import Node fs/path/crypto, and it must stay read-only.
-const NODE_ADAPTER = "installer/src/node-filesystem.ts";
+// 4b. The read-only Node adapter must never gain write APIs; the write
+// adapter is the only installer source file allowed to mutate real files,
+// and no installer source may reach process/env/network/time/random/console.
+const NODE_READ_ADAPTER = "installer/src/node-filesystem.ts";
 const NODE_WRITE_APIS = [
   "writeFile",
   "rmSync",
@@ -98,12 +100,33 @@ const NODE_WRITE_APIS = [
   "rmdir",
   "rename",
   "appendFile",
+  "copyFile",
 ];
-if (trackedFiles.includes(NODE_ADAPTER)) {
-  const contents = readFileSync(NODE_ADAPTER, "utf8");
-  for (const api of NODE_WRITE_APIS) {
-    if (contents.includes(api)) {
-      err(`${NODE_ADAPTER} contains forbidden write API "${api}"`);
+const INSTALLER_NONDETERMINISM = [
+  "process.env",
+  "process.exit",
+  "child_process",
+  "fetch(",
+  "XMLHttpRequest",
+  "Date.now",
+  "new Date",
+  "Math.random",
+  "crypto.randomUUID",
+  "console.",
+];
+for (const file of trackedFiles) {
+  if (!file.startsWith("installer/src/") || !file.endsWith(".ts")) continue;
+  const contents = readFileSync(file, "utf8");
+  if (file === NODE_READ_ADAPTER) {
+    for (const api of NODE_WRITE_APIS) {
+      if (contents.includes(api)) {
+        err(`${file} contains forbidden write API "${api}"`);
+      }
+    }
+  }
+  for (const marker of INSTALLER_NONDETERMINISM) {
+    if (contents.includes(marker)) {
+      err(`${file} contains forbidden pattern "${marker}"`);
     }
   }
 }

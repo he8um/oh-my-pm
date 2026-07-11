@@ -21,3 +21,11 @@ The package includes a read-only Node filesystem adapter for planning and inspec
 The adapter can list and read files under an explicit root and produces SHA-256 checksums. It refuses paths outside the configured root and ignores symlinks.
 
 The adapter does not write, delete, rename, or mutate files. Real installation execution remains out of scope.
+
+## Controlled execution
+
+The installer can execute planned operations only through explicit write adapters.
+
+The in-memory write adapter is intended for deterministic tests and examples. The Node write adapter is root-confined and refuses unsafe paths and symlinks.
+
+This package still does not package releases, download artifacts, or expose a production install command.

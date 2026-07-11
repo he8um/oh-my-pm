@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   createInstaller,
   createMemoryFilesystem,
+  createMemoryWriteFilesystem,
   exampleFilesystemEntries,
   examplePackageManifest,
   exampleRollbackManifest,
@@ -280,6 +281,97 @@ describe("planRollbackCapture", () => {
     expect(result.message).toBe(
       "invalid rollback capture input: missing_rollback_id, missing_root, missing_rollback_created_at, rollback_paths_must_not_be_empty",
     );
+  });
+});
+
+describe("executeInstall", () => {
+  const executionInput = () => ({
+    input: installInput(),
+    plan: {
+      root: "/opt/oh-my-pm",
+      packageManifest: examplePackageManifest(),
+      operations: [
+        { kind: "create" as const, path: "/opt/oh-my-pm/bin/oh-my-pm" },
+        { kind: "create" as const, path: "/opt/oh-my-pm/README.md" },
+      ],
+    },
+    files: [
+      { path: "/opt/oh-my-pm/bin/oh-my-pm", content: "binary", checksum: "sha256:bin" },
+      { path: "/opt/oh-my-pm/README.md", content: "readme", checksum: "sha256:readme" },
+    ],
+  });
+
+  it("updates manifest state only on successful execution", () => {
+    const installer = createInstaller({ kernel: fakeKernel() });
+    const writer = createMemoryWriteFilesystem();
+    const report = installer.executeInstall(executionInput(), {
+      filesystem: createMemoryFilesystem(),
+      writer,
+    });
+    expect(report).toMatchObject({ ok: true, root: "/opt/oh-my-pm" });
+    expect(installer.snapshot().manifest).toEqual(installedManifest);
+    expect(writer.snapshot().entries).toHaveLength(2);
+  });
+
+  it("does not update state when an operation fails", () => {
+    const installer = createInstaller({ kernel: fakeKernel() });
+    const input = executionInput();
+    input.plan.operations = [
+      { kind: "remove" as const, path: "/opt/oh-my-pm/missing.txt" },
+      ...input.plan.operations,
+    ];
+    const report = installer.executeInstall(input, {
+      filesystem: createMemoryFilesystem(),
+      writer: createMemoryWriteFilesystem(),
+    });
+    expect(report).toMatchObject({ ok: false });
+    expect(installer.snapshot().manifest).toBeUndefined();
+  });
+
+  it("returns the kernel failure when the manifest is rejected after execution", () => {
+    const kernel = fakeKernel({
+      validateJson: (target) => ({
+        target,
+        passed: false,
+        errors: [{ code: "OMP-K-1002", message: "rejected", path: "", blocking: true }],
+        warnings: [],
+      }),
+    });
+    const installer = createInstaller({ kernel });
+    const result = installer.executeInstall(executionInput(), {
+      filesystem: createMemoryFilesystem(),
+      writer: createMemoryWriteFilesystem(),
+    }) as InstallerFailure;
+    expect(result.code).toBe("OMP-I-6005");
+    expect(installer.snapshot().manifest).toBeUndefined();
+  });
+});
+
+describe("executeRollback", () => {
+  it("stores the rollback only on successful execution", () => {
+    const installer = createInstaller({ kernel: fakeKernel() });
+    const writer = createMemoryWriteFilesystem([
+      { path: "bin/oh-my-pm", content: "binary", checksum: "sha256:bin" },
+    ]);
+    const report = installer.executeRollback(
+      { rollback: exampleRollbackManifest() },
+      { filesystem: createMemoryFilesystem(), writer },
+    );
+    expect(report).toMatchObject({ ok: true, rollbackId: "rollback-1" });
+    expect(installer.snapshot().rollbacks).toEqual([exampleRollbackManifest()]);
+    expect(writer.backups().entries.map((entry) => entry.path)).toEqual([
+      "rollback-1:bin/oh-my-pm",
+    ]);
+  });
+
+  it("does not store the rollback when a backup fails", () => {
+    const installer = createInstaller({ kernel: fakeKernel() });
+    const report = installer.executeRollback(
+      { rollback: exampleRollbackManifest() },
+      { filesystem: createMemoryFilesystem(), writer: createMemoryWriteFilesystem() },
+    );
+    expect(report).toMatchObject({ ok: false });
+    expect(installer.snapshot().rollbacks).toEqual([]);
   });
 });
 

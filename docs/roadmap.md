@@ -55,7 +55,8 @@
 - Real WASM Kernel binding: Rust WASM exports, deterministic build tooling, Node-loadable KernelApi, validation through WASM, update guard through WASM, state transition through WASM, private CLI wrapper using the real Kernel binding (in place)
 - Installer foundation: package manifest validation, install manifest/report creation, Kernel-backed install manifest validation, update guard integration, rollback report shell, in-memory deterministic installer state (in place)
 - Installer filesystem adapter design: explicit filesystem adapter interface, in-memory filesystem adapter, install dry-run planning, rollback capture planning, path safety validation (in place)
-- Read-only Node filesystem adapter: explicit root boundary, recursive listing, file reading, SHA-256 checksums, symlink avoidance — no writes or release packaging
+- Read-only Node filesystem adapter: explicit root boundary, recursive listing, file reading, SHA-256 checksums, symlink avoidance (in place)
+- Controlled installer execution: explicit write adapter interface, in-memory write adapter, root-confined Node write adapter, execute planned install operations, execute rollback capture operations — no release packaging, no downloads, no production install command yet
 
 ## Phase 6 — Release lifecycle
 

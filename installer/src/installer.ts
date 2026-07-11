@@ -4,8 +4,11 @@
 
 import type { JsonValue } from "@oh-my-pm/contracts";
 import type {
+  FilesystemExecutorDeps,
   FilesystemPlannerDeps,
   InstallDryRunReport,
+  InstallExecutionInput,
+  InstallExecutionReport,
   InstallInput,
   Installer,
   InstallerDeps,
@@ -13,6 +16,8 @@ import type {
   InstallerState,
   RollbackCaptureInput,
   RollbackCapturePlan,
+  RollbackExecutionInput,
+  RollbackExecutionReport,
   RollbackInput,
   UpdateInput,
 } from "./types.js";
@@ -29,6 +34,7 @@ import {
   OMP_I_ROLLBACK_INVALID,
   OMP_I_UPDATE_BLOCKED,
 } from "./errors.js";
+import { executeInstallPlan, executeRollbackPlan } from "./executor.js";
 import {
   planInstallOperations,
   planRollbackCapture as planRollbackCaptureOperations,
@@ -212,6 +218,42 @@ export function createInstaller(
     return planRollbackCaptureOperations(clone(input), plannerDeps.filesystem);
   }
 
+  function executeInstall(
+    input: InstallExecutionInput,
+    executorDeps: FilesystemExecutorDeps,
+  ): InstallExecutionReport | InstallerFailure {
+    const result = executeInstallPlan(input, executorDeps);
+    if ("code" in result) {
+      return result;
+    }
+    // State changes only after every operation applied cleanly; the regular
+    // install path also runs Kernel manifest validation.
+    if (result.ok) {
+      const installed = install(input.input);
+      if ("code" in installed) {
+        return installed;
+      }
+    }
+    return result;
+  }
+
+  function executeRollback(
+    input: RollbackExecutionInput,
+    executorDeps: FilesystemExecutorDeps,
+  ): RollbackExecutionReport | InstallerFailure {
+    const result = executeRollbackPlan(input, executorDeps);
+    if ("code" in result) {
+      return result;
+    }
+    if (result.ok) {
+      const stored = rollback({ rollback: input.rollback });
+      if ("code" in stored) {
+        return stored;
+      }
+    }
+    return result;
+  }
+
   function snapshot(): InstallerState {
     const snap: InstallerState = {
       rollbacks: clone(state.rollbacks),
@@ -223,5 +265,14 @@ export function createInstaller(
     return snap;
   }
 
-  return { install, applyUpdate, rollback, snapshot, planInstall, planRollbackCapture };
+  return {
+    install,
+    applyUpdate,
+    rollback,
+    snapshot,
+    planInstall,
+    planRollbackCapture,
+    executeInstall,
+    executeRollback,
+  };
 }
