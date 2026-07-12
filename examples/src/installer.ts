@@ -6,6 +6,7 @@
 import type {
   ArchiveDryRunReport,
   InstallDryRunReport,
+  InstallerDecisionDryRunReport,
   InstallerFailure,
   InstallExecutionReport,
   LocalUpdatePolicyDryRunReport,
@@ -21,16 +22,19 @@ import type {
 import {
   createArchiveDryRunFromAssembly,
   createInstaller,
+  createInstallerDecisionDryRun,
   createMemoryFilesystem,
   createMemoryWriteFilesystem,
   createLocalUpdatePolicyDryRun,
   createRollbackImpactDryRun,
   createUpdateImpactDryRun,
   createPackageAssemblyDryRun,
+  exampleInstallerDecisionReportInput,
   exampleRollbackImpactPreviewInput,
   createReleaseChannelDryRun,
   createReleaseIntegrityDryRun,
   createReleaseMetadataDryRun,
+  formatInstallerDecisionReportMarkdown,
   DEFAULT_LOCAL_UPDATE_POLICY,
   exampleFilesystemEntries,
   examplePackageAssemblyInput,
@@ -88,6 +92,11 @@ export type InstallerUpdateImpactExample = {
 
 export type InstallerRollbackImpactExample = {
   rollbackImpact: RollbackImpactDryRunReport;
+};
+
+export type InstallerDecisionReportExample = {
+  decision: InstallerDecisionDryRunReport;
+  markdown: string;
 };
 
 export type InstallerUpdateExample = {
@@ -273,6 +282,16 @@ export function runInstallerUpdateImpactExample(): InstallerUpdateImpactExample 
 export function runInstallerRollbackImpactExample(): InstallerRollbackImpactExample {
   const rollbackImpact = createRollbackImpactDryRun(exampleRollbackImpactPreviewInput());
   return { rollbackImpact };
+}
+
+/**
+ * Aggregate the local preview layers into one decision report and render it
+ * as markdown. Report-only — no install or rollback runs and nothing is written.
+ */
+export function runInstallerDecisionReportExample(): InstallerDecisionReportExample {
+  const decision = createInstallerDecisionDryRun(exampleInstallerDecisionReportInput());
+  const markdown = formatInstallerDecisionReportMarkdown(decision.report);
+  return { decision, markdown };
 }
 
 /** Install the example package, then apply the example update plan. */

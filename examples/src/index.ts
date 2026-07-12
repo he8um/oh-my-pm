@@ -5,6 +5,7 @@ export {
 export {
   runInstallerArchivePlanExample,
   runInstallerControlledExecutionExample,
+  runInstallerDecisionReportExample,
   runInstallerDryRunExample,
   runInstallerPackageAssemblyDryRunExample,
   runInstallerReleaseChannelExample,
@@ -19,6 +20,7 @@ export {
 export type {
   InstallerArchivePlanExample,
   InstallerControlledExecutionExample,
+  InstallerDecisionReportExample,
   InstallerDryRunExample,
   InstallerPackageAssemblyExample,
   InstallerReleaseChannelExample,

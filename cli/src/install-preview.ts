@@ -14,6 +14,7 @@ import type {
 import {
   createArchiveDryRunFromAssembly,
   createInstaller,
+  createInstallerDecisionDryRun,
   createNodeFilesystemAdapter,
   createLocalUpdatePolicyDryRun,
   createPackageAssemblyDryRun,
@@ -22,6 +23,7 @@ import {
   createReleaseMetadataDryRun,
   createRollbackImpactDryRun,
   createUpdateImpactDryRun,
+  formatInstallerDecisionReportMarkdown,
   DEFAULT_LOCAL_UPDATE_POLICY,
 } from "@oh-my-pm/installer";
 
@@ -94,6 +96,14 @@ export type InstallerPreviewResult = {
     beforeSizeBytes: number;
     afterSizeBytes: number;
     reasons: string[];
+  };
+  /** Aggregated decision over all local preview layers; nothing is executed. */
+  decision?: {
+    ok: boolean;
+    decision: string;
+    blockingReasons: string[];
+    reviewReasons: string[];
+    markdown?: string;
   };
 };
 
@@ -299,6 +309,33 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     { filesystem },
   );
 
+  // Aggregate every local preview layer into one decision. The install plan
+  // operations feed in as-is; on a planning failure the operation list is
+  // empty, which the decision report treats as blocking. No install or
+  // rollback executes and nothing is written.
+  const installOperations = "code" in result ? [] : result.plan.operations.map((op) => ({ ...op }));
+  const decisionReport = createInstallerDecisionDryRun({
+    root,
+    installOperations,
+    assembly,
+    archive: archiveReport,
+    metadata: metadataReport,
+    integrity: integrityReport,
+    channel: channelReport,
+    updatePolicy: updatePolicyReport,
+    updateImpact: impactReport,
+    rollbackImpact: rollbackImpactReport,
+  });
+  const decision = {
+    ok: decisionReport.report.ok,
+    decision: decisionReport.report.decision,
+    blockingReasons: [...decisionReport.report.blockingReasons],
+    reviewReasons: [...decisionReport.report.reviewReasons],
+    markdown: formatInstallerDecisionReportMarkdown(decisionReport.report),
+  };
+  const decisionWarnings =
+    decisionReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -314,6 +351,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...updatePolicyWarnings,
         ...impactWarnings,
         ...rollbackImpactWarnings,
+        ...decisionWarnings,
         result.message,
       ]),
       archive,
@@ -323,6 +361,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       updatePolicy,
       impact,
       rollbackImpact,
+      decision,
     };
   }
 
@@ -344,6 +383,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...updatePolicyWarnings,
       ...impactWarnings,
       ...rollbackImpactWarnings,
+      ...decisionWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -353,6 +393,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     updatePolicy,
     impact,
     rollbackImpact,
+    decision,
   };
 }
 
@@ -402,7 +443,12 @@ function formatMarkdown(result: InstallerPreviewResult): string {
   if (result.archive !== undefined) {
     lines.push("", "## Archive Plan", "", `Planned archive: \`${result.archive.archiveName}\``);
   }
-  return `${lines.join("\n")}\n`;
+  const preview = `${lines.join("\n")}\n`;
+  // Compose the aggregated decision report after the preview body.
+  if (result.decision?.markdown !== undefined) {
+    return `${preview}\n${result.decision.markdown}`;
+  }
+  return preview;
 }
 
 /** Format a preview result for the requested output mode. */
@@ -411,7 +457,12 @@ export function formatInstallerPreview(
   mode: CliOutputMode,
 ): string {
   if (mode === "json") {
-    return `${JSON.stringify(result, null, 2)}\n`;
+    // The decision markdown is a rendering aid, not part of the JSON contract.
+    const jsonResult =
+      result.decision === undefined
+        ? result
+        : { ...result, decision: { ...result.decision, markdown: undefined } };
+    return `${JSON.stringify(jsonResult, null, 2)}\n`;
   }
   if (mode === "markdown") {
     return formatMarkdown(result);

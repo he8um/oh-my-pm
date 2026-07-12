@@ -10,19 +10,28 @@ import type {
 import type {
   ArchivePlanInput,
   FilesystemEntry,
+  InstallerDecisionReportInput,
   LocalUpdatePolicyInput,
   PackageAssemblyInput,
+  PlannedFileOperation,
   ReleaseChannelMetadataInput,
   ReleaseIntegrityVerificationInput,
   ReleaseMetadataInput,
   RollbackImpactPreviewInput,
   UpdateImpactPreviewInput,
 } from "./types.js";
+import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
+import { createLocalUpdatePolicyDryRun } from "./update-policy.js";
+import { createMemoryFilesystem } from "./memory-filesystem.js";
+import { createPackageAssemblyDryRun } from "./package-assembly.js";
 import { createPackageManifest } from "./package-manifest.js";
+import { createReleaseChannelDryRun } from "./release-channel.js";
 import { createReleaseChannelMetadata } from "./release-channel.js";
 import { createReleaseIntegrityDryRun } from "./release-integrity.js";
 import { createReleaseMetadataDryRun } from "./release-metadata.js";
+import { createRollbackImpactDryRun } from "./rollback-impact.js";
+import { createUpdateImpactDryRun } from "./update-impact.js";
 import { DEFAULT_LOCAL_UPDATE_POLICY, evaluateLocalUpdatePolicy } from "./update-policy.js";
 
 /** Example installable package manifest. */
@@ -202,6 +211,41 @@ export function exampleFilesystemEntries(): FilesystemEntry[] {
       checksum: "sha256:old-readme",
     },
   ];
+}
+
+/**
+ * Example decision-report input built from the existing example chain. Every
+ * layer is a local dry run; install operations are a small deterministic list.
+ * The chain is consistent, so the aggregated decision is not blocked.
+ */
+export function exampleInstallerDecisionReportInput(): InstallerDecisionReportInput {
+  const filesystem = createMemoryFilesystem(exampleFilesystemEntries());
+  const assembly = createPackageAssemblyDryRun(examplePackageAssemblyInput(), filesystem);
+  const archive = createArchiveDryRunFromAssembly(assembly, "zip");
+  const metadata = createReleaseMetadataDryRun(exampleReleaseMetadataInput());
+  const integrity = createReleaseIntegrityDryRun(exampleReleaseIntegrityVerificationInput());
+  const channel = createReleaseChannelDryRun(exampleReleaseChannelMetadataInput());
+  const updatePolicy = createLocalUpdatePolicyDryRun(exampleLocalUpdatePolicyInput());
+  const updateImpact = createUpdateImpactDryRun(exampleUpdateImpactPreviewInput());
+  const rollbackImpact = createRollbackImpactDryRun(exampleRollbackImpactPreviewInput());
+
+  const installOperations: PlannedFileOperation[] = [
+    { kind: "create", path: "/tmp/oh-my-pm/bin/oh-my-pm" },
+    { kind: "replace", path: "/tmp/oh-my-pm/README.md" },
+  ];
+
+  return {
+    root: "/tmp/oh-my-pm",
+    installOperations,
+    assembly,
+    archive,
+    metadata,
+    integrity,
+    channel,
+    updatePolicy,
+    updateImpact,
+    rollbackImpact,
+  };
 }
 
 /** Example update plan accepted by the Kernel update guard. */

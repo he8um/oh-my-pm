@@ -77,6 +77,14 @@ for (const file of trackedFiles) {
     if (spec.includes("kernel/crate")) {
       err(`${file} imports from kernel/crate: "${spec}"`);
     }
+    // The decision report aggregates local reports only; it must never reach
+    // for a Node built-in.
+    if (
+      file === "installer/src/decision-report.ts" &&
+      (spec === "node" || spec.startsWith("node:"))
+    ) {
+      err(`${file} imports a Node built-in: "${spec}"`);
+    }
     if (
       file.startsWith("installer/src/") &&
       file !== "installer/src/node-filesystem.ts" &&
@@ -162,7 +170,8 @@ for (const file of trackedFiles) {
   if (
     file === NODE_READ_ADAPTER ||
     file === "installer/src/update-impact.ts" ||
-    file === "installer/src/rollback-impact.ts"
+    file === "installer/src/rollback-impact.ts" ||
+    file === "installer/src/decision-report.ts"
   ) {
     for (const api of NODE_WRITE_APIS) {
       if (contents.includes(api)) {

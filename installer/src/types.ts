@@ -506,6 +506,62 @@ export type RollbackImpactDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Final classification of an aggregated installer decision report. */
+export type InstallerDecision = "ready" | "blocked" | "review-required";
+
+/**
+ * Input for aggregating local preview layers into one decision report. Every
+ * field is an already computed local dry-run/report; nothing is fetched,
+ * written, or executed. There is no output path or write target.
+ */
+export type InstallerDecisionReportInput = {
+  root: InstallerPath;
+  installOperations: PlannedFileOperation[];
+  assembly: PackageAssemblyDryRunReport;
+  archive: ArchiveDryRunReport;
+  metadata: ReleaseMetadataDryRunReport;
+  integrity: ReleaseIntegrityDryRunReport;
+  channel: ReleaseChannelDryRunReport;
+  updatePolicy: LocalUpdatePolicyDryRunReport;
+  updateImpact: UpdateImpactDryRunReport;
+  rollbackImpact: RollbackImpactDryRunReport;
+};
+
+/** One named layer's verdict inside a decision report. */
+export type InstallerDecisionReportSection = {
+  name: string;
+  ok: boolean;
+  reasons: string[];
+};
+
+/** Aggregate counts across all decision-report layers. */
+export type InstallerDecisionReportSummary = {
+  installOperations: number;
+  archiveEntries: number;
+  channelEntries: number;
+  updateImpactOperations: number;
+  rollbackImpactOperations: number;
+  warnings: number;
+};
+
+/** Deterministic aggregation of local preview layers; nothing is executed. */
+export type InstallerDecisionReport = {
+  ok: boolean;
+  decision: InstallerDecision;
+  root: InstallerPath;
+  sections: InstallerDecisionReportSection[];
+  blockingReasons: string[];
+  reviewReasons: string[];
+  summary: InstallerDecisionReportSummary;
+};
+
+/** Result of a decision dry run; nothing is fetched, written, or executed. */
+export type InstallerDecisionDryRunReport = {
+  ok: boolean;
+  report: InstallerDecisionReport;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

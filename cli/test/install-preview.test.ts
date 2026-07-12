@@ -42,7 +42,13 @@ describe("runInstallerPreview", () => {
         "replace",
         "replace",
       ]);
-      expect(result.warnings).toEqual([]);
+      // The preview compares the root against itself, so the update and
+      // rollback layers report no changes; those are review reasons, not
+      // blocking ones, and surface as decision warnings.
+      expect(result.warnings).toEqual([
+        "OMP-I-6001: update_impact_no_changes",
+        "OMP-I-6001: rollback_impact_no_changes",
+      ]);
       expect(result.archive).toEqual({
         format: "zip",
         archiveName: "oh-my-pm-local-2.0.0-alpha.0.zip",
@@ -87,6 +93,10 @@ describe("runInstallerPreview", () => {
           (result.rollbackImpact?.unchanged ?? 0),
       ).toBe(result.rollbackImpact?.operations);
 
+      expect(result.decision?.decision).toBe("review-required");
+      expect(result.decision?.blockingReasons).toEqual([]);
+      expect(result.decision?.reviewReasons).toContain("update_impact_no_changes");
+
       expect(readdirSync(root).sort()).toEqual(before);
       expect(readFileSync(join(root, "bin", "oh-my-pm"), "utf8")).toBe("old binary");
       expect(readdirSync(root).some((name) => name.endsWith(".zip"))).toBe(false);
@@ -98,9 +108,17 @@ describe("runInstallerPreview", () => {
       writeFileSync(join(root, "README.md"), "old readme", "utf8");
       const result = runInstallerPreview(root);
       expect(result.ok).toBe(true);
-      expect(result.warnings).toEqual(["OMP-I-6001: assembly_include_file_missing"]);
+      // The install plan still previews the found file, but the assembly layer
+      // fails (a package file is missing), so the aggregated decision blocks.
+      expect(result.warnings).toEqual([
+        "OMP-I-6001: assembly_include_file_missing",
+        "OMP-I-6001: update_impact_no_changes",
+        "OMP-I-6001: rollback_impact_no_changes",
+      ]);
       expect(result.operations).toHaveLength(1);
       expect(result.operations[0].path.endsWith("README.md")).toBe(true);
+      expect(result.decision?.decision).toBe("blocked");
+      expect(result.decision?.blockingReasons).toContain("assembly_include_file_missing");
     });
   });
 
@@ -133,8 +151,35 @@ describe("runInstallerPreview", () => {
           parsed.impact.removes +
           parsed.impact.unchanged,
       );
+      expect(parsed.decision.decision).toBe("review-required");
+      expect(parsed.decision.ok).toBe(false);
+      expect(parsed.decision).not.toHaveProperty("markdown");
       expect(output).not.toContain("placeholder:preview-key:");
       expect(output).not.toMatch(/https?:\/\//);
+      expect(output).not.toContain("download");
+      expect(output).not.toContain("upload");
+      expect(output).not.toContain("publish");
+      expect(output).not.toContain("executeInstall");
+      expect(output).not.toContain("executeRollback");
+    });
+  });
+
+  it("includes the decision report in markdown output without executing anything", () => {
+    withTempRoot((root) => {
+      mkdirSync(join(root, "bin"));
+      writeFileSync(join(root, "bin", "oh-my-pm"), "old binary", "utf8");
+      writeFileSync(join(root, "README.md"), "old readme", "utf8");
+      const before = readdirSync(root).sort();
+
+      const output = formatInstallerPreview(runInstallerPreview(root), "markdown");
+      expect(output).toContain("# OH MY PM Installer Decision Report");
+      expect(output).toContain("Decision: `review-required`");
+      expect(output).not.toMatch(/https?:\/\//);
+      expect(output).not.toContain("placeholder:preview-key:");
+      expect(output).not.toContain("executeInstall");
+
+      expect(readdirSync(root).sort()).toEqual(before);
+      expect(readdirSync(root).some((name) => name.endsWith(".zip"))).toBe(false);
     });
   });
 
@@ -154,6 +199,8 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: update_impact_candidate_entries_empty",
       "OMP-I-6001: rollback_impact_root_missing",
       "OMP-I-6001: rollback_impact_backup_files_empty",
+      "OMP-I-6001: install_operations_empty",
+      "OMP-I-6001: update_impact_no_changes",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);
@@ -168,6 +215,8 @@ describe("runInstallerPreview", () => {
     expect(result.impact?.operations).toBe(0);
     expect(result.rollbackImpact?.ok).toBe(false);
     expect(result.rollbackImpact?.rollbackId).toBe("preview-rollback");
+    expect(result.decision?.decision).toBe("blocked");
+    expect(result.decision?.blockingReasons).toContain("install_operations_empty");
   });
 });
 

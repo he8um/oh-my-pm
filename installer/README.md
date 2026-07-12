@@ -85,3 +85,9 @@ The preview compares current files with candidate release entries and reports cr
 The installer can preview the impact of a rollback before any rollback operation runs.
 
 The preview compares current files with rollback backup entries and reports restore, remove, missing, and unchanged operations with size/checksum summaries. It does not retrieve packages remotely, execute rollback, call write adapters, or write files.
+
+## Installer decision report
+
+The installer can aggregate local preview layers into a deterministic decision report.
+
+The report summarizes assembly, archive, metadata, integrity, channel, update policy, update impact, and rollback impact status. It classifies the preview as ready, blocked, or review-required. It does not retrieve packages remotely, execute installation, execute rollback, call write adapters, or write files.

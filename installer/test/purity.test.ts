@@ -135,8 +135,13 @@ describe("installer purity", () => {
     }
   });
 
-  it("policy and impact previews never execute installation or rollback", () => {
-    for (const file of ["update-policy.ts", "update-impact.ts", "rollback-impact.ts"]) {
+  it("policy, impact, and decision previews never execute installation or rollback", () => {
+    for (const file of [
+      "update-policy.ts",
+      "update-impact.ts",
+      "rollback-impact.ts",
+      "decision-report.ts",
+    ]) {
       const contents = readFileSync(join(srcDir, file), "utf8");
       for (const forbidden of ["executeInstall", "executeRollback"]) {
         expect(contents, `${file} must not contain "${forbidden}"`).not.toContain(forbidden);

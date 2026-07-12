@@ -10,6 +10,7 @@ export {
 export {
   exampleArchivePlanInput,
   exampleFilesystemEntries,
+  exampleInstallerDecisionReportInput,
   exampleLocalUpdatePolicyInput,
   exampleRollbackImpactPreviewInput,
   exampleUpdateImpactPreviewInput,
@@ -46,6 +47,15 @@ export {
   planPackageAssembly,
   validatePackageAssemblyInput,
 } from "./package-assembly.js";
+export {
+  collectInstallerDecisionBlockingReasons,
+  collectInstallerDecisionReviewReasons,
+  createInstallerDecisionDryRun,
+  createInstallerDecisionReport,
+  createInstallerDecisionSections,
+  formatInstallerDecisionReportMarkdown,
+  summarizeInstallerDecisionReport,
+} from "./decision-report.js";
 export {
   createPackageFileEntry,
   createPackageManifest,
@@ -141,6 +151,12 @@ export type {
   FilesystemSnapshot,
   InstallDryRunReport,
   Installer,
+  InstallerDecision,
+  InstallerDecisionDryRunReport,
+  InstallerDecisionReport,
+  InstallerDecisionReportInput,
+  InstallerDecisionReportSection,
+  InstallerDecisionReportSummary,
   InstallerDeps,
   InstallExecutionInput,
   InstallExecutionReport,

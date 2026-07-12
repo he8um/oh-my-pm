@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as examples from "../src/index.js";
 import {
   runInstallerArchivePlanExample,
+  runInstallerDecisionReportExample,
   runInstallerReleaseChannelExample,
   runInstallerReleaseIntegrityExample,
   runInstallerUpdatePolicyExample,
@@ -179,8 +180,27 @@ describe("runInstallerRollbackImpactExample", () => {
   });
 });
 
+describe("runInstallerDecisionReportExample", () => {
+  it("returns an aggregated decision report and its markdown", () => {
+    const result = runInstallerDecisionReportExample();
+    expect(result.decision.report.decision).not.toBe("blocked");
+    expect(result.decision.report.sections.length).toBe(8);
+    expect(result.markdown).toContain("Installer Decision Report");
+
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("placeholder:");
+    expect(serialized).not.toContain("BEGIN");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    expect(serialized).not.toContain("download");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toContain("writeFile");
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runInstallerDecisionReportExample).toBe("function");
     expect(typeof examples.runInstallerDryRunExample).toBe("function");
     expect(typeof examples.runInstallerControlledExecutionExample).toBe("function");
     expect(typeof examples.runInstallerRollbackExample).toBe("function");
