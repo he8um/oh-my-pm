@@ -18,6 +18,7 @@ export {
   runInstallerUpdateExample,
   runInstallerUpdateImpactExample,
   runInstallerUpdatePolicyExample,
+  runInstallerWriteApprovalTokenExample,
   runInstallerWriteCapabilityExample,
 } from "./installer.js";
 export type {
@@ -36,6 +37,7 @@ export type {
   InstallerUpdateExample,
   InstallerUpdateImpactExample,
   InstallerUpdatePolicyExample,
+  InstallerWriteApprovalTokenExample,
   InstallerWriteCapabilityExample,
 } from "./installer.js";
 export {

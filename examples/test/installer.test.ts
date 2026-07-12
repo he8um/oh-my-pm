@@ -16,6 +16,7 @@ import {
   runInstallerRollbackImpactExample,
   runInstallerUpdateExample,
   runInstallerUpdateImpactExample,
+  runInstallerWriteApprovalTokenExample,
   runInstallerWriteCapabilityExample,
 } from "../src/index.js";
 
@@ -272,8 +273,29 @@ describe("runInstallerWriteCapabilityExample", () => {
   });
 });
 
+describe("runInstallerWriteApprovalTokenExample", () => {
+  it("returns a valid, non-secret approval token dry run", () => {
+    const result = runInstallerWriteApprovalTokenExample();
+    expect(result.approval.ok).toBe(true);
+    expect(result.approval.validation.ok).toBe(true);
+    expect(result.approval.token.value.startsWith("approve:install:")).toBe(true);
+    expect(Object.keys(result)).toEqual(["approval"]);
+
+    // No secret, key, signature, timestamp, or remote field anywhere.
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("BEGIN");
+    expect(serialized).not.toContain("PRIVATE KEY");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    expect(serialized).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
+    for (const key of Object.keys(result.approval.token)) {
+      expect(key).not.toMatch(/secret|key|signature|timestamp|expiry|user|machine|url|remote/i);
+    }
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runInstallerWriteApprovalTokenExample).toBe("function");
     expect(typeof examples.runInstallerWriteCapabilityExample).toBe("function");
     expect(typeof examples.runInstallerAuditTrailExportExample).toBe("function");
     expect(typeof examples.runInstallerAuditEventExample).toBe("function");

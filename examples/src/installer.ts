@@ -10,6 +10,7 @@ import type {
   InstallerAuditTrailExportDryRunReport,
   InstallerDecisionDryRunReport,
   InstallerFailure,
+  InstallerWriteApprovalTokenDryRunReport,
   InstallerWriteCapabilityDryRunReport,
   InstallExecutionReport,
   LocalUpdatePolicyDryRunReport,
@@ -27,6 +28,7 @@ import {
   createInstaller,
   createInstallerAuditEventDryRun,
   createInstallerAuditTrailExportDryRun,
+  createInstallerWriteApprovalTokenDryRun,
   createInstallerWriteCapabilityDryRun,
   createInstallerDecisionDryRun,
   createMemoryFilesystem,
@@ -46,6 +48,7 @@ import {
   exampleFilesystemEntries,
   exampleInstallerAuditEventInput,
   exampleInstallerAuditTrailExportInput,
+  exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
   examplePackageAssemblyInput,
   examplePackageManifest,
@@ -120,6 +123,10 @@ export type InstallerAuditTrailExportExample = {
 
 export type InstallerWriteCapabilityExample = {
   writeCapability: InstallerWriteCapabilityDryRunReport;
+};
+
+export type InstallerWriteApprovalTokenExample = {
+  approval: InstallerWriteApprovalTokenDryRunReport;
 };
 
 export type InstallerUpdateExample = {
@@ -349,6 +356,18 @@ export function runInstallerWriteCapabilityExample(): InstallerWriteCapabilityEx
     exampleInstallerWriteCapabilityInput(),
   );
   return { writeCapability };
+}
+
+/**
+ * Build a deterministic, non-secret approval token for a future write-capable
+ * install and validate it. Token-model only — nothing is written, executed,
+ * retrieved, logged, or sent, and the token carries no secret or key material.
+ */
+export function runInstallerWriteApprovalTokenExample(): InstallerWriteApprovalTokenExample {
+  const approval = createInstallerWriteApprovalTokenDryRun(
+    exampleInstallerWriteApprovalTokenInput(),
+  );
+  return { approval };
 }
 
 /** Install the example package, then apply the example update plan. */

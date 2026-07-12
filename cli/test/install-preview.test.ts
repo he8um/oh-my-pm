@@ -189,6 +189,18 @@ describe("runInstallerPreview", () => {
       for (const key of Object.keys(parsed.writeCapability)) {
         expect(key).not.toMatch(/adapter|writer|exec|command|url|remote|path/i);
       }
+      // Deterministic, non-secret approval token summary.
+      expect(parsed.approval.ok).toBe(true);
+      expect(parsed.approval.intent).toBe("install");
+      expect(typeof parsed.approval.decision).toBe("string");
+      expect(parsed.approval.tokenValue.startsWith("approve:install:")).toBe(true);
+      // Token carries no secret/key/signature/timestamp field, and the token
+      // does not unblock the preview-only default write capability.
+      for (const key of Object.keys(parsed.approval)) {
+        expect(key).not.toMatch(/secret|key|signature|timestamp|expiry|user|machine/i);
+      }
+      expect(parsed.writeCapability.allowed).toBe(false);
+      expect(output).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
       expect(output).not.toContain("writeFile");
       expect(output).not.toContain("placeholder:preview-key:");
       expect(output).not.toMatch(/https?:\/\//);
@@ -245,6 +257,7 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: write_capability_preview_only",
       "OMP-I-6001: write_capability_decision_not_ready",
       "OMP-I-6001: write_capability_approval_required",
+      "OMP-I-6001: write_approval_token_root_missing",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);

@@ -150,8 +150,13 @@ describe("installer purity", () => {
     }
   });
 
-  it("the audit event model, export, and write capability never log, persist, send, or execute", () => {
-    for (const file of ["audit-events.ts", "audit-export.ts", "write-capability.ts"]) {
+  it("the audit event model, export, capability, and approval never log, persist, send, or execute", () => {
+    for (const file of [
+      "audit-events.ts",
+      "audit-export.ts",
+      "write-capability.ts",
+      "write-approval.ts",
+    ]) {
       const contents = readFileSync(join(srcDir, file), "utf8");
       for (const forbidden of [
         "console.log",
@@ -168,6 +173,15 @@ describe("installer purity", () => {
       ]) {
         expect(contents, `${file} must not contain "${forbidden}"`).not.toContain(forbidden);
       }
+    }
+  });
+
+  it("the approval token model holds no crypto or key material", () => {
+    const contents = readFileSync(join(srcDir, "write-approval.ts"), "utf8");
+    for (const forbidden of ["crypto", "privateKey", "publicKey"]) {
+      expect(contents, `write-approval.ts must not contain "${forbidden}"`).not.toContain(
+        forbidden,
+      );
     }
   });
 

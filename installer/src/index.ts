@@ -13,6 +13,7 @@ export {
   exampleInstallerAuditEventInput,
   exampleInstallerAuditTrailExportInput,
   exampleInstallerDecisionReportInput,
+  exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
   exampleLocalUpdatePolicyInput,
   exampleRollbackImpactPreviewInput,
@@ -81,6 +82,13 @@ export {
   validateInstallerWriteCapabilityPolicy,
   validateInstallerWriteIntent,
 } from "./write-capability.js";
+export {
+  createInstallerWriteApprovalToken,
+  createInstallerWriteApprovalTokenDryRun,
+  createInstallerWriteApprovalTokenValue,
+  matchInstallerWriteApprovalToken,
+  validateInstallerWriteApprovalToken,
+} from "./write-approval.js";
 export {
   createPackageFileEntry,
   createPackageManifest,
@@ -200,6 +208,12 @@ export type {
   InstallerFailure,
   InstallerPath,
   InstallerState,
+  InstallerWriteApprovalToken,
+  InstallerWriteApprovalTokenDryRunReport,
+  InstallerWriteApprovalTokenInput,
+  InstallerWriteApprovalTokenMatchInput,
+  InstallerWriteApprovalTokenMatchReport,
+  InstallerWriteApprovalTokenValidationReport,
   InstallerWriteCapabilityDryRunReport,
   InstallerWriteCapabilityInput,
   InstallerWriteCapabilityMode,

@@ -13,6 +13,7 @@ import type {
   InstallerWriteIntent,
 } from "./types.js";
 import { installerWarning, OMP_I_INVALID_PACKAGE } from "./errors.js";
+import { matchInstallerWriteApprovalToken } from "./write-approval.js";
 
 const WRITE_INTENTS: readonly InstallerWriteIntent[] = ["install", "update", "rollback"];
 
@@ -93,8 +94,16 @@ export function evaluateInstallerWriteCapability(
   if (policy.requireReadyDecision && decision.decision !== "ready") {
     reasons.push("write_capability_decision_not_ready");
   }
-  if (policy.requireExplicitApproval && !approved) {
-    reasons.push("write_capability_approval_required");
+  if (policy.requireExplicitApproval) {
+    // Approval is satisfied by an explicit boolean approval or a token that
+    // matches this request. Token match reasons are not surfaced here.
+    const tokenApproves = matchInstallerWriteApprovalToken({
+      token: input.approvalToken,
+      request: input,
+    }).approved;
+    if (!approved && !tokenApproves) {
+      reasons.push("write_capability_approval_required");
+    }
   }
 
   const allowed = reasons.length === 0;

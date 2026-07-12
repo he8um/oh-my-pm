@@ -22,6 +22,7 @@ import type {
   RollbackImpactPreviewInput,
   UpdateImpactPreviewInput,
   InstallerWriteCapabilityInput,
+  InstallerWriteApprovalTokenInput,
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -285,6 +286,19 @@ export function exampleInstallerWriteCapabilityInput(): InstallerWriteCapability
     approved: false,
     decision,
     policy: DEFAULT_INSTALLER_WRITE_CAPABILITY_POLICY,
+  };
+}
+
+/**
+ * Example approval token input built from the example decision report, bound
+ * to the install intent and the example root.
+ */
+export function exampleInstallerWriteApprovalTokenInput(): InstallerWriteApprovalTokenInput {
+  const decision = createInstallerDecisionReport(exampleInstallerDecisionReportInput());
+  return {
+    intent: "install",
+    root: "/tmp/oh-my-pm",
+    decision,
   };
 }
 

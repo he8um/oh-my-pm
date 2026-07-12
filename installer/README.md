@@ -109,3 +109,9 @@ Supported formats are JSON, JSONL, and Markdown. The export plan reports event c
 The installer can evaluate whether a future write-capable operation would be allowed under an explicit policy.
 
 The default policy is preview-only, requires a ready decision, and requires explicit approval. This model only evaluates capability. It does not execute installation, execute rollback, call write adapters, retrieve packages remotely, or write files.
+
+## Explicit write approval token
+
+The installer can model a deterministic approval token for future write-capable operations.
+
+The token is descriptive, local, and non-secret. It binds an intent, root, and decision value so a future explicit write mode can check whether a user intentionally approved the same preview result. It does not execute installation, execute rollback, call write adapters, retrieve packages remotely, or write files.

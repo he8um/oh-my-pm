@@ -675,6 +675,7 @@ export type InstallerWriteCapabilityInput = {
   approved: boolean;
   decision: InstallerDecisionReport;
   policy: InstallerWriteCapabilityPolicy;
+  approvalToken?: InstallerWriteApprovalToken;
 };
 
 /** Result of evaluating a write capability request; nothing is executed. */
@@ -690,6 +691,53 @@ export type InstallerWriteCapabilityReport = {
 export type InstallerWriteCapabilityDryRunReport = {
   ok: boolean;
   report: InstallerWriteCapabilityReport;
+  warnings?: KernelWarning[];
+};
+
+/**
+ * Deterministic, local, non-secret approval token. `value` is descriptive
+ * text binding an intent, root, and decision — there is no secret, key,
+ * signature, timestamp, expiry, user, machine, destination, or remote field,
+ * and nothing here is cryptographic.
+ */
+export type InstallerWriteApprovalToken = {
+  intent: InstallerWriteIntent;
+  root: InstallerPath;
+  decision: InstallerDecision;
+  value: string;
+};
+
+/** Input for building an approval token from a decision report. */
+export type InstallerWriteApprovalTokenInput = {
+  intent: InstallerWriteIntent;
+  root: InstallerPath;
+  decision: InstallerDecisionReport;
+};
+
+/** Result of validating an approval token's internal consistency. */
+export type InstallerWriteApprovalTokenValidationReport = {
+  ok: boolean;
+  reasons: string[];
+};
+
+/** Input for matching a token against a write capability request. */
+export type InstallerWriteApprovalTokenMatchInput = {
+  token: InstallerWriteApprovalToken | undefined;
+  request: InstallerWriteCapabilityInput;
+};
+
+/** Result of matching an approval token against a request. */
+export type InstallerWriteApprovalTokenMatchReport = {
+  ok: boolean;
+  approved: boolean;
+  reasons: string[];
+};
+
+/** Result of an approval token dry run; nothing is written or executed. */
+export type InstallerWriteApprovalTokenDryRunReport = {
+  ok: boolean;
+  token: InstallerWriteApprovalToken;
+  validation: InstallerWriteApprovalTokenValidationReport;
   warnings?: KernelWarning[];
 };
 

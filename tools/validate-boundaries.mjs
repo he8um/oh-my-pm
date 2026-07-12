@@ -84,7 +84,8 @@ for (const file of trackedFiles) {
       (file === "installer/src/decision-report.ts" ||
         file === "installer/src/audit-events.ts" ||
         file === "installer/src/audit-export.ts" ||
-        file === "installer/src/write-capability.ts") &&
+        file === "installer/src/write-capability.ts" ||
+        file === "installer/src/write-approval.ts") &&
       (spec === "node" || spec.startsWith("node:"))
     ) {
       err(`${file} imports a Node built-in: "${spec}"`);
@@ -178,7 +179,8 @@ for (const file of trackedFiles) {
     file === "installer/src/decision-report.ts" ||
     file === "installer/src/audit-events.ts" ||
     file === "installer/src/audit-export.ts" ||
-    file === "installer/src/write-capability.ts"
+    file === "installer/src/write-capability.ts" ||
+    file === "installer/src/write-approval.ts"
   ) {
     for (const api of NODE_WRITE_APIS) {
       if (contents.includes(api)) {
@@ -186,12 +188,13 @@ for (const file of trackedFiles) {
       }
     }
   }
-  // The audit event model, export, and write capability render/return/evaluate
-  // in memory only; none may log, persist, or send anything.
+  // The audit event model, export, capability, and approval token
+  // render/return/evaluate in memory only; none may log, persist, or send.
   if (
     file === "installer/src/audit-events.ts" ||
     file === "installer/src/audit-export.ts" ||
-    file === "installer/src/write-capability.ts"
+    file === "installer/src/write-capability.ts" ||
+    file === "installer/src/write-approval.ts"
   ) {
     for (const marker of ["console.log", "console.error", "logger", "telemetry"]) {
       if (contents.includes(marker)) {
@@ -199,15 +202,25 @@ for (const file of trackedFiles) {
       }
     }
   }
-  // The audit trail export and write capability model only; neither may
-  // execute an install or rollback.
+  // The audit trail export, write capability, and approval token model only;
+  // none may execute an install or rollback.
   if (
     file === "installer/src/audit-export.ts" ||
-    file === "installer/src/write-capability.ts"
+    file === "installer/src/write-capability.ts" ||
+    file === "installer/src/write-approval.ts"
   ) {
     for (const marker of ["executeInstall", "executeRollback"]) {
       if (contents.includes(marker)) {
         err(`${file} contains forbidden install-execution call "${marker}"`);
+      }
+    }
+  }
+  // The approval token is deterministic, local, and non-secret; it must never
+  // reach for crypto or key material.
+  if (file === "installer/src/write-approval.ts") {
+    for (const marker of ["crypto", "privateKey", "publicKey"]) {
+      if (contents.includes(marker)) {
+        err(`${file} contains forbidden crypto/key material "${marker}"`);
       }
     }
   }

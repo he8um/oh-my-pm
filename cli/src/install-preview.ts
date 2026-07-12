@@ -16,6 +16,7 @@ import {
   createInstaller,
   createInstallerAuditEventDryRun,
   createInstallerAuditTrailExportDryRun,
+  createInstallerWriteApprovalTokenDryRun,
   createInstallerWriteCapabilityDryRun,
   createInstallerDecisionDryRun,
   createNodeFilesystemAdapter,
@@ -139,6 +140,16 @@ export type InstallerPreviewResult = {
     intent: string;
     mode: string;
     reasons: string[];
+  };
+  /**
+   * Deterministic, non-secret approval token summary. The token value is
+   * descriptive text, not a secret; it does not bypass the preview-only default.
+   */
+  approval?: {
+    ok: boolean;
+    intent: string;
+    decision: string;
+    tokenValue: string;
   };
 };
 
@@ -423,6 +434,23 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const writeCapabilityWarnings =
     writeCapabilityReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Build a deterministic, non-secret approval token for the previewed
+  // install intent. The token is descriptive metadata only; it never bypasses
+  // the preview-only default write capability and nothing is executed.
+  const approvalReport = createInstallerWriteApprovalTokenDryRun({
+    intent: "install",
+    root,
+    decision: decisionReport.report,
+  });
+  const approval = {
+    ok: approvalReport.ok,
+    intent: approvalReport.token.intent,
+    decision: approvalReport.token.decision,
+    tokenValue: approvalReport.token.value,
+  };
+  const approvalWarnings =
+    approvalReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -442,6 +470,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...auditWarnings,
         ...auditExportWarnings,
         ...writeCapabilityWarnings,
+        ...approvalWarnings,
         result.message,
       ]),
       archive,
@@ -455,6 +484,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       audit,
       auditExport,
       writeCapability,
+      approval,
     };
   }
 
@@ -480,6 +510,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...auditWarnings,
       ...auditExportWarnings,
       ...writeCapabilityWarnings,
+      ...approvalWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -493,6 +524,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     audit,
     auditExport,
     writeCapability,
+    approval,
   };
 }
 
