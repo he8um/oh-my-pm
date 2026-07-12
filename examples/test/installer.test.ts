@@ -16,6 +16,7 @@ import {
   runInstallerRollbackImpactExample,
   runInstallerUpdateExample,
   runInstallerUpdateImpactExample,
+  runInstallerWriteCapabilityExample,
 } from "../src/index.js";
 
 describe("runInstallerDryRunExample", () => {
@@ -248,8 +249,32 @@ describe("runInstallerAuditTrailExportExample", () => {
   });
 });
 
+describe("runInstallerWriteCapabilityExample", () => {
+  it("returns a blocked preview-only write capability report", () => {
+    const result = runInstallerWriteCapabilityExample();
+    expect(result.writeCapability.ok).toBe(false);
+    expect(result.writeCapability.report.allowed).toBe(false);
+    expect(result.writeCapability.report.mode).toBe("preview-only");
+    expect(result.writeCapability.report.reasons).toContain("write_capability_preview_only");
+    expect(Object.keys(result)).toEqual(["writeCapability"]);
+
+    // No write adapter, command execution, or remote field anywhere.
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("writer");
+    expect(serialized).not.toContain("writeFile");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toContain("command");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    for (const key of Object.keys(result.writeCapability.report)) {
+      expect(key).not.toMatch(/adapter|writer|command|exec|url|remote|path/i);
+    }
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runInstallerWriteCapabilityExample).toBe("function");
     expect(typeof examples.runInstallerAuditTrailExportExample).toBe("function");
     expect(typeof examples.runInstallerAuditEventExample).toBe("function");
     expect(typeof examples.runInstallerDecisionReportExample).toBe("function");

@@ -103,3 +103,9 @@ Audit events describe preview start, section evaluation, decision reporting, and
 The installer can render audit events into an in-memory export payload.
 
 Supported formats are JSON, JSONL, and Markdown. The export plan reports event count, byte size, and a deterministic fingerprint. It does not write files, persist logs, send telemetry, retrieve packages remotely, execute installation, execute rollback, or call write adapters.
+
+## Guarded write capability
+
+The installer can evaluate whether a future write-capable operation would be allowed under an explicit policy.
+
+The default policy is preview-only, requires a ready decision, and requires explicit approval. This model only evaluates capability. It does not execute installation, execute rollback, call write adapters, retrieve packages remotely, or write files.

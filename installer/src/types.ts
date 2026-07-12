@@ -647,6 +647,52 @@ export type InstallerAuditTrailExportDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Kind of future write-capable installer operation; a label only. */
+export type InstallerWriteIntent = "install" | "update" | "rollback";
+
+/**
+ * How much write capability an explicit policy grants. `preview-only` never
+ * allows writes; `explicit` may allow them once every guard passes.
+ */
+export type InstallerWriteCapabilityMode = "disabled" | "preview-only" | "explicit";
+
+/** Explicit capability policy governing whether writes would be allowed. */
+export type InstallerWriteCapabilityPolicy = {
+  mode: InstallerWriteCapabilityMode;
+  allowedIntents: InstallerWriteIntent[];
+  requireReadyDecision: boolean;
+  requireExplicitApproval: boolean;
+};
+
+/**
+ * Input for evaluating a requested write intent against a decision report and
+ * an explicit policy. There is no file path, write payload, command payload,
+ * write adapter, execution field, or remote field — this only models whether
+ * writes would be allowed.
+ */
+export type InstallerWriteCapabilityInput = {
+  intent: InstallerWriteIntent;
+  approved: boolean;
+  decision: InstallerDecisionReport;
+  policy: InstallerWriteCapabilityPolicy;
+};
+
+/** Result of evaluating a write capability request; nothing is executed. */
+export type InstallerWriteCapabilityReport = {
+  ok: boolean;
+  intent: InstallerWriteIntent;
+  mode: InstallerWriteCapabilityMode;
+  allowed: boolean;
+  reasons: string[];
+};
+
+/** Result of a write capability dry run; nothing is written or executed. */
+export type InstallerWriteCapabilityDryRunReport = {
+  ok: boolean;
+  report: InstallerWriteCapabilityReport;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

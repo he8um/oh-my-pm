@@ -13,6 +13,7 @@ export {
   exampleInstallerAuditEventInput,
   exampleInstallerAuditTrailExportInput,
   exampleInstallerDecisionReportInput,
+  exampleInstallerWriteCapabilityInput,
   exampleLocalUpdatePolicyInput,
   exampleRollbackImpactPreviewInput,
   exampleUpdateImpactPreviewInput,
@@ -72,6 +73,14 @@ export {
   validateInstallerAuditTrailExportFormat,
   validateInstallerAuditTrailExportPlan,
 } from "./audit-export.js";
+export {
+  createInstallerWriteCapabilityDryRun,
+  DEFAULT_INSTALLER_WRITE_CAPABILITY_POLICY,
+  evaluateInstallerWriteCapability,
+  validateInstallerWriteCapabilityMode,
+  validateInstallerWriteCapabilityPolicy,
+  validateInstallerWriteIntent,
+} from "./write-capability.js";
 export {
   createPackageFileEntry,
   createPackageManifest,
@@ -191,6 +200,12 @@ export type {
   InstallerFailure,
   InstallerPath,
   InstallerState,
+  InstallerWriteCapabilityDryRunReport,
+  InstallerWriteCapabilityInput,
+  InstallerWriteCapabilityMode,
+  InstallerWriteCapabilityPolicy,
+  InstallerWriteCapabilityReport,
+  InstallerWriteIntent,
   InstallInput,
   InstallPlan,
   LocalUpdatePolicy,

@@ -21,6 +21,7 @@ import type {
   ReleaseMetadataInput,
   RollbackImpactPreviewInput,
   UpdateImpactPreviewInput,
+  InstallerWriteCapabilityInput,
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -37,6 +38,7 @@ import { createReleaseMetadataDryRun } from "./release-metadata.js";
 import { createRollbackImpactDryRun } from "./rollback-impact.js";
 import { createUpdateImpactDryRun } from "./update-impact.js";
 import { DEFAULT_LOCAL_UPDATE_POLICY, evaluateLocalUpdatePolicy } from "./update-policy.js";
+import { DEFAULT_INSTALLER_WRITE_CAPABILITY_POLICY } from "./write-capability.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -269,6 +271,21 @@ export function exampleInstallerAuditEventInput(): InstallerAuditEventInput {
 export function exampleInstallerAuditTrailExportInput(): InstallerAuditTrailExportInput {
   const events = createInstallerAuditEvents(exampleInstallerAuditEventInput());
   return { events, format: "jsonl" };
+}
+
+/**
+ * Example write capability input built from the example decision report. The
+ * intent is install, the request is unapproved, and the default preview-only
+ * policy applies — so the evaluation is blocked.
+ */
+export function exampleInstallerWriteCapabilityInput(): InstallerWriteCapabilityInput {
+  const decision = createInstallerDecisionReport(exampleInstallerDecisionReportInput());
+  return {
+    intent: "install",
+    approved: false,
+    decision,
+    policy: DEFAULT_INSTALLER_WRITE_CAPABILITY_POLICY,
+  };
 }
 
 /** Example update plan accepted by the Kernel update guard. */

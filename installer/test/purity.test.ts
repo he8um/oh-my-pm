@@ -150,8 +150,8 @@ describe("installer purity", () => {
     }
   });
 
-  it("the audit event model and export never log, persist, or send events", () => {
-    for (const file of ["audit-events.ts", "audit-export.ts"]) {
+  it("the audit event model, export, and write capability never log, persist, send, or execute", () => {
+    for (const file of ["audit-events.ts", "audit-export.ts", "write-capability.ts"]) {
       const contents = readFileSync(join(srcDir, file), "utf8");
       for (const forbidden of [
         "console.log",

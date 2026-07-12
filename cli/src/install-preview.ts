@@ -16,6 +16,7 @@ import {
   createInstaller,
   createInstallerAuditEventDryRun,
   createInstallerAuditTrailExportDryRun,
+  createInstallerWriteCapabilityDryRun,
   createInstallerDecisionDryRun,
   createNodeFilesystemAdapter,
   createLocalUpdatePolicyDryRun,
@@ -27,6 +28,7 @@ import {
   createUpdateImpactDryRun,
   formatInstallerAuditEventsMarkdown,
   formatInstallerDecisionReportMarkdown,
+  DEFAULT_INSTALLER_WRITE_CAPABILITY_POLICY,
   DEFAULT_LOCAL_UPDATE_POLICY,
 } from "@oh-my-pm/installer";
 
@@ -126,6 +128,17 @@ export type InstallerPreviewResult = {
     events: number;
     sizeBytes: number;
     fingerprint: string;
+  };
+  /**
+   * Guarded write capability verdict; evaluation only. The default policy is
+   * preview-only, so writes are never allowed and nothing is executed.
+   */
+  writeCapability?: {
+    ok: boolean;
+    allowed: boolean;
+    intent: string;
+    mode: string;
+    reasons: string[];
   };
 };
 
@@ -391,6 +404,25 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const auditExportWarnings =
     auditExportReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Evaluate whether a write-capable install would be allowed under the
+  // default preview-only policy. Evaluation only — the CLI never executes an
+  // install or rollback, never calls a write adapter, and writes no files.
+  const writeCapabilityReport = createInstallerWriteCapabilityDryRun({
+    intent: "install",
+    approved: false,
+    decision: decisionReport.report,
+    policy: DEFAULT_INSTALLER_WRITE_CAPABILITY_POLICY,
+  });
+  const writeCapability = {
+    ok: writeCapabilityReport.ok,
+    allowed: writeCapabilityReport.report.allowed,
+    intent: writeCapabilityReport.report.intent,
+    mode: writeCapabilityReport.report.mode,
+    reasons: [...writeCapabilityReport.report.reasons],
+  };
+  const writeCapabilityWarnings =
+    writeCapabilityReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -409,6 +441,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...decisionWarnings,
         ...auditWarnings,
         ...auditExportWarnings,
+        ...writeCapabilityWarnings,
         result.message,
       ]),
       archive,
@@ -421,6 +454,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       decision,
       audit,
       auditExport,
+      writeCapability,
     };
   }
 
@@ -445,6 +479,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...decisionWarnings,
       ...auditWarnings,
       ...auditExportWarnings,
+      ...writeCapabilityWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -457,6 +492,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     decision,
     audit,
     auditExport,
+    writeCapability,
   };
 }
 
@@ -505,6 +541,15 @@ function formatMarkdown(result: InstallerPreviewResult): string {
   }
   if (result.archive !== undefined) {
     lines.push("", "## Archive Plan", "", `Planned archive: \`${result.archive.archiveName}\``);
+  }
+  if (result.writeCapability !== undefined) {
+    // Report-only: this preview never provides a write-capable command.
+    lines.push(
+      "",
+      "## Write Capability",
+      "",
+      `Write capability: \`${result.writeCapability.allowed ? "allowed" : "blocked"}\` (mode \`${result.writeCapability.mode}\`)`,
+    );
   }
   let preview = `${lines.join("\n")}\n`;
   // Compose the aggregated decision report, then the audit events, after the

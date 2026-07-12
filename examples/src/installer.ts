@@ -10,6 +10,7 @@ import type {
   InstallerAuditTrailExportDryRunReport,
   InstallerDecisionDryRunReport,
   InstallerFailure,
+  InstallerWriteCapabilityDryRunReport,
   InstallExecutionReport,
   LocalUpdatePolicyDryRunReport,
   PackageAssemblyDryRunReport,
@@ -26,6 +27,7 @@ import {
   createInstaller,
   createInstallerAuditEventDryRun,
   createInstallerAuditTrailExportDryRun,
+  createInstallerWriteCapabilityDryRun,
   createInstallerDecisionDryRun,
   createMemoryFilesystem,
   createMemoryWriteFilesystem,
@@ -44,6 +46,7 @@ import {
   exampleFilesystemEntries,
   exampleInstallerAuditEventInput,
   exampleInstallerAuditTrailExportInput,
+  exampleInstallerWriteCapabilityInput,
   examplePackageAssemblyInput,
   examplePackageManifest,
   exampleRollbackManifest,
@@ -113,6 +116,10 @@ export type InstallerAuditEventExample = {
 
 export type InstallerAuditTrailExportExample = {
   auditExport: InstallerAuditTrailExportDryRunReport;
+};
+
+export type InstallerWriteCapabilityExample = {
+  writeCapability: InstallerWriteCapabilityDryRunReport;
 };
 
 export type InstallerUpdateExample = {
@@ -330,6 +337,18 @@ export function runInstallerAuditTrailExportExample(): InstallerAuditTrailExport
     exampleInstallerAuditTrailExportInput(),
   );
   return { auditExport };
+}
+
+/**
+ * Evaluate whether a write-capable install would be allowed under the default
+ * preview-only policy. Capability-model only — the result is blocked and
+ * nothing is written, executed, retrieved, logged, or sent.
+ */
+export function runInstallerWriteCapabilityExample(): InstallerWriteCapabilityExample {
+  const writeCapability = createInstallerWriteCapabilityDryRun(
+    exampleInstallerWriteCapabilityInput(),
+  );
+  return { writeCapability };
 }
 
 /** Install the example package, then apply the example update plan. */

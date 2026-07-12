@@ -314,6 +314,8 @@ const INSTALLER_SOURCES = [
   "installer/test/audit-events.test.ts",
   "installer/src/audit-export.ts",
   "installer/test/audit-export.test.ts",
+  "installer/src/write-capability.ts",
+  "installer/test/write-capability.test.ts",
   "installer/test/validate.test.ts",
   "installer/test/manifest.test.ts",
   "installer/test/installer.test.ts",

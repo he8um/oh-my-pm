@@ -48,6 +48,9 @@ describe("runInstallerPreview", () => {
       expect(result.warnings).toEqual([
         "OMP-I-6001: update_impact_no_changes",
         "OMP-I-6001: rollback_impact_no_changes",
+        "OMP-I-6001: write_capability_preview_only",
+        "OMP-I-6001: write_capability_decision_not_ready",
+        "OMP-I-6001: write_capability_approval_required",
       ]);
       expect(result.archive).toEqual({
         format: "zip",
@@ -117,6 +120,9 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: assembly_include_file_missing",
         "OMP-I-6001: update_impact_no_changes",
         "OMP-I-6001: rollback_impact_no_changes",
+        "OMP-I-6001: write_capability_preview_only",
+        "OMP-I-6001: write_capability_decision_not_ready",
+        "OMP-I-6001: write_capability_approval_required",
       ]);
       expect(result.operations).toHaveLength(1);
       expect(result.operations[0].path.endsWith("README.md")).toBe(true);
@@ -173,6 +179,17 @@ describe("runInstallerPreview", () => {
       for (const key of Object.keys(parsed.auditExport)) {
         expect(key).not.toMatch(/path|file|dest|url|remote|telemetry|sink|content/i);
       }
+      // Guarded write capability: default policy is preview-only and blocked.
+      expect(parsed.writeCapability.mode).toBe("preview-only");
+      expect(parsed.writeCapability.allowed).toBe(false);
+      expect(parsed.writeCapability.ok).toBe(false);
+      expect(parsed.writeCapability.intent).toBe("install");
+      expect(parsed.writeCapability.reasons).toContain("write_capability_preview_only");
+      // No write adapter, execution, or remote field on the summary.
+      for (const key of Object.keys(parsed.writeCapability)) {
+        expect(key).not.toMatch(/adapter|writer|exec|command|url|remote|path/i);
+      }
+      expect(output).not.toContain("writeFile");
       expect(output).not.toContain("placeholder:preview-key:");
       expect(output).not.toMatch(/https?:\/\//);
       expect(output).not.toContain("download");
@@ -225,6 +242,9 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: install_operations_empty",
       "OMP-I-6001: update_impact_no_changes",
       "OMP-I-6001: audit_event_root_missing",
+      "OMP-I-6001: write_capability_preview_only",
+      "OMP-I-6001: write_capability_decision_not_ready",
+      "OMP-I-6001: write_capability_approval_required",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);

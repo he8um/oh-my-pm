@@ -77,12 +77,14 @@ for (const file of trackedFiles) {
     if (spec.includes("kernel/crate")) {
       err(`${file} imports from kernel/crate: "${spec}"`);
     }
-    // The decision report, audit event model, and audit trail export
-    // aggregate/render local reports only; none may reach for a Node built-in.
+    // The decision report, audit event model, audit trail export, and write
+    // capability aggregate/render/evaluate local reports only; none may reach
+    // for a Node built-in.
     if (
       (file === "installer/src/decision-report.ts" ||
         file === "installer/src/audit-events.ts" ||
-        file === "installer/src/audit-export.ts") &&
+        file === "installer/src/audit-export.ts" ||
+        file === "installer/src/write-capability.ts") &&
       (spec === "node" || spec.startsWith("node:"))
     ) {
       err(`${file} imports a Node built-in: "${spec}"`);
@@ -175,7 +177,8 @@ for (const file of trackedFiles) {
     file === "installer/src/rollback-impact.ts" ||
     file === "installer/src/decision-report.ts" ||
     file === "installer/src/audit-events.ts" ||
-    file === "installer/src/audit-export.ts"
+    file === "installer/src/audit-export.ts" ||
+    file === "installer/src/write-capability.ts"
   ) {
     for (const api of NODE_WRITE_APIS) {
       if (contents.includes(api)) {
@@ -183,11 +186,12 @@ for (const file of trackedFiles) {
       }
     }
   }
-  // The audit event model and export render/return payloads in memory only;
-  // neither may log, persist, or send them.
+  // The audit event model, export, and write capability render/return/evaluate
+  // in memory only; none may log, persist, or send anything.
   if (
     file === "installer/src/audit-events.ts" ||
-    file === "installer/src/audit-export.ts"
+    file === "installer/src/audit-export.ts" ||
+    file === "installer/src/write-capability.ts"
   ) {
     for (const marker of ["console.log", "console.error", "logger", "telemetry"]) {
       if (contents.includes(marker)) {
@@ -195,9 +199,12 @@ for (const file of trackedFiles) {
       }
     }
   }
-  // The audit trail export renders payloads only; it must never execute an
-  // install or rollback.
-  if (file === "installer/src/audit-export.ts") {
+  // The audit trail export and write capability model only; neither may
+  // execute an install or rollback.
+  if (
+    file === "installer/src/audit-export.ts" ||
+    file === "installer/src/write-capability.ts"
+  ) {
     for (const marker of ["executeInstall", "executeRollback"]) {
       if (contents.includes(marker)) {
         err(`${file} contains forbidden install-execution call "${marker}"`);
