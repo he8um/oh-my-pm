@@ -18,6 +18,7 @@ import {
   runInstallerUpdateImpactExample,
   runInstallerWriteApprovalTokenExample,
   runInstallerWriteCapabilityExample,
+  runInstallerWriteExecutionPlanExample,
 } from "../src/index.js";
 
 describe("runInstallerDryRunExample", () => {
@@ -293,8 +294,36 @@ describe("runInstallerWriteApprovalTokenExample", () => {
   });
 });
 
+describe("runInstallerWriteExecutionPlanExample", () => {
+  it("returns a valid write execution plan with install steps", () => {
+    const result = runInstallerWriteExecutionPlanExample();
+    expect(result.writeExecutionPlan.ok).toBe(true);
+    expect(result.writeExecutionPlan.plan.intent).toBe("install");
+    expect(result.writeExecutionPlan.plan.steps.length).toBeGreaterThan(0);
+    expect(
+      result.writeExecutionPlan.plan.steps.every((step) => step.kind.startsWith("install-")),
+    ).toBe(true);
+    expect(Object.keys(result)).toEqual(["writeExecutionPlan"]);
+
+    // Planning only: no content, command, adapter, execution-result, or remote.
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("writeFile");
+    expect(serialized).not.toContain("backupFile");
+    expect(serialized).not.toContain("removeFile");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    for (const step of result.writeExecutionPlan.plan.steps) {
+      for (const key of Object.keys(step)) {
+        expect(key).not.toMatch(/content|command|dest|adapter|writer|result|remote|url/i);
+      }
+    }
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runInstallerWriteExecutionPlanExample).toBe("function");
     expect(typeof examples.runInstallerWriteApprovalTokenExample).toBe("function");
     expect(typeof examples.runInstallerWriteCapabilityExample).toBe("function");
     expect(typeof examples.runInstallerAuditTrailExportExample).toBe("function");

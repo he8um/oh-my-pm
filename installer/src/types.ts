@@ -741,6 +741,58 @@ export type InstallerWriteApprovalTokenDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Kind of a planned write step; a plan label only, never an instruction to run. */
+export type InstallerWriteExecutionPlanStepKind =
+  | "install-create"
+  | "install-replace"
+  | "install-remove"
+  | "install-backup"
+  | "update-create"
+  | "update-replace"
+  | "update-remove"
+  | "rollback-restore"
+  | "rollback-remove";
+
+/**
+ * One planned write step. There is no content, write adapter, destination,
+ * command, remote, or execution-result field — steps describe what a future
+ * write mode would do, and nothing here runs.
+ */
+export type InstallerWriteExecutionPlanStep = {
+  sequence: number;
+  kind: InstallerWriteExecutionPlanStepKind;
+  path: InstallerPath;
+  checksum?: string;
+};
+
+/**
+ * Input for planning write steps from an allowed capability decision and
+ * existing local preview data. Every field is an already computed local
+ * report; nothing is fetched, written, or executed.
+ */
+export type InstallerWriteExecutionPlanInput = {
+  intent: InstallerWriteIntent;
+  capability: InstallerWriteCapabilityReport;
+  installOperations: PlannedFileOperation[];
+  updateImpact: UpdateImpactPreviewReport;
+  rollbackImpact: RollbackImpactPreviewReport;
+};
+
+/** Deterministic planned write steps for one intent; nothing is executed. */
+export type InstallerWriteExecutionPlan = {
+  ok: boolean;
+  intent: InstallerWriteIntent;
+  steps: InstallerWriteExecutionPlanStep[];
+  reasons: string[];
+};
+
+/** Result of a write execution plan dry run; nothing is written or executed. */
+export type InstallerWriteExecutionPlanDryRunReport = {
+  ok: boolean;
+  plan: InstallerWriteExecutionPlan;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

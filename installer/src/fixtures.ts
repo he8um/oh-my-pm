@@ -23,6 +23,7 @@ import type {
   UpdateImpactPreviewInput,
   InstallerWriteCapabilityInput,
   InstallerWriteApprovalTokenInput,
+  InstallerWriteExecutionPlanInput,
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -40,6 +41,8 @@ import { createRollbackImpactDryRun } from "./rollback-impact.js";
 import { createUpdateImpactDryRun } from "./update-impact.js";
 import { DEFAULT_LOCAL_UPDATE_POLICY, evaluateLocalUpdatePolicy } from "./update-policy.js";
 import { DEFAULT_INSTALLER_WRITE_CAPABILITY_POLICY } from "./write-capability.js";
+import { evaluateInstallerWriteCapability } from "./write-capability.js";
+import { createInstallerWriteApprovalToken } from "./write-approval.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -299,6 +302,41 @@ export function exampleInstallerWriteApprovalTokenInput(): InstallerWriteApprova
     intent: "install",
     root: "/tmp/oh-my-pm",
     decision,
+  };
+}
+
+/**
+ * Example write execution plan input. Capability is evaluated in explicit mode
+ * with a matching approval token (ready decision not required), so it is
+ * allowed; the install operations, update impact, and rollback impact come
+ * from the existing decision-report example chain.
+ */
+export function exampleInstallerWriteExecutionPlanInput(): InstallerWriteExecutionPlanInput {
+  const decisionInput = exampleInstallerDecisionReportInput();
+  const decision = createInstallerDecisionReport(decisionInput);
+  const approvalToken = createInstallerWriteApprovalToken({
+    intent: "install",
+    root: decision.root,
+    decision,
+  });
+  const capability = evaluateInstallerWriteCapability({
+    intent: "install",
+    approved: false,
+    decision,
+    approvalToken,
+    policy: {
+      mode: "explicit",
+      allowedIntents: ["install", "update", "rollback"],
+      requireReadyDecision: false,
+      requireExplicitApproval: true,
+    },
+  });
+  return {
+    intent: "install",
+    capability,
+    installOperations: decisionInput.installOperations,
+    updateImpact: decisionInput.updateImpact.preview,
+    rollbackImpact: decisionInput.rollbackImpact.preview,
   };
 }
 

@@ -12,6 +12,7 @@ import type {
   InstallerFailure,
   InstallerWriteApprovalTokenDryRunReport,
   InstallerWriteCapabilityDryRunReport,
+  InstallerWriteExecutionPlanDryRunReport,
   InstallExecutionReport,
   LocalUpdatePolicyDryRunReport,
   PackageAssemblyDryRunReport,
@@ -30,6 +31,7 @@ import {
   createInstallerAuditTrailExportDryRun,
   createInstallerWriteApprovalTokenDryRun,
   createInstallerWriteCapabilityDryRun,
+  createInstallerWriteExecutionPlanDryRun,
   createInstallerDecisionDryRun,
   createMemoryFilesystem,
   createMemoryWriteFilesystem,
@@ -50,6 +52,7 @@ import {
   exampleInstallerAuditTrailExportInput,
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
+  exampleInstallerWriteExecutionPlanInput,
   examplePackageAssemblyInput,
   examplePackageManifest,
   exampleRollbackManifest,
@@ -127,6 +130,10 @@ export type InstallerWriteCapabilityExample = {
 
 export type InstallerWriteApprovalTokenExample = {
   approval: InstallerWriteApprovalTokenDryRunReport;
+};
+
+export type InstallerWriteExecutionPlanExample = {
+  writeExecutionPlan: InstallerWriteExecutionPlanDryRunReport;
 };
 
 export type InstallerUpdateExample = {
@@ -368,6 +375,18 @@ export function runInstallerWriteApprovalTokenExample(): InstallerWriteApprovalT
     exampleInstallerWriteApprovalTokenInput(),
   );
   return { approval };
+}
+
+/**
+ * Build a deterministic write execution plan for a future write-capable
+ * install after capability checks pass. Planning only — the plan lists step
+ * kinds and paths; nothing is written, executed, retrieved, logged, or sent.
+ */
+export function runInstallerWriteExecutionPlanExample(): InstallerWriteExecutionPlanExample {
+  const writeExecutionPlan = createInstallerWriteExecutionPlanDryRun(
+    exampleInstallerWriteExecutionPlanInput(),
+  );
+  return { writeExecutionPlan };
 }
 
 /** Install the example package, then apply the example update plan. */

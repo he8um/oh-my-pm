@@ -20,6 +20,7 @@ export {
   runInstallerUpdatePolicyExample,
   runInstallerWriteApprovalTokenExample,
   runInstallerWriteCapabilityExample,
+  runInstallerWriteExecutionPlanExample,
 } from "./installer.js";
 export type {
   InstallerArchivePlanExample,
@@ -39,6 +40,7 @@ export type {
   InstallerUpdatePolicyExample,
   InstallerWriteApprovalTokenExample,
   InstallerWriteCapabilityExample,
+  InstallerWriteExecutionPlanExample,
 } from "./installer.js";
 export {
   createExampleKernelApi,

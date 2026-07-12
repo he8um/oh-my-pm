@@ -115,3 +115,9 @@ The default policy is preview-only, requires a ready decision, and requires expl
 The installer can model a deterministic approval token for future write-capable operations.
 
 The token is descriptive, local, and non-secret. It binds an intent, root, and decision value so a future explicit write mode can check whether a user intentionally approved the same preview result. It does not execute installation, execute rollback, call write adapters, retrieve packages remotely, or write files.
+
+## Explicit write execution plan
+
+The installer can build a deterministic execution plan for a future write-capable operation after capability checks pass.
+
+The plan lists local step kinds and paths for install, update, or rollback intent. It is planning only. It does not execute installation, execute rollback, call write adapters, retrieve packages remotely, or write files.

@@ -18,6 +18,7 @@ import {
   createInstallerAuditTrailExportDryRun,
   createInstallerWriteApprovalTokenDryRun,
   createInstallerWriteCapabilityDryRun,
+  createInstallerWriteExecutionPlanDryRun,
   createInstallerDecisionDryRun,
   createNodeFilesystemAdapter,
   createLocalUpdatePolicyDryRun,
@@ -150,6 +151,16 @@ export type InstallerPreviewResult = {
     intent: string;
     decision: string;
     tokenValue: string;
+  };
+  /**
+   * Planned write step summary; planning only. The raw step list is never
+   * included, nothing is executed, and no write adapter is called.
+   */
+  writeExecutionPlan?: {
+    ok: boolean;
+    intent: string;
+    steps: number;
+    reasons: string[];
   };
 };
 
@@ -451,6 +462,26 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const approvalWarnings =
     approvalReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Plan the local write steps for the previewed install intent. Planning only
+  // — the raw step list stays out of the summary, no write adapter is called,
+  // and nothing is executed. Under the default preview-only capability the plan
+  // is blocked, but the step count remains inspectable.
+  const writeExecutionPlanReport = createInstallerWriteExecutionPlanDryRun({
+    intent: "install",
+    capability: writeCapabilityReport.report,
+    installOperations,
+    updateImpact: impactReport.preview,
+    rollbackImpact: rollbackImpactReport.preview,
+  });
+  const writeExecutionPlan = {
+    ok: writeExecutionPlanReport.ok,
+    intent: writeExecutionPlanReport.plan.intent,
+    steps: writeExecutionPlanReport.plan.steps.length,
+    reasons: [...writeExecutionPlanReport.plan.reasons],
+  };
+  const writeExecutionPlanWarnings =
+    writeExecutionPlanReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -471,6 +502,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...auditExportWarnings,
         ...writeCapabilityWarnings,
         ...approvalWarnings,
+        ...writeExecutionPlanWarnings,
         result.message,
       ]),
       archive,
@@ -485,6 +517,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       auditExport,
       writeCapability,
       approval,
+      writeExecutionPlan,
     };
   }
 
@@ -511,6 +544,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...auditExportWarnings,
       ...writeCapabilityWarnings,
       ...approvalWarnings,
+      ...writeExecutionPlanWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -525,6 +559,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     auditExport,
     writeCapability,
     approval,
+    writeExecutionPlan,
   };
 }
 
@@ -581,6 +616,15 @@ function formatMarkdown(result: InstallerPreviewResult): string {
       "## Write Capability",
       "",
       `Write capability: \`${result.writeCapability.allowed ? "allowed" : "blocked"}\` (mode \`${result.writeCapability.mode}\`)`,
+    );
+  }
+  if (result.writeExecutionPlan !== undefined) {
+    // Planning only: the step count is a plan, not an execution.
+    lines.push(
+      "",
+      "## Write Execution Plan",
+      "",
+      `Planned write steps: \`${result.writeExecutionPlan.steps}\` (\`${result.writeExecutionPlan.ok ? "ready" : "blocked"}\`, not executed)`,
     );
   }
   let preview = `${lines.join("\n")}\n`;

@@ -51,6 +51,7 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: write_capability_preview_only",
         "OMP-I-6001: write_capability_decision_not_ready",
         "OMP-I-6001: write_capability_approval_required",
+        "OMP-I-6001: write_execution_capability_not_allowed",
       ]);
       expect(result.archive).toEqual({
         format: "zip",
@@ -123,6 +124,7 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: write_capability_preview_only",
         "OMP-I-6001: write_capability_decision_not_ready",
         "OMP-I-6001: write_capability_approval_required",
+        "OMP-I-6001: write_execution_capability_not_allowed",
       ]);
       expect(result.operations).toHaveLength(1);
       expect(result.operations[0].path.endsWith("README.md")).toBe(true);
@@ -200,6 +202,20 @@ describe("runInstallerPreview", () => {
         expect(key).not.toMatch(/secret|key|signature|timestamp|expiry|user|machine/i);
       }
       expect(parsed.writeCapability.allowed).toBe(false);
+      // Planned write step summary; the default capability is blocked, so the
+      // plan is blocked, and the raw step list never reaches JSON.
+      expect(parsed.writeExecutionPlan.intent).toBe("install");
+      expect(typeof parsed.writeExecutionPlan.steps).toBe("number");
+      expect(parsed.writeExecutionPlan.ok).toBe(false);
+      expect(parsed.writeExecutionPlan.reasons).toContain(
+        "write_execution_capability_not_allowed",
+      );
+      expect(parsed.writeExecutionPlan).not.toHaveProperty("plan");
+      for (const key of Object.keys(parsed.writeExecutionPlan)) {
+        expect(key).not.toMatch(/content|command|dest|adapter|writer|result|remote|url/i);
+      }
+      expect(output).not.toContain("backupFile");
+      expect(output).not.toContain("removeFile");
       expect(output).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
       expect(output).not.toContain("writeFile");
       expect(output).not.toContain("placeholder:preview-key:");
@@ -258,6 +274,8 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: write_capability_decision_not_ready",
       "OMP-I-6001: write_capability_approval_required",
       "OMP-I-6001: write_approval_token_root_missing",
+      "OMP-I-6001: write_execution_capability_not_allowed",
+      "OMP-I-6001: write_execution_steps_empty",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);
