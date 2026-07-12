@@ -135,17 +135,34 @@ describe("installer purity", () => {
     }
   });
 
-  it("policy, impact, and decision previews never execute installation or rollback", () => {
+  it("policy, impact, decision, and audit previews never execute installation or rollback", () => {
     for (const file of [
       "update-policy.ts",
       "update-impact.ts",
       "rollback-impact.ts",
       "decision-report.ts",
+      "audit-events.ts",
     ]) {
       const contents = readFileSync(join(srcDir, file), "utf8");
       for (const forbidden of ["executeInstall", "executeRollback"]) {
         expect(contents, `${file} must not contain "${forbidden}"`).not.toContain(forbidden);
       }
+    }
+  });
+
+  it("the audit event model never logs, persists, or sends events", () => {
+    const contents = readFileSync(join(srcDir, "audit-events.ts"), "utf8");
+    for (const forbidden of [
+      "console.log",
+      "console.error",
+      "logger",
+      "telemetry",
+      "writeFile",
+      "rmSync",
+      "unlink",
+      ...REMOTE_FORBIDDEN,
+    ]) {
+      expect(contents, `audit-events.ts must not contain "${forbidden}"`).not.toContain(forbidden);
     }
   });
 

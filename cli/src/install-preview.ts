@@ -14,6 +14,7 @@ import type {
 import {
   createArchiveDryRunFromAssembly,
   createInstaller,
+  createInstallerAuditEventDryRun,
   createInstallerDecisionDryRun,
   createNodeFilesystemAdapter,
   createLocalUpdatePolicyDryRun,
@@ -23,6 +24,7 @@ import {
   createReleaseMetadataDryRun,
   createRollbackImpactDryRun,
   createUpdateImpactDryRun,
+  formatInstallerAuditEventsMarkdown,
   formatInstallerDecisionReportMarkdown,
   DEFAULT_LOCAL_UPDATE_POLICY,
 } from "@oh-my-pm/installer";
@@ -103,6 +105,14 @@ export type InstallerPreviewResult = {
     decision: string;
     blockingReasons: string[];
     reviewReasons: string[];
+    markdown?: string;
+  };
+  /** In-memory audit event summary; nothing is logged, persisted, or sent. */
+  audit?: {
+    ok: boolean;
+    events: number;
+    errors: number;
+    warnings: number;
     markdown?: string;
   };
 };
@@ -336,6 +346,22 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const decisionWarnings =
     decisionReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Model the preview pipeline as a deterministic in-memory event sequence.
+  // Nothing is logged, persisted, or sent — the summary counts events only.
+  const auditReport = createInstallerAuditEventDryRun({
+    root,
+    decision: decisionReport.report,
+  });
+  const audit = {
+    ok: auditReport.ok,
+    events: auditReport.events.length,
+    errors: auditReport.events.filter((event) => event.level === "error").length,
+    warnings: auditReport.events.filter((event) => event.level === "warning").length,
+    markdown: formatInstallerAuditEventsMarkdown(auditReport.events),
+  };
+  const auditWarnings =
+    auditReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -352,6 +378,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...impactWarnings,
         ...rollbackImpactWarnings,
         ...decisionWarnings,
+        ...auditWarnings,
         result.message,
       ]),
       archive,
@@ -362,6 +389,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       impact,
       rollbackImpact,
       decision,
+      audit,
     };
   }
 
@@ -384,6 +412,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...impactWarnings,
       ...rollbackImpactWarnings,
       ...decisionWarnings,
+      ...auditWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -394,6 +423,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     impact,
     rollbackImpact,
     decision,
+    audit,
   };
 }
 
@@ -443,10 +473,14 @@ function formatMarkdown(result: InstallerPreviewResult): string {
   if (result.archive !== undefined) {
     lines.push("", "## Archive Plan", "", `Planned archive: \`${result.archive.archiveName}\``);
   }
-  const preview = `${lines.join("\n")}\n`;
-  // Compose the aggregated decision report after the preview body.
+  let preview = `${lines.join("\n")}\n`;
+  // Compose the aggregated decision report, then the audit events, after the
+  // preview body.
   if (result.decision?.markdown !== undefined) {
-    return `${preview}\n${result.decision.markdown}`;
+    preview = `${preview}\n${result.decision.markdown}`;
+  }
+  if (result.audit?.markdown !== undefined) {
+    preview = `${preview}\n${result.audit.markdown}`;
   }
   return preview;
 }
@@ -457,11 +491,17 @@ export function formatInstallerPreview(
   mode: CliOutputMode,
 ): string {
   if (mode === "json") {
-    // The decision markdown is a rendering aid, not part of the JSON contract.
-    const jsonResult =
-      result.decision === undefined
-        ? result
-        : { ...result, decision: { ...result.decision, markdown: undefined } };
+    // The rendered markdown blocks are display aids, not part of the JSON
+    // contract, so they are dropped from JSON output.
+    const jsonResult = {
+      ...result,
+      ...(result.decision === undefined
+        ? {}
+        : { decision: { ...result.decision, markdown: undefined } }),
+      ...(result.audit === undefined
+        ? {}
+        : { audit: { ...result.audit, markdown: undefined } }),
+    };
     return `${JSON.stringify(jsonResult, null, 2)}\n`;
   }
   if (mode === "markdown") {

@@ -68,7 +68,8 @@
 - Local update policy evaluation design: local policy validation, update candidate selection, installed-vs-candidate evaluation, downgrade and integrity rules, CLI preview summary (in place)
 - Update impact preview design: impact operation planning (create/replace/remove/unchanged), size/checksum summaries, policy-aware impact dry-run, CLI preview summary (in place)
 - Rollback impact preview design: rollback operation planning (restore/remove/missing/unchanged), size/checksum summaries, rollback impact dry-run, CLI preview summary (in place)
-- Installer decision report design: aggregated decision over assembly/archive/metadata/integrity/channel/update-policy/update-impact/rollback-impact, blocking vs review reasons, ready/blocked/review-required classification, markdown formatting, CLI preview summary — no remote retrieval, no install execution, no rollback execution, no write path
+- Installer decision report design: aggregated decision over assembly/archive/metadata/integrity/channel/update-policy/update-impact/rollback-impact, blocking vs review reasons, ready/blocked/review-required classification, markdown formatting, CLI preview summary (in place)
+- Installer audit event model design: deterministic in-memory event sequence (preview start, section evaluation, decision, completion), event validation, event markdown formatting, CLI preview summary — no log writes, no audit file persistence, no telemetry, no remote retrieval, no install execution, no rollback execution, no write path
 
 ## Phase 6 — Release lifecycle
 

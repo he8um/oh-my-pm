@@ -4,6 +4,7 @@ export {
 } from "./doctor.js";
 export {
   runInstallerArchivePlanExample,
+  runInstallerAuditEventExample,
   runInstallerControlledExecutionExample,
   runInstallerDecisionReportExample,
   runInstallerDryRunExample,
@@ -19,6 +20,7 @@ export {
 } from "./installer.js";
 export type {
   InstallerArchivePlanExample,
+  InstallerAuditEventExample,
   InstallerControlledExecutionExample,
   InstallerDecisionReportExample,
   InstallerDryRunExample,

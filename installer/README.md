@@ -91,3 +91,9 @@ The preview compares current files with rollback backup entries and reports rest
 The installer can aggregate local preview layers into a deterministic decision report.
 
 The report summarizes assembly, archive, metadata, integrity, channel, update policy, update impact, and rollback impact status. It classifies the preview as ready, blocked, or review-required. It does not retrieve packages remotely, execute installation, execute rollback, call write adapters, or write files.
+
+## Installer audit event model
+
+The installer can model deterministic audit events for a local preview pipeline.
+
+Audit events describe preview start, section evaluation, decision reporting, and preview completion. They are returned in memory only. The model does not write logs, persist audit files, send telemetry, retrieve packages remotely, execute installation, execute rollback, or call write adapters.

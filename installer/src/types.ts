@@ -562,6 +562,51 @@ export type InstallerDecisionDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Severity of a single installer audit event. */
+export type InstallerAuditEventLevel = "info" | "warning" | "error";
+
+/** Kind of installer audit event in a local preview pipeline. */
+export type InstallerAuditEventKind =
+  | "preview_started"
+  | "section_evaluated"
+  | "decision_reported"
+  | "preview_completed";
+
+/**
+ * One deterministic in-memory audit event. There is no timestamp, user,
+ * machine id, persisted path, remote destination, or telemetry field — events
+ * describe the local preview only and are never written or sent anywhere.
+ */
+export type InstallerAuditEvent = {
+  sequence: number;
+  kind: InstallerAuditEventKind;
+  level: InstallerAuditEventLevel;
+  message: string;
+  root: InstallerPath;
+  subject?: string;
+  reason?: string;
+};
+
+/** Input for building an audit event sequence from a decision report. */
+export type InstallerAuditEventInput = {
+  root: InstallerPath;
+  decision: InstallerDecisionReport;
+};
+
+/** Result of validating an audit event sequence. */
+export type InstallerAuditEventValidationReport = {
+  ok: boolean;
+  reasons: string[];
+};
+
+/** Result of an audit event dry run; nothing is written, sent, or persisted. */
+export type InstallerAuditEventDryRunReport = {
+  ok: boolean;
+  events: InstallerAuditEvent[];
+  validation: InstallerAuditEventValidationReport;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

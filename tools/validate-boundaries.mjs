@@ -77,10 +77,11 @@ for (const file of trackedFiles) {
     if (spec.includes("kernel/crate")) {
       err(`${file} imports from kernel/crate: "${spec}"`);
     }
-    // The decision report aggregates local reports only; it must never reach
-    // for a Node built-in.
+    // The decision report and audit event model aggregate local reports only;
+    // they must never reach for a Node built-in.
     if (
-      file === "installer/src/decision-report.ts" &&
+      (file === "installer/src/decision-report.ts" ||
+        file === "installer/src/audit-events.ts") &&
       (spec === "node" || spec.startsWith("node:"))
     ) {
       err(`${file} imports a Node built-in: "${spec}"`);
@@ -171,11 +172,21 @@ for (const file of trackedFiles) {
     file === NODE_READ_ADAPTER ||
     file === "installer/src/update-impact.ts" ||
     file === "installer/src/rollback-impact.ts" ||
-    file === "installer/src/decision-report.ts"
+    file === "installer/src/decision-report.ts" ||
+    file === "installer/src/audit-events.ts"
   ) {
     for (const api of NODE_WRITE_APIS) {
       if (contents.includes(api)) {
         err(`${file} contains forbidden write API "${api}"`);
+      }
+    }
+  }
+  // The audit event model returns events in memory only; it must never log,
+  // persist, or send them.
+  if (file === "installer/src/audit-events.ts") {
+    for (const marker of ["console.log", "console.error", "logger", "telemetry"]) {
+      if (contents.includes(marker)) {
+        err(`${file} contains forbidden logging/telemetry API "${marker}"`);
       }
     }
   }

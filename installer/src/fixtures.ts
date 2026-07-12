@@ -10,6 +10,7 @@ import type {
 import type {
   ArchivePlanInput,
   FilesystemEntry,
+  InstallerAuditEventInput,
   InstallerDecisionReportInput,
   LocalUpdatePolicyInput,
   PackageAssemblyInput,
@@ -22,6 +23,7 @@ import type {
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
+import { createInstallerDecisionReport } from "./decision-report.js";
 import { createLocalUpdatePolicyDryRun } from "./update-policy.js";
 import { createMemoryFilesystem } from "./memory-filesystem.js";
 import { createPackageAssemblyDryRun } from "./package-assembly.js";
@@ -246,6 +248,15 @@ export function exampleInstallerDecisionReportInput(): InstallerDecisionReportIn
     updateImpact,
     rollbackImpact,
   };
+}
+
+/**
+ * Example audit-event input built from the example decision report. The report
+ * is not blocked, so the aggregated event sequence validates cleanly.
+ */
+export function exampleInstallerAuditEventInput(): InstallerAuditEventInput {
+  const decision = createInstallerDecisionReport(exampleInstallerDecisionReportInput());
+  return { root: "/tmp/oh-my-pm", decision };
 }
 
 /** Example update plan accepted by the Kernel update guard. */

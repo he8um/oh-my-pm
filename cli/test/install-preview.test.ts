@@ -96,6 +96,9 @@ describe("runInstallerPreview", () => {
       expect(result.decision?.decision).toBe("review-required");
       expect(result.decision?.blockingReasons).toEqual([]);
       expect(result.decision?.reviewReasons).toContain("update_impact_no_changes");
+      expect(result.audit?.ok).toBe(true);
+      expect(result.audit?.events).toBeGreaterThan(0);
+      expect(result.audit?.errors).toBe(0);
 
       expect(readdirSync(root).sort()).toEqual(before);
       expect(readFileSync(join(root, "bin", "oh-my-pm"), "utf8")).toBe("old binary");
@@ -154,11 +157,16 @@ describe("runInstallerPreview", () => {
       expect(parsed.decision.decision).toBe("review-required");
       expect(parsed.decision.ok).toBe(false);
       expect(parsed.decision).not.toHaveProperty("markdown");
+      expect(parsed.audit.ok).toBe(true);
+      expect(parsed.audit.events).toBeGreaterThan(0);
+      expect(parsed.audit.errors).toBe(0);
+      expect(parsed.audit).not.toHaveProperty("markdown");
       expect(output).not.toContain("placeholder:preview-key:");
       expect(output).not.toMatch(/https?:\/\//);
       expect(output).not.toContain("download");
       expect(output).not.toContain("upload");
       expect(output).not.toContain("publish");
+      expect(output).not.toContain("telemetry");
       expect(output).not.toContain("executeInstall");
       expect(output).not.toContain("executeRollback");
     });
@@ -174,9 +182,12 @@ describe("runInstallerPreview", () => {
       const output = formatInstallerPreview(runInstallerPreview(root), "markdown");
       expect(output).toContain("# OH MY PM Installer Decision Report");
       expect(output).toContain("Decision: `review-required`");
+      expect(output).toContain("# OH MY PM Installer Audit Events");
+      expect(output).toContain("`preview_started`");
       expect(output).not.toMatch(/https?:\/\//);
       expect(output).not.toContain("placeholder:preview-key:");
       expect(output).not.toContain("executeInstall");
+      expect(output).not.toContain("telemetry");
 
       expect(readdirSync(root).sort()).toEqual(before);
       expect(readdirSync(root).some((name) => name.endsWith(".zip"))).toBe(false);
@@ -201,6 +212,7 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: rollback_impact_backup_files_empty",
       "OMP-I-6001: install_operations_empty",
       "OMP-I-6001: update_impact_no_changes",
+      "OMP-I-6001: audit_event_root_missing",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);
@@ -217,6 +229,9 @@ describe("runInstallerPreview", () => {
     expect(result.rollbackImpact?.rollbackId).toBe("preview-rollback");
     expect(result.decision?.decision).toBe("blocked");
     expect(result.decision?.blockingReasons).toContain("install_operations_empty");
+    expect(result.audit?.ok).toBe(false);
+    expect(result.audit?.events).toBeGreaterThan(0);
+    expect(result.audit?.errors).toBeGreaterThan(0);
   });
 });
 

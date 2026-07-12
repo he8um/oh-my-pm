@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as examples from "../src/index.js";
 import {
   runInstallerArchivePlanExample,
+  runInstallerAuditEventExample,
   runInstallerDecisionReportExample,
   runInstallerReleaseChannelExample,
   runInstallerReleaseIntegrityExample,
@@ -198,8 +199,34 @@ describe("runInstallerDecisionReportExample", () => {
   });
 });
 
+describe("runInstallerAuditEventExample", () => {
+  it("returns a validated audit event sequence and its markdown", () => {
+    const result = runInstallerAuditEventExample();
+    expect(result.audit.ok).toBe(true);
+    expect(result.audit.events.length).toBeGreaterThan(0);
+    expect(result.audit.events[0].kind).toBe("preview_started");
+    expect(result.markdown).toContain("Installer Audit Events");
+
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("placeholder:");
+    expect(serialized).not.toContain("BEGIN");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    expect(serialized).not.toContain("telemetry");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toContain("writeFile");
+    // No timestamp/user/machine/persisted-path fields on any event.
+    for (const event of result.audit.events) {
+      expect(event).not.toHaveProperty("timestamp");
+      expect(event).not.toHaveProperty("user");
+      expect(event).not.toHaveProperty("path");
+    }
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runInstallerAuditEventExample).toBe("function");
     expect(typeof examples.runInstallerDecisionReportExample).toBe("function");
     expect(typeof examples.runInstallerDryRunExample).toBe("function");
     expect(typeof examples.runInstallerControlledExecutionExample).toBe("function");

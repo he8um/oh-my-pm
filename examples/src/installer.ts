@@ -6,6 +6,7 @@
 import type {
   ArchiveDryRunReport,
   InstallDryRunReport,
+  InstallerAuditEventDryRunReport,
   InstallerDecisionDryRunReport,
   InstallerFailure,
   InstallExecutionReport,
@@ -22,6 +23,7 @@ import type {
 import {
   createArchiveDryRunFromAssembly,
   createInstaller,
+  createInstallerAuditEventDryRun,
   createInstallerDecisionDryRun,
   createMemoryFilesystem,
   createMemoryWriteFilesystem,
@@ -34,9 +36,11 @@ import {
   createReleaseChannelDryRun,
   createReleaseIntegrityDryRun,
   createReleaseMetadataDryRun,
+  formatInstallerAuditEventsMarkdown,
   formatInstallerDecisionReportMarkdown,
   DEFAULT_LOCAL_UPDATE_POLICY,
   exampleFilesystemEntries,
+  exampleInstallerAuditEventInput,
   examplePackageAssemblyInput,
   examplePackageManifest,
   exampleRollbackManifest,
@@ -96,6 +100,11 @@ export type InstallerRollbackImpactExample = {
 
 export type InstallerDecisionReportExample = {
   decision: InstallerDecisionDryRunReport;
+  markdown: string;
+};
+
+export type InstallerAuditEventExample = {
+  audit: InstallerAuditEventDryRunReport;
   markdown: string;
 };
 
@@ -292,6 +301,17 @@ export function runInstallerDecisionReportExample(): InstallerDecisionReportExam
   const decision = createInstallerDecisionDryRun(exampleInstallerDecisionReportInput());
   const markdown = formatInstallerDecisionReportMarkdown(decision.report);
   return { decision, markdown };
+}
+
+/**
+ * Model the local preview pipeline as a deterministic audit event sequence and
+ * render it as markdown. Event-model only — nothing is logged, persisted, sent,
+ * or executed.
+ */
+export function runInstallerAuditEventExample(): InstallerAuditEventExample {
+  const audit = createInstallerAuditEventDryRun(exampleInstallerAuditEventInput());
+  const markdown = formatInstallerAuditEventsMarkdown(audit.events);
+  return { audit, markdown };
 }
 
 /** Install the example package, then apply the example update plan. */

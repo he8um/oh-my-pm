@@ -310,6 +310,8 @@ const INSTALLER_SOURCES = [
   "installer/test/rollback-impact.test.ts",
   "installer/src/decision-report.ts",
   "installer/test/decision-report.test.ts",
+  "installer/src/audit-events.ts",
+  "installer/test/audit-events.test.ts",
   "installer/test/validate.test.ts",
   "installer/test/manifest.test.ts",
   "installer/test/installer.test.ts",

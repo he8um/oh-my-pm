@@ -10,6 +10,7 @@ export {
 export {
   exampleArchivePlanInput,
   exampleFilesystemEntries,
+  exampleInstallerAuditEventInput,
   exampleInstallerDecisionReportInput,
   exampleLocalUpdatePolicyInput,
   exampleRollbackImpactPreviewInput,
@@ -56,6 +57,13 @@ export {
   formatInstallerDecisionReportMarkdown,
   summarizeInstallerDecisionReport,
 } from "./decision-report.js";
+export {
+  createInstallerAuditEvent,
+  createInstallerAuditEventDryRun,
+  createInstallerAuditEvents,
+  formatInstallerAuditEventsMarkdown,
+  validateInstallerAuditEvents,
+} from "./audit-events.js";
 export {
   createPackageFileEntry,
   createPackageManifest,
@@ -151,6 +159,12 @@ export type {
   FilesystemSnapshot,
   InstallDryRunReport,
   Installer,
+  InstallerAuditEvent,
+  InstallerAuditEventDryRunReport,
+  InstallerAuditEventInput,
+  InstallerAuditEventKind,
+  InstallerAuditEventLevel,
+  InstallerAuditEventValidationReport,
   InstallerDecision,
   InstallerDecisionDryRunReport,
   InstallerDecisionReport,
