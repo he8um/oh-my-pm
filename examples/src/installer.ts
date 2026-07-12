@@ -12,6 +12,7 @@ import type {
   InstallerFailure,
   InstallerWriteApprovalTokenDryRunReport,
   InstallerWriteCapabilityDryRunReport,
+  InstallerWriteConfirmationChecklistDryRunReport,
   InstallerWriteExecutionPlanDryRunReport,
   InstallExecutionReport,
   LocalUpdatePolicyDryRunReport,
@@ -31,6 +32,7 @@ import {
   createInstallerAuditTrailExportDryRun,
   createInstallerWriteApprovalTokenDryRun,
   createInstallerWriteCapabilityDryRun,
+  createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
   createInstallerDecisionDryRun,
   createMemoryFilesystem,
@@ -52,6 +54,7 @@ import {
   exampleInstallerAuditTrailExportInput,
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
+  exampleInstallerWriteConfirmationChecklistInput,
   exampleInstallerWriteExecutionPlanInput,
   examplePackageAssemblyInput,
   examplePackageManifest,
@@ -134,6 +137,10 @@ export type InstallerWriteApprovalTokenExample = {
 
 export type InstallerWriteExecutionPlanExample = {
   writeExecutionPlan: InstallerWriteExecutionPlanDryRunReport;
+};
+
+export type InstallerWriteConfirmationChecklistExample = {
+  writeConfirmation: InstallerWriteConfirmationChecklistDryRunReport;
 };
 
 export type InstallerUpdateExample = {
@@ -387,6 +394,18 @@ export function runInstallerWriteExecutionPlanExample(): InstallerWriteExecution
     exampleInstallerWriteExecutionPlanInput(),
   );
   return { writeExecutionPlan };
+}
+
+/**
+ * Build a deterministic pre-write confirmation checklist over the example
+ * capability and execution plan. Confirmation-only — the checklist reports
+ * readiness; nothing is written, executed, retrieved, logged, or sent.
+ */
+export function runInstallerWriteConfirmationChecklistExample(): InstallerWriteConfirmationChecklistExample {
+  const writeConfirmation = createInstallerWriteConfirmationChecklistDryRun(
+    exampleInstallerWriteConfirmationChecklistInput(),
+  );
+  return { writeConfirmation };
 }
 
 /** Install the example package, then apply the example update plan. */

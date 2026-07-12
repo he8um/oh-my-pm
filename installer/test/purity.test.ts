@@ -150,13 +150,14 @@ describe("installer purity", () => {
     }
   });
 
-  it("the audit event model, export, capability, approval, and write plan never log, persist, send, or execute", () => {
+  it("the audit event model, export, capability, approval, write plan, and confirmation never log, persist, send, or execute", () => {
     for (const file of [
       "audit-events.ts",
       "audit-export.ts",
       "write-capability.ts",
       "write-approval.ts",
       "write-execution-plan.ts",
+      "write-confirmation.ts",
     ]) {
       const contents = readFileSync(join(srcDir, file), "utf8");
       for (const forbidden of [
@@ -177,8 +178,8 @@ describe("installer purity", () => {
     }
   });
 
-  it("the approval token and write plan hold no crypto or key material", () => {
-    for (const file of ["write-approval.ts", "write-execution-plan.ts"]) {
+  it("the approval token, write plan, and confirmation hold no crypto or key material", () => {
+    for (const file of ["write-approval.ts", "write-execution-plan.ts", "write-confirmation.ts"]) {
       const contents = readFileSync(join(srcDir, file), "utf8");
       for (const forbidden of ["crypto", "privateKey", "publicKey"]) {
         expect(contents, `${file} must not contain "${forbidden}"`).not.toContain(forbidden);
@@ -186,13 +187,12 @@ describe("installer purity", () => {
     }
   });
 
-  it("the write execution plan never calls a write adapter", () => {
-    const contents = readFileSync(join(srcDir, "write-execution-plan.ts"), "utf8");
-    for (const forbidden of ["FilesystemWriteAdapter", "removeFile", "backupFile"]) {
-      expect(
-        contents,
-        `write-execution-plan.ts must not contain "${forbidden}"`,
-      ).not.toContain(forbidden);
+  it("the write execution plan and confirmation never call a write adapter", () => {
+    for (const file of ["write-execution-plan.ts", "write-confirmation.ts"]) {
+      const contents = readFileSync(join(srcDir, file), "utf8");
+      for (const forbidden of ["FilesystemWriteAdapter", "removeFile", "backupFile"]) {
+        expect(contents, `${file} must not contain "${forbidden}"`).not.toContain(forbidden);
+      }
     }
   });
 

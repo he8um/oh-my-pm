@@ -320,6 +320,8 @@ const INSTALLER_SOURCES = [
   "installer/test/write-approval.test.ts",
   "installer/src/write-execution-plan.ts",
   "installer/test/write-execution-plan.test.ts",
+  "installer/src/write-confirmation.ts",
+  "installer/test/write-confirmation.test.ts",
   "installer/test/validate.test.ts",
   "installer/test/manifest.test.ts",
   "installer/test/installer.test.ts",

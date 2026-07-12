@@ -52,6 +52,9 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: write_capability_decision_not_ready",
         "OMP-I-6001: write_capability_approval_required",
         "OMP-I-6001: write_execution_capability_not_allowed",
+        "OMP-I-6001: write_confirmation_decision_not_ready",
+        "OMP-I-6001: write_confirmation_capability_not_allowed",
+        "OMP-I-6001: write_confirmation_execution_plan_not_ready",
       ]);
       expect(result.archive).toEqual({
         format: "zip",
@@ -125,6 +128,9 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: write_capability_decision_not_ready",
         "OMP-I-6001: write_capability_approval_required",
         "OMP-I-6001: write_execution_capability_not_allowed",
+        "OMP-I-6001: write_confirmation_decision_not_ready",
+        "OMP-I-6001: write_confirmation_capability_not_allowed",
+        "OMP-I-6001: write_confirmation_execution_plan_not_ready",
       ]);
       expect(result.operations).toHaveLength(1);
       expect(result.operations[0].path.endsWith("README.md")).toBe(true);
@@ -214,6 +220,18 @@ describe("runInstallerPreview", () => {
       for (const key of Object.keys(parsed.writeExecutionPlan)) {
         expect(key).not.toMatch(/content|command|dest|adapter|writer|result|remote|url/i);
       }
+      // Pre-write confirmation summary; the default preview path is not fully
+      // ready, so it reports failed checks with reasons and no raw items.
+      expect(parsed.writeConfirmation.intent).toBe("install");
+      expect(typeof parsed.writeConfirmation.passed).toBe("number");
+      expect(typeof parsed.writeConfirmation.failed).toBe("number");
+      expect(parsed.writeConfirmation.ok).toBe(false);
+      expect(parsed.writeConfirmation.reasons.length).toBeGreaterThan(0);
+      expect(parsed.writeConfirmation).not.toHaveProperty("checklist");
+      expect(parsed.writeConfirmation).not.toHaveProperty("items");
+      for (const key of Object.keys(parsed.writeConfirmation)) {
+        expect(key).not.toMatch(/content|command|dest|adapter|writer|result|remote|url/i);
+      }
       expect(output).not.toContain("backupFile");
       expect(output).not.toContain("removeFile");
       expect(output).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
@@ -276,6 +294,10 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: write_approval_token_root_missing",
       "OMP-I-6001: write_execution_capability_not_allowed",
       "OMP-I-6001: write_execution_steps_empty",
+      "OMP-I-6001: write_confirmation_decision_not_ready",
+      "OMP-I-6001: write_confirmation_capability_not_allowed",
+      "OMP-I-6001: write_confirmation_execution_plan_not_ready",
+      "OMP-I-6001: write_confirmation_steps_empty",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);

@@ -793,6 +793,51 @@ export type InstallerWriteExecutionPlanDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Identifier for one pre-write confirmation check. */
+export type InstallerWriteConfirmationItemId =
+  | "intent-consistent"
+  | "decision-ready"
+  | "capability-allowed"
+  | "execution-plan-ready"
+  | "execution-steps-present";
+
+/**
+ * One confirmation check. `reason` is present only when the check failed.
+ * There is no content, write adapter, destination, command, remote, or
+ * execution-result field — items describe local readiness only.
+ */
+export type InstallerWriteConfirmationChecklistItem = {
+  id: InstallerWriteConfirmationItemId;
+  label: string;
+  ok: boolean;
+  reason?: string;
+};
+
+/**
+ * Input for building the confirmation checklist from already computed local
+ * reports; nothing is fetched, written, or executed.
+ */
+export type InstallerWriteConfirmationChecklistInput = {
+  decision: InstallerDecisionReport;
+  capability: InstallerWriteCapabilityReport;
+  executionPlan: InstallerWriteExecutionPlan;
+};
+
+/** Deterministic pre-write confirmation checklist; nothing is executed. */
+export type InstallerWriteConfirmationChecklist = {
+  ok: boolean;
+  intent: InstallerWriteIntent;
+  items: InstallerWriteConfirmationChecklistItem[];
+  reasons: string[];
+};
+
+/** Result of a confirmation checklist dry run; nothing is written or executed. */
+export type InstallerWriteConfirmationChecklistDryRunReport = {
+  ok: boolean;
+  checklist: InstallerWriteConfirmationChecklist;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

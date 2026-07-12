@@ -18,6 +18,7 @@ import {
   runInstallerUpdateImpactExample,
   runInstallerWriteApprovalTokenExample,
   runInstallerWriteCapabilityExample,
+  runInstallerWriteConfirmationChecklistExample,
   runInstallerWriteExecutionPlanExample,
 } from "../src/index.js";
 
@@ -321,8 +322,33 @@ describe("runInstallerWriteExecutionPlanExample", () => {
   });
 });
 
+describe("runInstallerWriteConfirmationChecklistExample", () => {
+  it("returns a passing confirmation checklist with a stable item count", () => {
+    const result = runInstallerWriteConfirmationChecklistExample();
+    expect(result.writeConfirmation.ok).toBe(true);
+    expect(result.writeConfirmation.checklist.items).toHaveLength(5);
+    expect(result.writeConfirmation.checklist.items.every((item) => item.ok)).toBe(true);
+    expect(Object.keys(result)).toEqual(["writeConfirmation"]);
+
+    // Confirmation-only: no content, command, adapter, or execution-result.
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("writeFile");
+    expect(serialized).not.toContain("backupFile");
+    expect(serialized).not.toContain("removeFile");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    for (const item of result.writeConfirmation.checklist.items) {
+      for (const key of Object.keys(item)) {
+        expect(key).not.toMatch(/content|command|dest|adapter|writer|result|remote|url/i);
+      }
+    }
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runInstallerWriteConfirmationChecklistExample).toBe("function");
     expect(typeof examples.runInstallerWriteExecutionPlanExample).toBe("function");
     expect(typeof examples.runInstallerWriteApprovalTokenExample).toBe("function");
     expect(typeof examples.runInstallerWriteCapabilityExample).toBe("function");

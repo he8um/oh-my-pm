@@ -24,6 +24,7 @@ import type {
   InstallerWriteCapabilityInput,
   InstallerWriteApprovalTokenInput,
   InstallerWriteExecutionPlanInput,
+  InstallerWriteConfirmationChecklistInput,
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -43,6 +44,7 @@ import { DEFAULT_LOCAL_UPDATE_POLICY, evaluateLocalUpdatePolicy } from "./update
 import { DEFAULT_INSTALLER_WRITE_CAPABILITY_POLICY } from "./write-capability.js";
 import { evaluateInstallerWriteCapability } from "./write-capability.js";
 import { createInstallerWriteApprovalToken } from "./write-approval.js";
+import { createInstallerWriteExecutionPlan } from "./write-execution-plan.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -337,6 +339,25 @@ export function exampleInstallerWriteExecutionPlanInput(): InstallerWriteExecuti
     installOperations: decisionInput.installOperations,
     updateImpact: decisionInput.updateImpact.preview,
     rollbackImpact: decisionInput.rollbackImpact.preview,
+  };
+}
+
+/**
+ * Example confirmation checklist input. It reuses the write execution plan
+ * example's capability and install operations, and pairs them with a ready
+ * decision so every confirmation item passes and the checklist is ok.
+ */
+export function exampleInstallerWriteConfirmationChecklistInput(): InstallerWriteConfirmationChecklistInput {
+  const planInput = exampleInstallerWriteExecutionPlanInput();
+  // The write execution plan example evaluates capability with a ready-decision
+  // requirement disabled; pair it with a ready decision so the confirmation
+  // checklist's decision-ready item also passes.
+  const decision = { ...createInstallerDecisionReport(exampleInstallerDecisionReportInput()), decision: "ready" as const, ok: true };
+  const executionPlan = createInstallerWriteExecutionPlan(planInput);
+  return {
+    decision,
+    capability: planInput.capability,
+    executionPlan,
   };
 }
 

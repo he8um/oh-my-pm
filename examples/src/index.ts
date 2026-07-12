@@ -20,6 +20,7 @@ export {
   runInstallerUpdatePolicyExample,
   runInstallerWriteApprovalTokenExample,
   runInstallerWriteCapabilityExample,
+  runInstallerWriteConfirmationChecklistExample,
   runInstallerWriteExecutionPlanExample,
 } from "./installer.js";
 export type {
@@ -40,6 +41,7 @@ export type {
   InstallerUpdatePolicyExample,
   InstallerWriteApprovalTokenExample,
   InstallerWriteCapabilityExample,
+  InstallerWriteConfirmationChecklistExample,
   InstallerWriteExecutionPlanExample,
 } from "./installer.js";
 export {

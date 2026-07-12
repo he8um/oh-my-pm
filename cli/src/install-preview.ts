@@ -18,6 +18,7 @@ import {
   createInstallerAuditTrailExportDryRun,
   createInstallerWriteApprovalTokenDryRun,
   createInstallerWriteCapabilityDryRun,
+  createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
   createInstallerDecisionDryRun,
   createNodeFilesystemAdapter,
@@ -160,6 +161,17 @@ export type InstallerPreviewResult = {
     ok: boolean;
     intent: string;
     steps: number;
+    reasons: string[];
+  };
+  /**
+   * Pre-write confirmation summary; confirmation-only. The raw checklist items
+   * are never included, nothing is executed, and no write adapter is called.
+   */
+  writeConfirmation?: {
+    ok: boolean;
+    intent: string;
+    passed: number;
+    failed: number;
     reasons: string[];
   };
 };
@@ -482,6 +494,26 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const writeExecutionPlanWarnings =
     writeExecutionPlanReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Summarize the pre-write confirmation checklist over the decision report,
+  // write capability, and write execution plan. Confirmation-only — the raw
+  // checklist items stay out of the summary, no write adapter is called, and
+  // nothing is executed.
+  const writeConfirmationReport = createInstallerWriteConfirmationChecklistDryRun({
+    decision: decisionReport.report,
+    capability: writeCapabilityReport.report,
+    executionPlan: writeExecutionPlanReport.plan,
+  });
+  const confirmationItems = writeConfirmationReport.checklist.items;
+  const writeConfirmation = {
+    ok: writeConfirmationReport.ok,
+    intent: writeConfirmationReport.checklist.intent,
+    passed: confirmationItems.filter((item) => item.ok).length,
+    failed: confirmationItems.filter((item) => !item.ok).length,
+    reasons: [...writeConfirmationReport.checklist.reasons],
+  };
+  const writeConfirmationWarnings =
+    writeConfirmationReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -503,6 +535,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...writeCapabilityWarnings,
         ...approvalWarnings,
         ...writeExecutionPlanWarnings,
+        ...writeConfirmationWarnings,
         result.message,
       ]),
       archive,
@@ -518,6 +551,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       writeCapability,
       approval,
       writeExecutionPlan,
+      writeConfirmation,
     };
   }
 
@@ -545,6 +579,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...writeCapabilityWarnings,
       ...approvalWarnings,
       ...writeExecutionPlanWarnings,
+      ...writeConfirmationWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -560,6 +595,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     writeCapability,
     approval,
     writeExecutionPlan,
+    writeConfirmation,
   };
 }
 
@@ -625,6 +661,15 @@ function formatMarkdown(result: InstallerPreviewResult): string {
       "## Write Execution Plan",
       "",
       `Planned write steps: \`${result.writeExecutionPlan.steps}\` (\`${result.writeExecutionPlan.ok ? "ready" : "blocked"}\`, not executed)`,
+    );
+  }
+  if (result.writeConfirmation !== undefined) {
+    // Confirmation only: this reports readiness, never an execution.
+    lines.push(
+      "",
+      "## Write Confirmation",
+      "",
+      `Write confirmation: \`${result.writeConfirmation.ok ? "confirmed" : "blocked"}\` (${result.writeConfirmation.passed}/${result.writeConfirmation.passed + result.writeConfirmation.failed} checks passed, not executed)`,
     );
   }
   let preview = `${lines.join("\n")}\n`;

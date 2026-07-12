@@ -86,7 +86,8 @@ for (const file of trackedFiles) {
         file === "installer/src/audit-export.ts" ||
         file === "installer/src/write-capability.ts" ||
         file === "installer/src/write-approval.ts" ||
-        file === "installer/src/write-execution-plan.ts") &&
+        file === "installer/src/write-execution-plan.ts" ||
+        file === "installer/src/write-confirmation.ts") &&
       (spec === "node" || spec.startsWith("node:"))
     ) {
       err(`${file} imports a Node built-in: "${spec}"`);
@@ -182,7 +183,8 @@ for (const file of trackedFiles) {
     file === "installer/src/audit-export.ts" ||
     file === "installer/src/write-capability.ts" ||
     file === "installer/src/write-approval.ts" ||
-    file === "installer/src/write-execution-plan.ts"
+    file === "installer/src/write-execution-plan.ts" ||
+    file === "installer/src/write-confirmation.ts"
   ) {
     for (const api of NODE_WRITE_APIS) {
       if (contents.includes(api)) {
@@ -190,15 +192,16 @@ for (const file of trackedFiles) {
       }
     }
   }
-  // The audit event model, export, capability, approval token, and write
-  // execution plan render/return/evaluate in memory only; none may log,
-  // persist, or send.
+  // The audit event model, export, capability, approval token, write execution
+  // plan, and confirmation checklist render/return/evaluate in memory only;
+  // none may log, persist, or send.
   if (
     file === "installer/src/audit-events.ts" ||
     file === "installer/src/audit-export.ts" ||
     file === "installer/src/write-capability.ts" ||
     file === "installer/src/write-approval.ts" ||
-    file === "installer/src/write-execution-plan.ts"
+    file === "installer/src/write-execution-plan.ts" ||
+    file === "installer/src/write-confirmation.ts"
   ) {
     for (const marker of ["console.log", "console.error", "logger", "telemetry"]) {
       if (contents.includes(marker)) {
@@ -206,13 +209,14 @@ for (const file of trackedFiles) {
       }
     }
   }
-  // The audit trail export, write capability, approval token, and write
-  // execution plan model only; none may execute an install or rollback.
+  // The audit trail export, write capability, approval token, write execution
+  // plan, and confirmation checklist model only; none may execute.
   if (
     file === "installer/src/audit-export.ts" ||
     file === "installer/src/write-capability.ts" ||
     file === "installer/src/write-approval.ts" ||
-    file === "installer/src/write-execution-plan.ts"
+    file === "installer/src/write-execution-plan.ts" ||
+    file === "installer/src/write-confirmation.ts"
   ) {
     for (const marker of ["executeInstall", "executeRollback"]) {
       if (contents.includes(marker)) {
@@ -220,20 +224,24 @@ for (const file of trackedFiles) {
       }
     }
   }
-  // The write execution plan is planning only; it must never reference a write
-  // adapter or its mutating methods.
-  if (file === "installer/src/write-execution-plan.ts") {
+  // The write execution plan and confirmation checklist are planning/reporting
+  // only; neither may reference a write adapter or its mutating methods.
+  if (
+    file === "installer/src/write-execution-plan.ts" ||
+    file === "installer/src/write-confirmation.ts"
+  ) {
     for (const marker of ["FilesystemWriteAdapter", "removeFile", "backupFile"]) {
       if (contents.includes(marker)) {
         err(`${file} contains forbidden write adapter usage "${marker}"`);
       }
     }
   }
-  // The approval token and write execution plan are deterministic, local, and
-  // non-secret; neither may reach for crypto or key material.
+  // The approval token, write execution plan, and confirmation checklist are
+  // deterministic, local, and non-secret; none may reach for crypto or keys.
   if (
     file === "installer/src/write-approval.ts" ||
-    file === "installer/src/write-execution-plan.ts"
+    file === "installer/src/write-execution-plan.ts" ||
+    file === "installer/src/write-confirmation.ts"
   ) {
     for (const marker of ["crypto", "privateKey", "publicKey"]) {
       if (contents.includes(marker)) {

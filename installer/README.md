@@ -121,3 +121,9 @@ The token is descriptive, local, and non-secret. It binds an intent, root, and d
 The installer can build a deterministic execution plan for a future write-capable operation after capability checks pass.
 
 The plan lists local step kinds and paths for install, update, or rollback intent. It is planning only. It does not execute installation, execute rollback, call write adapters, retrieve packages remotely, or write files.
+
+## Write execution confirmation checklist
+
+The installer can build a deterministic confirmation checklist for a future write-capable operation.
+
+The checklist verifies intent consistency, decision readiness, write capability, execution plan readiness, and step presence. It is confirmation-only. It does not execute installation, execute rollback, call write adapters, retrieve packages remotely, or write files.

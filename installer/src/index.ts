@@ -15,6 +15,7 @@ export {
   exampleInstallerDecisionReportInput,
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
+  exampleInstallerWriteConfirmationChecklistInput,
   exampleInstallerWriteExecutionPlanInput,
   exampleLocalUpdatePolicyInput,
   exampleRollbackImpactPreviewInput,
@@ -98,6 +99,11 @@ export {
   mapRollbackImpactToWriteStepKind,
   mapUpdateImpactToWriteStepKind,
 } from "./write-execution-plan.js";
+export {
+  createInstallerWriteConfirmationChecklist,
+  createInstallerWriteConfirmationChecklistDryRun,
+  createInstallerWriteConfirmationChecklistItems,
+} from "./write-confirmation.js";
 export {
   createPackageFileEntry,
   createPackageManifest,
@@ -224,6 +230,11 @@ export type {
   InstallerWriteApprovalTokenMatchReport,
   InstallerWriteApprovalTokenValidationReport,
   InstallerWriteCapabilityDryRunReport,
+  InstallerWriteConfirmationChecklist,
+  InstallerWriteConfirmationChecklistDryRunReport,
+  InstallerWriteConfirmationChecklistInput,
+  InstallerWriteConfirmationChecklistItem,
+  InstallerWriteConfirmationItemId,
   InstallerWriteExecutionPlan,
   InstallerWriteExecutionPlanDryRunReport,
   InstallerWriteExecutionPlanInput,
