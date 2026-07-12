@@ -25,6 +25,7 @@ import type {
   InstallerWriteApprovalTokenInput,
   InstallerWriteExecutionPlanInput,
   InstallerWriteConfirmationChecklistInput,
+  InstallerWriteAdapterContractInput,
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -45,6 +46,7 @@ import { DEFAULT_INSTALLER_WRITE_CAPABILITY_POLICY } from "./write-capability.js
 import { evaluateInstallerWriteCapability } from "./write-capability.js";
 import { createInstallerWriteApprovalToken } from "./write-approval.js";
 import { createInstallerWriteExecutionPlan } from "./write-execution-plan.js";
+import { createInstallerWriteConfirmationChecklist } from "./write-confirmation.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -358,6 +360,27 @@ export function exampleInstallerWriteConfirmationChecklistInput(): InstallerWrit
     decision,
     capability: planInput.capability,
     executionPlan,
+  };
+}
+
+/**
+ * Example write adapter contract input. It reuses the confirmation checklist
+ * example's ready confirmation and its execution plan, paired with a contract
+ * that declares every required capability and supports rollback capture, so
+ * the contract evaluation is ok.
+ */
+export function exampleInstallerWriteAdapterContractInput(): InstallerWriteAdapterContractInput {
+  const checklistInput = exampleInstallerWriteConfirmationChecklistInput();
+  const confirmation = createInstallerWriteConfirmationChecklist(checklistInput);
+  return {
+    contract: {
+      name: "memory-write-adapter",
+      capabilities: ["write-file", "remove-file", "backup-file"],
+      requiresExplicitApproval: true,
+      supportsRollbackCapture: true,
+    },
+    confirmation,
+    executionPlan: checklistInput.executionPlan,
   };
 }
 

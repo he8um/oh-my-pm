@@ -838,6 +838,48 @@ export type InstallerWriteConfirmationChecklistDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** A local capability a future write adapter may declare; a label only. */
+export type InstallerWriteAdapterCapability = "write-file" | "remove-file" | "backup-file";
+
+/**
+ * Declared metadata contract for a future write adapter. This is metadata
+ * only — there is no adapter object, function, method, content, write payload,
+ * execution-result, destination, command, or remote field. Nothing here is an
+ * adapter instance and no adapter method is ever called.
+ */
+export type InstallerWriteAdapterContract = {
+  name: string;
+  capabilities: InstallerWriteAdapterCapability[];
+  requiresExplicitApproval: boolean;
+  supportsRollbackCapture: boolean;
+};
+
+/**
+ * Input for checking a declared contract against already computed local
+ * reports; nothing is fetched, written, executed, or called.
+ */
+export type InstallerWriteAdapterContractInput = {
+  contract: InstallerWriteAdapterContract;
+  confirmation: InstallerWriteConfirmationChecklist;
+  executionPlan: InstallerWriteExecutionPlan;
+};
+
+/** Result of evaluating a declared write adapter contract; nothing is executed. */
+export type InstallerWriteAdapterContractReport = {
+  ok: boolean;
+  name: string;
+  requiredCapabilities: InstallerWriteAdapterCapability[];
+  declaredCapabilities: InstallerWriteAdapterCapability[];
+  reasons: string[];
+};
+
+/** Result of a write adapter contract dry run; nothing is written or executed. */
+export type InstallerWriteAdapterContractDryRunReport = {
+  ok: boolean;
+  report: InstallerWriteAdapterContractReport;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

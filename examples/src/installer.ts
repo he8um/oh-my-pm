@@ -11,6 +11,7 @@ import type {
   InstallerDecisionDryRunReport,
   InstallerFailure,
   InstallerWriteApprovalTokenDryRunReport,
+  InstallerWriteAdapterContractDryRunReport,
   InstallerWriteCapabilityDryRunReport,
   InstallerWriteConfirmationChecklistDryRunReport,
   InstallerWriteExecutionPlanDryRunReport,
@@ -32,6 +33,7 @@ import {
   createInstallerAuditTrailExportDryRun,
   createInstallerWriteApprovalTokenDryRun,
   createInstallerWriteCapabilityDryRun,
+  createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
   createInstallerDecisionDryRun,
@@ -54,6 +56,7 @@ import {
   exampleInstallerAuditTrailExportInput,
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
+  exampleInstallerWriteAdapterContractInput,
   exampleInstallerWriteConfirmationChecklistInput,
   exampleInstallerWriteExecutionPlanInput,
   examplePackageAssemblyInput,
@@ -141,6 +144,10 @@ export type InstallerWriteExecutionPlanExample = {
 
 export type InstallerWriteConfirmationChecklistExample = {
   writeConfirmation: InstallerWriteConfirmationChecklistDryRunReport;
+};
+
+export type InstallerWriteAdapterContractExample = {
+  writeAdapterContract: InstallerWriteAdapterContractDryRunReport;
 };
 
 export type InstallerUpdateExample = {
@@ -406,6 +413,19 @@ export function runInstallerWriteConfirmationChecklistExample(): InstallerWriteC
     exampleInstallerWriteConfirmationChecklistInput(),
   );
   return { writeConfirmation };
+}
+
+/**
+ * Validate a declared write adapter metadata contract against the example
+ * confirmation checklist and execution plan. Metadata-only — no adapter is
+ * constructed or called, and nothing is written, executed, retrieved, logged,
+ * or sent.
+ */
+export function runInstallerWriteAdapterContractExample(): InstallerWriteAdapterContractExample {
+  const writeAdapterContract = createInstallerWriteAdapterContractDryRun(
+    exampleInstallerWriteAdapterContractInput(),
+  );
+  return { writeAdapterContract };
 }
 
 /** Install the example package, then apply the example update plan. */

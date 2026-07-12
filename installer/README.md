@@ -127,3 +127,9 @@ The plan lists local step kinds and paths for install, update, or rollback inten
 The installer can build a deterministic confirmation checklist for a future write-capable operation.
 
 The checklist verifies intent consistency, decision readiness, write capability, execution plan readiness, and step presence. It is confirmation-only. It does not execute installation, execute rollback, call write adapters, retrieve packages remotely, or write files.
+
+## Controlled write adapter contract
+
+The installer can validate a declared write adapter metadata contract before any future write-capable operation.
+
+The contract declares local capabilities such as write-file, remove-file, and backup-file. The validation checks the declared capabilities against the already-built write execution plan and confirmation checklist. It is metadata-only. It does not call adapters, execute installation, execute rollback, retrieve packages remotely, or write files.

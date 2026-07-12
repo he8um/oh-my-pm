@@ -15,6 +15,7 @@ export {
   exampleInstallerDecisionReportInput,
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
+  exampleInstallerWriteAdapterContractInput,
   exampleInstallerWriteConfirmationChecklistInput,
   exampleInstallerWriteExecutionPlanInput,
   exampleLocalUpdatePolicyInput,
@@ -104,6 +105,14 @@ export {
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteConfirmationChecklistItems,
 } from "./write-confirmation.js";
+export {
+  collectRequiredWriteAdapterCapabilities,
+  createInstallerWriteAdapterContractDryRun,
+  evaluateInstallerWriteAdapterContract,
+  mapWriteStepKindToAdapterCapability,
+  validateInstallerWriteAdapterCapability,
+  validateInstallerWriteAdapterContract,
+} from "./write-adapter-contract.js";
 export {
   createPackageFileEntry,
   createPackageManifest,
@@ -229,6 +238,11 @@ export type {
   InstallerWriteApprovalTokenMatchInput,
   InstallerWriteApprovalTokenMatchReport,
   InstallerWriteApprovalTokenValidationReport,
+  InstallerWriteAdapterCapability,
+  InstallerWriteAdapterContract,
+  InstallerWriteAdapterContractDryRunReport,
+  InstallerWriteAdapterContractInput,
+  InstallerWriteAdapterContractReport,
   InstallerWriteCapabilityDryRunReport,
   InstallerWriteConfirmationChecklist,
   InstallerWriteConfirmationChecklistDryRunReport,

@@ -16,6 +16,7 @@ import {
   runInstallerRollbackImpactExample,
   runInstallerUpdateExample,
   runInstallerUpdateImpactExample,
+  runInstallerWriteAdapterContractExample,
   runInstallerWriteApprovalTokenExample,
   runInstallerWriteCapabilityExample,
   runInstallerWriteConfirmationChecklistExample,
@@ -346,8 +347,32 @@ describe("runInstallerWriteConfirmationChecklistExample", () => {
   });
 });
 
+describe("runInstallerWriteAdapterContractExample", () => {
+  it("returns an ok adapter contract report with a stable declared capability count", () => {
+    const result = runInstallerWriteAdapterContractExample();
+    expect(result.writeAdapterContract.ok).toBe(true);
+    expect(result.writeAdapterContract.report.name).toBe("memory-write-adapter");
+    expect(result.writeAdapterContract.report.declaredCapabilities).toHaveLength(3);
+    expect(Object.keys(result)).toEqual(["writeAdapterContract"]);
+
+    // Metadata-only: no adapter object, function/method, content, command, or
+    // execution-result field anywhere.
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("writeFile");
+    expect(serialized).not.toContain("backupFile");
+    expect(serialized).not.toContain("removeFile");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    for (const key of Object.keys(result.writeAdapterContract.report)) {
+      expect(key).not.toMatch(/object|fn|func|method|content|command|dest|result|remote|url/i);
+    }
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runInstallerWriteAdapterContractExample).toBe("function");
     expect(typeof examples.runInstallerWriteConfirmationChecklistExample).toBe("function");
     expect(typeof examples.runInstallerWriteExecutionPlanExample).toBe("function");
     expect(typeof examples.runInstallerWriteApprovalTokenExample).toBe("function");

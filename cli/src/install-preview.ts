@@ -18,6 +18,7 @@ import {
   createInstallerAuditTrailExportDryRun,
   createInstallerWriteApprovalTokenDryRun,
   createInstallerWriteCapabilityDryRun,
+  createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
   createInstallerDecisionDryRun,
@@ -172,6 +173,17 @@ export type InstallerPreviewResult = {
     intent: string;
     passed: number;
     failed: number;
+    reasons: string[];
+  };
+  /**
+   * Declared write adapter contract verdict; metadata-only. No adapter object
+   * or method reaches the result, nothing is executed, and no adapter is called.
+   */
+  writeAdapterContract?: {
+    ok: boolean;
+    name: string;
+    requiredCapabilities: string[];
+    declaredCapabilities: string[];
     reasons: string[];
   };
 };
@@ -514,6 +526,29 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const writeConfirmationWarnings =
     writeConfirmationReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Validate a declared write adapter metadata contract against the confirmation
+  // checklist and execution plan. Metadata-only — no adapter object is
+  // constructed, no adapter method is called, and nothing is executed.
+  const writeAdapterContractReport = createInstallerWriteAdapterContractDryRun({
+    contract: {
+      name: "preview-write-adapter",
+      capabilities: ["write-file", "remove-file", "backup-file"],
+      requiresExplicitApproval: true,
+      supportsRollbackCapture: true,
+    },
+    confirmation: writeConfirmationReport.checklist,
+    executionPlan: writeExecutionPlanReport.plan,
+  });
+  const writeAdapterContract = {
+    ok: writeAdapterContractReport.ok,
+    name: writeAdapterContractReport.report.name,
+    requiredCapabilities: [...writeAdapterContractReport.report.requiredCapabilities],
+    declaredCapabilities: [...writeAdapterContractReport.report.declaredCapabilities],
+    reasons: [...writeAdapterContractReport.report.reasons],
+  };
+  const writeAdapterContractWarnings =
+    writeAdapterContractReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -536,6 +571,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...approvalWarnings,
         ...writeExecutionPlanWarnings,
         ...writeConfirmationWarnings,
+        ...writeAdapterContractWarnings,
         result.message,
       ]),
       archive,
@@ -552,6 +588,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       approval,
       writeExecutionPlan,
       writeConfirmation,
+      writeAdapterContract,
     };
   }
 
@@ -580,6 +617,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...approvalWarnings,
       ...writeExecutionPlanWarnings,
       ...writeConfirmationWarnings,
+      ...writeAdapterContractWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -596,6 +634,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     approval,
     writeExecutionPlan,
     writeConfirmation,
+    writeAdapterContract,
   };
 }
 
@@ -670,6 +709,15 @@ function formatMarkdown(result: InstallerPreviewResult): string {
       "## Write Confirmation",
       "",
       `Write confirmation: \`${result.writeConfirmation.ok ? "confirmed" : "blocked"}\` (${result.writeConfirmation.passed}/${result.writeConfirmation.passed + result.writeConfirmation.failed} checks passed, not executed)`,
+    );
+  }
+  if (result.writeAdapterContract !== undefined) {
+    // Metadata only: this reports contract fit, never an adapter call.
+    lines.push(
+      "",
+      "## Write Adapter Contract",
+      "",
+      `Write adapter contract \`${result.writeAdapterContract.name}\`: \`${result.writeAdapterContract.ok ? "satisfied" : "blocked"}\` (metadata only, no adapter called)`,
     );
   }
   let preview = `${lines.join("\n")}\n`;

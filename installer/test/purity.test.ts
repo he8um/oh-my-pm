@@ -178,6 +178,36 @@ describe("installer purity", () => {
     }
   });
 
+  it("the write adapter contract never logs, executes, calls an adapter, or holds crypto", () => {
+    const contents = readFileSync(join(srcDir, "write-adapter-contract.ts"), "utf8");
+    for (const forbidden of [
+      "console.log",
+      "console.error",
+      "logger",
+      "telemetry",
+      "fs.",
+      "rmSync",
+      "unlink",
+      "executeInstall",
+      "executeRollback",
+      "executeInstallPlan",
+      "executeRollbackPlan",
+      "FilesystemWriteAdapter",
+      "writeFile(",
+      "removeFile(",
+      "backupFile(",
+      "crypto",
+      "privateKey",
+      "publicKey",
+      ...REMOTE_FORBIDDEN,
+    ]) {
+      expect(
+        contents,
+        `write-adapter-contract.ts must not contain "${forbidden}"`,
+      ).not.toContain(forbidden);
+    }
+  });
+
   it("the approval token, write plan, and confirmation hold no crypto or key material", () => {
     for (const file of ["write-approval.ts", "write-execution-plan.ts", "write-confirmation.ts"]) {
       const contents = readFileSync(join(srcDir, file), "utf8");
