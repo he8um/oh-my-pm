@@ -18,6 +18,7 @@ import {
   createInstallerAuditTrailExportDryRun,
   createInstallerWriteApprovalTokenDryRun,
   createInstallerWriteCapabilityDryRun,
+  createControlledWriteExecutionDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -184,6 +185,22 @@ export type InstallerPreviewResult = {
     name: string;
     requiredCapabilities: string[];
     declaredCapabilities: string[];
+    reasons: string[];
+  };
+  /**
+   * Aggregated controlled write readiness summary; non-mutating. The raw
+   * pass-through layers are never included, nothing is executed, and no
+   * adapter is called.
+   */
+  controlledWriteDryRun?: {
+    ok: boolean;
+    intent: string;
+    allowed: boolean;
+    approved: boolean;
+    planReady: boolean;
+    confirmationReady: boolean;
+    adapterReady: boolean;
+    plannedSteps: number;
     reasons: string[];
   };
 };
@@ -549,6 +566,32 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const writeAdapterContractWarnings =
     writeAdapterContractReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Aggregate every write readiness layer into one non-mutating controlled
+  // dry-run envelope. Aggregation-only — the raw pass-through layers stay out
+  // of the summary, no adapter is called, and nothing is executed.
+  const controlledWriteDryRunReport = createControlledWriteExecutionDryRun({
+    intent: "install",
+    capability: writeCapabilityReport.report,
+    approval: approvalReport,
+    executionPlan: writeExecutionPlanReport.plan,
+    confirmation: writeConfirmationReport.checklist,
+    adapterContract: writeAdapterContractReport.report,
+  });
+  const controlledSummary = controlledWriteDryRunReport.envelope.summary;
+  const controlledWriteDryRun = {
+    ok: controlledWriteDryRunReport.ok,
+    intent: controlledSummary.intent,
+    allowed: controlledSummary.allowed,
+    approved: controlledSummary.approved,
+    planReady: controlledSummary.planReady,
+    confirmationReady: controlledSummary.confirmationReady,
+    adapterReady: controlledSummary.adapterReady,
+    plannedSteps: controlledSummary.plannedSteps,
+    reasons: [...controlledSummary.reasons],
+  };
+  const controlledWriteDryRunWarnings =
+    controlledWriteDryRunReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -572,6 +615,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...writeExecutionPlanWarnings,
         ...writeConfirmationWarnings,
         ...writeAdapterContractWarnings,
+        ...controlledWriteDryRunWarnings,
         result.message,
       ]),
       archive,
@@ -589,6 +633,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       writeExecutionPlan,
       writeConfirmation,
       writeAdapterContract,
+      controlledWriteDryRun,
     };
   }
 
@@ -618,6 +663,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...writeExecutionPlanWarnings,
       ...writeConfirmationWarnings,
       ...writeAdapterContractWarnings,
+      ...controlledWriteDryRunWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -635,6 +681,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     writeExecutionPlan,
     writeConfirmation,
     writeAdapterContract,
+    controlledWriteDryRun,
   };
 }
 
@@ -718,6 +765,15 @@ function formatMarkdown(result: InstallerPreviewResult): string {
       "## Write Adapter Contract",
       "",
       `Write adapter contract \`${result.writeAdapterContract.name}\`: \`${result.writeAdapterContract.ok ? "satisfied" : "blocked"}\` (metadata only, no adapter called)`,
+    );
+  }
+  if (result.controlledWriteDryRun !== undefined) {
+    // Aggregation only: this reports readiness, never an execution.
+    lines.push(
+      "",
+      "## Controlled Write Dry Run",
+      "",
+      `Controlled write dry run: \`${result.controlledWriteDryRun.ok ? "ready" : "blocked"}\` (${result.controlledWriteDryRun.plannedSteps} planned steps, not executed)`,
     );
   }
   let preview = `${lines.join("\n")}\n`;

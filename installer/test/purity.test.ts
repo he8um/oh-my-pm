@@ -178,33 +178,32 @@ describe("installer purity", () => {
     }
   });
 
-  it("the write adapter contract never logs, executes, calls an adapter, or holds crypto", () => {
-    const contents = readFileSync(join(srcDir, "write-adapter-contract.ts"), "utf8");
-    for (const forbidden of [
-      "console.log",
-      "console.error",
-      "logger",
-      "telemetry",
-      "fs.",
-      "rmSync",
-      "unlink",
-      "executeInstall",
-      "executeRollback",
-      "executeInstallPlan",
-      "executeRollbackPlan",
-      "FilesystemWriteAdapter",
-      "writeFile(",
-      "removeFile(",
-      "backupFile(",
-      "crypto",
-      "privateKey",
-      "publicKey",
-      ...REMOTE_FORBIDDEN,
-    ]) {
-      expect(
-        contents,
-        `write-adapter-contract.ts must not contain "${forbidden}"`,
-      ).not.toContain(forbidden);
+  it("the adapter contract and dry-run envelope never log, execute, call an adapter, or hold crypto", () => {
+    for (const file of ["write-adapter-contract.ts", "write-dry-run-envelope.ts"]) {
+      const contents = readFileSync(join(srcDir, file), "utf8");
+      for (const forbidden of [
+        "console.log",
+        "console.error",
+        "logger",
+        "telemetry",
+        "fs.",
+        "rmSync",
+        "unlink",
+        "executeInstall",
+        "executeRollback",
+        "executeInstallPlan",
+        "executeRollbackPlan",
+        "FilesystemWriteAdapter",
+        "writeFile(",
+        "removeFile(",
+        "backupFile(",
+        "crypto",
+        "privateKey",
+        "publicKey",
+        ...REMOTE_FORBIDDEN,
+      ]) {
+        expect(contents, `${file} must not contain "${forbidden}"`).not.toContain(forbidden);
+      }
     }
   });
 

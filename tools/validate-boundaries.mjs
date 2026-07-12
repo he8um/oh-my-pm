@@ -88,7 +88,8 @@ for (const file of trackedFiles) {
         file === "installer/src/write-approval.ts" ||
         file === "installer/src/write-execution-plan.ts" ||
         file === "installer/src/write-confirmation.ts" ||
-        file === "installer/src/write-adapter-contract.ts") &&
+        file === "installer/src/write-adapter-contract.ts" ||
+        file === "installer/src/write-dry-run-envelope.ts") &&
       (spec === "node" || spec.startsWith("node:"))
     ) {
       err(`${file} imports a Node built-in: "${spec}"`);
@@ -186,7 +187,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-approval.ts" ||
     file === "installer/src/write-execution-plan.ts" ||
     file === "installer/src/write-confirmation.ts" ||
-    file === "installer/src/write-adapter-contract.ts"
+    file === "installer/src/write-adapter-contract.ts" ||
+    file === "installer/src/write-dry-run-envelope.ts"
   ) {
     for (const api of NODE_WRITE_APIS) {
       if (contents.includes(api)) {
@@ -195,8 +197,8 @@ for (const file of trackedFiles) {
     }
   }
   // The audit event model, export, capability, approval token, write execution
-  // plan, confirmation checklist, and adapter contract render/return/evaluate
-  // in memory only; none may log, persist, or send.
+  // plan, confirmation checklist, adapter contract, and dry-run envelope
+  // render/return/evaluate in memory only; none may log, persist, or send.
   if (
     file === "installer/src/audit-events.ts" ||
     file === "installer/src/audit-export.ts" ||
@@ -204,7 +206,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-approval.ts" ||
     file === "installer/src/write-execution-plan.ts" ||
     file === "installer/src/write-confirmation.ts" ||
-    file === "installer/src/write-adapter-contract.ts"
+    file === "installer/src/write-adapter-contract.ts" ||
+    file === "installer/src/write-dry-run-envelope.ts"
   ) {
     for (const marker of ["console.log", "console.error", "logger", "telemetry"]) {
       if (contents.includes(marker)) {
@@ -213,15 +216,16 @@ for (const file of trackedFiles) {
     }
   }
   // The audit trail export, write capability, approval token, write execution
-  // plan, confirmation checklist, and adapter contract model only; none may
-  // execute.
+  // plan, confirmation checklist, adapter contract, and dry-run envelope model
+  // only; none may execute.
   if (
     file === "installer/src/audit-export.ts" ||
     file === "installer/src/write-capability.ts" ||
     file === "installer/src/write-approval.ts" ||
     file === "installer/src/write-execution-plan.ts" ||
     file === "installer/src/write-confirmation.ts" ||
-    file === "installer/src/write-adapter-contract.ts"
+    file === "installer/src/write-adapter-contract.ts" ||
+    file === "installer/src/write-dry-run-envelope.ts"
   ) {
     for (const marker of [
       "executeInstall",
@@ -234,13 +238,14 @@ for (const file of trackedFiles) {
       }
     }
   }
-  // The write execution plan, confirmation checklist, and adapter contract are
-  // planning/reporting only; none may reference a write adapter type or call
-  // its mutating methods.
+  // The write execution plan, confirmation checklist, adapter contract, and
+  // dry-run envelope are planning/reporting only; none may reference a write
+  // adapter type or call its mutating methods.
   if (
     file === "installer/src/write-execution-plan.ts" ||
     file === "installer/src/write-confirmation.ts" ||
-    file === "installer/src/write-adapter-contract.ts"
+    file === "installer/src/write-adapter-contract.ts" ||
+    file === "installer/src/write-dry-run-envelope.ts"
   ) {
     for (const marker of ["FilesystemWriteAdapter", "writeFile(", "removeFile(", "backupFile("]) {
       if (contents.includes(marker)) {
@@ -248,14 +253,15 @@ for (const file of trackedFiles) {
       }
     }
   }
-  // The approval token, write execution plan, confirmation checklist, and
-  // adapter contract are deterministic, local, and non-secret; none may reach
-  // for crypto or keys.
+  // The approval token, write execution plan, confirmation checklist, adapter
+  // contract, and dry-run envelope are deterministic, local, and non-secret;
+  // none may reach for crypto or keys.
   if (
     file === "installer/src/write-approval.ts" ||
     file === "installer/src/write-execution-plan.ts" ||
     file === "installer/src/write-confirmation.ts" ||
-    file === "installer/src/write-adapter-contract.ts"
+    file === "installer/src/write-adapter-contract.ts" ||
+    file === "installer/src/write-dry-run-envelope.ts"
   ) {
     for (const marker of ["crypto", "privateKey", "publicKey"]) {
       if (contents.includes(marker)) {

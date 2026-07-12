@@ -880,6 +880,54 @@ export type InstallerWriteAdapterContractDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/**
+ * Input aggregating every already computed write readiness layer for one
+ * controlled dry-run envelope; nothing is fetched, written, or executed.
+ */
+export type ControlledWriteExecutionDryRunEnvelopeInput = {
+  intent: InstallerWriteIntent;
+  capability: InstallerWriteCapabilityReport;
+  approval: InstallerWriteApprovalTokenDryRunReport;
+  executionPlan: InstallerWriteExecutionPlan;
+  confirmation: InstallerWriteConfirmationChecklist;
+  adapterContract: InstallerWriteAdapterContractReport;
+};
+
+/** Flat readiness summary across every write layer; nothing is executed. */
+export type ControlledWriteExecutionDryRunEnvelopeSummary = {
+  intent: InstallerWriteIntent;
+  allowed: boolean;
+  approved: boolean;
+  planReady: boolean;
+  confirmationReady: boolean;
+  adapterReady: boolean;
+  plannedSteps: number;
+  reasons: string[];
+};
+
+/**
+ * Non-mutating inspection envelope aggregating every write readiness layer.
+ * There is no content, write adapter object, execution-result, destination,
+ * command, remote, or method/function field — the pass-through layers are the
+ * already computed reports and nothing here executes.
+ */
+export type ControlledWriteExecutionDryRunEnvelope = {
+  ok: boolean;
+  summary: ControlledWriteExecutionDryRunEnvelopeSummary;
+  capability: InstallerWriteCapabilityReport;
+  approval: InstallerWriteApprovalTokenDryRunReport;
+  executionPlan: InstallerWriteExecutionPlan;
+  confirmation: InstallerWriteConfirmationChecklist;
+  adapterContract: InstallerWriteAdapterContractReport;
+};
+
+/** Result of a controlled write dry run; nothing is written or executed. */
+export type ControlledWriteExecutionDryRunReport = {
+  ok: boolean;
+  envelope: ControlledWriteExecutionDryRunEnvelope;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

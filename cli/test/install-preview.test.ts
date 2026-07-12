@@ -57,6 +57,10 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: write_confirmation_execution_plan_not_ready",
         "OMP-I-6001: write_adapter_confirmation_not_ready",
         "OMP-I-6001: write_adapter_execution_plan_not_ready",
+        "OMP-I-6001: controlled_write_capability_not_allowed",
+        "OMP-I-6001: controlled_write_execution_plan_not_ready",
+        "OMP-I-6001: controlled_write_confirmation_not_ready",
+        "OMP-I-6001: controlled_write_adapter_contract_not_ready",
       ]);
       expect(result.archive).toEqual({
         format: "zip",
@@ -135,6 +139,10 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: write_confirmation_execution_plan_not_ready",
         "OMP-I-6001: write_adapter_confirmation_not_ready",
         "OMP-I-6001: write_adapter_execution_plan_not_ready",
+        "OMP-I-6001: controlled_write_capability_not_allowed",
+        "OMP-I-6001: controlled_write_execution_plan_not_ready",
+        "OMP-I-6001: controlled_write_confirmation_not_ready",
+        "OMP-I-6001: controlled_write_adapter_contract_not_ready",
       ]);
       expect(result.operations).toHaveLength(1);
       expect(result.operations[0].path.endsWith("README.md")).toBe(true);
@@ -249,6 +257,18 @@ describe("runInstallerPreview", () => {
       for (const key of Object.keys(parsed.writeAdapterContract)) {
         expect(key).not.toMatch(/object|fn|func|method|content|command|dest|result|remote|url/i);
       }
+      // Aggregated controlled write readiness summary; the raw envelope and
+      // pass-through layers never reach JSON.
+      expect(parsed.controlledWriteDryRun.intent).toBe("install");
+      expect(typeof parsed.controlledWriteDryRun.plannedSteps).toBe("number");
+      expect(parsed.controlledWriteDryRun.ok).toBe(false);
+      expect(parsed.controlledWriteDryRun.reasons.length).toBeGreaterThan(0);
+      expect(parsed.controlledWriteDryRun).not.toHaveProperty("envelope");
+      expect(parsed.controlledWriteDryRun).not.toHaveProperty("capability");
+      expect(parsed.controlledWriteDryRun).not.toHaveProperty("adapterContract");
+      for (const key of Object.keys(parsed.controlledWriteDryRun)) {
+        expect(key).not.toMatch(/object|fn|func|method|content|command|dest|result|remote|url/i);
+      }
       expect(output).not.toContain("backupFile");
       expect(output).not.toContain("removeFile");
       expect(output).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
@@ -318,6 +338,11 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: write_adapter_confirmation_not_ready",
       "OMP-I-6001: write_adapter_execution_plan_not_ready",
       "OMP-I-6001: write_adapter_required_capabilities_empty",
+      "OMP-I-6001: controlled_write_capability_not_allowed",
+      "OMP-I-6001: controlled_write_approval_invalid",
+      "OMP-I-6001: controlled_write_execution_plan_not_ready",
+      "OMP-I-6001: controlled_write_confirmation_not_ready",
+      "OMP-I-6001: controlled_write_adapter_contract_not_ready",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);

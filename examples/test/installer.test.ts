@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as examples from "../src/index.js";
 import {
+  runControlledWriteExecutionDryRunExample,
   runInstallerArchivePlanExample,
   runInstallerAuditEventExample,
   runInstallerAuditTrailExportExample,
@@ -370,8 +371,31 @@ describe("runInstallerWriteAdapterContractExample", () => {
   });
 });
 
+describe("runControlledWriteExecutionDryRunExample", () => {
+  it("returns an ok controlled write dry-run envelope with planned steps", () => {
+    const result = runControlledWriteExecutionDryRunExample();
+    expect(result.controlledWriteDryRun.ok).toBe(true);
+    expect(result.controlledWriteDryRun.envelope.summary.plannedSteps).toBeGreaterThan(0);
+    expect(Object.keys(result)).toEqual(["controlledWriteDryRun"]);
+
+    // Aggregation-only: no command, destination, adapter object, method, or
+    // execution-result field anywhere.
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("writeFile");
+    expect(serialized).not.toContain("backupFile");
+    expect(serialized).not.toContain("removeFile");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    for (const key of Object.keys(result.controlledWriteDryRun.envelope.summary)) {
+      expect(key).not.toMatch(/command|dest|object|fn|func|method|result|remote|url/i);
+    }
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runControlledWriteExecutionDryRunExample).toBe("function");
     expect(typeof examples.runInstallerWriteAdapterContractExample).toBe("function");
     expect(typeof examples.runInstallerWriteConfirmationChecklistExample).toBe("function");
     expect(typeof examples.runInstallerWriteExecutionPlanExample).toBe("function");

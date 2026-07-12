@@ -26,6 +26,7 @@ import type {
   InstallerWriteExecutionPlanInput,
   InstallerWriteConfirmationChecklistInput,
   InstallerWriteAdapterContractInput,
+  ControlledWriteExecutionDryRunEnvelopeInput,
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -45,8 +46,10 @@ import { DEFAULT_LOCAL_UPDATE_POLICY, evaluateLocalUpdatePolicy } from "./update
 import { DEFAULT_INSTALLER_WRITE_CAPABILITY_POLICY } from "./write-capability.js";
 import { evaluateInstallerWriteCapability } from "./write-capability.js";
 import { createInstallerWriteApprovalToken } from "./write-approval.js";
+import { createInstallerWriteApprovalTokenDryRun } from "./write-approval.js";
 import { createInstallerWriteExecutionPlan } from "./write-execution-plan.js";
 import { createInstallerWriteConfirmationChecklist } from "./write-confirmation.js";
+import { evaluateInstallerWriteAdapterContract } from "./write-adapter-contract.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -381,6 +384,34 @@ export function exampleInstallerWriteAdapterContractInput(): InstallerWriteAdapt
     },
     confirmation,
     executionPlan: checklistInput.executionPlan,
+  };
+}
+
+/**
+ * Example controlled write dry-run envelope input. It reuses the confirmation
+ * checklist chain (ready decision, allowed capability, ok execution plan),
+ * derives an ok confirmation and adapter contract, and pairs them with an ok
+ * approval token dry-run — so every readiness layer aligns and the envelope
+ * dry-run is ok.
+ */
+export function exampleControlledWriteExecutionDryRunEnvelopeInput(): ControlledWriteExecutionDryRunEnvelopeInput {
+  const checklistInput = exampleInstallerWriteConfirmationChecklistInput();
+  const confirmation = createInstallerWriteConfirmationChecklist(checklistInput);
+  const adapterContract = evaluateInstallerWriteAdapterContract(
+    exampleInstallerWriteAdapterContractInput(),
+  );
+  const approval = createInstallerWriteApprovalTokenDryRun({
+    intent: "install",
+    root: checklistInput.decision.root,
+    decision: checklistInput.decision,
+  });
+  return {
+    intent: "install",
+    capability: checklistInput.capability,
+    approval,
+    executionPlan: checklistInput.executionPlan,
+    confirmation,
+    adapterContract,
   };
 }
 

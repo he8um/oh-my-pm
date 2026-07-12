@@ -5,6 +5,7 @@
 
 import type {
   ArchiveDryRunReport,
+  ControlledWriteExecutionDryRunReport,
   InstallDryRunReport,
   InstallerAuditEventDryRunReport,
   InstallerAuditTrailExportDryRunReport,
@@ -33,6 +34,7 @@ import {
   createInstallerAuditTrailExportDryRun,
   createInstallerWriteApprovalTokenDryRun,
   createInstallerWriteCapabilityDryRun,
+  createControlledWriteExecutionDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -56,6 +58,7 @@ import {
   exampleInstallerAuditTrailExportInput,
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
+  exampleControlledWriteExecutionDryRunEnvelopeInput,
   exampleInstallerWriteAdapterContractInput,
   exampleInstallerWriteConfirmationChecklistInput,
   exampleInstallerWriteExecutionPlanInput,
@@ -148,6 +151,10 @@ export type InstallerWriteConfirmationChecklistExample = {
 
 export type InstallerWriteAdapterContractExample = {
   writeAdapterContract: InstallerWriteAdapterContractDryRunReport;
+};
+
+export type ControlledWriteExecutionDryRunExample = {
+  controlledWriteDryRun: ControlledWriteExecutionDryRunReport;
 };
 
 export type InstallerUpdateExample = {
@@ -426,6 +433,18 @@ export function runInstallerWriteAdapterContractExample(): InstallerWriteAdapter
     exampleInstallerWriteAdapterContractInput(),
   );
   return { writeAdapterContract };
+}
+
+/**
+ * Aggregate every write readiness layer into one non-mutating controlled
+ * dry-run envelope. Aggregation-only — no adapter is called and nothing is
+ * written, executed, retrieved, logged, or sent.
+ */
+export function runControlledWriteExecutionDryRunExample(): ControlledWriteExecutionDryRunExample {
+  const controlledWriteDryRun = createControlledWriteExecutionDryRun(
+    exampleControlledWriteExecutionDryRunEnvelopeInput(),
+  );
+  return { controlledWriteDryRun };
 }
 
 /** Install the example package, then apply the example update plan. */

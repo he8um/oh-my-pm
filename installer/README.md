@@ -133,3 +133,9 @@ The checklist verifies intent consistency, decision readiness, write capability,
 The installer can validate a declared write adapter metadata contract before any future write-capable operation.
 
 The contract declares local capabilities such as write-file, remove-file, and backup-file. The validation checks the declared capabilities against the already-built write execution plan and confirmation checklist. It is metadata-only. It does not call adapters, execute installation, execute rollback, retrieve packages remotely, or write files.
+
+## Controlled write execution dry-run envelope
+
+The installer can aggregate write readiness layers into one controlled dry-run envelope.
+
+The envelope summarizes write capability, approval token status, execution plan readiness, confirmation checklist readiness, and adapter contract readiness. It is non-mutating. It does not execute installation, execute rollback, call write adapters, retrieve packages remotely, or write files.

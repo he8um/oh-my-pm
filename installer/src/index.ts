@@ -15,6 +15,7 @@ export {
   exampleInstallerDecisionReportInput,
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
+  exampleControlledWriteExecutionDryRunEnvelopeInput,
   exampleInstallerWriteAdapterContractInput,
   exampleInstallerWriteConfirmationChecklistInput,
   exampleInstallerWriteExecutionPlanInput,
@@ -114,6 +115,12 @@ export {
   validateInstallerWriteAdapterContract,
 } from "./write-adapter-contract.js";
 export {
+  collectControlledWriteDryRunReasons,
+  createControlledWriteExecutionDryRun,
+  createControlledWriteExecutionDryRunEnvelope,
+  summarizeControlledWriteExecutionDryRunEnvelope,
+} from "./write-dry-run-envelope.js";
+export {
   createPackageFileEntry,
   createPackageManifest,
   PACKAGE_MANIFEST_SCHEMA_VERSION,
@@ -197,6 +204,10 @@ export type {
   ArchivePlanEntry,
   ArchivePlanInput,
   BackupFileInput,
+  ControlledWriteExecutionDryRunEnvelope,
+  ControlledWriteExecutionDryRunEnvelopeInput,
+  ControlledWriteExecutionDryRunEnvelopeSummary,
+  ControlledWriteExecutionDryRunReport,
   ChecksumAlgorithm,
   ExecutedFileOperation,
   FileContent,
