@@ -5,6 +5,7 @@ export {
 export {
   runInstallerArchivePlanExample,
   runInstallerAuditEventExample,
+  runInstallerAuditTrailExportExample,
   runInstallerControlledExecutionExample,
   runInstallerDecisionReportExample,
   runInstallerDryRunExample,
@@ -21,6 +22,7 @@ export {
 export type {
   InstallerArchivePlanExample,
   InstallerAuditEventExample,
+  InstallerAuditTrailExportExample,
   InstallerControlledExecutionExample,
   InstallerDecisionReportExample,
   InstallerDryRunExample,

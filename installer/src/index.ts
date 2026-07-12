@@ -11,6 +11,7 @@ export {
   exampleArchivePlanInput,
   exampleFilesystemEntries,
   exampleInstallerAuditEventInput,
+  exampleInstallerAuditTrailExportInput,
   exampleInstallerDecisionReportInput,
   exampleLocalUpdatePolicyInput,
   exampleRollbackImpactPreviewInput,
@@ -64,6 +65,13 @@ export {
   formatInstallerAuditEventsMarkdown,
   validateInstallerAuditEvents,
 } from "./audit-events.js";
+export {
+  createInstallerAuditTrailExportDryRun,
+  createInstallerAuditTrailExportPlan,
+  formatInstallerAuditTrailExportContent,
+  validateInstallerAuditTrailExportFormat,
+  validateInstallerAuditTrailExportPlan,
+} from "./audit-export.js";
 export {
   createPackageFileEntry,
   createPackageManifest,
@@ -165,6 +173,11 @@ export type {
   InstallerAuditEventKind,
   InstallerAuditEventLevel,
   InstallerAuditEventValidationReport,
+  InstallerAuditTrailExportDryRunReport,
+  InstallerAuditTrailExportFormat,
+  InstallerAuditTrailExportInput,
+  InstallerAuditTrailExportPlan,
+  InstallerAuditTrailExportValidationReport,
   InstallerDecision,
   InstallerDecisionDryRunReport,
   InstallerDecisionReport,

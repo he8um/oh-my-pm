@@ -15,6 +15,7 @@ import {
   createArchiveDryRunFromAssembly,
   createInstaller,
   createInstallerAuditEventDryRun,
+  createInstallerAuditTrailExportDryRun,
   createInstallerDecisionDryRun,
   createNodeFilesystemAdapter,
   createLocalUpdatePolicyDryRun,
@@ -114,6 +115,17 @@ export type InstallerPreviewResult = {
     errors: number;
     warnings: number;
     markdown?: string;
+  };
+  /**
+   * In-memory audit trail export summary; the raw export content is never
+   * included, written, logged, or sent.
+   */
+  auditExport?: {
+    ok: boolean;
+    format: string;
+    events: number;
+    sizeBytes: number;
+    fingerprint: string;
   };
 };
 
@@ -362,6 +374,23 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const auditWarnings =
     auditReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Render the audit event sequence into an in-memory export payload. Only a
+  // summary reaches the result — the raw export content is never included,
+  // written, logged, or sent.
+  const auditExportReport = createInstallerAuditTrailExportDryRun({
+    events: auditReport.events,
+    format: "jsonl",
+  });
+  const auditExport = {
+    ok: auditExportReport.ok,
+    format: auditExportReport.plan.format,
+    events: auditExportReport.plan.eventCount,
+    sizeBytes: auditExportReport.plan.sizeBytes,
+    fingerprint: auditExportReport.plan.fingerprint,
+  };
+  const auditExportWarnings =
+    auditExportReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -379,6 +408,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...rollbackImpactWarnings,
         ...decisionWarnings,
         ...auditWarnings,
+        ...auditExportWarnings,
         result.message,
       ]),
       archive,
@@ -390,6 +420,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       rollbackImpact,
       decision,
       audit,
+      auditExport,
     };
   }
 
@@ -413,6 +444,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...rollbackImpactWarnings,
       ...decisionWarnings,
       ...auditWarnings,
+      ...auditExportWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -424,6 +456,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     rollbackImpact,
     decision,
     audit,
+    auditExport,
   };
 }
 

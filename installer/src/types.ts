@@ -607,6 +607,46 @@ export type InstallerAuditEventDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Supported in-memory audit trail export formats; no file extension is implied. */
+export type InstallerAuditTrailExportFormat = "json" | "jsonl" | "markdown";
+
+/**
+ * Input for rendering an audit event sequence as an export payload. There is
+ * no output path, filename, destination, or remote sink — the payload is
+ * produced in memory only.
+ */
+export type InstallerAuditTrailExportInput = {
+  events: InstallerAuditEvent[];
+  format: InstallerAuditTrailExportFormat;
+};
+
+/**
+ * Deterministic in-memory export payload. `fingerprint` is descriptive
+ * metadata (`audit-export:<format>:<eventCount>:<sizeBytes>`), not a
+ * cryptographic checksum. Nothing here is written, persisted, or sent.
+ */
+export type InstallerAuditTrailExportPlan = {
+  format: InstallerAuditTrailExportFormat;
+  eventCount: number;
+  sizeBytes: number;
+  fingerprint: string;
+  content: string;
+};
+
+/** Result of validating an audit trail export plan. */
+export type InstallerAuditTrailExportValidationReport = {
+  ok: boolean;
+  reasons: string[];
+};
+
+/** Result of an audit trail export dry run; nothing is written, persisted, or sent. */
+export type InstallerAuditTrailExportDryRunReport = {
+  ok: boolean;
+  plan: InstallerAuditTrailExportPlan;
+  validation: InstallerAuditTrailExportValidationReport;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

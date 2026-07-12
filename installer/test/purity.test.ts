@@ -150,19 +150,24 @@ describe("installer purity", () => {
     }
   });
 
-  it("the audit event model never logs, persists, or sends events", () => {
-    const contents = readFileSync(join(srcDir, "audit-events.ts"), "utf8");
-    for (const forbidden of [
-      "console.log",
-      "console.error",
-      "logger",
-      "telemetry",
-      "writeFile",
-      "rmSync",
-      "unlink",
-      ...REMOTE_FORBIDDEN,
-    ]) {
-      expect(contents, `audit-events.ts must not contain "${forbidden}"`).not.toContain(forbidden);
+  it("the audit event model and export never log, persist, or send events", () => {
+    for (const file of ["audit-events.ts", "audit-export.ts"]) {
+      const contents = readFileSync(join(srcDir, file), "utf8");
+      for (const forbidden of [
+        "console.log",
+        "console.error",
+        "logger",
+        "telemetry",
+        "writeFile",
+        "rmSync",
+        "unlink",
+        "fs.",
+        "executeInstall",
+        "executeRollback",
+        ...REMOTE_FORBIDDEN,
+      ]) {
+        expect(contents, `${file} must not contain "${forbidden}"`).not.toContain(forbidden);
+      }
     }
   });
 

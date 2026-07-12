@@ -161,6 +161,18 @@ describe("runInstallerPreview", () => {
       expect(parsed.audit.events).toBeGreaterThan(0);
       expect(parsed.audit.errors).toBe(0);
       expect(parsed.audit).not.toHaveProperty("markdown");
+      expect(parsed.auditExport.ok).toBe(true);
+      expect(parsed.auditExport.format).toBe("jsonl");
+      expect(parsed.auditExport.events).toBe(parsed.audit.events);
+      expect(parsed.auditExport.sizeBytes).toBeGreaterThan(0);
+      expect(parsed.auditExport.fingerprint).toBe(
+        `audit-export:jsonl:${parsed.auditExport.events}:${parsed.auditExport.sizeBytes}`,
+      );
+      // Only a summary is present: the raw export content never reaches JSON.
+      expect(parsed.auditExport).not.toHaveProperty("content");
+      for (const key of Object.keys(parsed.auditExport)) {
+        expect(key).not.toMatch(/path|file|dest|url|remote|telemetry|sink|content/i);
+      }
       expect(output).not.toContain("placeholder:preview-key:");
       expect(output).not.toMatch(/https?:\/\//);
       expect(output).not.toContain("download");

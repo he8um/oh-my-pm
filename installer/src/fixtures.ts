@@ -11,6 +11,7 @@ import type {
   ArchivePlanInput,
   FilesystemEntry,
   InstallerAuditEventInput,
+  InstallerAuditTrailExportInput,
   InstallerDecisionReportInput,
   LocalUpdatePolicyInput,
   PackageAssemblyInput,
@@ -23,6 +24,7 @@ import type {
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
+import { createInstallerAuditEvents } from "./audit-events.js";
 import { createInstallerDecisionReport } from "./decision-report.js";
 import { createLocalUpdatePolicyDryRun } from "./update-policy.js";
 import { createMemoryFilesystem } from "./memory-filesystem.js";
@@ -257,6 +259,16 @@ export function exampleInstallerDecisionReportInput(): InstallerDecisionReportIn
 export function exampleInstallerAuditEventInput(): InstallerAuditEventInput {
   const decision = createInstallerDecisionReport(exampleInstallerDecisionReportInput());
   return { root: "/tmp/oh-my-pm", decision };
+}
+
+/**
+ * Example audit trail export input built from the example audit event
+ * sequence, rendered as JSONL. The sequence is well-formed, so the export
+ * plan validates cleanly.
+ */
+export function exampleInstallerAuditTrailExportInput(): InstallerAuditTrailExportInput {
+  const events = createInstallerAuditEvents(exampleInstallerAuditEventInput());
+  return { events, format: "jsonl" };
 }
 
 /** Example update plan accepted by the Kernel update guard. */

@@ -7,6 +7,7 @@ import type {
   ArchiveDryRunReport,
   InstallDryRunReport,
   InstallerAuditEventDryRunReport,
+  InstallerAuditTrailExportDryRunReport,
   InstallerDecisionDryRunReport,
   InstallerFailure,
   InstallExecutionReport,
@@ -24,6 +25,7 @@ import {
   createArchiveDryRunFromAssembly,
   createInstaller,
   createInstallerAuditEventDryRun,
+  createInstallerAuditTrailExportDryRun,
   createInstallerDecisionDryRun,
   createMemoryFilesystem,
   createMemoryWriteFilesystem,
@@ -41,6 +43,7 @@ import {
   DEFAULT_LOCAL_UPDATE_POLICY,
   exampleFilesystemEntries,
   exampleInstallerAuditEventInput,
+  exampleInstallerAuditTrailExportInput,
   examplePackageAssemblyInput,
   examplePackageManifest,
   exampleRollbackManifest,
@@ -106,6 +109,10 @@ export type InstallerDecisionReportExample = {
 export type InstallerAuditEventExample = {
   audit: InstallerAuditEventDryRunReport;
   markdown: string;
+};
+
+export type InstallerAuditTrailExportExample = {
+  auditExport: InstallerAuditTrailExportDryRunReport;
 };
 
 export type InstallerUpdateExample = {
@@ -312,6 +319,17 @@ export function runInstallerAuditEventExample(): InstallerAuditEventExample {
   const audit = createInstallerAuditEventDryRun(exampleInstallerAuditEventInput());
   const markdown = formatInstallerAuditEventsMarkdown(audit.events);
   return { audit, markdown };
+}
+
+/**
+ * Render the example audit event sequence into an in-memory export payload.
+ * Payload-only — nothing is written, persisted, sent, logged, or executed.
+ */
+export function runInstallerAuditTrailExportExample(): InstallerAuditTrailExportExample {
+  const auditExport = createInstallerAuditTrailExportDryRun(
+    exampleInstallerAuditTrailExportInput(),
+  );
+  return { auditExport };
 }
 
 /** Install the example package, then apply the example update plan. */

@@ -97,3 +97,9 @@ The report summarizes assembly, archive, metadata, integrity, channel, update po
 The installer can model deterministic audit events for a local preview pipeline.
 
 Audit events describe preview start, section evaluation, decision reporting, and preview completion. They are returned in memory only. The model does not write logs, persist audit files, send telemetry, retrieve packages remotely, execute installation, execute rollback, or call write adapters.
+
+## Installer audit trail export plan
+
+The installer can render audit events into an in-memory export payload.
+
+Supported formats are JSON, JSONL, and Markdown. The export plan reports event count, byte size, and a deterministic fingerprint. It does not write files, persist logs, send telemetry, retrieve packages remotely, execute installation, execute rollback, or call write adapters.

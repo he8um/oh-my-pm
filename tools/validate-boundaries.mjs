@@ -77,11 +77,12 @@ for (const file of trackedFiles) {
     if (spec.includes("kernel/crate")) {
       err(`${file} imports from kernel/crate: "${spec}"`);
     }
-    // The decision report and audit event model aggregate local reports only;
-    // they must never reach for a Node built-in.
+    // The decision report, audit event model, and audit trail export
+    // aggregate/render local reports only; none may reach for a Node built-in.
     if (
       (file === "installer/src/decision-report.ts" ||
-        file === "installer/src/audit-events.ts") &&
+        file === "installer/src/audit-events.ts" ||
+        file === "installer/src/audit-export.ts") &&
       (spec === "node" || spec.startsWith("node:"))
     ) {
       err(`${file} imports a Node built-in: "${spec}"`);
@@ -173,7 +174,8 @@ for (const file of trackedFiles) {
     file === "installer/src/update-impact.ts" ||
     file === "installer/src/rollback-impact.ts" ||
     file === "installer/src/decision-report.ts" ||
-    file === "installer/src/audit-events.ts"
+    file === "installer/src/audit-events.ts" ||
+    file === "installer/src/audit-export.ts"
   ) {
     for (const api of NODE_WRITE_APIS) {
       if (contents.includes(api)) {
@@ -181,12 +183,24 @@ for (const file of trackedFiles) {
       }
     }
   }
-  // The audit event model returns events in memory only; it must never log,
-  // persist, or send them.
-  if (file === "installer/src/audit-events.ts") {
+  // The audit event model and export render/return payloads in memory only;
+  // neither may log, persist, or send them.
+  if (
+    file === "installer/src/audit-events.ts" ||
+    file === "installer/src/audit-export.ts"
+  ) {
     for (const marker of ["console.log", "console.error", "logger", "telemetry"]) {
       if (contents.includes(marker)) {
         err(`${file} contains forbidden logging/telemetry API "${marker}"`);
+      }
+    }
+  }
+  // The audit trail export renders payloads only; it must never execute an
+  // install or rollback.
+  if (file === "installer/src/audit-export.ts") {
+    for (const marker of ["executeInstall", "executeRollback"]) {
+      if (contents.includes(marker)) {
+        err(`${file} contains forbidden install-execution call "${marker}"`);
       }
     }
   }

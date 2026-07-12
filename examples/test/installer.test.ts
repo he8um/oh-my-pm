@@ -3,6 +3,7 @@ import * as examples from "../src/index.js";
 import {
   runInstallerArchivePlanExample,
   runInstallerAuditEventExample,
+  runInstallerAuditTrailExportExample,
   runInstallerDecisionReportExample,
   runInstallerReleaseChannelExample,
   runInstallerReleaseIntegrityExample,
@@ -224,8 +225,32 @@ describe("runInstallerAuditEventExample", () => {
   });
 });
 
+describe("runInstallerAuditTrailExportExample", () => {
+  it("renders the audit event sequence into an in-memory export payload", () => {
+    const result = runInstallerAuditTrailExportExample();
+    expect(result.auditExport.ok).toBe(true);
+    expect(result.auditExport.plan.eventCount).toBeGreaterThan(0);
+    expect(result.auditExport.plan.sizeBytes).toBeGreaterThan(0);
+    expect(Object.keys(result)).toEqual(["auditExport"]);
+    // No output path, destination, URL, or telemetry field on the plan.
+    for (const key of Object.keys(result.auditExport.plan)) {
+      expect(key).not.toMatch(/path|file|dest|url|remote|telemetry|sink/i);
+    }
+
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("placeholder:");
+    expect(serialized).not.toContain("BEGIN");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    expect(serialized).not.toContain("telemetry");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toContain("writeFile");
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runInstallerAuditTrailExportExample).toBe("function");
     expect(typeof examples.runInstallerAuditEventExample).toBe("function");
     expect(typeof examples.runInstallerDecisionReportExample).toBe("function");
     expect(typeof examples.runInstallerDryRunExample).toBe("function");
