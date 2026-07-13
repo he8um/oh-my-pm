@@ -178,8 +178,8 @@ describe("installer purity", () => {
     }
   });
 
-  it("the adapter contract and dry-run envelope never log, execute, call an adapter, or hold crypto", () => {
-    for (const file of ["write-adapter-contract.ts", "write-dry-run-envelope.ts"]) {
+  it("the adapter contract, dry-run envelope, and release readiness never log, execute, call an adapter, or hold crypto", () => {
+    for (const file of ["write-adapter-contract.ts", "write-dry-run-envelope.ts", "release-readiness.ts"]) {
       const contents = readFileSync(join(srcDir, file), "utf8");
       for (const forbidden of [
         "console.log",

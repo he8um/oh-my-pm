@@ -19,6 +19,7 @@ import {
   createInstallerWriteApprovalTokenDryRun,
   createInstallerWriteCapabilityDryRun,
   createControlledWriteExecutionDryRun,
+  createInstallerReleaseReadinessDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -201,6 +202,21 @@ export type InstallerPreviewResult = {
     confirmationReady: boolean;
     adapterReady: boolean;
     plannedSteps: number;
+    reasons: string[];
+  };
+  /**
+   * Aggregated release-readiness summary; summary-only. The raw sections and
+   * markdown are never included in JSON, no artifact is created, and nothing
+   * is executed.
+   */
+  releaseReadiness?: {
+    ok: boolean;
+    status: string;
+    sectionsReady: number;
+    sectionsBlocked: number;
+    sectionsReviewRequired: number;
+    uniqueReasons: number;
+    plannedWriteSteps: number;
     reasons: string[];
   };
 };
@@ -592,6 +608,28 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const controlledWriteDryRunWarnings =
     controlledWriteDryRunReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Aggregate local preview readiness into one release-readiness report.
+  // Summary-only — the raw sections and markdown stay out of the summary, no
+  // artifact is created, and nothing is executed.
+  const releaseReadinessReport = createInstallerReleaseReadinessDryRun({
+    decision: decisionReport.report,
+    auditExport: auditExportReport,
+    controlledWrite: controlledWriteDryRunReport,
+  });
+  const releaseReadinessSummary = releaseReadinessReport.report.summary;
+  const releaseReadiness = {
+    ok: releaseReadinessReport.ok,
+    status: releaseReadinessReport.report.status,
+    sectionsReady: releaseReadinessSummary.sectionsReady,
+    sectionsBlocked: releaseReadinessSummary.sectionsBlocked,
+    sectionsReviewRequired: releaseReadinessSummary.sectionsReviewRequired,
+    uniqueReasons: releaseReadinessSummary.uniqueReasons,
+    plannedWriteSteps: releaseReadinessSummary.plannedWriteSteps,
+    reasons: [...releaseReadinessReport.report.reasons],
+  };
+  const releaseReadinessWarnings =
+    releaseReadinessReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -616,6 +654,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...writeConfirmationWarnings,
         ...writeAdapterContractWarnings,
         ...controlledWriteDryRunWarnings,
+        ...releaseReadinessWarnings,
         result.message,
       ]),
       archive,
@@ -634,6 +673,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       writeConfirmation,
       writeAdapterContract,
       controlledWriteDryRun,
+      releaseReadiness,
     };
   }
 
@@ -664,6 +704,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...writeConfirmationWarnings,
       ...writeAdapterContractWarnings,
       ...controlledWriteDryRunWarnings,
+      ...releaseReadinessWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -682,6 +723,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     writeConfirmation,
     writeAdapterContract,
     controlledWriteDryRun,
+    releaseReadiness,
   };
 }
 
@@ -774,6 +816,15 @@ function formatMarkdown(result: InstallerPreviewResult): string {
       "## Controlled Write Dry Run",
       "",
       `Controlled write dry run: \`${result.controlledWriteDryRun.ok ? "ready" : "blocked"}\` (${result.controlledWriteDryRun.plannedSteps} planned steps, not executed)`,
+    );
+  }
+  if (result.releaseReadiness !== undefined) {
+    // Summary only: this reports readiness, never an artifact or execution.
+    lines.push(
+      "",
+      "## Release Readiness",
+      "",
+      `Release readiness: \`${result.releaseReadiness.status}\` (${result.releaseReadiness.sectionsReady} ready / ${result.releaseReadiness.sectionsBlocked} blocked / ${result.releaseReadiness.sectionsReviewRequired} review-required, not executed)`,
     );
   }
   let preview = `${lines.join("\n")}\n`;

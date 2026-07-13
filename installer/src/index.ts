@@ -13,6 +13,7 @@ export {
   exampleInstallerAuditEventInput,
   exampleInstallerAuditTrailExportInput,
   exampleInstallerDecisionReportInput,
+  exampleInstallerReleaseReadinessInput,
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
   exampleControlledWriteExecutionDryRunEnvelopeInput,
@@ -120,6 +121,14 @@ export {
   createControlledWriteExecutionDryRunEnvelope,
   summarizeControlledWriteExecutionDryRunEnvelope,
 } from "./write-dry-run-envelope.js";
+export {
+  collectInstallerReleaseReadinessReasons,
+  createInstallerReleaseReadinessDryRun,
+  createInstallerReleaseReadinessReport,
+  createInstallerReleaseReadinessSections,
+  formatInstallerReleaseReadinessMarkdown,
+  summarizeInstallerReleaseReadiness,
+} from "./release-readiness.js";
 export {
   createPackageFileEntry,
   createPackageManifest,
@@ -242,6 +251,13 @@ export type {
   InstallerErrorCode,
   InstallerFailure,
   InstallerPath,
+  InstallerReleaseReadinessDryRunReport,
+  InstallerReleaseReadinessInput,
+  InstallerReleaseReadinessReport,
+  InstallerReleaseReadinessSection,
+  InstallerReleaseReadinessSectionId,
+  InstallerReleaseReadinessStatus,
+  InstallerReleaseReadinessSummary,
   InstallerState,
   InstallerWriteApprovalToken,
   InstallerWriteApprovalTokenDryRunReport,

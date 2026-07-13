@@ -6,6 +6,7 @@
 import type {
   ArchiveDryRunReport,
   ControlledWriteExecutionDryRunReport,
+  InstallerReleaseReadinessDryRunReport,
   InstallDryRunReport,
   InstallerAuditEventDryRunReport,
   InstallerAuditTrailExportDryRunReport,
@@ -35,6 +36,7 @@ import {
   createInstallerWriteApprovalTokenDryRun,
   createInstallerWriteCapabilityDryRun,
   createControlledWriteExecutionDryRun,
+  createInstallerReleaseReadinessDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -52,6 +54,7 @@ import {
   createReleaseMetadataDryRun,
   formatInstallerAuditEventsMarkdown,
   formatInstallerDecisionReportMarkdown,
+  formatInstallerReleaseReadinessMarkdown,
   DEFAULT_LOCAL_UPDATE_POLICY,
   exampleFilesystemEntries,
   exampleInstallerAuditEventInput,
@@ -59,6 +62,7 @@ import {
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
   exampleControlledWriteExecutionDryRunEnvelopeInput,
+  exampleInstallerReleaseReadinessInput,
   exampleInstallerWriteAdapterContractInput,
   exampleInstallerWriteConfirmationChecklistInput,
   exampleInstallerWriteExecutionPlanInput,
@@ -155,6 +159,11 @@ export type InstallerWriteAdapterContractExample = {
 
 export type ControlledWriteExecutionDryRunExample = {
   controlledWriteDryRun: ControlledWriteExecutionDryRunReport;
+};
+
+export type InstallerReleaseReadinessExample = {
+  releaseReadiness: InstallerReleaseReadinessDryRunReport;
+  markdown: string;
 };
 
 export type InstallerUpdateExample = {
@@ -445,6 +454,20 @@ export function runControlledWriteExecutionDryRunExample(): ControlledWriteExecu
     exampleControlledWriteExecutionDryRunEnvelopeInput(),
   );
   return { controlledWriteDryRun };
+}
+
+/**
+ * Aggregate local preview readiness (decision report, audit trail export
+ * dry-run, controlled write dry-run envelope) into one release-readiness
+ * report and render it as markdown. Summary-only — no artifact is created and
+ * nothing is written, executed, retrieved, logged, or sent.
+ */
+export function runInstallerReleaseReadinessExample(): InstallerReleaseReadinessExample {
+  const releaseReadiness = createInstallerReleaseReadinessDryRun(
+    exampleInstallerReleaseReadinessInput(),
+  );
+  const markdown = formatInstallerReleaseReadinessMarkdown(releaseReadiness.report);
+  return { releaseReadiness, markdown };
 }
 
 /** Install the example package, then apply the example update plan. */

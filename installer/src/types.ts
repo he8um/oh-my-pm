@@ -928,6 +928,64 @@ export type ControlledWriteExecutionDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Aggregate readiness classification for a local installer/release preview. */
+export type InstallerReleaseReadinessStatus = "ready" | "blocked" | "review-required";
+
+/** Identifier for one release-readiness section. */
+export type InstallerReleaseReadinessSectionId =
+  | "installer-decision"
+  | "audit-export"
+  | "controlled-write";
+
+/** One named readiness layer inside the release-readiness report. */
+export type InstallerReleaseReadinessSection = {
+  id: InstallerReleaseReadinessSectionId;
+  label: string;
+  ok: boolean;
+  status: InstallerReleaseReadinessStatus;
+  reasons: string[];
+};
+
+/**
+ * Input aggregating already computed local readiness reports; nothing is
+ * fetched, written, or executed.
+ */
+export type InstallerReleaseReadinessInput = {
+  decision: InstallerDecisionReport;
+  auditExport: InstallerAuditTrailExportDryRunReport;
+  controlledWrite: ControlledWriteExecutionDryRunReport;
+};
+
+/** Flat counts across every release-readiness section; nothing is executed. */
+export type InstallerReleaseReadinessSummary = {
+  status: InstallerReleaseReadinessStatus;
+  sectionsReady: number;
+  sectionsBlocked: number;
+  sectionsReviewRequired: number;
+  uniqueReasons: number;
+  plannedWriteSteps: number;
+};
+
+/**
+ * Summary-only aggregation of local preview readiness. There is no content,
+ * artifact, release-asset, output-path, destination, command, remote, adapter
+ * object, or execution-result field — nothing here is created or executed.
+ */
+export type InstallerReleaseReadinessReport = {
+  ok: boolean;
+  status: InstallerReleaseReadinessStatus;
+  sections: InstallerReleaseReadinessSection[];
+  reasons: string[];
+  summary: InstallerReleaseReadinessSummary;
+};
+
+/** Result of a release-readiness dry run; nothing is written or executed. */
+export type InstallerReleaseReadinessDryRunReport = {
+  ok: boolean;
+  report: InstallerReleaseReadinessReport;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

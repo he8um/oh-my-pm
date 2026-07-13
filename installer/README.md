@@ -139,3 +139,9 @@ The contract declares local capabilities such as write-file, remove-file, and ba
 The installer can aggregate write readiness layers into one controlled dry-run envelope.
 
 The envelope summarizes write capability, approval token status, execution plan readiness, confirmation checklist readiness, and adapter contract readiness. It is non-mutating. It does not execute installation, execute rollback, call write adapters, retrieve packages remotely, or write files.
+
+## Installer release readiness summary
+
+The installer can aggregate local preview readiness into one release-readiness report.
+
+The report summarizes the installer decision report, audit trail export dry-run, and controlled write dry-run envelope. It is summary-only. It does not create release artifacts, execute installation, execute rollback, call write adapters, retrieve packages remotely, or write files.

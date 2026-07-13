@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as examples from "../src/index.js";
 import {
   runControlledWriteExecutionDryRunExample,
+  runInstallerReleaseReadinessExample,
   runInstallerArchivePlanExample,
   runInstallerAuditEventExample,
   runInstallerAuditTrailExportExample,
@@ -393,8 +394,31 @@ describe("runControlledWriteExecutionDryRunExample", () => {
   });
 });
 
+describe("runInstallerReleaseReadinessExample", () => {
+  it("returns a ready release-readiness report and its markdown", () => {
+    const result = runInstallerReleaseReadinessExample();
+    expect(result.releaseReadiness.ok).toBe(true);
+    expect(result.releaseReadiness.report.status).toBe("ready");
+    expect(result.releaseReadiness.report.sections).toHaveLength(3);
+    expect(result.markdown).toContain("# OH MY PM Installer Release Readiness");
+    expect(Object.keys(result).sort()).toEqual(["markdown", "releaseReadiness"]);
+
+    // Summary-only: no artifact, command, destination, adapter object, or
+    // execution-result field anywhere.
+    const serialized = JSON.stringify(result.releaseReadiness);
+    expect(serialized).not.toContain("writeFile");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    for (const key of Object.keys(result.releaseReadiness.report)) {
+      expect(key).not.toMatch(/artifact|asset|command|dest|adapter|object|result|remote|url/i);
+    }
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runInstallerReleaseReadinessExample).toBe("function");
     expect(typeof examples.runControlledWriteExecutionDryRunExample).toBe("function");
     expect(typeof examples.runInstallerWriteAdapterContractExample).toBe("function");
     expect(typeof examples.runInstallerWriteConfirmationChecklistExample).toBe("function");

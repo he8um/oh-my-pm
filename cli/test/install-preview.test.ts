@@ -269,6 +269,16 @@ describe("runInstallerPreview", () => {
       for (const key of Object.keys(parsed.controlledWriteDryRun)) {
         expect(key).not.toMatch(/object|fn|func|method|content|command|dest|result|remote|url/i);
       }
+      // Aggregated release-readiness summary; raw sections and markdown never
+      // reach JSON.
+      expect(typeof parsed.releaseReadiness.status).toBe("string");
+      expect(typeof parsed.releaseReadiness.plannedWriteSteps).toBe("number");
+      expect(parsed.releaseReadiness).not.toHaveProperty("sections");
+      expect(parsed.releaseReadiness).not.toHaveProperty("markdown");
+      expect(parsed.releaseReadiness).not.toHaveProperty("report");
+      for (const key of Object.keys(parsed.releaseReadiness)) {
+        expect(key).not.toMatch(/artifact|asset|content|command|dest|adapter|object|result|remote|url/i);
+      }
       expect(output).not.toContain("backupFile");
       expect(output).not.toContain("removeFile");
       expect(output).not.toMatch(/\d{4}-\d{2}-\d{2}T/);

@@ -27,6 +27,7 @@ import type {
   InstallerWriteConfirmationChecklistInput,
   InstallerWriteAdapterContractInput,
   ControlledWriteExecutionDryRunEnvelopeInput,
+  InstallerReleaseReadinessInput,
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -50,6 +51,8 @@ import { createInstallerWriteApprovalTokenDryRun } from "./write-approval.js";
 import { createInstallerWriteExecutionPlan } from "./write-execution-plan.js";
 import { createInstallerWriteConfirmationChecklist } from "./write-confirmation.js";
 import { evaluateInstallerWriteAdapterContract } from "./write-adapter-contract.js";
+import { createInstallerAuditTrailExportDryRun } from "./audit-export.js";
+import { createControlledWriteExecutionDryRun } from "./write-dry-run-envelope.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -413,6 +416,22 @@ export function exampleControlledWriteExecutionDryRunEnvelopeInput(): Controlled
     confirmation,
     adapterContract,
   };
+}
+
+/**
+ * Example release-readiness input built from the existing fixture chain: the
+ * decision report, audit trail export dry-run, and controlled write dry-run
+ * envelope. Readiness is not forced — tests assert the exact status produced.
+ */
+export function exampleInstallerReleaseReadinessInput(): InstallerReleaseReadinessInput {
+  const decision = createInstallerDecisionReport(exampleInstallerDecisionReportInput());
+  const auditExport = createInstallerAuditTrailExportDryRun(
+    exampleInstallerAuditTrailExportInput(),
+  );
+  const controlledWrite = createControlledWriteExecutionDryRun(
+    exampleControlledWriteExecutionDryRunEnvelopeInput(),
+  );
+  return { decision, auditExport, controlledWrite };
 }
 
 /** Example update plan accepted by the Kernel update guard. */
