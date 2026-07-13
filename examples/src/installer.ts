@@ -8,6 +8,7 @@ import type {
   ControlledWriteExecutionDryRunReport,
   InstallerReleaseReadinessDryRunReport,
   V0ReleaseCandidateChecklistDryRunReport,
+  PublicV0ReleaseNotesDraftDryRunReport,
   InstallDryRunReport,
   InstallerAuditEventDryRunReport,
   InstallerAuditTrailExportDryRunReport,
@@ -39,6 +40,7 @@ import {
   createControlledWriteExecutionDryRun,
   createInstallerReleaseReadinessDryRun,
   createV0ReleaseCandidateChecklistDryRun,
+  createPublicV0ReleaseNotesDraftDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -58,6 +60,7 @@ import {
   formatInstallerDecisionReportMarkdown,
   formatInstallerReleaseReadinessMarkdown,
   formatV0ReleaseCandidateChecklistMarkdown,
+  formatPublicV0ReleaseNotesDraftMarkdown,
   DEFAULT_LOCAL_UPDATE_POLICY,
   exampleFilesystemEntries,
   exampleInstallerAuditEventInput,
@@ -67,6 +70,7 @@ import {
   exampleControlledWriteExecutionDryRunEnvelopeInput,
   exampleInstallerReleaseReadinessInput,
   exampleV0ReleaseCandidateChecklistInput,
+  examplePublicV0ReleaseNotesDraftInput,
   exampleInstallerWriteAdapterContractInput,
   exampleInstallerWriteConfirmationChecklistInput,
   exampleInstallerWriteExecutionPlanInput,
@@ -172,6 +176,11 @@ export type InstallerReleaseReadinessExample = {
 
 export type V0ReleaseCandidateChecklistExample = {
   v0ReleaseCandidate: V0ReleaseCandidateChecklistDryRunReport;
+  markdown: string;
+};
+
+export type PublicV0ReleaseNotesDraftExample = {
+  publicV0ReleaseNotes: PublicV0ReleaseNotesDraftDryRunReport;
   markdown: string;
 };
 
@@ -490,6 +499,19 @@ export function runV0ReleaseCandidateChecklistExample(): V0ReleaseCandidateCheck
   );
   const markdown = formatV0ReleaseCandidateChecklistMarkdown(v0ReleaseCandidate.checklist);
   return { v0ReleaseCandidate, markdown };
+}
+
+/**
+ * Render the public v0 release notes draft from the release-candidate checklist
+ * and release-readiness reports. Documentation-only — no release is created and
+ * nothing is written, executed, retrieved, or sent.
+ */
+export function runPublicV0ReleaseNotesDraftExample(): PublicV0ReleaseNotesDraftExample {
+  const publicV0ReleaseNotes = createPublicV0ReleaseNotesDraftDryRun(
+    examplePublicV0ReleaseNotesDraftInput(),
+  );
+  const markdown = formatPublicV0ReleaseNotesDraftMarkdown(publicV0ReleaseNotes.draft);
+  return { publicV0ReleaseNotes, markdown };
 }
 
 /** Install the example package, then apply the example update plan. */

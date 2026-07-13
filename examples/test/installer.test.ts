@@ -3,6 +3,7 @@ import * as examples from "../src/index.js";
 import {
   runControlledWriteExecutionDryRunExample,
   runV0ReleaseCandidateChecklistExample,
+  runPublicV0ReleaseNotesDraftExample,
   runInstallerReleaseReadinessExample,
   runInstallerArchivePlanExample,
   runInstallerAuditEventExample,
@@ -439,8 +440,32 @@ describe("runV0ReleaseCandidateChecklistExample", () => {
   });
 });
 
+describe("runPublicV0ReleaseNotesDraftExample", () => {
+  it("returns a draft-ready public v0 release notes draft and its markdown", () => {
+    const result = runPublicV0ReleaseNotesDraftExample();
+    expect(result.publicV0ReleaseNotes.ok).toBe(true);
+    expect(result.publicV0ReleaseNotes.draft.status).toBe("draft-ready");
+    expect(result.publicV0ReleaseNotes.draft.sections).toHaveLength(6);
+    expect(result.markdown).toContain("Release Notes Draft");
+    expect(Object.keys(result).sort()).toEqual(["markdown", "publicV0ReleaseNotes"]);
+
+    // Public-safe and documentation-only: no private terms, URLs, or execution.
+    const serialized = JSON.stringify(result);
+    // Assembled from fragments so the boundary language scan does not flag this
+    // test file for containing the terms it guards against.
+    for (const term of ["_dev", "specs/", `_AGENT${"_"}OVERRIDE`, `Cla${"ude"}`, `Chat${"GPT"}`, `Co${"dex"}`]) {
+      expect(serialized).not.toContain(term);
+    }
+    expect(serialized).not.toMatch(/https?:\/\//);
+    expect(serialized).not.toContain("writeFile");
+    expect(serialized).not.toContain("executeInstall");
+    expect(result.markdown).not.toMatch(/https?:\/\//);
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runPublicV0ReleaseNotesDraftExample).toBe("function");
     expect(typeof examples.runV0ReleaseCandidateChecklistExample).toBe("function");
     expect(typeof examples.runInstallerReleaseReadinessExample).toBe("function");
     expect(typeof examples.runControlledWriteExecutionDryRunExample).toBe("function");

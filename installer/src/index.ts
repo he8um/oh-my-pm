@@ -15,6 +15,7 @@ export {
   exampleInstallerDecisionReportInput,
   exampleInstallerReleaseReadinessInput,
   exampleV0ReleaseCandidateChecklistInput,
+  examplePublicV0ReleaseNotesDraftInput,
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
   exampleControlledWriteExecutionDryRunEnvelopeInput,
@@ -136,6 +137,13 @@ export {
   createV0ReleaseCandidateChecklistItems,
   formatV0ReleaseCandidateChecklistMarkdown,
 } from "./v0-release-candidate.js";
+export {
+  collectPublicV0ReleaseNotesDraftReasons,
+  createPublicV0ReleaseNotesDraft,
+  createPublicV0ReleaseNotesDraftDryRun,
+  createPublicV0ReleaseNotesDraftSections,
+  formatPublicV0ReleaseNotesDraftMarkdown,
+} from "./public-v0-release-notes.js";
 export {
   createPackageFileEntry,
   createPackageManifest,
@@ -306,6 +314,11 @@ export type {
   NodeFilesystemAdapterOptions,
   PlannedFileOperation,
   PlannedFileOperationKind,
+  PublicV0ReleaseNotesDraft,
+  PublicV0ReleaseNotesDraftDryRunReport,
+  PublicV0ReleaseNotesDraftInput,
+  PublicV0ReleaseNotesDraftSection,
+  PublicV0ReleaseNotesDraftSectionId,
   ReleaseChannelDryRunReport,
   ReleaseChannelEntry,
   ReleaseChannelMetadata,

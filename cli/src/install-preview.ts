@@ -21,6 +21,7 @@ import {
   createControlledWriteExecutionDryRun,
   createInstallerReleaseReadinessDryRun,
   createV0ReleaseCandidateChecklistDryRun,
+  createPublicV0ReleaseNotesDraftDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -230,6 +231,18 @@ export type InstallerPreviewResult = {
     items: number;
     passed: number;
     failed: number;
+    reasons: string[];
+  };
+  /**
+   * Public v0 release notes draft summary; documentation-only. The raw sections
+   * and markdown are never included in JSON, no release is created, and nothing
+   * is executed.
+   */
+  publicV0ReleaseNotes?: {
+    ok: boolean;
+    status: string;
+    version: string;
+    sections: number;
     reasons: string[];
   };
 };
@@ -679,6 +692,24 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const v0ReleaseCandidateWarnings =
     v0ReleaseCandidateReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Render the public v0 release notes draft from the v0 checklist and release
+  // readiness report. Documentation-only — the raw sections and markdown stay
+  // out of the summary, no release is created, and nothing is executed.
+  const publicV0ReleaseNotesReport = createPublicV0ReleaseNotesDraftDryRun({
+    version: "v0.1.0",
+    checklist: v0ReleaseCandidateReport.checklist,
+    releaseReadiness: releaseReadinessReport.report,
+  });
+  const publicV0ReleaseNotes = {
+    ok: publicV0ReleaseNotesReport.ok,
+    status: publicV0ReleaseNotesReport.draft.status,
+    version: publicV0ReleaseNotesReport.draft.version,
+    sections: publicV0ReleaseNotesReport.draft.sections.length,
+    reasons: [...publicV0ReleaseNotesReport.draft.reasons],
+  };
+  const publicV0ReleaseNotesWarnings =
+    publicV0ReleaseNotesReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -705,6 +736,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...controlledWriteDryRunWarnings,
         ...releaseReadinessWarnings,
         ...v0ReleaseCandidateWarnings,
+        ...publicV0ReleaseNotesWarnings,
         result.message,
       ]),
       archive,
@@ -725,6 +757,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       controlledWriteDryRun,
       releaseReadiness,
       v0ReleaseCandidate,
+      publicV0ReleaseNotes,
     };
   }
 
@@ -757,6 +790,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...controlledWriteDryRunWarnings,
       ...releaseReadinessWarnings,
       ...v0ReleaseCandidateWarnings,
+      ...publicV0ReleaseNotesWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -777,6 +811,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     controlledWriteDryRun,
     releaseReadiness,
     v0ReleaseCandidate,
+    publicV0ReleaseNotes,
   };
 }
 
@@ -887,6 +922,15 @@ function formatMarkdown(result: InstallerPreviewResult): string {
       "## v0 Release Candidate Checklist",
       "",
       `v0 release candidate: \`${result.v0ReleaseCandidate.ok ? "ready" : "blocked"}\` (${result.v0ReleaseCandidate.passed}/${result.v0ReleaseCandidate.items} items passed, no release created)`,
+    );
+  }
+  if (result.publicV0ReleaseNotes !== undefined) {
+    // Draft only: this is a public-notes preview, never a created release.
+    lines.push(
+      "",
+      "## Public v0 Release Notes Draft",
+      "",
+      `Public release notes draft \`${result.publicV0ReleaseNotes.version}\`: \`${result.publicV0ReleaseNotes.status}\` (${result.publicV0ReleaseNotes.sections} sections, draft only, no release created)`,
     );
   }
   let preview = `${lines.join("\n")}\n`;

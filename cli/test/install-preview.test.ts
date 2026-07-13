@@ -62,6 +62,8 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: controlled_write_confirmation_not_ready",
         "OMP-I-6001: controlled_write_adapter_contract_not_ready",
         "OMP-I-6001: v0_rc_release_readiness_blocked",
+        "OMP-I-6001: public_v0_release_notes_checklist_blocked",
+        "OMP-I-6001: public_v0_release_notes_readiness_blocked",
       ]);
       expect(result.archive).toEqual({
         format: "zip",
@@ -145,6 +147,8 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: controlled_write_confirmation_not_ready",
         "OMP-I-6001: controlled_write_adapter_contract_not_ready",
         "OMP-I-6001: v0_rc_release_readiness_blocked",
+        "OMP-I-6001: public_v0_release_notes_checklist_blocked",
+        "OMP-I-6001: public_v0_release_notes_readiness_blocked",
       ]);
       expect(result.operations).toHaveLength(1);
       expect(result.operations[0].path.endsWith("README.md")).toBe(true);
@@ -291,6 +295,16 @@ describe("runInstallerPreview", () => {
       for (const key of Object.keys(parsed.v0ReleaseCandidate)) {
         expect(key).not.toMatch(/artifact|asset|content|command|dest|adapter|object|result|remote|url/i);
       }
+      // Public v0 release notes draft summary; raw sections and markdown never
+      // reach JSON.
+      expect(parsed.publicV0ReleaseNotes.version).toBe("v0.1.0");
+      expect(parsed.publicV0ReleaseNotes.sections).toBe(6);
+      expect(typeof parsed.publicV0ReleaseNotes.status).toBe("string");
+      expect(parsed.publicV0ReleaseNotes).not.toHaveProperty("draft");
+      expect(parsed.publicV0ReleaseNotes).not.toHaveProperty("markdown");
+      for (const key of Object.keys(parsed.publicV0ReleaseNotes)) {
+        expect(key).not.toMatch(/artifact|asset|download|content|command|dest|adapter|object|result|remote|url/i);
+      }
       expect(output).not.toContain("backupFile");
       expect(output).not.toContain("removeFile");
       expect(output).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
@@ -319,6 +333,7 @@ describe("runInstallerPreview", () => {
       expect(output).toContain("# OH MY PM Installer Audit Events");
       expect(output).toContain("`preview_started`");
       expect(output).toContain("## v0 Release Candidate Checklist");
+      expect(output).toContain("## Public v0 Release Notes Draft");
       expect(output).not.toMatch(/https?:\/\//);
       expect(output).not.toContain("placeholder:preview-key:");
       expect(output).not.toContain("executeInstall");
@@ -367,6 +382,8 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: controlled_write_confirmation_not_ready",
       "OMP-I-6001: controlled_write_adapter_contract_not_ready",
       "OMP-I-6001: v0_rc_release_readiness_blocked",
+      "OMP-I-6001: public_v0_release_notes_checklist_blocked",
+      "OMP-I-6001: public_v0_release_notes_readiness_blocked",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);

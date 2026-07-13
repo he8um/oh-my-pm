@@ -29,6 +29,7 @@ import type {
   ControlledWriteExecutionDryRunEnvelopeInput,
   InstallerReleaseReadinessInput,
   V0ReleaseCandidateChecklistInput,
+  PublicV0ReleaseNotesDraftInput,
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -55,6 +56,7 @@ import { evaluateInstallerWriteAdapterContract } from "./write-adapter-contract.
 import { createInstallerAuditTrailExportDryRun } from "./audit-export.js";
 import { createControlledWriteExecutionDryRun } from "./write-dry-run-envelope.js";
 import { createInstallerReleaseReadinessReport } from "./release-readiness.js";
+import { createV0ReleaseCandidateChecklist } from "./v0-release-candidate.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -465,6 +467,23 @@ export function exampleV0ReleaseCandidateChecklistInput(): V0ReleaseCandidateChe
       noPrivateDocs: true,
       docsUpdated: true,
     },
+  };
+}
+
+/**
+ * Example public v0 release notes draft input. The checklist and release
+ * readiness are built from the existing fixture chain; the draft is draft-ready
+ * only when both are ready (the fixtures are, so it is).
+ */
+export function examplePublicV0ReleaseNotesDraftInput(): PublicV0ReleaseNotesDraftInput {
+  const checklist = createV0ReleaseCandidateChecklist(exampleV0ReleaseCandidateChecklistInput());
+  const releaseReadiness = createInstallerReleaseReadinessReport(
+    exampleInstallerReleaseReadinessInput(),
+  );
+  return {
+    version: "v0.1.0",
+    checklist,
+    releaseReadiness,
   };
 }
 

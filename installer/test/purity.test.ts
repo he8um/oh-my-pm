@@ -129,6 +129,11 @@ const PUBLISH_ALLOWED_IDENTIFIERS = [
   "noPublishingMetadata",
   "v0_rc_publishing_metadata_present",
   "No publishing metadata is present",
+  // Public-safe v0 release notes draft phrases that intentionally name what is
+  // NOT done (no publishing) — stripped before the substring scan.
+  "No publishing workflow in this draft",
+  "Package publishing",
+  "publishing and tagging manual",
 ];
 
 function stripPublishAllowedIdentifiers(contents: string): string {
@@ -194,6 +199,48 @@ describe("installer purity", () => {
       ]) {
         expect(contents, `${file} must not contain "${forbidden}"`).not.toContain(forbidden);
       }
+    }
+  });
+
+  it("the public v0 release notes draft never logs, executes, calls an adapter, or reaches the network", () => {
+    // The draft names "No telemetry ..." as a thing NOT done; that exact
+    // public-safe phrase is stripped before the scan.
+    const contents = readFileSync(join(srcDir, "public-v0-release-notes.ts"), "utf8")
+      .split("No telemetry, remote retrieval, or write adapter execution in this draft")
+      .join("");
+    for (const forbidden of [
+      "http://",
+      "https://",
+      "fetch(",
+      "XMLHttpRequest",
+      "upload",
+      "download",
+      "cdn",
+      "bucket",
+      "registry",
+      "executeInstall",
+      "executeRollback",
+      "executeInstallPlan",
+      "executeRollbackPlan",
+      "FilesystemWriteAdapter",
+      "writeFile(",
+      "removeFile(",
+      "backupFile(",
+      "rmSync",
+      "unlink",
+      "console.log",
+      "console.error",
+      "logger",
+      "telemetry",
+      "fs.",
+      "crypto",
+      "privateKey",
+      "publicKey",
+    ]) {
+      expect(
+        contents,
+        `public-v0-release-notes.ts must not contain "${forbidden}"`,
+      ).not.toContain(forbidden);
     }
   });
 

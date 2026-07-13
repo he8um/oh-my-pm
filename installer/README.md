@@ -151,3 +151,9 @@ The report summarizes the installer decision report, audit trail export dry-run,
 The installer can build a deterministic checklist for evaluating whether the repository is ready to be considered as a future v0 release candidate.
 
 The checklist aggregates validation, public-surface, build, test, CLI smoke, release-readiness, and public hygiene signals. It is checklist-only. It does not create release artifacts, publish packages, execute installation, execute rollback, call write adapters, retrieve packages remotely, or write files.
+
+## Public v0 release notes draft
+
+The installer can render a public v0 release notes draft from the local release-readiness and release-candidate checklist reports.
+
+The draft is public-safe and summary-only. It does not create GitHub releases, release artifacts, archives, tags, publishing workflows, installation commands, or write execution.

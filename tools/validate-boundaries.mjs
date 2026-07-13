@@ -91,7 +91,8 @@ for (const file of trackedFiles) {
         file === "installer/src/write-adapter-contract.ts" ||
         file === "installer/src/write-dry-run-envelope.ts" ||
         file === "installer/src/release-readiness.ts" ||
-        file === "installer/src/v0-release-candidate.ts") &&
+        file === "installer/src/v0-release-candidate.ts" ||
+        file === "installer/src/public-v0-release-notes.ts") &&
       (spec === "node" || spec.startsWith("node:"))
     ) {
       err(`${file} imports a Node built-in: "${spec}"`);
@@ -179,6 +180,11 @@ const PUBLISH_ALLOWED_IDENTIFIERS = [
   "noPublishingMetadata",
   "v0_rc_publishing_metadata_present",
   "No publishing metadata is present",
+  // Public-safe v0 release notes draft phrases that intentionally name what is
+  // NOT done (no publishing) — stripped before the remote-marker scan.
+  "No publishing workflow in this draft",
+  "Package publishing",
+  "publishing and tagging manual",
 ];
 const stripPublishAllowedIdentifiers = (text) => {
   let stripped = text;
@@ -209,7 +215,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-adapter-contract.ts" ||
     file === "installer/src/write-dry-run-envelope.ts" ||
     file === "installer/src/release-readiness.ts" ||
-    file === "installer/src/v0-release-candidate.ts"
+    file === "installer/src/v0-release-candidate.ts" ||
+    file === "installer/src/public-v0-release-notes.ts"
   ) {
     for (const api of NODE_WRITE_APIS) {
       if (contents.includes(api)) {
@@ -231,10 +238,16 @@ for (const file of trackedFiles) {
     file === "installer/src/write-adapter-contract.ts" ||
     file === "installer/src/write-dry-run-envelope.ts" ||
     file === "installer/src/release-readiness.ts" ||
-    file === "installer/src/v0-release-candidate.ts"
+    file === "installer/src/v0-release-candidate.ts" ||
+    file === "installer/src/public-v0-release-notes.ts"
   ) {
+    // The public release notes draft names "No telemetry ..." as a thing NOT
+    // done; that exact public-safe phrase is stripped before the scan.
+    const logScanContents = contents
+      .split("No telemetry, remote retrieval, or write adapter execution in this draft")
+      .join("");
     for (const marker of ["console.log", "console.error", "logger", "telemetry"]) {
-      if (contents.includes(marker)) {
+      if (logScanContents.includes(marker)) {
         err(`${file} contains forbidden logging/telemetry API "${marker}"`);
       }
     }
@@ -251,7 +264,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-adapter-contract.ts" ||
     file === "installer/src/write-dry-run-envelope.ts" ||
     file === "installer/src/release-readiness.ts" ||
-    file === "installer/src/v0-release-candidate.ts"
+    file === "installer/src/v0-release-candidate.ts" ||
+    file === "installer/src/public-v0-release-notes.ts"
   ) {
     for (const marker of [
       "executeInstall",
@@ -273,7 +287,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-adapter-contract.ts" ||
     file === "installer/src/write-dry-run-envelope.ts" ||
     file === "installer/src/release-readiness.ts" ||
-    file === "installer/src/v0-release-candidate.ts"
+    file === "installer/src/v0-release-candidate.ts" ||
+    file === "installer/src/public-v0-release-notes.ts"
   ) {
     for (const marker of ["FilesystemWriteAdapter", "writeFile(", "removeFile(", "backupFile("]) {
       if (contents.includes(marker)) {
@@ -291,7 +306,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-adapter-contract.ts" ||
     file === "installer/src/write-dry-run-envelope.ts" ||
     file === "installer/src/release-readiness.ts" ||
-    file === "installer/src/v0-release-candidate.ts"
+    file === "installer/src/v0-release-candidate.ts" ||
+    file === "installer/src/public-v0-release-notes.ts"
   ) {
     for (const marker of ["crypto", "privateKey", "publicKey"]) {
       if (contents.includes(marker)) {
@@ -299,20 +315,26 @@ for (const file of trackedFiles) {
       }
     }
   }
-  // The release readiness summary and v0 release candidate checklist aggregate
-  // readiness only; neither may create release outputs or publish anything.
-  // The v0 checklist's "no release artifacts" / "no publishing metadata"
-  // hygiene identifiers legitimately contain "artifact"/"publish", so they are
-  // stripped before the term scan; any other occurrence still fails.
+  // The release readiness summary, v0 release candidate checklist, and public
+  // v0 release notes draft aggregate/describe readiness only; none may create
+  // release outputs or publish anything. Their public-safe hygiene identifiers
+  // and draft phrases legitimately contain "artifact"/"publish", so those exact
+  // strings are stripped before the term scan; any other occurrence still fails.
   if (
     file === "installer/src/release-readiness.ts" ||
-    file === "installer/src/v0-release-candidate.ts"
+    file === "installer/src/v0-release-candidate.ts" ||
+    file === "installer/src/public-v0-release-notes.ts"
   ) {
     const hygieneAllowed = [
       "no-release-artifacts",
       "noReleaseArtifacts",
       "v0_rc_release_artifacts_present",
       "No release artifacts are committed",
+      // Public-safe v0 release notes draft phrases that name what is NOT done.
+      "Release artifact creation",
+      "No release artifact creation in this draft",
+      "Signed public release artifacts",
+      "Prepare guarded release artifact planning",
     ];
     let termScanContents = stripPublishAllowedIdentifiers(contents);
     for (const identifier of hygieneAllowed) {

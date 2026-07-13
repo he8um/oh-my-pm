@@ -1055,6 +1055,50 @@ export type V0ReleaseCandidateChecklistDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Input for rendering a public v0 release notes draft; nothing is created. */
+export type PublicV0ReleaseNotesDraftInput = {
+  version: string;
+  checklist: V0ReleaseCandidateChecklist;
+  releaseReadiness: InstallerReleaseReadinessReport;
+};
+
+/** Identifier for one public v0 release notes draft section. */
+export type PublicV0ReleaseNotesDraftSectionId =
+  | "status"
+  | "included"
+  | "safety"
+  | "not-included"
+  | "validation"
+  | "next";
+
+/** One public-safe release notes section. */
+export type PublicV0ReleaseNotesDraftSection = {
+  id: PublicV0ReleaseNotesDraftSectionId;
+  title: string;
+  lines: string[];
+};
+
+/**
+ * Public-facing, summary-only v0 release notes draft. It carries no
+ * release-output, release-asset, fetch-link, output-path, destination,
+ * distribution-target, command-execution, remote, adapter-object, or
+ * execution-result field — nothing here creates a release or is written.
+ */
+export type PublicV0ReleaseNotesDraft = {
+  ok: boolean;
+  version: string;
+  status: "draft-ready" | "blocked";
+  sections: PublicV0ReleaseNotesDraftSection[];
+  reasons: string[];
+};
+
+/** Result of a public v0 release notes draft dry run; nothing is written. */
+export type PublicV0ReleaseNotesDraftDryRunReport = {
+  ok: boolean;
+  draft: PublicV0ReleaseNotesDraft;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

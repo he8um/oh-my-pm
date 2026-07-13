@@ -330,6 +330,8 @@ const INSTALLER_SOURCES = [
   "installer/test/release-readiness.test.ts",
   "installer/src/v0-release-candidate.ts",
   "installer/test/v0-release-candidate.test.ts",
+  "installer/src/public-v0-release-notes.ts",
+  "installer/test/public-v0-release-notes.test.ts",
   "installer/test/validate.test.ts",
   "installer/test/manifest.test.ts",
   "installer/test/installer.test.ts",
