@@ -14,6 +14,7 @@ export {
   exampleInstallerAuditTrailExportInput,
   exampleInstallerDecisionReportInput,
   exampleInstallerReleaseReadinessInput,
+  exampleV0ReleaseCandidateChecklistInput,
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
   exampleControlledWriteExecutionDryRunEnvelopeInput,
@@ -129,6 +130,12 @@ export {
   formatInstallerReleaseReadinessMarkdown,
   summarizeInstallerReleaseReadiness,
 } from "./release-readiness.js";
+export {
+  createV0ReleaseCandidateChecklist,
+  createV0ReleaseCandidateChecklistDryRun,
+  createV0ReleaseCandidateChecklistItems,
+  formatV0ReleaseCandidateChecklistMarkdown,
+} from "./v0-release-candidate.js";
 export {
   createPackageFileEntry,
   createPackageManifest,
@@ -335,6 +342,11 @@ export type {
   RollbackInput,
   UpdateInput,
   WriteFileInput,
+  V0ReleaseCandidateChecklist,
+  V0ReleaseCandidateChecklistDryRunReport,
+  V0ReleaseCandidateChecklistInput,
+  V0ReleaseCandidateChecklistItem,
+  V0ReleaseCandidateChecklistItemId,
 } from "./types.js";
 export {
   isNonEmptyString,

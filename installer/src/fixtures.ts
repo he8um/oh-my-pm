@@ -28,6 +28,7 @@ import type {
   InstallerWriteAdapterContractInput,
   ControlledWriteExecutionDryRunEnvelopeInput,
   InstallerReleaseReadinessInput,
+  V0ReleaseCandidateChecklistInput,
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -53,6 +54,7 @@ import { createInstallerWriteConfirmationChecklist } from "./write-confirmation.
 import { evaluateInstallerWriteAdapterContract } from "./write-adapter-contract.js";
 import { createInstallerAuditTrailExportDryRun } from "./audit-export.js";
 import { createControlledWriteExecutionDryRun } from "./write-dry-run-envelope.js";
+import { createInstallerReleaseReadinessReport } from "./release-readiness.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -432,6 +434,38 @@ export function exampleInstallerReleaseReadinessInput(): InstallerReleaseReadine
     exampleControlledWriteExecutionDryRunEnvelopeInput(),
   );
   return { decision, auditExport, controlledWrite };
+}
+
+/**
+ * Example v0 release candidate checklist input. Release readiness is built
+ * from the existing fixture chain; every caller-supplied validation and
+ * hygiene signal is set to true, so the checklist is ok when release readiness
+ * is not blocked.
+ */
+export function exampleV0ReleaseCandidateChecklistInput(): V0ReleaseCandidateChecklistInput {
+  const releaseReadiness = createInstallerReleaseReadinessReport(
+    exampleInstallerReleaseReadinessInput(),
+  );
+  return {
+    releaseReadiness,
+    validation: {
+      contracts: true,
+      publicSurface: true,
+      structure: true,
+      boundaries: true,
+      builds: true,
+      tests: true,
+      wasmBuild: true,
+      cliSmoke: true,
+    },
+    hygiene: {
+      noProductionInstallCommand: true,
+      noReleaseArtifacts: true,
+      noPublishingMetadata: true,
+      noPrivateDocs: true,
+      docsUpdated: true,
+    },
+  };
 }
 
 /** Example update plan accepted by the Kernel update guard. */

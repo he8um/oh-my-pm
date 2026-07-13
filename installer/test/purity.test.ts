@@ -120,6 +120,25 @@ const WRITE_ADAPTER_FORBIDDEN = [
   ...REMOTE_FORBIDDEN,
 ];
 
+// The v0 release candidate checklist models a "no publishing metadata" hygiene
+// gate, so these exact contract identifiers legitimately contain the substring
+// "publish". They are stripped before the substring scan; any other "publish"
+// occurrence still fails. This does not permit real publishing.
+const PUBLISH_ALLOWED_IDENTIFIERS = [
+  "no-publishing-metadata",
+  "noPublishingMetadata",
+  "v0_rc_publishing_metadata_present",
+  "No publishing metadata is present",
+];
+
+function stripPublishAllowedIdentifiers(contents: string): string {
+  let stripped = contents;
+  for (const identifier of PUBLISH_ALLOWED_IDENTIFIERS) {
+    stripped = stripped.split(identifier).join("");
+  }
+  return stripped;
+}
+
 describe("installer purity", () => {
   it("core source files contain no I/O or nondeterministic APIs", () => {
     const files = readdirSync(srcDir).filter(
@@ -128,7 +147,7 @@ describe("installer purity", () => {
     );
     expect(files.length).toBeGreaterThanOrEqual(16);
     for (const file of files) {
-      const contents = readFileSync(join(srcDir, file), "utf8");
+      const contents = stripPublishAllowedIdentifiers(readFileSync(join(srcDir, file), "utf8"));
       for (const forbidden of CORE_FORBIDDEN) {
         expect(contents, `${file} must not contain "${forbidden}"`).not.toContain(forbidden);
       }
@@ -175,6 +194,38 @@ describe("installer purity", () => {
       ]) {
         expect(contents, `${file} must not contain "${forbidden}"`).not.toContain(forbidden);
       }
+    }
+  });
+
+  it("the v0 release candidate checklist never logs, executes, calls an adapter, publishes, or holds crypto", () => {
+    const contents = stripPublishAllowedIdentifiers(
+      readFileSync(join(srcDir, "v0-release-candidate.ts"), "utf8"),
+    );
+    for (const forbidden of [
+      "console.log",
+      "console.error",
+      "logger",
+      "telemetry",
+      "fs.",
+      "rmSync",
+      "unlink",
+      "executeInstall",
+      "executeRollback",
+      "executeInstallPlan",
+      "executeRollbackPlan",
+      "FilesystemWriteAdapter",
+      "writeFile(",
+      "removeFile(",
+      "backupFile(",
+      "crypto",
+      "privateKey",
+      "publicKey",
+      ...REMOTE_FORBIDDEN,
+    ]) {
+      expect(
+        contents,
+        `v0-release-candidate.ts must not contain "${forbidden}"`,
+      ).not.toContain(forbidden);
     }
   });
 

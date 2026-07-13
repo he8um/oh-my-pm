@@ -986,6 +986,75 @@ export type InstallerReleaseReadinessDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Identifier for one v0 release candidate checklist item. */
+export type V0ReleaseCandidateChecklistItemId =
+  | "contracts-valid"
+  | "public-surface-clean"
+  | "structure-valid"
+  | "boundaries-valid"
+  | "builds-pass"
+  | "tests-pass"
+  | "wasm-build-pass"
+  | "cli-smoke-pass"
+  | "installer-release-readiness-reviewed"
+  | "no-production-install-command"
+  | "no-release-artifacts"
+  | "no-publishing-metadata"
+  | "no-private-docs"
+  | "docs-updated";
+
+/**
+ * One release-candidate checklist item. `reason` is present only when the
+ * item failed. It carries no release-output, output-path, destination,
+ * command-execution, distribution, remote, adapter-object, or execution-result
+ * field — items describe caller-supplied readiness signals only.
+ */
+export type V0ReleaseCandidateChecklistItem = {
+  id: V0ReleaseCandidateChecklistItemId;
+  label: string;
+  ok: boolean;
+  reason?: string;
+};
+
+/**
+ * Caller-supplied signals for the v0 release candidate checklist. The checklist
+ * never inspects the repository itself; every value is provided by the caller.
+ */
+export type V0ReleaseCandidateChecklistInput = {
+  releaseReadiness: InstallerReleaseReadinessReport;
+  validation: {
+    contracts: boolean;
+    publicSurface: boolean;
+    structure: boolean;
+    boundaries: boolean;
+    builds: boolean;
+    tests: boolean;
+    wasmBuild: boolean;
+    cliSmoke: boolean;
+  };
+  hygiene: {
+    noProductionInstallCommand: boolean;
+    noReleaseArtifacts: boolean;
+    noPublishingMetadata: boolean;
+    noPrivateDocs: boolean;
+    docsUpdated: boolean;
+  };
+};
+
+/** Deterministic v0 release candidate checklist; nothing is executed. */
+export type V0ReleaseCandidateChecklist = {
+  ok: boolean;
+  items: V0ReleaseCandidateChecklistItem[];
+  reasons: string[];
+};
+
+/** Result of a v0 release candidate checklist dry run; nothing is written. */
+export type V0ReleaseCandidateChecklistDryRunReport = {
+  ok: boolean;
+  checklist: V0ReleaseCandidateChecklist;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

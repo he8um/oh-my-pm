@@ -61,6 +61,7 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: controlled_write_execution_plan_not_ready",
         "OMP-I-6001: controlled_write_confirmation_not_ready",
         "OMP-I-6001: controlled_write_adapter_contract_not_ready",
+        "OMP-I-6001: v0_rc_release_readiness_blocked",
       ]);
       expect(result.archive).toEqual({
         format: "zip",
@@ -143,6 +144,7 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: controlled_write_execution_plan_not_ready",
         "OMP-I-6001: controlled_write_confirmation_not_ready",
         "OMP-I-6001: controlled_write_adapter_contract_not_ready",
+        "OMP-I-6001: v0_rc_release_readiness_blocked",
       ]);
       expect(result.operations).toHaveLength(1);
       expect(result.operations[0].path.endsWith("README.md")).toBe(true);
@@ -279,6 +281,16 @@ describe("runInstallerPreview", () => {
       for (const key of Object.keys(parsed.releaseReadiness)) {
         expect(key).not.toMatch(/artifact|asset|content|command|dest|adapter|object|result|remote|url/i);
       }
+      // v0 release candidate checklist summary; raw items and markdown never
+      // reach JSON.
+      expect(parsed.v0ReleaseCandidate.items).toBe(14);
+      expect(typeof parsed.v0ReleaseCandidate.passed).toBe("number");
+      expect(typeof parsed.v0ReleaseCandidate.failed).toBe("number");
+      expect(parsed.v0ReleaseCandidate).not.toHaveProperty("checklist");
+      expect(parsed.v0ReleaseCandidate).not.toHaveProperty("markdown");
+      for (const key of Object.keys(parsed.v0ReleaseCandidate)) {
+        expect(key).not.toMatch(/artifact|asset|content|command|dest|adapter|object|result|remote|url/i);
+      }
       expect(output).not.toContain("backupFile");
       expect(output).not.toContain("removeFile");
       expect(output).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
@@ -306,6 +318,7 @@ describe("runInstallerPreview", () => {
       expect(output).toContain("Decision: `review-required`");
       expect(output).toContain("# OH MY PM Installer Audit Events");
       expect(output).toContain("`preview_started`");
+      expect(output).toContain("## v0 Release Candidate Checklist");
       expect(output).not.toMatch(/https?:\/\//);
       expect(output).not.toContain("placeholder:preview-key:");
       expect(output).not.toContain("executeInstall");
@@ -353,6 +366,7 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: controlled_write_execution_plan_not_ready",
       "OMP-I-6001: controlled_write_confirmation_not_ready",
       "OMP-I-6001: controlled_write_adapter_contract_not_ready",
+      "OMP-I-6001: v0_rc_release_readiness_blocked",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);

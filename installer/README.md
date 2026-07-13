@@ -145,3 +145,9 @@ The envelope summarizes write capability, approval token status, execution plan 
 The installer can aggregate local preview readiness into one release-readiness report.
 
 The report summarizes the installer decision report, audit trail export dry-run, and controlled write dry-run envelope. It is summary-only. It does not create release artifacts, execute installation, execute rollback, call write adapters, retrieve packages remotely, or write files.
+
+## v0 release candidate checklist
+
+The installer can build a deterministic checklist for evaluating whether the repository is ready to be considered as a future v0 release candidate.
+
+The checklist aggregates validation, public-surface, build, test, CLI smoke, release-readiness, and public hygiene signals. It is checklist-only. It does not create release artifacts, publish packages, execute installation, execute rollback, call write adapters, retrieve packages remotely, or write files.

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import * as examples from "../src/index.js";
 import {
   runControlledWriteExecutionDryRunExample,
+  runV0ReleaseCandidateChecklistExample,
   runInstallerReleaseReadinessExample,
   runInstallerArchivePlanExample,
   runInstallerAuditEventExample,
@@ -416,8 +417,31 @@ describe("runInstallerReleaseReadinessExample", () => {
   });
 });
 
+describe("runV0ReleaseCandidateChecklistExample", () => {
+  it("returns a 14-item v0 release candidate checklist and its markdown", () => {
+    const result = runV0ReleaseCandidateChecklistExample();
+    expect(result.v0ReleaseCandidate.checklist.items).toHaveLength(14);
+    expect(result.markdown).toContain("v0 Release Candidate Checklist");
+    expect(Object.keys(result).sort()).toEqual(["markdown", "v0ReleaseCandidate"]);
+
+    // Checklist-only: no content, artifact, command, adapter object, or
+    // execution-result field anywhere.
+    const serialized = JSON.stringify(result.v0ReleaseCandidate);
+    expect(serialized).not.toContain("writeFile");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    for (const item of result.v0ReleaseCandidate.checklist.items) {
+      for (const key of Object.keys(item)) {
+        expect(key).not.toMatch(/content|artifact|asset|command|adapter|object|result|remote|url/i);
+      }
+    }
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runV0ReleaseCandidateChecklistExample).toBe("function");
     expect(typeof examples.runInstallerReleaseReadinessExample).toBe("function");
     expect(typeof examples.runControlledWriteExecutionDryRunExample).toBe("function");
     expect(typeof examples.runInstallerWriteAdapterContractExample).toBe("function");

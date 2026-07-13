@@ -328,6 +328,8 @@ const INSTALLER_SOURCES = [
   "installer/test/write-dry-run-envelope.test.ts",
   "installer/src/release-readiness.ts",
   "installer/test/release-readiness.test.ts",
+  "installer/src/v0-release-candidate.ts",
+  "installer/test/v0-release-candidate.test.ts",
   "installer/test/validate.test.ts",
   "installer/test/manifest.test.ts",
   "installer/test/installer.test.ts",

@@ -7,6 +7,7 @@ import type {
   ArchiveDryRunReport,
   ControlledWriteExecutionDryRunReport,
   InstallerReleaseReadinessDryRunReport,
+  V0ReleaseCandidateChecklistDryRunReport,
   InstallDryRunReport,
   InstallerAuditEventDryRunReport,
   InstallerAuditTrailExportDryRunReport,
@@ -37,6 +38,7 @@ import {
   createInstallerWriteCapabilityDryRun,
   createControlledWriteExecutionDryRun,
   createInstallerReleaseReadinessDryRun,
+  createV0ReleaseCandidateChecklistDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -55,6 +57,7 @@ import {
   formatInstallerAuditEventsMarkdown,
   formatInstallerDecisionReportMarkdown,
   formatInstallerReleaseReadinessMarkdown,
+  formatV0ReleaseCandidateChecklistMarkdown,
   DEFAULT_LOCAL_UPDATE_POLICY,
   exampleFilesystemEntries,
   exampleInstallerAuditEventInput,
@@ -63,6 +66,7 @@ import {
   exampleInstallerWriteCapabilityInput,
   exampleControlledWriteExecutionDryRunEnvelopeInput,
   exampleInstallerReleaseReadinessInput,
+  exampleV0ReleaseCandidateChecklistInput,
   exampleInstallerWriteAdapterContractInput,
   exampleInstallerWriteConfirmationChecklistInput,
   exampleInstallerWriteExecutionPlanInput,
@@ -163,6 +167,11 @@ export type ControlledWriteExecutionDryRunExample = {
 
 export type InstallerReleaseReadinessExample = {
   releaseReadiness: InstallerReleaseReadinessDryRunReport;
+  markdown: string;
+};
+
+export type V0ReleaseCandidateChecklistExample = {
+  v0ReleaseCandidate: V0ReleaseCandidateChecklistDryRunReport;
   markdown: string;
 };
 
@@ -468,6 +477,19 @@ export function runInstallerReleaseReadinessExample(): InstallerReleaseReadiness
   );
   const markdown = formatInstallerReleaseReadinessMarkdown(releaseReadiness.report);
   return { releaseReadiness, markdown };
+}
+
+/**
+ * Build the v0 release candidate checklist from aggregated local readiness and
+ * public-hygiene signals and render it as markdown. Checklist-only — no release
+ * artifact is created and nothing is written, executed, retrieved, or sent.
+ */
+export function runV0ReleaseCandidateChecklistExample(): V0ReleaseCandidateChecklistExample {
+  const v0ReleaseCandidate = createV0ReleaseCandidateChecklistDryRun(
+    exampleV0ReleaseCandidateChecklistInput(),
+  );
+  const markdown = formatV0ReleaseCandidateChecklistMarkdown(v0ReleaseCandidate.checklist);
+  return { v0ReleaseCandidate, markdown };
 }
 
 /** Install the example package, then apply the example update plan. */

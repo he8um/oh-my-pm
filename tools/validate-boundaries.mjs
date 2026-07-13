@@ -90,7 +90,8 @@ for (const file of trackedFiles) {
         file === "installer/src/write-confirmation.ts" ||
         file === "installer/src/write-adapter-contract.ts" ||
         file === "installer/src/write-dry-run-envelope.ts" ||
-        file === "installer/src/release-readiness.ts") &&
+        file === "installer/src/release-readiness.ts" ||
+        file === "installer/src/v0-release-candidate.ts") &&
       (spec === "node" || spec.startsWith("node:"))
     ) {
       err(`${file} imports a Node built-in: "${spec}"`);
@@ -169,6 +170,23 @@ const SIGNING_MATERIAL = [
 // Channel metadata is local-only; no remote locations or transfer verbs may
 // appear in installer, CLI, or examples source.
 const REMOTE_MARKERS = ["http://", "https://", "publish", "upload", "download", "cdn", "bucket"];
+// The v0 release candidate checklist models a "no publishing metadata" hygiene
+// gate; these exact contract identifiers legitimately contain "publish" and are
+// stripped before the remote-marker scan. Any other "publish" occurrence still
+// fails. This does not permit real publishing.
+const PUBLISH_ALLOWED_IDENTIFIERS = [
+  "no-publishing-metadata",
+  "noPublishingMetadata",
+  "v0_rc_publishing_metadata_present",
+  "No publishing metadata is present",
+];
+const stripPublishAllowedIdentifiers = (text) => {
+  let stripped = text;
+  for (const identifier of PUBLISH_ALLOWED_IDENTIFIERS) {
+    stripped = stripped.split(identifier).join("");
+  }
+  return stripped;
+};
 for (const file of trackedFiles) {
   const scanned =
     (file.startsWith("installer/src/") ||
@@ -190,7 +208,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-confirmation.ts" ||
     file === "installer/src/write-adapter-contract.ts" ||
     file === "installer/src/write-dry-run-envelope.ts" ||
-    file === "installer/src/release-readiness.ts"
+    file === "installer/src/release-readiness.ts" ||
+    file === "installer/src/v0-release-candidate.ts"
   ) {
     for (const api of NODE_WRITE_APIS) {
       if (contents.includes(api)) {
@@ -211,7 +230,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-confirmation.ts" ||
     file === "installer/src/write-adapter-contract.ts" ||
     file === "installer/src/write-dry-run-envelope.ts" ||
-    file === "installer/src/release-readiness.ts"
+    file === "installer/src/release-readiness.ts" ||
+    file === "installer/src/v0-release-candidate.ts"
   ) {
     for (const marker of ["console.log", "console.error", "logger", "telemetry"]) {
       if (contents.includes(marker)) {
@@ -230,7 +250,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-confirmation.ts" ||
     file === "installer/src/write-adapter-contract.ts" ||
     file === "installer/src/write-dry-run-envelope.ts" ||
-    file === "installer/src/release-readiness.ts"
+    file === "installer/src/release-readiness.ts" ||
+    file === "installer/src/v0-release-candidate.ts"
   ) {
     for (const marker of [
       "executeInstall",
@@ -251,7 +272,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-confirmation.ts" ||
     file === "installer/src/write-adapter-contract.ts" ||
     file === "installer/src/write-dry-run-envelope.ts" ||
-    file === "installer/src/release-readiness.ts"
+    file === "installer/src/release-readiness.ts" ||
+    file === "installer/src/v0-release-candidate.ts"
   ) {
     for (const marker of ["FilesystemWriteAdapter", "writeFile(", "removeFile(", "backupFile("]) {
       if (contents.includes(marker)) {
@@ -268,7 +290,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-confirmation.ts" ||
     file === "installer/src/write-adapter-contract.ts" ||
     file === "installer/src/write-dry-run-envelope.ts" ||
-    file === "installer/src/release-readiness.ts"
+    file === "installer/src/release-readiness.ts" ||
+    file === "installer/src/v0-release-candidate.ts"
   ) {
     for (const marker of ["crypto", "privateKey", "publicKey"]) {
       if (contents.includes(marker)) {
@@ -276,11 +299,27 @@ for (const file of trackedFiles) {
       }
     }
   }
-  // The release readiness summary aggregates readiness only; it must never
-  // create release outputs or publish anything.
-  if (file === "installer/src/release-readiness.ts") {
+  // The release readiness summary and v0 release candidate checklist aggregate
+  // readiness only; neither may create release outputs or publish anything.
+  // The v0 checklist's "no release artifacts" / "no publishing metadata"
+  // hygiene identifiers legitimately contain "artifact"/"publish", so they are
+  // stripped before the term scan; any other occurrence still fails.
+  if (
+    file === "installer/src/release-readiness.ts" ||
+    file === "installer/src/v0-release-candidate.ts"
+  ) {
+    const hygieneAllowed = [
+      "no-release-artifacts",
+      "noReleaseArtifacts",
+      "v0_rc_release_artifacts_present",
+      "No release artifacts are committed",
+    ];
+    let termScanContents = stripPublishAllowedIdentifiers(contents);
+    for (const identifier of hygieneAllowed) {
+      termScanContents = termScanContents.split(identifier).join("");
+    }
     for (const marker of ["artifact", "publish", "createWriteStream", "archiver"]) {
-      if (contents.includes(marker)) {
+      if (termScanContents.includes(marker)) {
         err(`${file} contains forbidden artifact-creation/publish term "${marker}"`);
       }
     }
@@ -295,8 +334,9 @@ for (const file of trackedFiles) {
       err(`${file} contains forbidden signing/key material pattern "${marker}"`);
     }
   }
+  const remoteScanContents = stripPublishAllowedIdentifiers(contents);
   for (const marker of REMOTE_MARKERS) {
-    if (contents.includes(marker)) {
+    if (remoteScanContents.includes(marker)) {
       err(`${file} contains forbidden remote/distribution pattern "${marker}"`);
     }
   }

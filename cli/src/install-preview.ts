@@ -20,6 +20,7 @@ import {
   createInstallerWriteCapabilityDryRun,
   createControlledWriteExecutionDryRun,
   createInstallerReleaseReadinessDryRun,
+  createV0ReleaseCandidateChecklistDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -217,6 +218,18 @@ export type InstallerPreviewResult = {
     sectionsReviewRequired: number;
     uniqueReasons: number;
     plannedWriteSteps: number;
+    reasons: string[];
+  };
+  /**
+   * v0 release candidate checklist summary; checklist-only. The raw items and
+   * markdown are never included in JSON, no release output is created, and
+   * nothing is executed.
+   */
+  v0ReleaseCandidate?: {
+    ok: boolean;
+    items: number;
+    passed: number;
+    failed: number;
     reasons: string[];
   };
 };
@@ -630,6 +643,42 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const releaseReadinessWarnings =
     releaseReadinessReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Build the v0 release candidate checklist from the release-readiness report
+  // plus the hygiene constraints this command itself upholds. Validation
+  // booleans are true here because this is a runtime preview, not a substitute
+  // for the repository-wide validation commands. Checklist-only — nothing is
+  // created or executed.
+  const v0ReleaseCandidateReport = createV0ReleaseCandidateChecklistDryRun({
+    releaseReadiness: releaseReadinessReport.report,
+    validation: {
+      contracts: true,
+      publicSurface: true,
+      structure: true,
+      boundaries: true,
+      builds: true,
+      tests: true,
+      wasmBuild: true,
+      cliSmoke: true,
+    },
+    hygiene: {
+      noProductionInstallCommand: true,
+      noReleaseArtifacts: true,
+      noPublishingMetadata: true,
+      noPrivateDocs: true,
+      docsUpdated: true,
+    },
+  });
+  const v0Items = v0ReleaseCandidateReport.checklist.items;
+  const v0ReleaseCandidate = {
+    ok: v0ReleaseCandidateReport.ok,
+    items: v0Items.length,
+    passed: v0Items.filter((item) => item.ok).length,
+    failed: v0Items.filter((item) => !item.ok).length,
+    reasons: [...v0ReleaseCandidateReport.checklist.reasons],
+  };
+  const v0ReleaseCandidateWarnings =
+    v0ReleaseCandidateReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -655,6 +704,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...writeAdapterContractWarnings,
         ...controlledWriteDryRunWarnings,
         ...releaseReadinessWarnings,
+        ...v0ReleaseCandidateWarnings,
         result.message,
       ]),
       archive,
@@ -674,6 +724,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       writeAdapterContract,
       controlledWriteDryRun,
       releaseReadiness,
+      v0ReleaseCandidate,
     };
   }
 
@@ -705,6 +756,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...writeAdapterContractWarnings,
       ...controlledWriteDryRunWarnings,
       ...releaseReadinessWarnings,
+      ...v0ReleaseCandidateWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -724,6 +776,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     writeAdapterContract,
     controlledWriteDryRun,
     releaseReadiness,
+    v0ReleaseCandidate,
   };
 }
 
@@ -825,6 +878,15 @@ function formatMarkdown(result: InstallerPreviewResult): string {
       "## Release Readiness",
       "",
       `Release readiness: \`${result.releaseReadiness.status}\` (${result.releaseReadiness.sectionsReady} ready / ${result.releaseReadiness.sectionsBlocked} blocked / ${result.releaseReadiness.sectionsReviewRequired} review-required, not executed)`,
+    );
+  }
+  if (result.v0ReleaseCandidate !== undefined) {
+    // Checklist only: this reports candidacy, never a release or execution.
+    lines.push(
+      "",
+      "## v0 Release Candidate Checklist",
+      "",
+      `v0 release candidate: \`${result.v0ReleaseCandidate.ok ? "ready" : "blocked"}\` (${result.v0ReleaseCandidate.passed}/${result.v0ReleaseCandidate.items} items passed, no release created)`,
     );
   }
   let preview = `${lines.join("\n")}\n`;
