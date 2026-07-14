@@ -27,6 +27,7 @@ export {
   runInstallerWriteExecutionPlanExample,
   runV0ReleaseCandidateChecklistExample,
   runPublicV0ReleaseNotesDraftExample,
+  runGuardedReleaseArtifactPlanExample,
 } from "./installer.js";
 export type {
   ControlledWriteExecutionDryRunExample,
@@ -53,6 +54,7 @@ export type {
   InstallerWriteExecutionPlanExample,
   V0ReleaseCandidateChecklistExample,
   PublicV0ReleaseNotesDraftExample,
+  GuardedReleaseArtifactPlanExample,
 } from "./installer.js";
 export {
   createExampleKernelApi,

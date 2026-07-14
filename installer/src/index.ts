@@ -16,6 +16,7 @@ export {
   exampleInstallerReleaseReadinessInput,
   exampleV0ReleaseCandidateChecklistInput,
   examplePublicV0ReleaseNotesDraftInput,
+  exampleGuardedReleaseArtifactPlanInput,
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
   exampleControlledWriteExecutionDryRunEnvelopeInput,
@@ -145,6 +146,14 @@ export {
   formatPublicV0ReleaseNotesDraftMarkdown,
 } from "./public-v0-release-notes.js";
 export {
+  collectGuardedReleaseArtifactPlanReasons,
+  createGuardedReleaseArtifactPlan,
+  createGuardedReleaseArtifactPlanDryRun,
+  createGuardedReleaseArtifactPlanItems,
+  formatGuardedReleaseArtifactPlanMarkdown,
+  summarizeGuardedReleaseArtifactPlan,
+} from "./release-artifact-plan.js";
+export {
   createPackageFileEntry,
   createPackageManifest,
   PACKAGE_MANIFEST_SCHEMA_VERSION,
@@ -241,6 +250,12 @@ export type {
   FilesystemEntry,
   FilesystemPlannerDeps,
   FilesystemSnapshot,
+  GuardedReleaseArtifactPlan,
+  GuardedReleaseArtifactPlanDryRunReport,
+  GuardedReleaseArtifactPlanInput,
+  GuardedReleaseArtifactPlanItem,
+  GuardedReleaseArtifactPlanItemKind,
+  GuardedReleaseArtifactPlanSummary,
   InstallDryRunReport,
   Installer,
   InstallerAuditEvent,

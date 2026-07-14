@@ -1099,6 +1099,77 @@ export type PublicV0ReleaseNotesDraftDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Kind of release output a guarded release artifact plan would plan. */
+export type GuardedReleaseArtifactPlanItemKind =
+  | "release-notes"
+  | "package-manifest"
+  | "archive-plan"
+  | "release-metadata"
+  | "integrity-metadata"
+  | "channel-metadata";
+
+/**
+ * One planned release output. `reason` is present only when the output is not
+ * planned. There is no file-content, output-path, destination, command,
+ * distribution-target, remote, adapter-object, execution-result, or
+ * artifact-bytes field — items describe what would be planned, nothing created.
+ */
+export type GuardedReleaseArtifactPlanItem = {
+  sequence: number;
+  kind: GuardedReleaseArtifactPlanItemKind;
+  name: string;
+  planned: boolean;
+  reason?: string;
+};
+
+/**
+ * Input aggregating the local dry-run reports a guarded release artifact plan
+ * reads. Every value is an already computed local report; nothing is fetched,
+ * written, or executed.
+ */
+export type GuardedReleaseArtifactPlanInput = {
+  version: string;
+  releaseNotes: PublicV0ReleaseNotesDraftDryRunReport;
+  v0Checklist: V0ReleaseCandidateChecklistDryRunReport;
+  releaseReadiness: InstallerReleaseReadinessDryRunReport;
+  assembly: PackageAssemblyDryRunReport;
+  archive: ArchiveDryRunReport;
+  metadata: ReleaseMetadataDryRunReport;
+  integrity: ReleaseIntegrityDryRunReport;
+  channel: ReleaseChannelDryRunReport;
+};
+
+/**
+ * Flat counts across the plan. `creationAllowed` is always `false` — this
+ * phase plans outputs only and never permits creation.
+ */
+export type GuardedReleaseArtifactPlanSummary = {
+  version: string;
+  plannedItems: number;
+  blockedItems: number;
+  totalItems: number;
+  creationAllowed: false;
+};
+
+/**
+ * Planning-only guarded release artifact plan. It reports which release
+ * outputs would be planned and keeps creation disabled; nothing is created.
+ */
+export type GuardedReleaseArtifactPlan = {
+  ok: boolean;
+  version: string;
+  items: GuardedReleaseArtifactPlanItem[];
+  reasons: string[];
+  summary: GuardedReleaseArtifactPlanSummary;
+};
+
+/** Result of a guarded release artifact plan dry run; nothing is written. */
+export type GuardedReleaseArtifactPlanDryRunReport = {
+  ok: boolean;
+  plan: GuardedReleaseArtifactPlan;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

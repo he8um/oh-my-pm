@@ -22,6 +22,7 @@ import {
   createInstallerReleaseReadinessDryRun,
   createV0ReleaseCandidateChecklistDryRun,
   createPublicV0ReleaseNotesDraftDryRun,
+  createGuardedReleaseArtifactPlanDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -243,6 +244,20 @@ export type InstallerPreviewResult = {
     status: string;
     version: string;
     sections: number;
+    reasons: string[];
+  };
+  /**
+   * Guarded release artifact plan summary; planning-only. The raw items and
+   * markdown are never included in JSON, `creationAllowed` is always false, no
+   * release output is created, and nothing is executed.
+   */
+  guardedReleaseArtifactPlan?: {
+    ok: boolean;
+    version: string;
+    plannedItems: number;
+    blockedItems: number;
+    totalItems: number;
+    creationAllowed: boolean;
     reasons: string[];
   };
 };
@@ -710,6 +725,33 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const publicV0ReleaseNotesWarnings =
     publicV0ReleaseNotesReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Build the guarded release artifact plan from the local dry-run reports.
+  // Planning-only — creation stays disabled, the raw items stay out of the
+  // summary, and nothing is created or executed.
+  const guardedReleaseArtifactPlanReport = createGuardedReleaseArtifactPlanDryRun({
+    version: "v0.1.0",
+    releaseNotes: publicV0ReleaseNotesReport,
+    v0Checklist: v0ReleaseCandidateReport,
+    releaseReadiness: releaseReadinessReport,
+    assembly,
+    archive: archiveReport,
+    metadata: metadataReport,
+    integrity: integrityReport,
+    channel: channelReport,
+  });
+  const guardedReleaseArtifactSummary = guardedReleaseArtifactPlanReport.plan.summary;
+  const guardedReleaseArtifactPlan = {
+    ok: guardedReleaseArtifactPlanReport.ok,
+    version: guardedReleaseArtifactSummary.version,
+    plannedItems: guardedReleaseArtifactSummary.plannedItems,
+    blockedItems: guardedReleaseArtifactSummary.blockedItems,
+    totalItems: guardedReleaseArtifactSummary.totalItems,
+    creationAllowed: guardedReleaseArtifactSummary.creationAllowed,
+    reasons: [...guardedReleaseArtifactPlanReport.plan.reasons],
+  };
+  const guardedReleaseArtifactPlanWarnings =
+    guardedReleaseArtifactPlanReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -737,6 +779,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...releaseReadinessWarnings,
         ...v0ReleaseCandidateWarnings,
         ...publicV0ReleaseNotesWarnings,
+        ...guardedReleaseArtifactPlanWarnings,
         result.message,
       ]),
       archive,
@@ -758,6 +801,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       releaseReadiness,
       v0ReleaseCandidate,
       publicV0ReleaseNotes,
+      guardedReleaseArtifactPlan,
     };
   }
 
@@ -791,6 +835,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...releaseReadinessWarnings,
       ...v0ReleaseCandidateWarnings,
       ...publicV0ReleaseNotesWarnings,
+      ...guardedReleaseArtifactPlanWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -812,6 +857,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     releaseReadiness,
     v0ReleaseCandidate,
     publicV0ReleaseNotes,
+    guardedReleaseArtifactPlan,
   };
 }
 
@@ -931,6 +977,15 @@ function formatMarkdown(result: InstallerPreviewResult): string {
       "## Public v0 Release Notes Draft",
       "",
       `Public release notes draft \`${result.publicV0ReleaseNotes.version}\`: \`${result.publicV0ReleaseNotes.status}\` (${result.publicV0ReleaseNotes.sections} sections, draft only, no release created)`,
+    );
+  }
+  if (result.guardedReleaseArtifactPlan !== undefined) {
+    // Planning only: creation stays disabled; nothing is created.
+    lines.push(
+      "",
+      "## Guarded Release Artifact Plan",
+      "",
+      `Guarded release artifact plan \`${result.guardedReleaseArtifactPlan.version}\`: \`${result.guardedReleaseArtifactPlan.ok ? "ready" : "blocked"}\` (${result.guardedReleaseArtifactPlan.plannedItems}/${result.guardedReleaseArtifactPlan.totalItems} items planned, creation disabled)`,
     );
   }
   let preview = `${lines.join("\n")}\n`;

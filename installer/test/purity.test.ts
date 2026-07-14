@@ -202,6 +202,50 @@ describe("installer purity", () => {
     }
   });
 
+  it("the guarded release artifact plan never logs, executes, calls an adapter, publishes, or reaches the network", () => {
+    // This module intentionally plans release artifacts, so the words
+    // release/artifact/archive are allowed; actual creation, publish, network,
+    // write, adapter, and execution APIs are not.
+    const contents = readFileSync(join(srcDir, "release-artifact-plan.ts"), "utf8");
+    for (const forbidden of [
+      "http://",
+      "https://",
+      "fetch(",
+      "XMLHttpRequest",
+      "publish",
+      "upload",
+      "download",
+      "cdn",
+      "bucket",
+      "registry",
+      "createWriteStream",
+      "archiver",
+      "executeInstall",
+      "executeRollback",
+      "executeInstallPlan",
+      "executeRollbackPlan",
+      "FilesystemWriteAdapter",
+      "writeFile(",
+      "removeFile(",
+      "backupFile(",
+      "rmSync",
+      "unlink",
+      "console.log",
+      "console.error",
+      "logger",
+      "telemetry",
+      "fs.",
+      "crypto",
+      "privateKey",
+      "publicKey",
+    ]) {
+      expect(
+        contents,
+        `release-artifact-plan.ts must not contain "${forbidden}"`,
+      ).not.toContain(forbidden);
+    }
+  });
+
   it("the public v0 release notes draft never logs, executes, calls an adapter, or reaches the network", () => {
     // The draft names "No telemetry ..." as a thing NOT done; that exact
     // public-safe phrase is stripped before the scan.

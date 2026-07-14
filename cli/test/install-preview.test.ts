@@ -64,6 +64,9 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: v0_rc_release_readiness_blocked",
         "OMP-I-6001: public_v0_release_notes_checklist_blocked",
         "OMP-I-6001: public_v0_release_notes_readiness_blocked",
+        "OMP-I-6001: guarded_release_artifact_v0_checklist_blocked",
+        "OMP-I-6001: guarded_release_artifact_release_readiness_blocked",
+        "OMP-I-6001: guarded_release_artifact_release_notes_blocked",
       ]);
       expect(result.archive).toEqual({
         format: "zip",
@@ -149,6 +152,10 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: v0_rc_release_readiness_blocked",
         "OMP-I-6001: public_v0_release_notes_checklist_blocked",
         "OMP-I-6001: public_v0_release_notes_readiness_blocked",
+        "OMP-I-6001: guarded_release_artifact_v0_checklist_blocked",
+        "OMP-I-6001: guarded_release_artifact_release_readiness_blocked",
+        "OMP-I-6001: guarded_release_artifact_release_notes_blocked",
+        "OMP-I-6001: guarded_release_artifact_package_manifest_blocked",
       ]);
       expect(result.operations).toHaveLength(1);
       expect(result.operations[0].path.endsWith("README.md")).toBe(true);
@@ -305,6 +312,17 @@ describe("runInstallerPreview", () => {
       for (const key of Object.keys(parsed.publicV0ReleaseNotes)) {
         expect(key).not.toMatch(/artifact|asset|download|content|command|dest|adapter|object|result|remote|url/i);
       }
+      // Guarded release artifact plan summary; raw items and markdown never
+      // reach JSON, and creation stays disallowed.
+      expect(parsed.guardedReleaseArtifactPlan.version).toBe("v0.1.0");
+      expect(parsed.guardedReleaseArtifactPlan.totalItems).toBe(6);
+      expect(parsed.guardedReleaseArtifactPlan.creationAllowed).toBe(false);
+      expect(typeof parsed.guardedReleaseArtifactPlan.plannedItems).toBe("number");
+      expect(parsed.guardedReleaseArtifactPlan).not.toHaveProperty("items");
+      expect(parsed.guardedReleaseArtifactPlan).not.toHaveProperty("markdown");
+      for (const key of Object.keys(parsed.guardedReleaseArtifactPlan)) {
+        expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|bytes|result|remote|url|download|upload/i);
+      }
       expect(output).not.toContain("backupFile");
       expect(output).not.toContain("removeFile");
       expect(output).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
@@ -334,6 +352,7 @@ describe("runInstallerPreview", () => {
       expect(output).toContain("`preview_started`");
       expect(output).toContain("## v0 Release Candidate Checklist");
       expect(output).toContain("## Public v0 Release Notes Draft");
+      expect(output).toContain("## Guarded Release Artifact Plan");
       expect(output).not.toMatch(/https?:\/\//);
       expect(output).not.toContain("placeholder:preview-key:");
       expect(output).not.toContain("executeInstall");
@@ -384,6 +403,14 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: v0_rc_release_readiness_blocked",
       "OMP-I-6001: public_v0_release_notes_checklist_blocked",
       "OMP-I-6001: public_v0_release_notes_readiness_blocked",
+      "OMP-I-6001: guarded_release_artifact_v0_checklist_blocked",
+      "OMP-I-6001: guarded_release_artifact_release_readiness_blocked",
+      "OMP-I-6001: guarded_release_artifact_release_notes_blocked",
+      "OMP-I-6001: guarded_release_artifact_package_manifest_blocked",
+      "OMP-I-6001: guarded_release_artifact_archive_plan_blocked",
+      "OMP-I-6001: guarded_release_artifact_metadata_blocked",
+      "OMP-I-6001: guarded_release_artifact_integrity_blocked",
+      "OMP-I-6001: guarded_release_artifact_channel_blocked",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);

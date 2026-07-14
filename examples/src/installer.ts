@@ -9,6 +9,7 @@ import type {
   InstallerReleaseReadinessDryRunReport,
   V0ReleaseCandidateChecklistDryRunReport,
   PublicV0ReleaseNotesDraftDryRunReport,
+  GuardedReleaseArtifactPlanDryRunReport,
   InstallDryRunReport,
   InstallerAuditEventDryRunReport,
   InstallerAuditTrailExportDryRunReport,
@@ -41,6 +42,7 @@ import {
   createInstallerReleaseReadinessDryRun,
   createV0ReleaseCandidateChecklistDryRun,
   createPublicV0ReleaseNotesDraftDryRun,
+  createGuardedReleaseArtifactPlanDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -61,6 +63,7 @@ import {
   formatInstallerReleaseReadinessMarkdown,
   formatV0ReleaseCandidateChecklistMarkdown,
   formatPublicV0ReleaseNotesDraftMarkdown,
+  formatGuardedReleaseArtifactPlanMarkdown,
   DEFAULT_LOCAL_UPDATE_POLICY,
   exampleFilesystemEntries,
   exampleInstallerAuditEventInput,
@@ -71,6 +74,7 @@ import {
   exampleInstallerReleaseReadinessInput,
   exampleV0ReleaseCandidateChecklistInput,
   examplePublicV0ReleaseNotesDraftInput,
+  exampleGuardedReleaseArtifactPlanInput,
   exampleInstallerWriteAdapterContractInput,
   exampleInstallerWriteConfirmationChecklistInput,
   exampleInstallerWriteExecutionPlanInput,
@@ -181,6 +185,11 @@ export type V0ReleaseCandidateChecklistExample = {
 
 export type PublicV0ReleaseNotesDraftExample = {
   publicV0ReleaseNotes: PublicV0ReleaseNotesDraftDryRunReport;
+  markdown: string;
+};
+
+export type GuardedReleaseArtifactPlanExample = {
+  guardedReleaseArtifactPlan: GuardedReleaseArtifactPlanDryRunReport;
   markdown: string;
 };
 
@@ -512,6 +521,20 @@ export function runPublicV0ReleaseNotesDraftExample(): PublicV0ReleaseNotesDraft
   );
   const markdown = formatPublicV0ReleaseNotesDraftMarkdown(publicV0ReleaseNotes.draft);
   return { publicV0ReleaseNotes, markdown };
+}
+
+/**
+ * Build the guarded release artifact plan from the local release notes, v0
+ * checklist, readiness, assembly, archive, metadata, integrity, and channel
+ * dry-runs, and render it as markdown. Planning-only — creation stays disabled
+ * and nothing is created, written, executed, retrieved, or sent.
+ */
+export function runGuardedReleaseArtifactPlanExample(): GuardedReleaseArtifactPlanExample {
+  const guardedReleaseArtifactPlan = createGuardedReleaseArtifactPlanDryRun(
+    exampleGuardedReleaseArtifactPlanInput(),
+  );
+  const markdown = formatGuardedReleaseArtifactPlanMarkdown(guardedReleaseArtifactPlan.plan);
+  return { guardedReleaseArtifactPlan, markdown };
 }
 
 /** Install the example package, then apply the example update plan. */

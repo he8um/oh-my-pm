@@ -157,3 +157,9 @@ The checklist aggregates validation, public-surface, build, test, CLI smoke, rel
 The installer can render a public v0 release notes draft from the local release-readiness and release-candidate checklist reports.
 
 The draft is public-safe and summary-only. It does not create GitHub releases, release artifacts, archives, tags, publishing workflows, installation commands, or write execution.
+
+## Guarded release artifact planning
+
+The installer can build a guarded release artifact plan from local release-readiness, v0 checklist, release notes, package assembly, archive, metadata, integrity, and channel dry-runs.
+
+The plan is planning-only. It reports which release outputs would be planned and keeps creation disabled. It does not create release artifacts, archives, GitHub releases, tags, publishing workflows, installation commands, or write execution.

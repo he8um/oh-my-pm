@@ -92,7 +92,8 @@ for (const file of trackedFiles) {
         file === "installer/src/write-dry-run-envelope.ts" ||
         file === "installer/src/release-readiness.ts" ||
         file === "installer/src/v0-release-candidate.ts" ||
-        file === "installer/src/public-v0-release-notes.ts") &&
+        file === "installer/src/public-v0-release-notes.ts" ||
+        file === "installer/src/release-artifact-plan.ts") &&
       (spec === "node" || spec.startsWith("node:"))
     ) {
       err(`${file} imports a Node built-in: "${spec}"`);
@@ -216,7 +217,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-dry-run-envelope.ts" ||
     file === "installer/src/release-readiness.ts" ||
     file === "installer/src/v0-release-candidate.ts" ||
-    file === "installer/src/public-v0-release-notes.ts"
+    file === "installer/src/public-v0-release-notes.ts" ||
+    file === "installer/src/release-artifact-plan.ts"
   ) {
     for (const api of NODE_WRITE_APIS) {
       if (contents.includes(api)) {
@@ -239,7 +241,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-dry-run-envelope.ts" ||
     file === "installer/src/release-readiness.ts" ||
     file === "installer/src/v0-release-candidate.ts" ||
-    file === "installer/src/public-v0-release-notes.ts"
+    file === "installer/src/public-v0-release-notes.ts" ||
+    file === "installer/src/release-artifact-plan.ts"
   ) {
     // The public release notes draft names "No telemetry ..." as a thing NOT
     // done; that exact public-safe phrase is stripped before the scan.
@@ -265,7 +268,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-dry-run-envelope.ts" ||
     file === "installer/src/release-readiness.ts" ||
     file === "installer/src/v0-release-candidate.ts" ||
-    file === "installer/src/public-v0-release-notes.ts"
+    file === "installer/src/public-v0-release-notes.ts" ||
+    file === "installer/src/release-artifact-plan.ts"
   ) {
     for (const marker of [
       "executeInstall",
@@ -288,7 +292,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-dry-run-envelope.ts" ||
     file === "installer/src/release-readiness.ts" ||
     file === "installer/src/v0-release-candidate.ts" ||
-    file === "installer/src/public-v0-release-notes.ts"
+    file === "installer/src/public-v0-release-notes.ts" ||
+    file === "installer/src/release-artifact-plan.ts"
   ) {
     for (const marker of ["FilesystemWriteAdapter", "writeFile(", "removeFile(", "backupFile("]) {
       if (contents.includes(marker)) {
@@ -307,7 +312,8 @@ for (const file of trackedFiles) {
     file === "installer/src/write-dry-run-envelope.ts" ||
     file === "installer/src/release-readiness.ts" ||
     file === "installer/src/v0-release-candidate.ts" ||
-    file === "installer/src/public-v0-release-notes.ts"
+    file === "installer/src/public-v0-release-notes.ts" ||
+    file === "installer/src/release-artifact-plan.ts"
   ) {
     for (const marker of ["crypto", "privateKey", "publicKey"]) {
       if (contents.includes(marker)) {
@@ -342,6 +348,16 @@ for (const file of trackedFiles) {
     }
     for (const marker of ["artifact", "publish", "createWriteStream", "archiver"]) {
       if (termScanContents.includes(marker)) {
+        err(`${file} contains forbidden artifact-creation/publish term "${marker}"`);
+      }
+    }
+  }
+  // The guarded release artifact plan intentionally plans release artifacts, so
+  // the words release/artifact/archive are allowed; actual creation and publish
+  // automation terms are not.
+  if (file === "installer/src/release-artifact-plan.ts") {
+    for (const marker of ["publish", "createWriteStream", "archiver"]) {
+      if (contents.includes(marker)) {
         err(`${file} contains forbidden artifact-creation/publish term "${marker}"`);
       }
     }

@@ -30,6 +30,7 @@ import type {
   InstallerReleaseReadinessInput,
   V0ReleaseCandidateChecklistInput,
   PublicV0ReleaseNotesDraftInput,
+  GuardedReleaseArtifactPlanInput,
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -56,7 +57,10 @@ import { evaluateInstallerWriteAdapterContract } from "./write-adapter-contract.
 import { createInstallerAuditTrailExportDryRun } from "./audit-export.js";
 import { createControlledWriteExecutionDryRun } from "./write-dry-run-envelope.js";
 import { createInstallerReleaseReadinessReport } from "./release-readiness.js";
+import { createInstallerReleaseReadinessDryRun } from "./release-readiness.js";
 import { createV0ReleaseCandidateChecklist } from "./v0-release-candidate.js";
+import { createV0ReleaseCandidateChecklistDryRun } from "./v0-release-candidate.js";
+import { createPublicV0ReleaseNotesDraftDryRun } from "./public-v0-release-notes.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -484,6 +488,41 @@ export function examplePublicV0ReleaseNotesDraftInput(): PublicV0ReleaseNotesDra
     version: "v0.1.0",
     checklist,
     releaseReadiness,
+  };
+}
+
+/**
+ * Example guarded release artifact plan input built from the existing fixture
+ * chain: release notes, v0 checklist, and release readiness dry-runs plus the
+ * package assembly, archive, metadata, integrity, and channel dry-runs. All
+ * source fixtures are ready, so the plan is ready (creation still disallowed).
+ */
+export function exampleGuardedReleaseArtifactPlanInput(): GuardedReleaseArtifactPlanInput {
+  const releaseNotes = createPublicV0ReleaseNotesDraftDryRun(
+    examplePublicV0ReleaseNotesDraftInput(),
+  );
+  const v0Checklist = createV0ReleaseCandidateChecklistDryRun(
+    exampleV0ReleaseCandidateChecklistInput(),
+  );
+  const releaseReadiness = createInstallerReleaseReadinessDryRun(
+    exampleInstallerReleaseReadinessInput(),
+  );
+  const filesystem = createMemoryFilesystem(exampleFilesystemEntries());
+  const assembly = createPackageAssemblyDryRun(examplePackageAssemblyInput(), filesystem);
+  const archive = createArchiveDryRunFromAssembly(assembly, "zip");
+  const metadata = createReleaseMetadataDryRun(exampleReleaseMetadataInput());
+  const integrity = createReleaseIntegrityDryRun(exampleReleaseIntegrityVerificationInput());
+  const channel = createReleaseChannelDryRun(exampleReleaseChannelMetadataInput());
+  return {
+    version: "v0.1.0",
+    releaseNotes,
+    v0Checklist,
+    releaseReadiness,
+    assembly,
+    archive,
+    metadata,
+    integrity,
+    channel,
   };
 }
 

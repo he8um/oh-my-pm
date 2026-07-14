@@ -4,6 +4,7 @@ import {
   runControlledWriteExecutionDryRunExample,
   runV0ReleaseCandidateChecklistExample,
   runPublicV0ReleaseNotesDraftExample,
+  runGuardedReleaseArtifactPlanExample,
   runInstallerReleaseReadinessExample,
   runInstallerArchivePlanExample,
   runInstallerAuditEventExample,
@@ -463,8 +464,33 @@ describe("runPublicV0ReleaseNotesDraftExample", () => {
   });
 });
 
+describe("runGuardedReleaseArtifactPlanExample", () => {
+  it("returns a ready guarded release artifact plan with creation disabled", () => {
+    const result = runGuardedReleaseArtifactPlanExample();
+    expect(result.guardedReleaseArtifactPlan.ok).toBe(true);
+    expect(result.guardedReleaseArtifactPlan.plan.items).toHaveLength(6);
+    expect(result.guardedReleaseArtifactPlan.plan.summary.creationAllowed).toBe(false);
+    expect(result.markdown).toContain("Guarded Release Artifact Plan");
+    expect(result.markdown).toContain("Creation allowed: `false`");
+    expect(Object.keys(result).sort()).toEqual(["guardedReleaseArtifactPlan", "markdown"]);
+
+    // Planning-only: no artifact bytes, output path, command, adapter, or URL.
+    const serialized = JSON.stringify(result.guardedReleaseArtifactPlan);
+    expect(serialized).not.toContain("writeFile");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    for (const item of result.guardedReleaseArtifactPlan.plan.items) {
+      for (const key of Object.keys(item)) {
+        expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|url|bytes|result/i);
+      }
+    }
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runGuardedReleaseArtifactPlanExample).toBe("function");
     expect(typeof examples.runPublicV0ReleaseNotesDraftExample).toBe("function");
     expect(typeof examples.runV0ReleaseCandidateChecklistExample).toBe("function");
     expect(typeof examples.runInstallerReleaseReadinessExample).toBe("function");
