@@ -342,6 +342,8 @@ const INSTALLER_SOURCES = [
   "installer/test/local-artifact-creation-plan.test.ts",
   "installer/src/local-artifact-adapter-contract.ts",
   "installer/test/local-artifact-adapter-contract.test.ts",
+  "installer/src/local-artifact-confirmation.ts",
+  "installer/test/local-artifact-confirmation.test.ts",
   "installer/test/validate.test.ts",
   "installer/test/manifest.test.ts",
   "installer/test/installer.test.ts",

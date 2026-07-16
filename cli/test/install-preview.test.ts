@@ -75,6 +75,9 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: local_artifact_creation_assembly_not_ready",
         "OMP-I-6001: local_artifact_adapter_permission_not_allowed",
         "OMP-I-6001: local_artifact_adapter_execution_plan_not_ready",
+        "OMP-I-6001: local_artifact_confirmation_permission_not_allowed",
+        "OMP-I-6001: local_artifact_confirmation_execution_plan_not_ready",
+        "OMP-I-6001: local_artifact_confirmation_adapter_contract_not_ready",
       ]);
       expect(result.archive).toEqual({
         format: "zip",
@@ -173,6 +176,9 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: local_artifact_creation_assembly_not_ready",
         "OMP-I-6001: local_artifact_adapter_permission_not_allowed",
         "OMP-I-6001: local_artifact_adapter_execution_plan_not_ready",
+        "OMP-I-6001: local_artifact_confirmation_permission_not_allowed",
+        "OMP-I-6001: local_artifact_confirmation_execution_plan_not_ready",
+        "OMP-I-6001: local_artifact_confirmation_adapter_contract_not_ready",
       ]);
       expect(result.operations).toHaveLength(1);
       expect(result.operations[0].path.endsWith("README.md")).toBe(true);
@@ -415,6 +421,30 @@ describe("runInstallerPreview", () => {
       for (const key of Object.keys(parsed.localArtifactAdapterContract)) {
         expect(key).not.toMatch(/object|fn|func|method|content|bytes|path|dest|command|target|publish|url|result|remote|download|upload/i);
       }
+      // Local artifact creation confirmation checklist summary;
+      // confirmation-only. The raw checklist items and markdown never reach
+      // JSON, no adapter is called, and creation stays disallowed.
+      expect(parsed.localArtifactConfirmation.version).toBe("v0.1.0");
+      expect(parsed.localArtifactConfirmation.ok).toBe(false);
+      expect(parsed.localArtifactConfirmation.total).toBe(7);
+      expect(parsed.localArtifactConfirmation.passed).toBe(4);
+      expect(parsed.localArtifactConfirmation.failed).toBe(3);
+      expect(parsed.localArtifactConfirmation.passed + parsed.localArtifactConfirmation.failed).toBe(
+        parsed.localArtifactConfirmation.total,
+      );
+      expect(parsed.localArtifactConfirmation.creationAllowed).toBe(false);
+      expect(parsed.localArtifactConfirmation.reasons).toEqual([
+        "local_artifact_confirmation_permission_not_allowed",
+        "local_artifact_confirmation_execution_plan_not_ready",
+        "local_artifact_confirmation_adapter_contract_not_ready",
+      ]);
+      expect(parsed.localArtifactConfirmation).not.toHaveProperty("items");
+      expect(parsed.localArtifactConfirmation).not.toHaveProperty("checklist");
+      expect(parsed.localArtifactConfirmation).not.toHaveProperty("markdown");
+      expect(parsed.localArtifactConfirmation).not.toHaveProperty("adapter");
+      for (const key of Object.keys(parsed.localArtifactConfirmation)) {
+        expect(key).not.toMatch(/adapter|object|fn|func|method|content|bytes|path|dest|command|target|publish|url|result|remote|download|upload/i);
+      }
       expect(output).not.toContain("backupFile");
       expect(output).not.toContain("removeFile");
       expect(output).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
@@ -452,6 +482,9 @@ describe("runInstallerPreview", () => {
       expect(output).toContain("planning only, creation disabled");
       expect(output).toContain("## Local Artifact Creation Adapter Contract");
       expect(output).toContain("metadata only, no adapter called, creation disabled");
+      expect(output).toContain("## Local Artifact Creation Confirmation Checklist");
+      expect(output).toContain("confirmation only, creation disabled");
+      expect(output).not.toContain("artifact created");
       expect(output).not.toMatch(/https?:\/\//);
       expect(output).not.toContain("placeholder:preview-key:");
       expect(output).not.toContain("executeInstall");
@@ -524,6 +557,10 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: local_artifact_adapter_permission_not_allowed",
       "OMP-I-6001: local_artifact_adapter_execution_plan_not_ready",
       "OMP-I-6001: local_artifact_adapter_required_capabilities_empty",
+      "OMP-I-6001: local_artifact_confirmation_permission_not_allowed",
+      "OMP-I-6001: local_artifact_confirmation_execution_plan_not_ready",
+      "OMP-I-6001: local_artifact_confirmation_adapter_contract_not_ready",
+      "OMP-I-6001: local_artifact_confirmation_required_capabilities_empty",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);

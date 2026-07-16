@@ -14,6 +14,7 @@ import type {
   GuardedArtifactCreationPermissionDryRunReport,
   LocalArtifactCreationExecutionPlanDryRunReport,
   LocalArtifactCreationAdapterContractDryRunReport,
+  LocalArtifactCreationConfirmationChecklistDryRunReport,
   InstallDryRunReport,
   InstallerAuditEventDryRunReport,
   InstallerAuditTrailExportDryRunReport,
@@ -51,6 +52,7 @@ import {
   createGuardedArtifactCreationPermissionDryRun,
   createLocalArtifactCreationExecutionPlanDryRun,
   createLocalArtifactCreationAdapterContractDryRun,
+  createLocalArtifactCreationConfirmationChecklistDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -76,6 +78,7 @@ import {
   formatGuardedArtifactCreationPermissionMarkdown,
   formatLocalArtifactCreationExecutionPlanMarkdown,
   formatLocalArtifactCreationAdapterContractMarkdown,
+  formatLocalArtifactCreationConfirmationChecklistMarkdown,
   DEFAULT_LOCAL_UPDATE_POLICY,
   exampleFilesystemEntries,
   exampleInstallerAuditEventInput,
@@ -91,6 +94,7 @@ import {
   exampleGuardedArtifactCreationPermissionInput,
   exampleLocalArtifactCreationExecutionPlanInput,
   exampleLocalArtifactCreationAdapterContractInput,
+  exampleLocalArtifactCreationConfirmationChecklistInput,
   exampleInstallerWriteAdapterContractInput,
   exampleInstallerWriteConfirmationChecklistInput,
   exampleInstallerWriteExecutionPlanInput,
@@ -226,6 +230,11 @@ export type LocalArtifactCreationExecutionPlanExample = {
 
 export type LocalArtifactCreationAdapterContractExample = {
   localArtifactAdapterContract: LocalArtifactCreationAdapterContractDryRunReport;
+  markdown: string;
+};
+
+export type LocalArtifactCreationConfirmationChecklistExample = {
+  localArtifactConfirmation: LocalArtifactCreationConfirmationChecklistDryRunReport;
   markdown: string;
 };
 
@@ -637,6 +646,22 @@ export function runLocalArtifactCreationAdapterContractExample(): LocalArtifactC
     localArtifactAdapterContract.report,
   );
   return { localArtifactAdapterContract, markdown };
+}
+
+/**
+ * Compose the example permission report, execution plan, and adapter contract
+ * report into one confirmation checklist and render it as markdown.
+ * Confirmation-only — creation stays disabled, no adapter exists or is called,
+ * and nothing is created, written, executed, retrieved, logged, or sent.
+ */
+export function runLocalArtifactCreationConfirmationChecklistExample(): LocalArtifactCreationConfirmationChecklistExample {
+  const localArtifactConfirmation = createLocalArtifactCreationConfirmationChecklistDryRun(
+    exampleLocalArtifactCreationConfirmationChecklistInput(),
+  );
+  const markdown = formatLocalArtifactCreationConfirmationChecklistMarkdown(
+    localArtifactConfirmation.checklist,
+  );
+  return { localArtifactConfirmation, markdown };
 }
 
 /** Install the example package, then apply the example update plan. */

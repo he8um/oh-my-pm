@@ -21,6 +21,7 @@ export {
   exampleGuardedArtifactCreationPermissionInput,
   exampleLocalArtifactCreationExecutionPlanInput,
   exampleLocalArtifactCreationAdapterContractInput,
+  exampleLocalArtifactCreationConfirmationChecklistInput,
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
   exampleControlledWriteExecutionDryRunEnvelopeInput,
@@ -189,6 +190,12 @@ export {
   validateLocalArtifactCreationAdapterCapability,
   validateLocalArtifactCreationAdapterContract,
 } from "./local-artifact-adapter-contract.js";
+export {
+  createLocalArtifactCreationConfirmationChecklist,
+  createLocalArtifactCreationConfirmationChecklistDryRun,
+  createLocalArtifactCreationConfirmationChecklistItems,
+  formatLocalArtifactCreationConfirmationChecklistMarkdown,
+} from "./local-artifact-confirmation.js";
 export {
   createPackageFileEntry,
   createPackageManifest,
@@ -368,6 +375,11 @@ export type {
   LocalArtifactCreationAdapterContractDryRunReport,
   LocalArtifactCreationAdapterContractInput,
   LocalArtifactCreationAdapterContractReport,
+  LocalArtifactCreationConfirmationChecklist,
+  LocalArtifactCreationConfirmationChecklistDryRunReport,
+  LocalArtifactCreationConfirmationChecklistInput,
+  LocalArtifactCreationConfirmationChecklistItem,
+  LocalArtifactCreationConfirmationChecklistItemId,
   LocalArtifactCreationExecutionPlan,
   LocalArtifactCreationExecutionPlanDryRunReport,
   LocalArtifactCreationExecutionPlanInput,

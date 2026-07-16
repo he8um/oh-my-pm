@@ -187,3 +187,9 @@ The plan is planning-only. It keeps creation disabled and reports which local ar
 The installer can validate a metadata-only adapter contract against the capabilities required by the local artifact creation execution plan.
 
 The contract declares text-output and binary-output capabilities. It does not contain an adapter instance and does not call adapter methods. Creation remains disabled. No release artifact, archive, tag, publishing workflow, installation command, or write execution is produced.
+
+## Local artifact creation confirmation checklist
+
+The installer can compose guarded creation permission, the local artifact creation execution plan, and the metadata-only artifact adapter contract into one deterministic confirmation checklist.
+
+The checklist confirms readiness while creation remains disabled. It does not contain an adapter instance, call adapter methods, create release artifacts or archives, publish packages, create tags, expose installation commands, or execute writes.

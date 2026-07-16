@@ -27,6 +27,7 @@ import {
   createGuardedArtifactCreationPermissionDryRun,
   createLocalArtifactCreationExecutionPlanDryRun,
   createLocalArtifactCreationAdapterContractDryRun,
+  createLocalArtifactCreationConfirmationChecklistDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -324,6 +325,21 @@ export type InstallerPreviewResult = {
     name: string;
     requiredCapabilities: string[];
     declaredCapabilities: string[];
+    creationAllowed: boolean;
+    reasons: string[];
+  };
+  /**
+   * Local artifact creation confirmation checklist summary;
+   * confirmation-only. The raw checklist items and markdown are never
+   * included in JSON, no adapter is called, `creationAllowed` is always
+   * false, and nothing is created or executed.
+   */
+  localArtifactConfirmation?: {
+    ok: boolean;
+    version: string;
+    passed: number;
+    failed: number;
+    total: number;
     creationAllowed: boolean;
     reasons: string[];
   };
@@ -925,6 +941,31 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       (warning) => `${warning.code}: ${warning.message}`,
     ) ?? [];
 
+  // Compose the permission report, execution plan, and adapter contract into
+  // one confirmation checklist. Confirmation-only — the raw checklist items
+  // stay out of the summary, no adapter is called, creation stays disabled,
+  // and nothing is created or executed.
+  const localArtifactConfirmationReport = createLocalArtifactCreationConfirmationChecklistDryRun({
+    version: "v0.1.0",
+    permission: guardedArtifactCreationPermissionReport.report,
+    executionPlan: localArtifactCreationPlanReport.plan,
+    adapterContract: localArtifactAdapterContractReport.report,
+  });
+  const confirmationChecklistItems = localArtifactConfirmationReport.checklist.items;
+  const localArtifactConfirmation = {
+    ok: localArtifactConfirmationReport.ok,
+    version: localArtifactConfirmationReport.checklist.version,
+    passed: confirmationChecklistItems.filter((item) => item.ok).length,
+    failed: confirmationChecklistItems.filter((item) => !item.ok).length,
+    total: confirmationChecklistItems.length,
+    creationAllowed: localArtifactConfirmationReport.checklist.creationAllowed,
+    reasons: [...localArtifactConfirmationReport.checklist.reasons],
+  };
+  const localArtifactConfirmationWarnings =
+    localArtifactConfirmationReport.warnings?.map(
+      (warning) => `${warning.code}: ${warning.message}`,
+    ) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -957,6 +998,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...guardedArtifactCreationPermissionWarnings,
         ...localArtifactCreationPlanWarnings,
         ...localArtifactAdapterContractWarnings,
+        ...localArtifactConfirmationWarnings,
         result.message,
       ]),
       archive,
@@ -983,6 +1025,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       guardedArtifactCreationPermission,
       localArtifactCreationPlan,
       localArtifactAdapterContract,
+      localArtifactConfirmation,
     };
   }
 
@@ -1021,6 +1064,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...guardedArtifactCreationPermissionWarnings,
       ...localArtifactCreationPlanWarnings,
       ...localArtifactAdapterContractWarnings,
+      ...localArtifactConfirmationWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -1047,6 +1091,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     guardedArtifactCreationPermission,
     localArtifactCreationPlan,
     localArtifactAdapterContract,
+    localArtifactConfirmation,
   };
 }
 
@@ -1211,6 +1256,15 @@ function formatMarkdown(result: InstallerPreviewResult): string {
       "## Local Artifact Creation Adapter Contract",
       "",
       `Local artifact adapter contract \`${result.localArtifactAdapterContract.name}\`: \`${result.localArtifactAdapterContract.ok ? "ready" : "blocked"}\` (metadata only, no adapter called, creation disabled)`,
+    );
+  }
+  if (result.localArtifactConfirmation !== undefined) {
+    // Confirmation-only note: readiness is confirmed, no artifact is created.
+    lines.push(
+      "",
+      "## Local Artifact Creation Confirmation Checklist",
+      "",
+      `Local artifact confirmation \`${result.localArtifactConfirmation.version}\`: \`${result.localArtifactConfirmation.ok ? "ready" : "blocked"}\` (${result.localArtifactConfirmation.passed}/${result.localArtifactConfirmation.total} items passed, confirmation only, creation disabled)`,
     );
   }
   let preview = `${lines.join("\n")}\n`;

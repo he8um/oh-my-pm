@@ -9,6 +9,7 @@ import {
   runGuardedArtifactCreationPermissionExample,
   runLocalArtifactCreationExecutionPlanExample,
   runLocalArtifactCreationAdapterContractExample,
+  runLocalArtifactCreationConfirmationChecklistExample,
   runInstallerReleaseReadinessExample,
   runInstallerArchivePlanExample,
   runInstallerAuditEventExample,
@@ -612,8 +613,47 @@ describe("runLocalArtifactCreationAdapterContractExample", () => {
   });
 });
 
+describe("runLocalArtifactCreationConfirmationChecklistExample", () => {
+  it("returns a confirmation checklist with creation disabled", () => {
+    const result = runLocalArtifactCreationConfirmationChecklistExample();
+    expect(result.localArtifactConfirmation.checklist).toBeDefined();
+    expect(result.localArtifactConfirmation.checklist.items).toHaveLength(7);
+    expect(result.localArtifactConfirmation.checklist.creationAllowed).toBe(false);
+    expect(result.markdown).toContain("Local Artifact Creation Confirmation Checklist");
+    expect(result.markdown).toContain("Creation allowed: `false`");
+    expect(Object.keys(result).sort()).toEqual(["localArtifactConfirmation", "markdown"]);
+
+    // Confirmation-only: no adapter object, function, method, content, bytes,
+    // output path, command, or execution result field — and no filesystem
+    // mutation, so everything round-trips through JSON as plain data.
+    const serialized = JSON.stringify(result.localArtifactConfirmation);
+    expect(serialized).not.toContain("writeFile");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    for (const key of Object.keys(result.localArtifactConfirmation.checklist)) {
+      expect(key).not.toMatch(
+        /adapter|object|fn|func|method|content|bytes|path|dest|command|publish|url|result|remote/i,
+      );
+    }
+    expect(
+      Object.values(result.localArtifactConfirmation.checklist).some(
+        (value) => typeof value === "function",
+      ),
+    ).toBe(false);
+    expect(JSON.parse(serialized)).toEqual(result.localArtifactConfirmation);
+  });
+
+  it("is deterministic", () => {
+    expect(runLocalArtifactCreationConfirmationChecklistExample()).toEqual(
+      runLocalArtifactCreationConfirmationChecklistExample(),
+    );
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runLocalArtifactCreationConfirmationChecklistExample).toBe("function");
     expect(typeof examples.runLocalArtifactCreationAdapterContractExample).toBe("function");
     expect(typeof examples.runLocalArtifactCreationExecutionPlanExample).toBe("function");
     expect(typeof examples.runGuardedArtifactCreationPermissionExample).toBe("function");

@@ -1405,6 +1405,63 @@ export type LocalArtifactCreationAdapterContractDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Item ids a local artifact creation confirmation checklist evaluates. */
+export type LocalArtifactCreationConfirmationChecklistItemId =
+  | "version-present"
+  | "permission-allowed"
+  | "execution-plan-ready"
+  | "execution-steps-present"
+  | "adapter-contract-ready"
+  | "required-capabilities-present"
+  | "creation-remains-disabled";
+
+/**
+ * One confirmation checklist item. `reason` is present only when the item
+ * fails.
+ */
+export type LocalArtifactCreationConfirmationChecklistItem = {
+  id: LocalArtifactCreationConfirmationChecklistItemId;
+  label: string;
+  ok: boolean;
+  reason?: string;
+};
+
+/**
+ * Input composing the guarded artifact creation permission report, the local
+ * artifact creation execution plan, and the metadata-only adapter contract
+ * report into one confirmation. Every value is an already computed local
+ * report; nothing is fetched, created, written, or executed.
+ */
+export type LocalArtifactCreationConfirmationChecklistInput = {
+  version: string;
+  permission: GuardedArtifactCreationPermissionReport;
+  executionPlan: LocalArtifactCreationExecutionPlan;
+  adapterContract: LocalArtifactCreationAdapterContractReport;
+};
+
+/**
+ * Deterministic readiness confirmation. `creationAllowed` is always the
+ * literal `false` — the checklist can be ready while creation remains
+ * disabled, and it never permits creation itself. There is no
+ * adapter-object, function, method, file-content, bytes, output-path,
+ * destination, command, distribution-target, remote, or execution-result
+ * field.
+ */
+export type LocalArtifactCreationConfirmationChecklist = {
+  ok: boolean;
+  version: string;
+  items: LocalArtifactCreationConfirmationChecklistItem[];
+  reasons: string[];
+  creationAllowed: false;
+};
+
+/** Result of a local artifact creation confirmation checklist dry run; nothing is written. */
+export type LocalArtifactCreationConfirmationChecklistDryRunReport = {
+  ok: boolean;
+  checklist: LocalArtifactCreationConfirmationChecklist;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

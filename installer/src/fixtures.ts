@@ -35,6 +35,7 @@ import type {
   GuardedArtifactCreationPermissionInput,
   LocalArtifactCreationExecutionPlanInput,
   LocalArtifactCreationAdapterContractInput,
+  LocalArtifactCreationConfirmationChecklistInput,
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -69,6 +70,7 @@ import { createGuardedReleaseArtifactPlanDryRun } from "./release-artifact-plan.
 import { createGuardedLocalArtifactAssemblyDryRun } from "./local-artifact-assembly-envelope.js";
 import { createGuardedArtifactCreationPermissionDryRun } from "./artifact-creation-permission.js";
 import { createLocalArtifactCreationExecutionPlan } from "./local-artifact-creation-plan.js";
+import { evaluateLocalArtifactCreationAdapterContract } from "./local-artifact-adapter-contract.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -629,6 +631,28 @@ export function exampleLocalArtifactCreationAdapterContractInput(): LocalArtifac
     },
     permission: planInput.permission.report,
     executionPlan,
+  };
+}
+
+/**
+ * Example local artifact creation confirmation checklist input built from the
+ * existing fixture chain: the execution plan fixture's permission report, the
+ * execution plan built from it, and the adapter contract report evaluated
+ * from the adapter contract fixture. Readiness is not forced — the checklist
+ * is ready only because the underlying fixtures are ready, while every
+ * `creationAllowed` field stays false and no adapter exists or is called.
+ */
+export function exampleLocalArtifactCreationConfirmationChecklistInput(): LocalArtifactCreationConfirmationChecklistInput {
+  const planInput = exampleLocalArtifactCreationExecutionPlanInput();
+  const executionPlan = createLocalArtifactCreationExecutionPlan(planInput);
+  const adapterContract = evaluateLocalArtifactCreationAdapterContract(
+    exampleLocalArtifactCreationAdapterContractInput(),
+  );
+  return {
+    version: "v0.1.0",
+    permission: planInput.permission.report,
+    executionPlan,
+    adapterContract,
   };
 }
 
