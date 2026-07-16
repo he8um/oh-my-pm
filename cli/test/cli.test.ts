@@ -4,7 +4,7 @@ import { join } from "node:path";
 import type { RuntimeRequest, RuntimeResponse } from "@oh-my-pm/contracts";
 import type { Runtime } from "@oh-my-pm/runtime";
 import { describe, expect, it } from "vitest";
-import { createRuntimeRequest, runCli } from "../src/index.js";
+import { DEFAULT_PROJECT_DOCUMENT_MAX_FILES, createRuntimeRequest, runCli } from "../src/index.js";
 
 function respondingRuntime(): { runtime: Runtime; requests: RuntimeRequest[] } {
   const requests: RuntimeRequest[] = [];
@@ -331,6 +331,91 @@ describe("cli core execution", () => {
 
   it("converts a thrown runtime into OMP-C-3003 for next", () => {
     const result = runCli(["next"], { runtime: throwingRuntime });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toBe("error OMP-C-3003: runtime execution failed\n");
+  });
+
+  it("dispatches handoff through the Runtime without the root in the payload", () => {
+    const { runtime, requests } = respondingRuntime();
+    const result = runCli(["handoff", "./my-project"], { runtime });
+    expect(result.exitCode).toBe(0);
+    expect(requests).toEqual([createRuntimeRequest("handoff", "./my-project")]);
+    expect(requests[0]?.id).toBe("cli-handoff");
+    expect(requests[0]?.kind).toBe("plan");
+    expect(JSON.stringify(requests[0])).not.toContain("my-project");
+    expect(JSON.stringify(requests[0])).toContain("create project handoff");
+    const listRequest = (requests[0]?.payload as { context: { providerRequests: unknown[] } })
+      .context.providerRequests[0];
+    expect(listRequest).toEqual({
+      providerId: "local",
+      action: "list",
+      query: "",
+      limit: DEFAULT_PROJECT_DOCUMENT_MAX_FILES,
+    });
+  });
+
+  it("formats a handoff response in every output mode", () => {
+    const runtime: Runtime = {
+      handle(request: RuntimeRequest): RuntimeResponse {
+        return {
+          id: request.id,
+          ok: true,
+          data: {
+            output: {
+              title: "Riverline Field Guide",
+              sections: [
+                { heading: "Summary", items: ["Ship the spring edition."] },
+                { heading: "Open Tasks", items: ["Confirm final paper stock with the supplier."] },
+                { heading: "Risks", items: ["The printing quote is blocked (owner: Jordan)."] },
+                { heading: "Decisions", items: ["Ships as a single printed volume."] },
+              ],
+              generatedAt: "2026-01-01T00:00:00.000Z",
+            },
+          },
+        };
+      },
+    };
+    const brief = runCli(["handoff"], { runtime });
+    expect(brief.exitCode).toBe(0);
+    expect(brief.stdout).toBe(
+      [
+        "OH MY PM handoff: Riverline Field Guide",
+        "Summary: 1",
+        "- Ship the spring edition.",
+        "Open Tasks: 1",
+        "- Confirm final paper stock with the supplier.",
+        "Risks: 1",
+        "- The printing quote is blocked (owner: Jordan).",
+        "Decisions: 1",
+        "- Ships as a single printed volume.",
+        "generated at: 2026-01-01T00:00:00.000Z",
+        "",
+      ].join("\n"),
+    );
+
+    const markdown = runCli(["handoff", "--markdown"], { runtime });
+    expect(markdown.stdout).toContain("# OH MY PM Project Handoff");
+    expect(markdown.stdout).toContain("- Project: Riverline Field Guide");
+    expect(markdown.stdout).toContain("## Summary");
+    expect(markdown.stdout).toContain("## Open Tasks");
+    expect(markdown.stdout).toContain("## Risks");
+    expect(markdown.stdout).toContain("## Decisions");
+
+    const json = runCli(["handoff", "--json"], { runtime });
+    const parsed = JSON.parse(json.stdout);
+    expect(parsed.id).toBe("cli-handoff");
+    expect(parsed.ok).toBe(true);
+  });
+
+  it("returns exit 1 for a failed handoff runtime response", () => {
+    const result = runCli(["handoff"], { runtime: failingRuntime });
+    expect(result.ok).toBe(false);
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toBe("error OMP-R-2001: request failed kernel validation\n");
+  });
+
+  it("converts a thrown runtime into OMP-C-3003 for handoff", () => {
+    const result = runCli(["handoff"], { runtime: throwingRuntime });
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toBe("error OMP-C-3003: runtime execution failed\n");
   });

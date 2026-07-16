@@ -112,4 +112,32 @@ describe("cli runtime request factory", () => {
     expect(JSON.stringify(request)).not.toContain("secret-project-root");
     expect(createRuntimeRequest("next", "./a")).toEqual(createRuntimeRequest("next", "./b"));
   });
+
+  it("creates the exact handoff request with local provider list context", () => {
+    expect(createRuntimeRequest("handoff", "./my-project")).toEqual({
+      id: "cli-handoff",
+      kind: "plan",
+      locale: "en",
+      payload: {
+        source: "cli",
+        request: "create project handoff",
+        context: {
+          providerRequests: [
+            {
+              providerId: "local",
+              action: "list",
+              query: "",
+              limit: DEFAULT_PROJECT_DOCUMENT_MAX_FILES,
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it("never places the handoff root path into the runtime payload", () => {
+    const request = createRuntimeRequest("handoff", "./secret-project-root");
+    expect(JSON.stringify(request)).not.toContain("secret-project-root");
+    expect(createRuntimeRequest("handoff", "./a")).toEqual(createRuntimeRequest("handoff", "./b"));
+  });
 });

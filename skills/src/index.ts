@@ -21,6 +21,17 @@ export {
   textItemsFrom,
 } from "./helpers.js";
 export {
+  collectMarkdownSectionItems,
+  collectMarkdownUncheckedTasks,
+  inferMarkdownProjectTitle,
+  normalizeMarkdownHeading,
+  parseMarkdownProjectSections,
+} from "./markdown-project.js";
+export type {
+  MarkdownProjectSection,
+  MarkdownUncheckedTask,
+} from "./markdown-project.js";
+export {
   createReviewChangesSkill,
 } from "./review-changes.js";
 export {

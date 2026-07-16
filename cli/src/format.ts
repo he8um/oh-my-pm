@@ -150,6 +150,73 @@ function nextTaskEntriesMarkdown(entries: readonly NextTaskEntry[]): string {
   ].join("\n");
 }
 
+type HandoffSection = {
+  heading: string;
+  items: string[];
+};
+
+type HandoffOutput = {
+  title: string;
+  sections: HandoffSection[];
+  generatedAt: string;
+};
+
+/** Strict handoff output; null for any malformed shape. */
+function asHandoffOutput(value: unknown): HandoffOutput | null {
+  if (!isRecord(value)) return null;
+  const title = stringFrom(value["title"]);
+  const generatedAt = stringFrom(value["generatedAt"]);
+  if (title === undefined || generatedAt === undefined) return null;
+  if (!Array.isArray(value["sections"])) return null;
+  const sections: HandoffSection[] = [];
+  for (const raw of value["sections"]) {
+    if (!isRecord(raw)) return null;
+    const heading = stringFrom(raw["heading"]);
+    if (heading === undefined || !Array.isArray(raw["items"])) return null;
+    const items: string[] = [];
+    for (const item of raw["items"]) {
+      const text = stringFrom(item);
+      if (text === undefined) return null;
+      items.push(text);
+    }
+    sections.push({ heading, items });
+  }
+  return { title, sections, generatedAt };
+}
+
+function handoffBrief(output: HandoffOutput): string {
+  const lines = [`OH MY PM handoff: ${output.title}`];
+  for (const section of output.sections) {
+    lines.push(`${section.heading}: ${section.items.length}`);
+    for (const item of section.items) {
+      lines.push(`- ${item}`);
+    }
+  }
+  lines.push(`generated at: ${output.generatedAt}`, "");
+  return lines.join("\n");
+}
+
+function handoffMarkdown(output: HandoffOutput): string {
+  const lines = [
+    "# OH MY PM Project Handoff",
+    "",
+    `- Project: ${output.title}`,
+    `- Generated at: \`${output.generatedAt}\``,
+  ];
+  for (const section of output.sections) {
+    lines.push("", `## ${section.heading}`, "");
+    if (section.items.length === 0) {
+      lines.push("- none");
+      continue;
+    }
+    for (const item of section.items) {
+      lines.push(`- ${item}`);
+    }
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
 type SummaryCounts = { total: number; done: number; blocked: number; open: number };
 
 function asSummaryCounts(value: unknown): SummaryCounts | null {
@@ -190,6 +257,10 @@ function planBriefList(label: string, count: number, titles: readonly string[]):
 }
 
 function formatPlanBrief(output: Record<string, unknown>): string {
+  const handoff = asHandoffOutput(output);
+  if (handoff !== null) {
+    return handoffBrief(handoff);
+  }
   const counts = asSummaryCounts(output["counts"]);
   if (counts !== null) {
     const highlights = stringsFrom(output["highlights"]);
@@ -232,6 +303,10 @@ function planMarkdownList(heading: string, titles: readonly string[]): string {
 }
 
 function formatPlanMarkdown(output: Record<string, unknown>): string {
+  const handoff = asHandoffOutput(output);
+  if (handoff !== null) {
+    return handoffMarkdown(handoff);
+  }
   const counts = asSummaryCounts(output["counts"]);
   if (counts !== null) {
     const highlights = stringsFrom(output["highlights"]);

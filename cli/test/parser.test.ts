@@ -315,6 +315,76 @@ describe("cli parser", () => {
     });
   });
 
+  it("parses handoff with the default root", () => {
+    expect(parseCliArgs(["handoff"])).toEqual({
+      ok: true,
+      command: "handoff",
+      outputMode: "brief",
+      input: ".",
+    });
+  });
+
+  it("parses handoff with an explicit dot root", () => {
+    expect(parseCliArgs(["handoff", "."])).toEqual({
+      ok: true,
+      command: "handoff",
+      outputMode: "brief",
+      input: ".",
+    });
+  });
+
+  it("parses handoff with an explicit root", () => {
+    expect(parseCliArgs(["handoff", "./project"])).toEqual({
+      ok: true,
+      command: "handoff",
+      outputMode: "brief",
+      input: "./project",
+    });
+  });
+
+  it("parses handoff with json output", () => {
+    expect(parseCliArgs(["handoff", "./project", "--json"])).toEqual({
+      ok: true,
+      command: "handoff",
+      outputMode: "json",
+      input: "./project",
+    });
+  });
+
+  it("parses handoff with markdown output before the root", () => {
+    expect(parseCliArgs(["--markdown", "handoff", "./project"])).toEqual({
+      ok: true,
+      command: "handoff",
+      outputMode: "markdown",
+      input: "./project",
+    });
+  });
+
+  it("lets the last output mode win for handoff", () => {
+    expect(parseCliArgs(["handoff", "--json", "./project", "--markdown"])).toEqual({
+      ok: true,
+      command: "handoff",
+      outputMode: "markdown",
+      input: "./project",
+    });
+  });
+
+  it("rejects a second handoff positional argument", () => {
+    expect(parseCliArgs(["handoff", "./a", "./b"])).toEqual({
+      ok: false,
+      code: "OMP-C-3002",
+      message: "unsupported argument: ./b",
+    });
+  });
+
+  it("rejects unknown options for handoff", () => {
+    expect(parseCliArgs(["handoff", "--bad"])).toEqual({
+      ok: false,
+      code: "OMP-C-3002",
+      message: "unsupported option: --bad",
+    });
+  });
+
   it("parses install-preview with a root", () => {
     expect(parseCliArgs(["install-preview", "/tmp/oh-my-pm"])).toEqual({
       ok: true,

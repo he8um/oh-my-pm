@@ -227,6 +227,94 @@ describe("runtime plan execution", () => {
     expect(documentItems).toEqual(snapshot);
   });
 
+  it("derives handoff sections from generic Markdown items alone", () => {
+    // Neutral document titles: extraction must depend on Markdown section
+    // headings and body content, not on accidental title matches. The Runtime
+    // must not alias generic items into explicit tasks/risks/changes/decisions.
+    const documentItems = [
+      {
+        id: "docs/one.md",
+        type: "document" as const,
+        title: "Field Notes",
+        data: {
+          path: "docs/one.md",
+          content: [
+            "# Field Notes",
+            "",
+            "## Current objective",
+            "",
+            "Ship the printable edition.",
+            "",
+            "## Next actions",
+            "",
+            "- [ ] Confirm the paper stock.",
+            "- [x] Approve the legend.",
+          ].join("\n"),
+          bytes: 120,
+        },
+      },
+      {
+        id: "docs/two.md",
+        type: "document" as const,
+        title: "Delivery Constraints",
+        data: {
+          path: "docs/two.md",
+          content: [
+            "# Blockers",
+            "",
+            "Preamble prose that is not a blocker line.",
+            "",
+            "- The quote is blocked until the supplier responds.",
+            "",
+            "# Decisions",
+            "",
+            "- Ship as a single volume.",
+          ].join("\n"),
+          bytes: 140,
+        },
+      },
+    ];
+    const snapshot = JSON.parse(JSON.stringify(documentItems));
+    const providers = createProviderRegistry([createLocalProvider({ items: documentItems })]);
+    const response = runtimeWith({ providers }).handle(
+      planRequest({
+        request: "create project handoff",
+        context: { providerRequests: [{ providerId: "local", action: "list", query: "" }] },
+      }),
+    );
+    expect(response.ok).toBe(true);
+    const data = response.data as Record<string, JsonValue>;
+    const skillOutput = data["skillOutput"] as Record<string, JsonValue>;
+    expect(skillOutput["skillId"]).toBe("createHandoff");
+
+    const output = data["output"] as {
+      title: string;
+      sections: Array<{ heading: string; items: string[] }>;
+    };
+    expect(output.title).toBe("Field Notes");
+    const items = (heading: string) =>
+      output.sections.find((section) => section.heading === heading)?.items ?? [];
+
+    // Summary from the objective section; open task from the unchecked box only.
+    expect(items("Summary")).toEqual(["Ship the printable edition."]);
+    expect(items("Open Tasks")).toEqual(["Confirm the paper stock."]);
+    // The checked box never becomes a task; neutral titles never become tasks.
+    expect(items("Open Tasks")).not.toContain("Approve the legend.");
+    expect(items("Open Tasks")).not.toContain("Field Notes");
+    expect(items("Open Tasks")).not.toContain("Delivery Constraints");
+    // Blocker section becomes a risk; its preamble prose does not.
+    expect(items("Risks")).toEqual(["The quote is blocked until the supplier responds."]);
+    expect(items("Risks")).not.toContain("Preamble prose that is not a blocker line.");
+    // Decision section becomes a decision.
+    expect(items("Decisions")).toEqual(["Ship as a single volume."]);
+
+    // The Runtime passed generic items only: no explicit alias keys leaked.
+    const providerResponses = JSON.stringify(data["providerResponses"]);
+    expect(providerResponses).toContain("docs/one.md");
+    // Source document objects are never mutated by the read-only pipeline.
+    expect(documentItems).toEqual(snapshot);
+  });
+
   it("returns OMP-R-2004 when the payload cannot become planner input", () => {
     const response = runtimeWith().handle(planRequest({ context: {} }));
     expect(response.ok).toBe(false);

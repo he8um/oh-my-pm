@@ -97,16 +97,18 @@
 - Generic Runtime skill-input semantic routing correction: provider items flow to skills as items only, never auto-declared as explicit tasks/risks/changes (in place)
 - Markdown unchecked task extraction: deterministic single-line checkbox parsing in deriveNextTasks with structured open-item fallback (in place)
 - `next [root]`: local Markdown project directory to explicit next-task list through the deriveNextTasks skill (in place)
+- Deterministic Markdown section extraction: shared pure Skill-layer helper for heading normalization, section parsing (ATX headings, list/checkbox/paragraph content, fenced-code and wrapped-line handling), heading-scoped item collection, unchecked-task collection, and project-title inference; deriveNextTasks and createHandoff share the unchecked-checkbox extraction (in place)
+- `handoff [root]`: local Markdown project directory to a deterministic project handoff (project title, Summary, Open Tasks, Risks, Decisions) through the createHandoff skill, with objective/active/milestone summary, unchecked-task, blocker/constraint risk, and decision extraction (in place)
 - Example project fixture: public fictional Markdown project under `examples/fixtures/markdown-project` (in place)
 - Read-only local operation: no write path, no network, no telemetry, no document content persistence (in place)
 
 Next priorities:
 
-1. `handoff [root]`
-2. local project config
-3. MCP server
-4. GitHub provider
-5. public packaging/install
+1. local project configuration and include/exclude rules
+2. MCP server exposing brief/risks/next/handoff
+3. GitHub read-only provider
+4. public packaging and installation
+5. finer line-level risk and decision provenance
 
 ## Phase 6 — Release lifecycle
 

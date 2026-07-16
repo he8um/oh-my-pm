@@ -48,15 +48,16 @@ See [`docs/architecture.md`](docs/architecture.md).
 
 ## First usable local workflow
 
-After building the workspace, OH MY PM can read Markdown documents from a local project directory and generate a project status brief, a project risk report, or a next-task list:
+After building the workspace, OH MY PM can read Markdown documents from a local project directory and generate a project status brief, a project risk report, a next-task list, or a full project handoff:
 
 ```bash
 node cli/bin/oh-my-pm.mjs brief ./examples/fixtures/markdown-project --markdown
 node cli/bin/oh-my-pm.mjs risks ./examples/fixtures/markdown-project --markdown
 node cli/bin/oh-my-pm.mjs next ./examples/fixtures/markdown-project --markdown
+node cli/bin/oh-my-pm.mjs handoff ./examples/fixtures/markdown-project --markdown
 ```
 
-`brief` summarizes document-level project status. `risks` detects deterministic document-level risk signals from Markdown content: only documents containing a risk keyword are reported. `next` extracts unchecked Markdown checklist items as next tasks. All three commands are read-only and local-only: no context is uploaded, no project file is modified, and no external integration or LLM is required.
+`brief` gives a local project overview from document-level project status. `risks` reports deterministic document-level risk signals from Markdown content: only documents containing a risk keyword are reported. `next` extracts unchecked Markdown checklist tasks. `handoff` assembles a project's objective, active work, open tasks, risks, milestones, and decisions from deterministic Markdown sections into a titled handoff with a fixed Summary / Open Tasks / Risks / Decisions layout. Every workflow is read-only and local-only: no context is uploaded, no project file is modified, and no external integration or LLM is required.
 
 The current risk workflow reports document-level risk signals. Finer line- or item-level extraction is planned for a later phase.
 

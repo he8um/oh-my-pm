@@ -15,10 +15,14 @@ describe("plan examples", () => {
     expect(result.stdout).toBe("OH MY PM risks: 0\nno risks detected\n");
   });
 
-  it("markdown plan renders the heading", () => {
+  it("markdown plan renders the handoff heading", () => {
+    // The example plans "create handoff", which routes to the createHandoff
+    // skill and now renders as a strict project handoff.
     const result = runPlanMarkdownExample();
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("# OH MY PM Plan");
+    expect(result.stdout).toContain("# OH MY PM Project Handoff");
+    expect(result.stdout).toContain("## Summary");
+    expect(result.stdout).toContain("## Decisions");
   });
 
   it("json plan returns the full response", () => {

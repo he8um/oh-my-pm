@@ -11,12 +11,20 @@ const COMMANDS: readonly CliCommand[] = [
   "brief",
   "risks",
   "next",
+  "handoff",
   "install-preview",
 ];
 
 /** Commands whose single optional positional is a local project root. */
-function isProjectRootCommand(command: CliCommand): command is "brief" | "risks" | "next" {
-  return command === "brief" || command === "risks" || command === "next";
+function isProjectRootCommand(
+  command: CliCommand,
+): command is "brief" | "risks" | "next" | "handoff" {
+  return (
+    command === "brief" ||
+    command === "risks" ||
+    command === "next" ||
+    command === "handoff"
+  );
 }
 
 const OUTPUT_OPTIONS: Readonly<Record<string, CliOutputMode>> = {

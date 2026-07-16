@@ -357,3 +357,115 @@ describe("bin wrapper next smoke", () => {
     }
   });
 });
+
+describe("bin wrapper handoff smoke", () => {
+  it("assembles a fixture-grounded json handoff through the full pipeline", () => {
+    const loaded = loadMarkdownProjectDocuments(fixtureRoot);
+    expect(loaded.ok).toBe(true);
+
+    const result = runBin(["handoff", "examples/fixtures/markdown-project", "--json"]);
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+
+    const parsed = JSON.parse(result.stdout);
+    expect(parsed.id).toBe("cli-handoff");
+    expect(parsed.ok).toBe(true);
+
+    // Full Runtime path with the final handoff skill.
+    const steps = parsed.trace.map((entry: { step: string }) => entry.step);
+    expect(steps).toContain("planner.plan");
+    expect(steps).toContain("kernel.validate.taskGraph");
+    expect(steps).toContain("provider.execute");
+    expect(steps).toContain("skill.execute");
+    expect(parsed.data.skillOutput.skillId).toBe("createHandoff");
+    expect(parsed.data.skillOutput.ok).toBe(true);
+
+    const output = parsed.data.output;
+    expect(output.title).toBe("Riverline Field Guide");
+    expect(output.sections.map((s: { heading: string }) => s.heading)).toEqual([
+      "Summary",
+      "Open Tasks",
+      "Risks",
+      "Decisions",
+    ]);
+
+    const byHeading = (heading: string): string[] =>
+      output.sections.find((s: { heading: string }) => s.heading === heading)?.items ?? [];
+
+    // Open tasks: exactly the three unchecked fixture checkboxes; the checked
+    // task and generic document titles never become tasks.
+    expect(byHeading("Open Tasks")).toEqual([
+      "Confirm final paper stock with the supplier.",
+      "Export the elevation maps for print.",
+      "Assemble the print-ready guide draft.",
+    ]);
+    expect(JSON.stringify(output)).not.toContain("Approve the map legend");
+    expect(byHeading("Open Tasks")).not.toContain("Riverline Field Guide");
+    expect(byHeading("Open Tasks")).not.toContain("Status");
+
+    // Risks: body-grounded blocker/constraint lines from the neutral-title
+    // constraints document and the status Blocked section.
+    expect(byHeading("Risks")).toEqual([
+      "The printing quote is blocked until the paper supplier responds (owner: Jordan).",
+      "The updated cover artwork approval is urgent and due this week (owner: Sam).",
+      "Elevation data licensing is an external dependency that still needs a final confirmation (owner: Alex).",
+      "A courier strike could cause a delay for the sample shipment (owner: Jordan).",
+      "The printing quote is blocked waiting on the paper supplier (owner: Jordan).",
+    ]);
+
+    // Decisions: the fixture decision lines from the Decisions document.
+    expect(byHeading("Decisions")).toEqual([
+      "Decision: the spring edition ships as a single printed volume, not two booklets.",
+      "Decided by: Jordan",
+      "Date: 2026-03-02",
+    ]);
+
+    // The Runtime never aliases generic items into explicit collections, and
+    // the seed titles never appear.
+    expect(JSON.stringify(parsed.data.plannerInput)).not.toContain("markdown-project");
+    expect(result.stdout).not.toContain("Finalize project roadmap");
+    expect(result.stdout).not.toContain("Prepare launch handoff");
+
+    // The read-only run left the fixture project untouched.
+    const reloaded = loadMarkdownProjectDocuments(fixtureRoot);
+    expect(reloaded).toEqual(loaded);
+  });
+
+  it("renders a markdown handoff without dumping full document bodies", () => {
+    const result = runBin(["handoff", "examples/fixtures/markdown-project", "--markdown"]);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("# OH MY PM Project Handoff");
+    expect(result.stdout).toContain("- Project: Riverline Field Guide");
+    expect(result.stdout).toContain("## Summary");
+    expect(result.stdout).toContain("## Open Tasks");
+    expect(result.stdout).toContain("## Risks");
+    expect(result.stdout).toContain("## Decisions");
+    expect(result.stdout).toContain("Generated at: `2026-01-01T00:00:00.000Z`");
+    expect(result.stdout).toContain("Ship the printable spring edition of the trail guide.");
+    // Neutral preamble prose from the constraints document must not appear.
+    expect(result.stdout).not.toContain("proves that document content");
+    // The read-only survey narrative from the constraints doc is not dumped.
+    expect(result.stdout).not.toContain("Open constraints for the fictional");
+    expect(result.stdout.endsWith("\n")).toBe(true);
+    expect(result.stdout.endsWith("\n\n")).toBe(false);
+  });
+
+  it("exits with 2 for a missing handoff root without executing the runtime", () => {
+    const result = runBin(["handoff", "examples/fixtures/does-not-exist", "--json"]);
+    expect(result.status).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toBe("project root was not found: examples/fixtures/does-not-exist\n");
+  });
+
+  it("exits with 2 for a handoff root without markdown documents", () => {
+    const emptyRoot = mkdtempSync(join(tmpdir(), "oh-my-pm-empty-"));
+    try {
+      const result = runBin(["handoff", emptyRoot]);
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toBe(`no markdown project documents found under: ${emptyRoot}\n`);
+    } finally {
+      rmSync(emptyRoot, { recursive: true, force: true });
+    }
+  });
+});

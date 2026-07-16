@@ -8,6 +8,7 @@ export type CliCommand =
   | "brief"
   | "risks"
   | "next"
+  | "handoff"
   | "install-preview";
 
 /** Commands dispatched to the Runtime; only install-preview runs locally. */

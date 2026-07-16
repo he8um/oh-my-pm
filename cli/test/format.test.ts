@@ -465,6 +465,136 @@ describe("cli formatting", () => {
     expect(JSON.parse(formatRuntimeResponse(response, "json"))).toEqual(response);
   });
 
+  const handoffResponse = (output: JsonValue): RuntimeResponse => ({
+    id: "cli-handoff",
+    ok: true,
+    data: { output },
+  });
+
+  const fixtureHandoff = {
+    title: "Riverline Field Guide",
+    sections: [
+      {
+        heading: "Summary",
+        items: ["Ship the printable spring edition of the trail guide."],
+      },
+      {
+        heading: "Open Tasks",
+        items: ["Confirm final paper stock with the supplier."],
+      },
+      {
+        heading: "Risks",
+        items: ["The printing quote is blocked until the paper supplier responds (owner: Jordan)."],
+      },
+      {
+        heading: "Decisions",
+        items: ["Decision: the spring edition ships as a single printed volume, not two booklets."],
+      },
+    ],
+    generatedAt: "2026-01-01T00:00:00.000Z",
+  };
+
+  it("formats a handoff in brief mode with section order and generated timestamp", () => {
+    expect(formatRuntimeResponse(handoffResponse(fixtureHandoff), "brief")).toBe(
+      [
+        "OH MY PM handoff: Riverline Field Guide",
+        "Summary: 1",
+        "- Ship the printable spring edition of the trail guide.",
+        "Open Tasks: 1",
+        "- Confirm final paper stock with the supplier.",
+        "Risks: 1",
+        "- The printing quote is blocked until the paper supplier responds (owner: Jordan).",
+        "Decisions: 1",
+        "- Decision: the spring edition ships as a single printed volume, not two booklets.",
+        "generated at: 2026-01-01T00:00:00.000Z",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("formats a handoff in markdown mode with section order and generated timestamp", () => {
+    expect(formatRuntimeResponse(handoffResponse(fixtureHandoff), "markdown")).toBe(
+      [
+        "# OH MY PM Project Handoff",
+        "",
+        "- Project: Riverline Field Guide",
+        "- Generated at: `2026-01-01T00:00:00.000Z`",
+        "",
+        "## Summary",
+        "",
+        "- Ship the printable spring edition of the trail guide.",
+        "",
+        "## Open Tasks",
+        "",
+        "- Confirm final paper stock with the supplier.",
+        "",
+        "## Risks",
+        "",
+        "- The printing quote is blocked until the paper supplier responds (owner: Jordan).",
+        "",
+        "## Decisions",
+        "",
+        "- Decision: the spring edition ships as a single printed volume, not two booklets.",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("renders an empty handoff section as - none in markdown mode", () => {
+    const output = formatRuntimeResponse(
+      handoffResponse({
+        title: "Empty project",
+        sections: [{ heading: "Risks", items: [] }],
+        generatedAt: "t0",
+      }),
+      "markdown",
+    );
+    expect(output).toContain("## Risks\n\n- none");
+  });
+
+  it("falls back to generic section formatting for a malformed handoff shape", () => {
+    // Missing generatedAt: not a strict handoff, so the generic section path runs.
+    const malformed = handoffResponse({
+      title: "No timestamp",
+      sections: [{ heading: "Summary", items: ["ok"] }],
+    });
+    expect(formatRuntimeResponse(malformed, "brief")).toBe(
+      "OH MY PM plan: ok\nsections: 1\n- Summary\n",
+    );
+    expect(formatRuntimeResponse(malformed, "markdown")).toBe(
+      "# OH MY PM Plan\n\n## Summary\n\n- ok\n",
+    );
+  });
+
+  it("falls back when a handoff section item is not a string", () => {
+    const malformed = handoffResponse({
+      title: "Bad items",
+      sections: [{ heading: "Risks", items: [42] }],
+      generatedAt: "t0",
+    });
+    // Not a strict handoff (non-string item), so it drops to generic formatting.
+    expect(formatRuntimeResponse(malformed, "brief")).toBe(
+      "OH MY PM plan: ok\nsections: 1\n- Risks\n",
+    );
+  });
+
+  it("keeps json mode untouched for handoff outputs", () => {
+    const response: RuntimeResponse = {
+      ...handoffResponse(fixtureHandoff),
+      trace: [{ step: "skill.execute", status: "ok" }],
+    };
+    expect(JSON.parse(formatRuntimeResponse(response, "json"))).toEqual(response);
+  });
+
+  it("ends handoff outputs with exactly one newline", () => {
+    const brief = formatRuntimeResponse(handoffResponse(fixtureHandoff), "brief");
+    const markdown = formatRuntimeResponse(handoffResponse(fixtureHandoff), "markdown");
+    for (const output of [brief, markdown]) {
+      expect(output.endsWith("\n")).toBe(true);
+      expect(output.endsWith("\n\n")).toBe(false);
+    }
+  });
+
   it("ends every output with exactly one newline", () => {
     const planResponse: RuntimeResponse = {
       id: "cli-plan",
