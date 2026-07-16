@@ -18,6 +18,7 @@ export {
   examplePublicV0ReleaseNotesDraftInput,
   exampleGuardedReleaseArtifactPlanInput,
   exampleGuardedLocalArtifactAssemblyDryRunEnvelopeInput,
+  exampleGuardedArtifactCreationPermissionInput,
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
   exampleControlledWriteExecutionDryRunEnvelopeInput,
@@ -162,6 +163,14 @@ export {
   summarizeGuardedLocalArtifactAssemblyDryRunEnvelope,
 } from "./local-artifact-assembly-envelope.js";
 export {
+  createGuardedArtifactCreationPermissionDryRun,
+  DEFAULT_GUARDED_ARTIFACT_CREATION_PERMISSION_POLICY,
+  evaluateGuardedArtifactCreationPermission,
+  formatGuardedArtifactCreationPermissionMarkdown,
+  validateGuardedArtifactCreationPermissionMode,
+  validateGuardedArtifactCreationPermissionPolicy,
+} from "./artifact-creation-permission.js";
+export {
   createPackageFileEntry,
   createPackageManifest,
   PACKAGE_MANIFEST_SCHEMA_VERSION,
@@ -258,6 +267,11 @@ export type {
   FilesystemEntry,
   FilesystemPlannerDeps,
   FilesystemSnapshot,
+  GuardedArtifactCreationPermissionDryRunReport,
+  GuardedArtifactCreationPermissionInput,
+  GuardedArtifactCreationPermissionMode,
+  GuardedArtifactCreationPermissionPolicy,
+  GuardedArtifactCreationPermissionReport,
   GuardedLocalArtifactAssemblyDryRunEnvelope,
   GuardedLocalArtifactAssemblyDryRunEnvelopeInput,
   GuardedLocalArtifactAssemblyDryRunEnvelopeSummary,

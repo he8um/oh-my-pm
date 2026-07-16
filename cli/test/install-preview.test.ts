@@ -68,6 +68,9 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: guarded_release_artifact_release_readiness_blocked",
         "OMP-I-6001: guarded_release_artifact_release_notes_blocked",
         "OMP-I-6001: guarded_local_artifact_assembly_plan_not_ready",
+        "OMP-I-6001: artifact_creation_permission_dry_run_only",
+        "OMP-I-6001: artifact_creation_permission_assembly_not_ready",
+        "OMP-I-6001: artifact_creation_permission_approval_required",
       ]);
       expect(result.archive).toEqual({
         format: "zip",
@@ -159,6 +162,9 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: guarded_release_artifact_package_manifest_blocked",
         "OMP-I-6001: guarded_local_artifact_assembly_plan_not_ready",
         "OMP-I-6001: guarded_local_artifact_assembly_package_not_ready",
+        "OMP-I-6001: artifact_creation_permission_dry_run_only",
+        "OMP-I-6001: artifact_creation_permission_assembly_not_ready",
+        "OMP-I-6001: artifact_creation_permission_approval_required",
       ]);
       expect(result.operations).toHaveLength(1);
       expect(result.operations[0].path.endsWith("README.md")).toBe(true);
@@ -338,6 +344,28 @@ describe("runInstallerPreview", () => {
       for (const key of Object.keys(parsed.guardedLocalArtifactAssembly)) {
         expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|bytes|result|remote|url|download|upload/i);
       }
+      // Guarded artifact creation permission summary; the default policy is
+      // dry-run-only without approval, so permission is never granted here,
+      // creation stays disallowed, and the raw assembly envelope and markdown
+      // never reach JSON.
+      expect(parsed.guardedArtifactCreationPermission.version).toBe("v0.1.0");
+      expect(parsed.guardedArtifactCreationPermission.mode).toBe("dry-run-only");
+      expect(parsed.guardedArtifactCreationPermission.ok).toBe(false);
+      expect(parsed.guardedArtifactCreationPermission.allowed).toBe(false);
+      expect(parsed.guardedArtifactCreationPermission.creationAllowed).toBe(false);
+      expect(parsed.guardedArtifactCreationPermission.reasons).toContain(
+        "artifact_creation_permission_dry_run_only",
+      );
+      expect(parsed.guardedArtifactCreationPermission.reasons).toContain(
+        "artifact_creation_permission_approval_required",
+      );
+      expect(parsed.guardedArtifactCreationPermission).not.toHaveProperty("assembly");
+      expect(parsed.guardedArtifactCreationPermission).not.toHaveProperty("envelope");
+      expect(parsed.guardedArtifactCreationPermission).not.toHaveProperty("markdown");
+      expect(parsed.guardedArtifactCreationPermission).not.toHaveProperty("report");
+      for (const key of Object.keys(parsed.guardedArtifactCreationPermission)) {
+        expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|bytes|result|remote|url|download|upload/i);
+      }
       expect(output).not.toContain("backupFile");
       expect(output).not.toContain("removeFile");
       expect(output).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
@@ -369,6 +397,8 @@ describe("runInstallerPreview", () => {
       expect(output).toContain("## Public v0 Release Notes Draft");
       expect(output).toContain("## Guarded Release Artifact Plan");
       expect(output).toContain("## Guarded Local Artifact Assembly Dry-Run");
+      expect(output).toContain("## Guarded Artifact Creation Permission");
+      expect(output).toContain("evaluation only, creation disabled");
       expect(output).not.toMatch(/https?:\/\//);
       expect(output).not.toContain("placeholder:preview-key:");
       expect(output).not.toContain("executeInstall");
@@ -433,6 +463,9 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: guarded_local_artifact_assembly_metadata_not_ready",
       "OMP-I-6001: guarded_local_artifact_assembly_integrity_not_ready",
       "OMP-I-6001: guarded_local_artifact_assembly_channel_not_ready",
+      "OMP-I-6001: artifact_creation_permission_dry_run_only",
+      "OMP-I-6001: artifact_creation_permission_assembly_not_ready",
+      "OMP-I-6001: artifact_creation_permission_approval_required",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);

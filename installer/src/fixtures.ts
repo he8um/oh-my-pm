@@ -32,6 +32,7 @@ import type {
   PublicV0ReleaseNotesDraftInput,
   GuardedReleaseArtifactPlanInput,
   GuardedLocalArtifactAssemblyDryRunEnvelopeInput,
+  GuardedArtifactCreationPermissionInput,
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -63,6 +64,7 @@ import { createV0ReleaseCandidateChecklist } from "./v0-release-candidate.js";
 import { createV0ReleaseCandidateChecklistDryRun } from "./v0-release-candidate.js";
 import { createPublicV0ReleaseNotesDraftDryRun } from "./public-v0-release-notes.js";
 import { createGuardedReleaseArtifactPlanDryRun } from "./release-artifact-plan.js";
+import { createGuardedLocalArtifactAssemblyDryRun } from "./local-artifact-assembly-envelope.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -552,6 +554,28 @@ export function exampleGuardedLocalArtifactAssemblyDryRunEnvelopeInput(): Guarde
     metadata,
     integrity,
     channel,
+  };
+}
+
+/**
+ * Example guarded artifact creation permission input. The assembly envelope
+ * comes from the ready assembly fixture chain and the policy is explicit with
+ * approval granted, so the permission evaluation may be ok while
+ * `creationAllowed` stays false — creation remains disabled in this phase.
+ */
+export function exampleGuardedArtifactCreationPermissionInput(): GuardedArtifactCreationPermissionInput {
+  const assembly = createGuardedLocalArtifactAssemblyDryRun(
+    exampleGuardedLocalArtifactAssemblyDryRunEnvelopeInput(),
+  );
+  return {
+    version: "v0.1.0",
+    policy: {
+      mode: "explicit",
+      requireReadyAssembly: true,
+      requireExplicitApproval: true,
+    },
+    approved: true,
+    assembly: assembly.envelope,
   };
 }
 

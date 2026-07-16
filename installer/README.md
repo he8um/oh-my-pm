@@ -169,3 +169,9 @@ The plan is planning-only. It reports which release outputs would be planned and
 The installer can aggregate guarded release artifact planning, package assembly, archive, metadata, integrity, and channel dry-runs into one local artifact assembly readiness envelope.
 
 The envelope is readiness-only. It keeps creation disabled. It does not create release artifacts, archives, GitHub releases, tags, publishing workflows, installation commands, or write execution.
+
+## Guarded artifact creation permission model
+
+The installer can evaluate whether artifact creation permission would be granted for a future explicitly-enabled local artifact creation phase.
+
+The permission model is evaluation-only. It can report permission as allowed only under explicit mode, ready assembly, and explicit approval, but creation remains disabled in this phase. It does not create release artifacts, archives, GitHub releases, tags, publishing workflows, installation commands, or write execution.

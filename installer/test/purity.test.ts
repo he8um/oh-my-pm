@@ -246,6 +246,53 @@ describe("installer purity", () => {
     }
   });
 
+  it("the guarded artifact creation permission model never logs, executes, calls an adapter, publishes, writes, or reaches the network", () => {
+    // This module models artifact/creation/permission evaluation only, so
+    // those words are allowed; Node imports, actual creation, publish,
+    // network, write, adapter, execution, logging, and crypto APIs are not.
+    const contents = readFileSync(join(srcDir, "artifact-creation-permission.ts"), "utf8");
+    expect(contents).not.toMatch(/from\s+["']node:/);
+    expect(contents).not.toMatch(/from\s+["'](fs|path|os|crypto)["']/);
+    for (const forbidden of [
+      "http://",
+      "https://",
+      "fetch(",
+      "XMLHttpRequest",
+      "publish",
+      "upload",
+      "download",
+      "cdn",
+      "bucket",
+      "registry",
+      "createWriteStream",
+      "archiver",
+      "executeInstall",
+      "executeRollback",
+      "executeInstallPlan",
+      "executeRollbackPlan",
+      "FilesystemWriteAdapter",
+      "writeFile(",
+      "removeFile(",
+      "backupFile(",
+      "rmSync",
+      "unlink",
+      "mkdir",
+      "console.log",
+      "console.error",
+      "logger",
+      "telemetry",
+      "fs.",
+      "crypto",
+      "privateKey",
+      "publicKey",
+    ]) {
+      expect(
+        contents,
+        `artifact-creation-permission.ts must not contain "${forbidden}"`,
+      ).not.toContain(forbidden);
+    }
+  });
+
   it("the guarded release artifact plan never logs, executes, calls an adapter, publishes, or reaches the network", () => {
     // This module intentionally plans release artifacts, so the words
     // release/artifact/archive are allowed; actual creation, publish, network,

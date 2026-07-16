@@ -94,7 +94,8 @@ for (const file of trackedFiles) {
         file === "installer/src/v0-release-candidate.ts" ||
         file === "installer/src/public-v0-release-notes.ts" ||
         file === "installer/src/release-artifact-plan.ts" ||
-        file === "installer/src/local-artifact-assembly-envelope.ts") &&
+        file === "installer/src/local-artifact-assembly-envelope.ts" ||
+        file === "installer/src/artifact-creation-permission.ts") &&
       (spec === "node" || spec.startsWith("node:"))
     ) {
       err(`${file} imports a Node built-in: "${spec}"`);
@@ -220,7 +221,8 @@ for (const file of trackedFiles) {
     file === "installer/src/v0-release-candidate.ts" ||
     file === "installer/src/public-v0-release-notes.ts" ||
     file === "installer/src/release-artifact-plan.ts" ||
-    file === "installer/src/local-artifact-assembly-envelope.ts"
+    file === "installer/src/local-artifact-assembly-envelope.ts" ||
+    file === "installer/src/artifact-creation-permission.ts"
   ) {
     for (const api of NODE_WRITE_APIS) {
       if (contents.includes(api)) {
@@ -245,7 +247,8 @@ for (const file of trackedFiles) {
     file === "installer/src/v0-release-candidate.ts" ||
     file === "installer/src/public-v0-release-notes.ts" ||
     file === "installer/src/release-artifact-plan.ts" ||
-    file === "installer/src/local-artifact-assembly-envelope.ts"
+    file === "installer/src/local-artifact-assembly-envelope.ts" ||
+    file === "installer/src/artifact-creation-permission.ts"
   ) {
     // The public release notes draft names "No telemetry ..." as a thing NOT
     // done; that exact public-safe phrase is stripped before the scan.
@@ -273,7 +276,8 @@ for (const file of trackedFiles) {
     file === "installer/src/v0-release-candidate.ts" ||
     file === "installer/src/public-v0-release-notes.ts" ||
     file === "installer/src/release-artifact-plan.ts" ||
-    file === "installer/src/local-artifact-assembly-envelope.ts"
+    file === "installer/src/local-artifact-assembly-envelope.ts" ||
+    file === "installer/src/artifact-creation-permission.ts"
   ) {
     for (const marker of [
       "executeInstall",
@@ -298,7 +302,8 @@ for (const file of trackedFiles) {
     file === "installer/src/v0-release-candidate.ts" ||
     file === "installer/src/public-v0-release-notes.ts" ||
     file === "installer/src/release-artifact-plan.ts" ||
-    file === "installer/src/local-artifact-assembly-envelope.ts"
+    file === "installer/src/local-artifact-assembly-envelope.ts" ||
+    file === "installer/src/artifact-creation-permission.ts"
   ) {
     for (const marker of ["FilesystemWriteAdapter", "writeFile(", "removeFile(", "backupFile("]) {
       if (contents.includes(marker)) {
@@ -319,7 +324,8 @@ for (const file of trackedFiles) {
     file === "installer/src/v0-release-candidate.ts" ||
     file === "installer/src/public-v0-release-notes.ts" ||
     file === "installer/src/release-artifact-plan.ts" ||
-    file === "installer/src/local-artifact-assembly-envelope.ts"
+    file === "installer/src/local-artifact-assembly-envelope.ts" ||
+    file === "installer/src/artifact-creation-permission.ts"
   ) {
     for (const marker of ["crypto", "privateKey", "publicKey"]) {
       if (contents.includes(marker)) {
@@ -358,12 +364,14 @@ for (const file of trackedFiles) {
       }
     }
   }
-  // The guarded release artifact plan and local artifact assembly envelope
-  // intentionally model release/artifact/archive/assembly readiness, so those
-  // words are allowed; actual creation and publish automation terms are not.
+  // The guarded release artifact plan, local artifact assembly envelope, and
+  // artifact creation permission model intentionally model
+  // release/artifact/creation/permission/assembly readiness, so those words
+  // are allowed; actual creation and publish automation terms are not.
   if (
     file === "installer/src/release-artifact-plan.ts" ||
-    file === "installer/src/local-artifact-assembly-envelope.ts"
+    file === "installer/src/local-artifact-assembly-envelope.ts" ||
+    file === "installer/src/artifact-creation-permission.ts"
   ) {
     for (const marker of ["publish", "createWriteStream", "archiver"]) {
       if (contents.includes(marker)) {

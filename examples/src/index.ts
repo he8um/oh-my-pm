@@ -29,6 +29,7 @@ export {
   runPublicV0ReleaseNotesDraftExample,
   runGuardedReleaseArtifactPlanExample,
   runGuardedLocalArtifactAssemblyDryRunExample,
+  runGuardedArtifactCreationPermissionExample,
 } from "./installer.js";
 export type {
   ControlledWriteExecutionDryRunExample,
@@ -57,6 +58,7 @@ export type {
   PublicV0ReleaseNotesDraftExample,
   GuardedReleaseArtifactPlanExample,
   GuardedLocalArtifactAssemblyDryRunExample,
+  GuardedArtifactCreationPermissionExample,
 } from "./installer.js";
 export {
   createExampleKernelApi,

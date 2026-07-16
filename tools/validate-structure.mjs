@@ -336,6 +336,8 @@ const INSTALLER_SOURCES = [
   "installer/test/release-artifact-plan.test.ts",
   "installer/src/local-artifact-assembly-envelope.ts",
   "installer/test/local-artifact-assembly-envelope.test.ts",
+  "installer/src/artifact-creation-permission.ts",
+  "installer/test/artifact-creation-permission.test.ts",
   "installer/test/validate.test.ts",
   "installer/test/manifest.test.ts",
   "installer/test/installer.test.ts",

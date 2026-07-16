@@ -1227,6 +1227,60 @@ export type GuardedLocalArtifactAssemblyDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Modes a guarded artifact creation permission policy may declare. */
+export type GuardedArtifactCreationPermissionMode =
+  | "disabled"
+  | "dry-run-only"
+  | "explicit";
+
+/**
+ * Policy governing whether a future explicitly-enabled local artifact
+ * creation phase would be permitted. In this phase the policy must require a
+ * ready assembly envelope and explicit approval; creation itself stays
+ * disabled regardless of the policy.
+ */
+export type GuardedArtifactCreationPermissionPolicy = {
+  mode: GuardedArtifactCreationPermissionMode;
+  requireReadyAssembly: boolean;
+  requireExplicitApproval: boolean;
+};
+
+/**
+ * Input for a guarded artifact creation permission evaluation. The assembly
+ * value is the already computed guarded local artifact assembly dry-run
+ * envelope; nothing is fetched, created, written, or executed.
+ */
+export type GuardedArtifactCreationPermissionInput = {
+  version: string;
+  policy: GuardedArtifactCreationPermissionPolicy;
+  approved: boolean;
+  assembly: GuardedLocalArtifactAssemblyDryRunEnvelope;
+};
+
+/**
+ * Permission-evaluation verdict. `allowed` is only a future-permission
+ * signal and `creationAllowed` is always the literal `false` — this phase
+ * evaluates permission only and never permits creation. There is no
+ * artifact-bytes, archive-bytes, file-content, output-path, destination,
+ * command, distribution-target, remote, adapter-object, or execution-result
+ * field.
+ */
+export type GuardedArtifactCreationPermissionReport = {
+  ok: boolean;
+  version: string;
+  mode: GuardedArtifactCreationPermissionMode;
+  allowed: boolean;
+  creationAllowed: false;
+  reasons: string[];
+};
+
+/** Result of a guarded artifact creation permission dry run; nothing is written. */
+export type GuardedArtifactCreationPermissionDryRunReport = {
+  ok: boolean;
+  report: GuardedArtifactCreationPermissionReport;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

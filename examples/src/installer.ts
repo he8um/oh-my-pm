@@ -11,6 +11,7 @@ import type {
   PublicV0ReleaseNotesDraftDryRunReport,
   GuardedReleaseArtifactPlanDryRunReport,
   GuardedLocalArtifactAssemblyDryRunReport,
+  GuardedArtifactCreationPermissionDryRunReport,
   InstallDryRunReport,
   InstallerAuditEventDryRunReport,
   InstallerAuditTrailExportDryRunReport,
@@ -45,6 +46,7 @@ import {
   createPublicV0ReleaseNotesDraftDryRun,
   createGuardedReleaseArtifactPlanDryRun,
   createGuardedLocalArtifactAssemblyDryRun,
+  createGuardedArtifactCreationPermissionDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -67,6 +69,7 @@ import {
   formatPublicV0ReleaseNotesDraftMarkdown,
   formatGuardedReleaseArtifactPlanMarkdown,
   formatGuardedLocalArtifactAssemblyDryRunMarkdown,
+  formatGuardedArtifactCreationPermissionMarkdown,
   DEFAULT_LOCAL_UPDATE_POLICY,
   exampleFilesystemEntries,
   exampleInstallerAuditEventInput,
@@ -79,6 +82,7 @@ import {
   examplePublicV0ReleaseNotesDraftInput,
   exampleGuardedReleaseArtifactPlanInput,
   exampleGuardedLocalArtifactAssemblyDryRunEnvelopeInput,
+  exampleGuardedArtifactCreationPermissionInput,
   exampleInstallerWriteAdapterContractInput,
   exampleInstallerWriteConfirmationChecklistInput,
   exampleInstallerWriteExecutionPlanInput,
@@ -199,6 +203,11 @@ export type GuardedReleaseArtifactPlanExample = {
 
 export type GuardedLocalArtifactAssemblyDryRunExample = {
   guardedLocalArtifactAssembly: GuardedLocalArtifactAssemblyDryRunReport;
+  markdown: string;
+};
+
+export type GuardedArtifactCreationPermissionExample = {
+  guardedArtifactCreationPermission: GuardedArtifactCreationPermissionDryRunReport;
   markdown: string;
 };
 
@@ -560,6 +569,22 @@ export function runGuardedLocalArtifactAssemblyDryRunExample(): GuardedLocalArti
     guardedLocalArtifactAssembly.envelope,
   );
   return { guardedLocalArtifactAssembly, markdown };
+}
+
+/**
+ * Evaluate whether artifact creation permission would be granted for the
+ * example explicit, ready, approved input and render the report as markdown.
+ * Evaluation-only — creation stays disabled and nothing is created, written,
+ * executed, retrieved, logged, or sent.
+ */
+export function runGuardedArtifactCreationPermissionExample(): GuardedArtifactCreationPermissionExample {
+  const guardedArtifactCreationPermission = createGuardedArtifactCreationPermissionDryRun(
+    exampleGuardedArtifactCreationPermissionInput(),
+  );
+  const markdown = formatGuardedArtifactCreationPermissionMarkdown(
+    guardedArtifactCreationPermission.report,
+  );
+  return { guardedArtifactCreationPermission, markdown };
 }
 
 /** Install the example package, then apply the example update plan. */

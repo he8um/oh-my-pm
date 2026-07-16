@@ -6,6 +6,7 @@ import {
   runPublicV0ReleaseNotesDraftExample,
   runGuardedReleaseArtifactPlanExample,
   runGuardedLocalArtifactAssemblyDryRunExample,
+  runGuardedArtifactCreationPermissionExample,
   runInstallerReleaseReadinessExample,
   runInstallerArchivePlanExample,
   runInstallerAuditEventExample,
@@ -510,8 +511,39 @@ describe("runGuardedLocalArtifactAssemblyDryRunExample", () => {
   });
 });
 
+describe("runGuardedArtifactCreationPermissionExample", () => {
+  it("returns an allowed permission evaluation with creation disabled", () => {
+    const result = runGuardedArtifactCreationPermissionExample();
+    expect(result.guardedArtifactCreationPermission.ok).toBe(true);
+    expect(result.guardedArtifactCreationPermission.report.mode).toBe("explicit");
+    expect(result.guardedArtifactCreationPermission.report.allowed).toBe(true);
+    expect(result.guardedArtifactCreationPermission.report.creationAllowed).toBe(false);
+    expect(result.guardedArtifactCreationPermission.report.reasons).toEqual([]);
+    expect(result.markdown).toContain("Guarded Artifact Creation Permission");
+    expect(result.markdown).toContain("Creation allowed: `false`");
+    expect(Object.keys(result).sort()).toEqual(["guardedArtifactCreationPermission", "markdown"]);
+
+    // Evaluation-only: no artifact bytes, output path, command, adapter, or URL.
+    const serialized = JSON.stringify(result.guardedArtifactCreationPermission);
+    expect(serialized).not.toContain("writeFile");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    for (const key of Object.keys(result.guardedArtifactCreationPermission.report)) {
+      expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|url|bytes|result/i);
+    }
+  });
+
+  it("is deterministic", () => {
+    expect(runGuardedArtifactCreationPermissionExample()).toEqual(
+      runGuardedArtifactCreationPermissionExample(),
+    );
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runGuardedArtifactCreationPermissionExample).toBe("function");
     expect(typeof examples.runGuardedLocalArtifactAssemblyDryRunExample).toBe("function");
     expect(typeof examples.runGuardedReleaseArtifactPlanExample).toBe("function");
     expect(typeof examples.runPublicV0ReleaseNotesDraftExample).toBe("function");

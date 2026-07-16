@@ -24,6 +24,7 @@ import {
   createPublicV0ReleaseNotesDraftDryRun,
   createGuardedReleaseArtifactPlanDryRun,
   createGuardedLocalArtifactAssemblyDryRun,
+  createGuardedArtifactCreationPermissionDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -38,6 +39,7 @@ import {
   createUpdateImpactDryRun,
   formatInstallerAuditEventsMarkdown,
   formatInstallerDecisionReportMarkdown,
+  DEFAULT_GUARDED_ARTIFACT_CREATION_PERMISSION_POLICY,
   DEFAULT_INSTALLER_WRITE_CAPABILITY_POLICY,
   DEFAULT_LOCAL_UPDATE_POLICY,
 } from "@oh-my-pm/installer";
@@ -275,6 +277,21 @@ export type InstallerPreviewResult = {
     metadataReady: boolean;
     integrityReady: boolean;
     channelReady: boolean;
+    creationAllowed: boolean;
+    reasons: string[];
+  };
+  /**
+   * Guarded artifact creation permission verdict; evaluation-only. The default
+   * policy is dry-run-only and the preview is never approved, so permission is
+   * never granted here, `creationAllowed` is always false, the raw assembly
+   * envelope and markdown are never included in JSON, and nothing is created
+   * or executed.
+   */
+  guardedArtifactCreationPermission?: {
+    ok: boolean;
+    version: string;
+    mode: string;
+    allowed: boolean;
     creationAllowed: boolean;
     reasons: string[];
   };
@@ -799,6 +816,30 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const guardedLocalArtifactAssemblyWarnings =
     guardedLocalArtifactAssemblyReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Evaluate whether artifact creation permission would be granted under the
+  // default dry-run-only policy without approval. Evaluation-only — permission
+  // is never granted here, creation stays disabled, the raw assembly envelope
+  // stays out of the summary, and nothing is created or executed.
+  const guardedArtifactCreationPermissionReport = createGuardedArtifactCreationPermissionDryRun({
+    version: "v0.1.0",
+    policy: DEFAULT_GUARDED_ARTIFACT_CREATION_PERMISSION_POLICY,
+    approved: false,
+    assembly: guardedLocalArtifactAssemblyReport.envelope,
+  });
+  const permissionReport = guardedArtifactCreationPermissionReport.report;
+  const guardedArtifactCreationPermission = {
+    ok: guardedArtifactCreationPermissionReport.ok,
+    version: permissionReport.version,
+    mode: permissionReport.mode,
+    allowed: permissionReport.allowed,
+    creationAllowed: permissionReport.creationAllowed,
+    reasons: [...permissionReport.reasons],
+  };
+  const guardedArtifactCreationPermissionWarnings =
+    guardedArtifactCreationPermissionReport.warnings?.map(
+      (warning) => `${warning.code}: ${warning.message}`,
+    ) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -828,6 +869,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...publicV0ReleaseNotesWarnings,
         ...guardedReleaseArtifactPlanWarnings,
         ...guardedLocalArtifactAssemblyWarnings,
+        ...guardedArtifactCreationPermissionWarnings,
         result.message,
       ]),
       archive,
@@ -851,6 +893,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       publicV0ReleaseNotes,
       guardedReleaseArtifactPlan,
       guardedLocalArtifactAssembly,
+      guardedArtifactCreationPermission,
     };
   }
 
@@ -886,6 +929,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...publicV0ReleaseNotesWarnings,
       ...guardedReleaseArtifactPlanWarnings,
       ...guardedLocalArtifactAssemblyWarnings,
+      ...guardedArtifactCreationPermissionWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -909,6 +953,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     publicV0ReleaseNotes,
     guardedReleaseArtifactPlan,
     guardedLocalArtifactAssembly,
+    guardedArtifactCreationPermission,
   };
 }
 
@@ -1046,6 +1091,15 @@ function formatMarkdown(result: InstallerPreviewResult): string {
       "## Guarded Local Artifact Assembly Dry-Run",
       "",
       `Guarded local artifact assembly \`${result.guardedLocalArtifactAssembly.version}\`: \`${result.guardedLocalArtifactAssembly.ok ? "ready" : "blocked"}\` (readiness only, creation disabled)`,
+    );
+  }
+  if (result.guardedArtifactCreationPermission !== undefined) {
+    // Permission-only note: evaluation only; creation stays disabled.
+    lines.push(
+      "",
+      "## Guarded Artifact Creation Permission",
+      "",
+      `Guarded artifact creation permission \`${result.guardedArtifactCreationPermission.version}\`: \`${result.guardedArtifactCreationPermission.allowed ? "allowed" : "blocked"}\` (mode \`${result.guardedArtifactCreationPermission.mode}\`, evaluation only, creation disabled)`,
     );
   }
   let preview = `${lines.join("\n")}\n`;
