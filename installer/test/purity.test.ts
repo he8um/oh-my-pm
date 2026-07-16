@@ -202,6 +202,50 @@ describe("installer purity", () => {
     }
   });
 
+  it("the guarded local artifact assembly envelope never logs, executes, calls an adapter, publishes, or reaches the network", () => {
+    // This module models release/artifact/assembly/archive readiness only, so
+    // those words are allowed; actual creation, publish, network, write,
+    // adapter, and execution APIs are not.
+    const contents = readFileSync(join(srcDir, "local-artifact-assembly-envelope.ts"), "utf8");
+    for (const forbidden of [
+      "http://",
+      "https://",
+      "fetch(",
+      "XMLHttpRequest",
+      "publish",
+      "upload",
+      "download",
+      "cdn",
+      "bucket",
+      "registry",
+      "createWriteStream",
+      "archiver",
+      "executeInstall",
+      "executeRollback",
+      "executeInstallPlan",
+      "executeRollbackPlan",
+      "FilesystemWriteAdapter",
+      "writeFile(",
+      "removeFile(",
+      "backupFile(",
+      "rmSync",
+      "unlink",
+      "console.log",
+      "console.error",
+      "logger",
+      "telemetry",
+      "fs.",
+      "crypto",
+      "privateKey",
+      "publicKey",
+    ]) {
+      expect(
+        contents,
+        `local-artifact-assembly-envelope.ts must not contain "${forbidden}"`,
+      ).not.toContain(forbidden);
+    }
+  });
+
   it("the guarded release artifact plan never logs, executes, calls an adapter, publishes, or reaches the network", () => {
     // This module intentionally plans release artifacts, so the words
     // release/artifact/archive are allowed; actual creation, publish, network,

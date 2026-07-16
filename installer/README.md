@@ -163,3 +163,9 @@ The draft is public-safe and summary-only. It does not create GitHub releases, r
 The installer can build a guarded release artifact plan from local release-readiness, v0 checklist, release notes, package assembly, archive, metadata, integrity, and channel dry-runs.
 
 The plan is planning-only. It reports which release outputs would be planned and keeps creation disabled. It does not create release artifacts, archives, GitHub releases, tags, publishing workflows, installation commands, or write execution.
+
+## Guarded local artifact assembly dry-run envelope
+
+The installer can aggregate guarded release artifact planning, package assembly, archive, metadata, integrity, and channel dry-runs into one local artifact assembly readiness envelope.
+
+The envelope is readiness-only. It keeps creation disabled. It does not create release artifacts, archives, GitHub releases, tags, publishing workflows, installation commands, or write execution.

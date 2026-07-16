@@ -10,6 +10,7 @@ import type {
   V0ReleaseCandidateChecklistDryRunReport,
   PublicV0ReleaseNotesDraftDryRunReport,
   GuardedReleaseArtifactPlanDryRunReport,
+  GuardedLocalArtifactAssemblyDryRunReport,
   InstallDryRunReport,
   InstallerAuditEventDryRunReport,
   InstallerAuditTrailExportDryRunReport,
@@ -43,6 +44,7 @@ import {
   createV0ReleaseCandidateChecklistDryRun,
   createPublicV0ReleaseNotesDraftDryRun,
   createGuardedReleaseArtifactPlanDryRun,
+  createGuardedLocalArtifactAssemblyDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -64,6 +66,7 @@ import {
   formatV0ReleaseCandidateChecklistMarkdown,
   formatPublicV0ReleaseNotesDraftMarkdown,
   formatGuardedReleaseArtifactPlanMarkdown,
+  formatGuardedLocalArtifactAssemblyDryRunMarkdown,
   DEFAULT_LOCAL_UPDATE_POLICY,
   exampleFilesystemEntries,
   exampleInstallerAuditEventInput,
@@ -75,6 +78,7 @@ import {
   exampleV0ReleaseCandidateChecklistInput,
   examplePublicV0ReleaseNotesDraftInput,
   exampleGuardedReleaseArtifactPlanInput,
+  exampleGuardedLocalArtifactAssemblyDryRunEnvelopeInput,
   exampleInstallerWriteAdapterContractInput,
   exampleInstallerWriteConfirmationChecklistInput,
   exampleInstallerWriteExecutionPlanInput,
@@ -190,6 +194,11 @@ export type PublicV0ReleaseNotesDraftExample = {
 
 export type GuardedReleaseArtifactPlanExample = {
   guardedReleaseArtifactPlan: GuardedReleaseArtifactPlanDryRunReport;
+  markdown: string;
+};
+
+export type GuardedLocalArtifactAssemblyDryRunExample = {
+  guardedLocalArtifactAssembly: GuardedLocalArtifactAssemblyDryRunReport;
   markdown: string;
 };
 
@@ -535,6 +544,22 @@ export function runGuardedReleaseArtifactPlanExample(): GuardedReleaseArtifactPl
   );
   const markdown = formatGuardedReleaseArtifactPlanMarkdown(guardedReleaseArtifactPlan.plan);
   return { guardedReleaseArtifactPlan, markdown };
+}
+
+/**
+ * Aggregate the guarded release artifact plan and the package assembly,
+ * archive, metadata, integrity, and channel dry-runs into one local artifact
+ * assembly readiness envelope and render it as markdown. Readiness-only —
+ * creation stays disabled and nothing is created, written, or executed.
+ */
+export function runGuardedLocalArtifactAssemblyDryRunExample(): GuardedLocalArtifactAssemblyDryRunExample {
+  const guardedLocalArtifactAssembly = createGuardedLocalArtifactAssemblyDryRun(
+    exampleGuardedLocalArtifactAssemblyDryRunEnvelopeInput(),
+  );
+  const markdown = formatGuardedLocalArtifactAssemblyDryRunMarkdown(
+    guardedLocalArtifactAssembly.envelope,
+  );
+  return { guardedLocalArtifactAssembly, markdown };
 }
 
 /** Install the example package, then apply the example update plan. */

@@ -1170,6 +1170,63 @@ export type GuardedReleaseArtifactPlanDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/**
+ * Input aggregating the local dry-run reports a guarded local artifact assembly
+ * readiness envelope reads. Every value is an already computed local report;
+ * nothing is fetched, written, or executed.
+ */
+export type GuardedLocalArtifactAssemblyDryRunEnvelopeInput = {
+  version: string;
+  artifactPlan: GuardedReleaseArtifactPlanDryRunReport;
+  assembly: PackageAssemblyDryRunReport;
+  archive: ArchiveDryRunReport;
+  metadata: ReleaseMetadataDryRunReport;
+  integrity: ReleaseIntegrityDryRunReport;
+  channel: ReleaseChannelDryRunReport;
+};
+
+/**
+ * Flat readiness summary across the assembly layers. `creationAllowed` is
+ * always `false` — this phase models readiness only and never permits creation.
+ */
+export type GuardedLocalArtifactAssemblyDryRunEnvelopeSummary = {
+  version: string;
+  artifactPlanReady: boolean;
+  packageAssemblyReady: boolean;
+  archivePlanReady: boolean;
+  metadataReady: boolean;
+  integrityReady: boolean;
+  channelReady: boolean;
+  creationAllowed: false;
+  reasons: string[];
+};
+
+/**
+ * Readiness-only inspection envelope aggregating the guarded release artifact
+ * plan and the package assembly, archive, metadata, integrity, and channel
+ * dry-runs. There is no file-content, output-path, destination, command,
+ * distribution-target, remote, adapter-object, execution-result, or
+ * artifact-bytes field — the pass-through layers are already computed reports
+ * and nothing here is created.
+ */
+export type GuardedLocalArtifactAssemblyDryRunEnvelope = {
+  ok: boolean;
+  summary: GuardedLocalArtifactAssemblyDryRunEnvelopeSummary;
+  artifactPlan: GuardedReleaseArtifactPlan;
+  assembly: PackageAssemblyDryRunReport;
+  archive: ArchiveDryRunReport;
+  metadata: ReleaseMetadataDryRunReport;
+  integrity: ReleaseIntegrityDryRunReport;
+  channel: ReleaseChannelDryRunReport;
+};
+
+/** Result of a guarded local artifact assembly dry run; nothing is written. */
+export type GuardedLocalArtifactAssemblyDryRunReport = {
+  ok: boolean;
+  envelope: GuardedLocalArtifactAssemblyDryRunEnvelope;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

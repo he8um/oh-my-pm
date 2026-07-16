@@ -31,6 +31,7 @@ import type {
   V0ReleaseCandidateChecklistInput,
   PublicV0ReleaseNotesDraftInput,
   GuardedReleaseArtifactPlanInput,
+  GuardedLocalArtifactAssemblyDryRunEnvelopeInput,
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -61,6 +62,7 @@ import { createInstallerReleaseReadinessDryRun } from "./release-readiness.js";
 import { createV0ReleaseCandidateChecklist } from "./v0-release-candidate.js";
 import { createV0ReleaseCandidateChecklistDryRun } from "./v0-release-candidate.js";
 import { createPublicV0ReleaseNotesDraftDryRun } from "./public-v0-release-notes.js";
+import { createGuardedReleaseArtifactPlanDryRun } from "./release-artifact-plan.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -518,6 +520,33 @@ export function exampleGuardedReleaseArtifactPlanInput(): GuardedReleaseArtifact
     releaseNotes,
     v0Checklist,
     releaseReadiness,
+    assembly,
+    archive,
+    metadata,
+    integrity,
+    channel,
+  };
+}
+
+/**
+ * Example guarded local artifact assembly dry-run envelope input. The artifact
+ * plan dry-run and the package assembly, archive, metadata, integrity, and
+ * channel dry-runs all come from the existing ready fixture chain, so the
+ * envelope is ready (creation still disallowed).
+ */
+export function exampleGuardedLocalArtifactAssemblyDryRunEnvelopeInput(): GuardedLocalArtifactAssemblyDryRunEnvelopeInput {
+  const artifactPlan = createGuardedReleaseArtifactPlanDryRun(
+    exampleGuardedReleaseArtifactPlanInput(),
+  );
+  const filesystem = createMemoryFilesystem(exampleFilesystemEntries());
+  const assembly = createPackageAssemblyDryRun(examplePackageAssemblyInput(), filesystem);
+  const archive = createArchiveDryRunFromAssembly(assembly, "zip");
+  const metadata = createReleaseMetadataDryRun(exampleReleaseMetadataInput());
+  const integrity = createReleaseIntegrityDryRun(exampleReleaseIntegrityVerificationInput());
+  const channel = createReleaseChannelDryRun(exampleReleaseChannelMetadataInput());
+  return {
+    version: "v0.1.0",
+    artifactPlan,
     assembly,
     archive,
     metadata,

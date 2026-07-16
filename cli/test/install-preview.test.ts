@@ -67,6 +67,7 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: guarded_release_artifact_v0_checklist_blocked",
         "OMP-I-6001: guarded_release_artifact_release_readiness_blocked",
         "OMP-I-6001: guarded_release_artifact_release_notes_blocked",
+        "OMP-I-6001: guarded_local_artifact_assembly_plan_not_ready",
       ]);
       expect(result.archive).toEqual({
         format: "zip",
@@ -156,6 +157,8 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: guarded_release_artifact_release_readiness_blocked",
         "OMP-I-6001: guarded_release_artifact_release_notes_blocked",
         "OMP-I-6001: guarded_release_artifact_package_manifest_blocked",
+        "OMP-I-6001: guarded_local_artifact_assembly_plan_not_ready",
+        "OMP-I-6001: guarded_local_artifact_assembly_package_not_ready",
       ]);
       expect(result.operations).toHaveLength(1);
       expect(result.operations[0].path.endsWith("README.md")).toBe(true);
@@ -323,6 +326,18 @@ describe("runInstallerPreview", () => {
       for (const key of Object.keys(parsed.guardedReleaseArtifactPlan)) {
         expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|bytes|result|remote|url|download|upload/i);
       }
+      // Guarded local artifact assembly readiness summary; raw envelope and
+      // pass-through reports never reach JSON, and creation stays disallowed.
+      expect(parsed.guardedLocalArtifactAssembly.version).toBe("v0.1.0");
+      expect(parsed.guardedLocalArtifactAssembly.creationAllowed).toBe(false);
+      expect(typeof parsed.guardedLocalArtifactAssembly.artifactPlanReady).toBe("boolean");
+      expect(typeof parsed.guardedLocalArtifactAssembly.channelReady).toBe("boolean");
+      expect(parsed.guardedLocalArtifactAssembly).not.toHaveProperty("envelope");
+      expect(parsed.guardedLocalArtifactAssembly).not.toHaveProperty("assembly");
+      expect(parsed.guardedLocalArtifactAssembly).not.toHaveProperty("markdown");
+      for (const key of Object.keys(parsed.guardedLocalArtifactAssembly)) {
+        expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|bytes|result|remote|url|download|upload/i);
+      }
       expect(output).not.toContain("backupFile");
       expect(output).not.toContain("removeFile");
       expect(output).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
@@ -353,6 +368,7 @@ describe("runInstallerPreview", () => {
       expect(output).toContain("## v0 Release Candidate Checklist");
       expect(output).toContain("## Public v0 Release Notes Draft");
       expect(output).toContain("## Guarded Release Artifact Plan");
+      expect(output).toContain("## Guarded Local Artifact Assembly Dry-Run");
       expect(output).not.toMatch(/https?:\/\//);
       expect(output).not.toContain("placeholder:preview-key:");
       expect(output).not.toContain("executeInstall");
@@ -411,6 +427,12 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: guarded_release_artifact_metadata_blocked",
       "OMP-I-6001: guarded_release_artifact_integrity_blocked",
       "OMP-I-6001: guarded_release_artifact_channel_blocked",
+      "OMP-I-6001: guarded_local_artifact_assembly_plan_not_ready",
+      "OMP-I-6001: guarded_local_artifact_assembly_package_not_ready",
+      "OMP-I-6001: guarded_local_artifact_assembly_archive_not_ready",
+      "OMP-I-6001: guarded_local_artifact_assembly_metadata_not_ready",
+      "OMP-I-6001: guarded_local_artifact_assembly_integrity_not_ready",
+      "OMP-I-6001: guarded_local_artifact_assembly_channel_not_ready",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);

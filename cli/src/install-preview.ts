@@ -23,6 +23,7 @@ import {
   createV0ReleaseCandidateChecklistDryRun,
   createPublicV0ReleaseNotesDraftDryRun,
   createGuardedReleaseArtifactPlanDryRun,
+  createGuardedLocalArtifactAssemblyDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -257,6 +258,23 @@ export type InstallerPreviewResult = {
     plannedItems: number;
     blockedItems: number;
     totalItems: number;
+    creationAllowed: boolean;
+    reasons: string[];
+  };
+  /**
+   * Guarded local artifact assembly readiness summary; readiness-only. The raw
+   * envelope and pass-through reports are never included in JSON,
+   * `creationAllowed` is always false, and nothing is created or executed.
+   */
+  guardedLocalArtifactAssembly?: {
+    ok: boolean;
+    version: string;
+    artifactPlanReady: boolean;
+    packageAssemblyReady: boolean;
+    archivePlanReady: boolean;
+    metadataReady: boolean;
+    integrityReady: boolean;
+    channelReady: boolean;
     creationAllowed: boolean;
     reasons: string[];
   };
@@ -752,6 +770,35 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
   const guardedReleaseArtifactPlanWarnings =
     guardedReleaseArtifactPlanReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
 
+  // Aggregate the guarded release artifact plan and the package assembly,
+  // archive, metadata, integrity, and channel dry-runs into one local artifact
+  // assembly readiness envelope. Readiness-only — creation stays disabled, the
+  // raw envelope stays out of the summary, and nothing is created or executed.
+  const guardedLocalArtifactAssemblyReport = createGuardedLocalArtifactAssemblyDryRun({
+    version: "v0.1.0",
+    artifactPlan: guardedReleaseArtifactPlanReport,
+    assembly,
+    archive: archiveReport,
+    metadata: metadataReport,
+    integrity: integrityReport,
+    channel: channelReport,
+  });
+  const guardedLocalArtifactAssemblySummary = guardedLocalArtifactAssemblyReport.envelope.summary;
+  const guardedLocalArtifactAssembly = {
+    ok: guardedLocalArtifactAssemblyReport.ok,
+    version: guardedLocalArtifactAssemblySummary.version,
+    artifactPlanReady: guardedLocalArtifactAssemblySummary.artifactPlanReady,
+    packageAssemblyReady: guardedLocalArtifactAssemblySummary.packageAssemblyReady,
+    archivePlanReady: guardedLocalArtifactAssemblySummary.archivePlanReady,
+    metadataReady: guardedLocalArtifactAssemblySummary.metadataReady,
+    integrityReady: guardedLocalArtifactAssemblySummary.integrityReady,
+    channelReady: guardedLocalArtifactAssemblySummary.channelReady,
+    creationAllowed: guardedLocalArtifactAssemblySummary.creationAllowed,
+    reasons: [...guardedLocalArtifactAssemblySummary.reasons],
+  };
+  const guardedLocalArtifactAssemblyWarnings =
+    guardedLocalArtifactAssemblyReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -780,6 +827,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...v0ReleaseCandidateWarnings,
         ...publicV0ReleaseNotesWarnings,
         ...guardedReleaseArtifactPlanWarnings,
+        ...guardedLocalArtifactAssemblyWarnings,
         result.message,
       ]),
       archive,
@@ -802,6 +850,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       v0ReleaseCandidate,
       publicV0ReleaseNotes,
       guardedReleaseArtifactPlan,
+      guardedLocalArtifactAssembly,
     };
   }
 
@@ -836,6 +885,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...v0ReleaseCandidateWarnings,
       ...publicV0ReleaseNotesWarnings,
       ...guardedReleaseArtifactPlanWarnings,
+      ...guardedLocalArtifactAssemblyWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -858,6 +908,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     v0ReleaseCandidate,
     publicV0ReleaseNotes,
     guardedReleaseArtifactPlan,
+    guardedLocalArtifactAssembly,
   };
 }
 
@@ -986,6 +1037,15 @@ function formatMarkdown(result: InstallerPreviewResult): string {
       "## Guarded Release Artifact Plan",
       "",
       `Guarded release artifact plan \`${result.guardedReleaseArtifactPlan.version}\`: \`${result.guardedReleaseArtifactPlan.ok ? "ready" : "blocked"}\` (${result.guardedReleaseArtifactPlan.plannedItems}/${result.guardedReleaseArtifactPlan.totalItems} items planned, creation disabled)`,
+    );
+  }
+  if (result.guardedLocalArtifactAssembly !== undefined) {
+    // Readiness only: creation stays disabled; nothing is created.
+    lines.push(
+      "",
+      "## Guarded Local Artifact Assembly Dry-Run",
+      "",
+      `Guarded local artifact assembly \`${result.guardedLocalArtifactAssembly.version}\`: \`${result.guardedLocalArtifactAssembly.ok ? "ready" : "blocked"}\` (readiness only, creation disabled)`,
     );
   }
   let preview = `${lines.join("\n")}\n`;

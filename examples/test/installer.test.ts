@@ -5,6 +5,7 @@ import {
   runV0ReleaseCandidateChecklistExample,
   runPublicV0ReleaseNotesDraftExample,
   runGuardedReleaseArtifactPlanExample,
+  runGuardedLocalArtifactAssemblyDryRunExample,
   runInstallerReleaseReadinessExample,
   runInstallerArchivePlanExample,
   runInstallerAuditEventExample,
@@ -488,8 +489,30 @@ describe("runGuardedReleaseArtifactPlanExample", () => {
   });
 });
 
+describe("runGuardedLocalArtifactAssemblyDryRunExample", () => {
+  it("returns a ready local artifact assembly envelope with creation disabled", () => {
+    const result = runGuardedLocalArtifactAssemblyDryRunExample();
+    expect(result.guardedLocalArtifactAssembly.ok).toBe(true);
+    expect(result.guardedLocalArtifactAssembly.envelope.summary.creationAllowed).toBe(false);
+    expect(result.markdown).toContain("Guarded Local Artifact Assembly Dry-Run");
+    expect(result.markdown).toContain("Creation allowed: `false`");
+    expect(Object.keys(result).sort()).toEqual(["guardedLocalArtifactAssembly", "markdown"]);
+
+    // Readiness-only: no artifact bytes, output path, command, adapter, or URL.
+    const serialized = JSON.stringify(result.guardedLocalArtifactAssembly);
+    expect(serialized).not.toContain("writeFile");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    for (const key of Object.keys(result.guardedLocalArtifactAssembly.envelope.summary)) {
+      expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|url|bytes|result/i);
+    }
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runGuardedLocalArtifactAssemblyDryRunExample).toBe("function");
     expect(typeof examples.runGuardedReleaseArtifactPlanExample).toBe("function");
     expect(typeof examples.runPublicV0ReleaseNotesDraftExample).toBe("function");
     expect(typeof examples.runV0ReleaseCandidateChecklistExample).toBe("function");
