@@ -254,6 +254,67 @@ describe("cli parser", () => {
     });
   });
 
+  it("parses next with the default root", () => {
+    expect(parseCliArgs(["next"])).toEqual({
+      ok: true,
+      command: "next",
+      outputMode: "brief",
+      input: ".",
+    });
+  });
+
+  it("parses next with an explicit dot root", () => {
+    expect(parseCliArgs(["next", "."])).toEqual({
+      ok: true,
+      command: "next",
+      outputMode: "brief",
+      input: ".",
+    });
+  });
+
+  it("parses next with an explicit root", () => {
+    expect(parseCliArgs(["next", "./project"])).toEqual({
+      ok: true,
+      command: "next",
+      outputMode: "brief",
+      input: "./project",
+    });
+  });
+
+  it("parses next with json output", () => {
+    expect(parseCliArgs(["next", "./project", "--json"])).toEqual({
+      ok: true,
+      command: "next",
+      outputMode: "json",
+      input: "./project",
+    });
+  });
+
+  it("parses next with markdown output before the root", () => {
+    expect(parseCliArgs(["--markdown", "next", "./project"])).toEqual({
+      ok: true,
+      command: "next",
+      outputMode: "markdown",
+      input: "./project",
+    });
+  });
+
+  it("rejects a second next positional argument", () => {
+    expect(parseCliArgs(["next", "./a", "./b"])).toEqual({
+      ok: false,
+      code: "OMP-C-3002",
+      message: "unsupported argument: ./b",
+    });
+  });
+
+  it("rejects unknown options for next", () => {
+    expect(parseCliArgs(["next", "--bad"])).toEqual({
+      ok: false,
+      code: "OMP-C-3002",
+      message: "unsupported option: --bad",
+    });
+  });
+
   it("parses install-preview with a root", () => {
     expect(parseCliArgs(["install-preview", "/tmp/oh-my-pm"])).toEqual({
       ok: true,

@@ -94,17 +94,19 @@
 - Status skill through the Runtime/Planner/Kernel pipeline: brief request, planner task graph, Kernel graph validation, local provider read, summarize-status skill, formatted output (in place)
 - Markdown content-to-skill body plumbing: document `data.content` mapped into Runtime skill item bodies so skills inspect document text, not just titles (in place)
 - `risks [root]`: local Markdown project directory to document-level risk report with deterministic severity and reason through the extractRisks skill (in place)
+- Generic Runtime skill-input semantic routing correction: provider items flow to skills as items only, never auto-declared as explicit tasks/risks/changes (in place)
+- Markdown unchecked task extraction: deterministic single-line checkbox parsing in deriveNextTasks with structured open-item fallback (in place)
+- `next [root]`: local Markdown project directory to explicit next-task list through the deriveNextTasks skill (in place)
 - Example project fixture: public fictional Markdown project under `examples/fixtures/markdown-project` (in place)
 - Read-only local operation: no write path, no network, no telemetry, no document content persistence (in place)
 
 Next priorities:
 
-1. `next [root]`
-2. `handoff [root]`
-3. local project config
-4. MCP server
-5. GitHub provider
-6. public packaging/install
+1. `handoff [root]`
+2. local project config
+3. MCP server
+4. GitHub provider
+5. public packaging/install
 
 ## Phase 6 — Release lifecycle
 

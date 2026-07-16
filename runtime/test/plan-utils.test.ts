@@ -149,9 +149,27 @@ describe("skillInputForPlan", () => {
     const input = envelope.input as Record<string, unknown>;
     expect(input["title"]).toBe("what is next");
     expect(input["items"]).toEqual([{ id: "1", title: "One" }]);
-    expect(input["tasks"]).toEqual([{ id: "1", title: "One" }]);
     expect(input["notes"]).toEqual(["remember"]);
     expect(input["context"]).toEqual({ graph: { nodes: [] } });
+  });
+
+  it("supplies generic provider items as items only, never as declarations", () => {
+    const envelope = skillInputForPlan({
+      skillId: "extractRisks",
+      locale: "en",
+      now: "t0",
+      request: "review project risks",
+      graph: { nodes: [] },
+      providerItems: [
+        { id: "docs/a.md", type: "document", title: "A", source: "local", data: { content: "x" } },
+      ],
+      notes: [],
+    });
+    const input = envelope.input as Record<string, unknown>;
+    expect(input["items"]).toEqual([{ id: "docs/a.md", title: "A", body: "x" }]);
+    expect("tasks" in input).toBe(false);
+    expect("risks" in input).toBe(false);
+    expect("changes" in input).toBe(false);
   });
 
   it("omits empty arrays", () => {

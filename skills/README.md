@@ -12,10 +12,14 @@ Built-in skills:
 - **create handoff** (`createHandoff`) — assembles a structured handoff summary.
 - **review changes** (`reviewChanges`) — summarizes supplied change items.
 
+The Runtime plan path supplies generic provider items to skills as `items` only. Explicit `tasks`, `risks`, and `changes` collections are reserved for direct package consumers that call a skill with pre-declared collections.
+
 ## extractRisks
 
 Risk detection is deterministic keyword matching over the normalized combined item text (title, body, status, and tags):
 
+- generic Runtime items are keyword-filtered: an item without a risk keyword produces no risk entry
+- items are not automatically treated as explicit risks; only a directly supplied `risks` collection is explicit
 - items are document-level: at most one risk entry per supplied item
 - `blocked`, `blocker`, `overdue`, and `urgent` map to high severity
 - `delay`, `dependency`, and `missing` map to medium severity
@@ -23,3 +27,13 @@ Risk detection is deterministic keyword matching over the normalized combined it
 - the reason is `keyword:<first-matching-keyword>` when a keyword is found
 
 There is no LLM, no semantic analysis, no network access, and no write path — the skill only transforms the in-memory items it is given.
+
+## deriveNextTasks
+
+Task derivation is deterministic and builds up to five tasks in this priority order:
+
+1. explicitly supplied `tasks` (reason `explicit`)
+2. unchecked Markdown checklist items extracted from item bodies — `- [ ]`, `* [ ]`, or `+ [ ]` single-line entries, in item and line order (reason `markdown_unchecked_task`); checked entries (`[x]`/`[X]`) are ignored
+3. a structured fallback for open items that carry at least one operational field (`status`, `owner`, `due`, or non-empty `tags`); done and blocked items are excluded (reason `open_with_due` or `open_item`)
+
+Plain document titles without operational metadata never become tasks, task IDs are deduped first-wins, and no task text is generated. There is no LLM, no network access, and no write path.

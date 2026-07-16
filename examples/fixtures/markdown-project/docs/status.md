@@ -17,3 +17,10 @@
 ## Next milestone
 
 - Print-ready draft of the full guide at the end of the month.
+
+## Next actions
+
+- [ ] Confirm final paper stock with the supplier.
+- [ ] Export the elevation maps for print.
+- [ ] Assemble the print-ready guide draft.
+- [x] Approve the map legend.

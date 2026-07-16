@@ -53,8 +53,8 @@ const localRegistry = () =>
   createProviderRegistry([
     createLocalProvider({
       items: [
-        { id: "task-1", title: "Fix login flow" },
-        { id: "task-2", title: "Write onboarding doc" },
+        { id: "task-1", title: "Fix login flow", data: { status: "open" } },
+        { id: "task-2", title: "Write onboarding doc", data: { status: "open" } },
       ],
     }),
   ]);
@@ -92,9 +92,97 @@ describe("runtime plan execution", () => {
     const data = response.data as Record<string, JsonValue>;
     const providerResponses = data["providerResponses"] as Array<Record<string, JsonValue>>;
     expect(providerResponses).toHaveLength(1);
-    const output = data["output"] as { tasks: Array<{ title: string }> };
+    const output = data["output"] as { tasks: Array<{ title: string; reason: string }> };
     expect(output.tasks.map((t) => t.title)).toEqual(["Fix login flow", "Write onboarding doc"]);
+    expect(output.tasks.map((t) => t.reason)).toEqual(["open_item", "open_item"]);
     expect(steps(response)).toContain("provider.execute");
+  });
+
+  it("no longer declares keyword-free documents as explicit risks", () => {
+    // Regression for the generic fan-out: provider items reach the risk
+    // skill as items only, so a document without any risk keyword must not
+    // surface as an "explicit" risk.
+    const providers = createProviderRegistry([
+      createLocalProvider({
+        items: [
+          {
+            id: "docs/notes.md",
+            type: "document",
+            title: "Meeting Notes",
+            data: { path: "docs/notes.md", content: "Everything is on schedule.", bytes: 26 },
+          },
+          {
+            id: "docs/constraints.md",
+            type: "document",
+            title: "Delivery Constraints",
+            data: { path: "docs/constraints.md", content: "The launch is blocked.", bytes: 22 },
+          },
+        ],
+      }),
+    ]);
+    const response = runtimeWith({ providers }).handle(
+      planRequest({
+        request: "review project risks",
+        context: { providerRequests: [{ providerId: "local", action: "list", query: "" }] },
+      }),
+    );
+    expect(response.ok).toBe(true);
+    const data = response.data as Record<string, JsonValue>;
+    const output = data["output"] as {
+      risks: Array<{ id: string; severity: string; reason: string }>;
+    };
+    expect(output.risks).toEqual([
+      { id: "docs/constraints.md", title: "Delivery Constraints", severity: "high", reason: "keyword:blocked" },
+    ]);
+  });
+
+  it("derives next tasks from unchecked markdown checkboxes in document content", () => {
+    const documentItems = [
+      {
+        id: "docs/actions.md",
+        type: "document" as const,
+        title: "Delivery Notes",
+        data: {
+          path: "docs/actions.md",
+          content: [
+            "# Delivery Notes",
+            "",
+            "- [ ] Confirm print quantity.",
+            "- [x] Approve the cover.",
+            "- [ ] Schedule the proof review.",
+          ].join("\n"),
+          bytes: 100,
+        },
+      },
+    ];
+    const snapshot = JSON.parse(JSON.stringify(documentItems));
+    const providers = createProviderRegistry([createLocalProvider({ items: documentItems })]);
+    const response = runtimeWith({ providers }).handle(
+      planRequest({
+        request: "derive next project tasks",
+        context: { providerRequests: [{ providerId: "local", action: "list", query: "" }] },
+      }),
+    );
+    expect(response.ok).toBe(true);
+    const data = response.data as Record<string, JsonValue>;
+    const skillOutput = data["skillOutput"] as Record<string, JsonValue>;
+    expect(skillOutput["skillId"]).toBe("deriveNextTasks");
+    const output = data["output"] as {
+      tasks: Array<{ id: string; title: string; reason: string }>;
+    };
+    expect(output.tasks).toEqual([
+      {
+        id: "docs/actions.md#task-1",
+        title: "Confirm print quantity.",
+        reason: "markdown_unchecked_task",
+      },
+      {
+        id: "docs/actions.md#task-2",
+        title: "Schedule the proof review.",
+        reason: "markdown_unchecked_task",
+      },
+    ]);
+    expect(documentItems).toEqual(snapshot);
   });
 
   it("feeds document data.content into the risk skill as item body", () => {

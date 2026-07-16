@@ -84,4 +84,32 @@ describe("cli runtime request factory", () => {
     expect(JSON.stringify(request)).not.toContain("secret-project-root");
     expect(createRuntimeRequest("risks", "./a")).toEqual(createRuntimeRequest("risks", "./b"));
   });
+
+  it("creates the exact next request with local provider list context", () => {
+    expect(createRuntimeRequest("next", "./my-project")).toEqual({
+      id: "cli-next",
+      kind: "plan",
+      locale: "en",
+      payload: {
+        source: "cli",
+        request: "derive next project tasks",
+        context: {
+          providerRequests: [
+            {
+              providerId: "local",
+              action: "list",
+              query: "",
+              limit: DEFAULT_PROJECT_DOCUMENT_MAX_FILES,
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it("never places the next root path into the runtime payload", () => {
+    const request = createRuntimeRequest("next", "./secret-project-root");
+    expect(JSON.stringify(request)).not.toContain("secret-project-root");
+    expect(createRuntimeRequest("next", "./a")).toEqual(createRuntimeRequest("next", "./b"));
+  });
 });

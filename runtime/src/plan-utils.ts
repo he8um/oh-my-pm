@@ -141,12 +141,11 @@ export function skillInputForPlan(input: {
     summary: input.request,
     context: { graph: toJsonValue(input.graph) },
   };
+  // Generic provider items are context, not declarations: they flow to the
+  // skill as items only. Explicit tasks/risks/changes collections are for
+  // direct Skill callers outside the Runtime plan path.
   if (items.length > 0) {
-    const itemsJson = toJsonValue(items);
-    inputObject["items"] = itemsJson;
-    inputObject["tasks"] = itemsJson;
-    inputObject["risks"] = itemsJson;
-    inputObject["changes"] = itemsJson;
+    inputObject["items"] = toJsonValue(items);
   }
   if (input.notes.length > 0) {
     inputObject["notes"] = [...input.notes];

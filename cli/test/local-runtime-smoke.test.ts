@@ -203,15 +203,23 @@ describe("bin wrapper risks smoke", () => {
 
     // The constraints document has a neutral title and keywords only in its
     // Markdown body, so this detection proves data.content reaches the skill.
-    const risks = parsed.data.output.risks;
-    expect(risks.length).toBeGreaterThanOrEqual(1);
-    const constraints = risks.find((risk: { id: string }) => risk.id === "docs/risks.md");
-    expect(constraints).toEqual({
-      id: "docs/risks.md",
-      title: "Delivery Constraints",
-      severity: "high",
-      reason: "keyword:blocked",
-    });
+    // Only keyword-bearing documents are reported: keyword-free documents are
+    // no longer aliased into explicit risks by the Runtime.
+    expect(parsed.data.output.risks).toEqual([
+      {
+        id: "docs/risks.md",
+        title: "Delivery Constraints",
+        severity: "high",
+        reason: "keyword:blocked",
+      },
+      {
+        id: "docs/status.md",
+        title: "Status",
+        severity: "high",
+        reason: "keyword:blocked",
+      },
+    ]);
+    expect(JSON.stringify(parsed.data.output)).not.toContain("explicit");
 
     // The root path stays out of the Runtime payload and the seed items are gone.
     expect(JSON.stringify(parsed.data.plannerInput)).not.toContain("markdown-project");
@@ -223,13 +231,16 @@ describe("bin wrapper risks smoke", () => {
     expect(reloaded).toEqual(loaded);
   });
 
-  it("renders a markdown risk report with counts, severity, and reason", () => {
+  it("renders a markdown risk report limited to keyword-bearing documents", () => {
     const result = runBin(["risks", "examples/fixtures/markdown-project", "--markdown"]);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("# OH MY PM Project Risks");
-    expect(result.stdout).toContain("- Total: ");
-    expect(result.stdout).toContain("- High: ");
+    expect(result.stdout).toContain("- Total: 2");
+    expect(result.stdout).toContain("- High: 2");
     expect(result.stdout).toContain("- **high** — Delivery Constraints — `keyword:blocked`");
+    expect(result.stdout).toContain("- **high** — Status — `keyword:blocked`");
+    expect(result.stdout).not.toContain("Riverline Field Guide");
+    expect(result.stdout).not.toContain("Decisions");
     expect(result.stdout.endsWith("\n")).toBe(true);
     expect(result.stdout.endsWith("\n\n")).toBe(false);
     // The report lists titles and reasons, never document bodies.
@@ -249,6 +260,95 @@ describe("bin wrapper risks smoke", () => {
     const emptyRoot = mkdtempSync(join(tmpdir(), "oh-my-pm-empty-"));
     try {
       const result = runBin(["risks", emptyRoot]);
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toBe(`no markdown project documents found under: ${emptyRoot}\n`);
+    } finally {
+      rmSync(emptyRoot, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("bin wrapper next smoke", () => {
+  it("derives fixture checkbox tasks through the full pipeline in json mode", () => {
+    const loaded = loadMarkdownProjectDocuments(fixtureRoot);
+    expect(loaded.ok).toBe(true);
+
+    const result = runBin(["next", "examples/fixtures/markdown-project", "--json"]);
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+
+    const parsed = JSON.parse(result.stdout);
+    expect(parsed.id).toBe("cli-next");
+    expect(parsed.ok).toBe(true);
+    expect(parsed.data.skillOutput.skillId).toBe("deriveNextTasks");
+    expect(parsed.data.skillOutput.ok).toBe(true);
+
+    // Exactly the three unchecked fixture checkboxes, in Markdown order; the
+    // checked task and plain document titles never become tasks.
+    expect(parsed.data.output.tasks).toEqual([
+      {
+        id: "docs/status.md#task-1",
+        title: "Confirm final paper stock with the supplier.",
+        reason: "markdown_unchecked_task",
+      },
+      {
+        id: "docs/status.md#task-2",
+        title: "Export the elevation maps for print.",
+        reason: "markdown_unchecked_task",
+      },
+      {
+        id: "docs/status.md#task-3",
+        title: "Assemble the print-ready guide draft.",
+        reason: "markdown_unchecked_task",
+      },
+    ]);
+    // The checked checkbox appears in the raw document content that the JSON
+    // response carries, but it must never appear in the derived task output.
+    expect(JSON.stringify(parsed.data.output)).not.toContain("Approve the map legend");
+    expect(result.stdout).not.toContain("Finalize project roadmap");
+    expect(result.stdout).not.toContain("Prepare launch handoff");
+    expect(JSON.stringify(parsed.data.plannerInput)).not.toContain("markdown-project");
+
+    // The read-only run left the fixture project untouched.
+    const reloaded = loadMarkdownProjectDocuments(fixtureRoot);
+    expect(reloaded).toEqual(loaded);
+  });
+
+  it("renders a markdown next-task report with totals and reasons", () => {
+    const result = runBin(["next", "examples/fixtures/markdown-project", "--markdown"]);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("# OH MY PM Next Tasks");
+    expect(result.stdout).toContain("- Total: 3");
+    expect(result.stdout).toContain(
+      "- Confirm final paper stock with the supplier. — `markdown_unchecked_task`",
+    );
+    expect(result.stdout).toContain(
+      "- Export the elevation maps for print. — `markdown_unchecked_task`",
+    );
+    expect(result.stdout).toContain(
+      "- Assemble the print-ready guide draft. — `markdown_unchecked_task`",
+    );
+    expect(result.stdout).not.toContain("Approve the map legend");
+    // The report lists task titles and reasons, never document bodies.
+    expect(result.stdout).not.toContain("Trail survey");
+    expect(result.stdout.endsWith("\n")).toBe(true);
+    expect(result.stdout.endsWith("\n\n")).toBe(false);
+  });
+
+  it("exits with 2 for a missing next root without executing the runtime", () => {
+    const result = runBin(["next", "examples/fixtures/does-not-exist", "--json"]);
+    expect(result.status).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toBe(
+      "project root was not found: examples/fixtures/does-not-exist\n",
+    );
+  });
+
+  it("exits with 2 for a next root without markdown documents", () => {
+    const emptyRoot = mkdtempSync(join(tmpdir(), "oh-my-pm-empty-"));
+    try {
+      const result = runBin(["next", emptyRoot]);
       expect(result.status).toBe(2);
       expect(result.stdout).toBe("");
       expect(result.stderr).toBe(`no markdown project documents found under: ${emptyRoot}\n`);

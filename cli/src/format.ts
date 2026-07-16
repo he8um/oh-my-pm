@@ -99,6 +99,57 @@ function riskEntriesMarkdown(entries: readonly RiskEntry[]): string {
   ].join("\n");
 }
 
+type NextTaskEntry = {
+  id: string;
+  title: string;
+  reason: string;
+};
+
+/** Strict next-task entries; null for any malformed shape. */
+function asNextTaskEntries(value: unknown): NextTaskEntry[] | null {
+  if (!Array.isArray(value)) return null;
+  const entries: NextTaskEntry[] = [];
+  for (const raw of value) {
+    if (!isRecord(raw)) return null;
+    const { id, title, reason } = raw;
+    if (typeof id !== "string" || typeof title !== "string" || typeof reason !== "string") {
+      return null;
+    }
+    entries.push({ id, title, reason });
+  }
+  return entries;
+}
+
+function nextTaskEntriesBrief(entries: readonly NextTaskEntry[]): string {
+  if (entries.length === 0) {
+    return "OH MY PM next: 0\nno next tasks detected\n";
+  }
+  return [
+    `OH MY PM next: ${entries.length}`,
+    ...entries.map((entry) => `- ${entry.title} — ${entry.reason}`),
+    "",
+  ].join("\n");
+}
+
+function nextTaskEntriesMarkdown(entries: readonly NextTaskEntry[]): string {
+  const taskLines =
+    entries.length === 0
+      ? ["- none"]
+      : entries.map((entry) => `- ${entry.title} — \`${entry.reason}\``);
+  return [
+    "# OH MY PM Next Tasks",
+    "",
+    "## Summary",
+    "",
+    `- Total: ${entries.length}`,
+    "",
+    "## Tasks",
+    "",
+    ...taskLines,
+    "",
+  ].join("\n");
+}
+
 type SummaryCounts = { total: number; done: number; blocked: number; open: number };
 
 function asSummaryCounts(value: unknown): SummaryCounts | null {
@@ -155,6 +206,10 @@ function formatPlanBrief(output: Record<string, unknown>): string {
   }
   const tasks = arrayFrom(output["tasks"]);
   if (tasks !== undefined) {
+    const entries = asNextTaskEntries(tasks);
+    if (entries !== null) {
+      return nextTaskEntriesBrief(entries);
+    }
     return planBriefList("tasks", tasks.length, titlesFrom(tasks, "title").slice(0, 5));
   }
   const risks = arrayFrom(output["risks"]);
@@ -202,6 +257,10 @@ function formatPlanMarkdown(output: Record<string, unknown>): string {
   }
   const tasks = arrayFrom(output["tasks"]);
   if (tasks !== undefined) {
+    const entries = asNextTaskEntries(tasks);
+    if (entries !== null) {
+      return nextTaskEntriesMarkdown(entries);
+    }
     return planMarkdownList("Tasks", titlesFrom(tasks, "title"));
   }
   const risks = arrayFrom(output["risks"]);

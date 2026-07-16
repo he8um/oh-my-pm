@@ -327,6 +327,134 @@ describe("cli formatting", () => {
     expect(JSON.parse(formatRuntimeResponse(response, "json"))).toEqual(response);
   });
 
+  it("formats valid next-task entries with reasons in brief mode", () => {
+    const response: RuntimeResponse = {
+      id: "cli-next",
+      ok: true,
+      data: {
+        output: {
+          tasks: [
+            {
+              id: "docs/status.md#task-1",
+              title: "Confirm final paper stock with the supplier.",
+              reason: "markdown_unchecked_task",
+            },
+            {
+              id: "docs/status.md#task-2",
+              title: "Export the elevation maps for print.",
+              reason: "markdown_unchecked_task",
+            },
+            { id: "i1", title: "Owned follow-up", reason: "open_item" },
+          ],
+        },
+      },
+    };
+    expect(formatRuntimeResponse(response, "brief")).toBe(
+      [
+        "OH MY PM next: 3",
+        "- Confirm final paper stock with the supplier. — markdown_unchecked_task",
+        "- Export the elevation maps for print. — markdown_unchecked_task",
+        "- Owned follow-up — open_item",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("formats zero next tasks in brief mode", () => {
+    const response: RuntimeResponse = {
+      id: "cli-next",
+      ok: true,
+      data: { output: { tasks: [] } },
+    };
+    expect(formatRuntimeResponse(response, "brief")).toBe(
+      "OH MY PM next: 0\nno next tasks detected\n",
+    );
+  });
+
+  it("formats next tasks in markdown mode", () => {
+    const response: RuntimeResponse = {
+      id: "cli-next",
+      ok: true,
+      data: {
+        output: {
+          tasks: [
+            { id: "a#task-1", title: "First task", reason: "markdown_unchecked_task" },
+            { id: "b", title: "Second task", reason: "open_with_due" },
+          ],
+        },
+      },
+    };
+    expect(formatRuntimeResponse(response, "markdown")).toBe(
+      [
+        "# OH MY PM Next Tasks",
+        "",
+        "## Summary",
+        "",
+        "- Total: 2",
+        "",
+        "## Tasks",
+        "",
+        "- First task — `markdown_unchecked_task`",
+        "- Second task — `open_with_due`",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("formats zero next tasks in markdown mode", () => {
+    const response: RuntimeResponse = {
+      id: "cli-next",
+      ok: true,
+      data: { output: { tasks: [] } },
+    };
+    expect(formatRuntimeResponse(response, "markdown")).toBe(
+      [
+        "# OH MY PM Next Tasks",
+        "",
+        "## Summary",
+        "",
+        "- Total: 0",
+        "",
+        "## Tasks",
+        "",
+        "- none",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("falls back to the generic task list for malformed task entries", () => {
+    const malformed: RuntimeResponse = {
+      id: "cli-next",
+      ok: true,
+      data: {
+        output: {
+          tasks: [{ id: "1", title: "Fix login" }],
+        },
+      },
+    };
+    expect(formatRuntimeResponse(malformed, "brief")).toBe(
+      "OH MY PM plan: ok\ntasks: 1\n- Fix login\n",
+    );
+    expect(formatRuntimeResponse(malformed, "markdown")).toBe(
+      "# OH MY PM Plan\n\n## Tasks\n\n- Fix login\n",
+    );
+  });
+
+  it("keeps json mode untouched for next-task outputs", () => {
+    const response: RuntimeResponse = {
+      id: "cli-next",
+      ok: true,
+      data: {
+        output: {
+          tasks: [{ id: "a#task-1", title: "First task", reason: "markdown_unchecked_task" }],
+        },
+      },
+      trace: [{ step: "skill.execute", status: "ok" }],
+    };
+    expect(JSON.parse(formatRuntimeResponse(response, "json"))).toEqual(response);
+  });
+
   it("keeps json mode as the full plan response", () => {
     const response: RuntimeResponse = {
       id: "cli-plan",

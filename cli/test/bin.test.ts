@@ -35,11 +35,13 @@ describe("bin wrapper source", () => {
     expect(binSource).not.toContain("createLocalCliKernelApi");
   });
 
-  it("loads markdown project documents for brief and risks through the shared loader", () => {
+  it("loads markdown project documents for brief, risks, and next through the shared loader", () => {
     expect(binSource).toContain("loadMarkdownProjectDocuments");
     expect(binSource).toContain("parseCliArgs");
     expect(binSource).toContain("usesProjectDocuments");
-    expect(binSource).toContain('parsed.command === "brief" || parsed.command === "risks"');
+    expect(binSource).toContain(
+      'parsed.command === "brief" || parsed.command === "risks" || parsed.command === "next"',
+    );
     expect(binSource).toContain("no markdown project documents found under:");
   });
 
@@ -69,6 +71,7 @@ describe("cli readme", () => {
     expect(readme).toContain("`plan <request>`");
     expect(readme).toContain("`brief [root]`");
     expect(readme).toContain("`risks [root]`");
+    expect(readme).toContain("`next [root]`");
     expect(readme).toContain("`install-preview <root>`");
     expect(readme).toContain("dry-run only");
   });

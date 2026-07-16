@@ -275,6 +275,66 @@ describe("cli core execution", () => {
     expect(result.stderr).toBe("error OMP-C-3003: runtime execution failed\n");
   });
 
+  it("dispatches next through the Runtime without the root in the payload", () => {
+    const { runtime, requests } = respondingRuntime();
+    const result = runCli(["next", "./my-project"], { runtime });
+    expect(result.exitCode).toBe(0);
+    expect(requests).toEqual([createRuntimeRequest("next", "./my-project")]);
+    expect(requests[0]?.id).toBe("cli-next");
+    expect(requests[0]?.kind).toBe("plan");
+    expect(JSON.stringify(requests[0])).not.toContain("my-project");
+    expect(JSON.stringify(requests[0])).toContain("derive next project tasks");
+  });
+
+  it("formats a next response in every output mode", () => {
+    const runtime: Runtime = {
+      handle(request: RuntimeRequest): RuntimeResponse {
+        return {
+          id: request.id,
+          ok: true,
+          data: {
+            output: {
+              tasks: [
+                {
+                  id: "docs/status.md#task-1",
+                  title: "Confirm final paper stock with the supplier.",
+                  reason: "markdown_unchecked_task",
+                },
+              ],
+            },
+          },
+        };
+      },
+    };
+    const brief = runCli(["next"], { runtime });
+    expect(brief.exitCode).toBe(0);
+    expect(brief.stdout).toBe(
+      "OH MY PM next: 1\n- Confirm final paper stock with the supplier. — markdown_unchecked_task\n",
+    );
+
+    const markdown = runCli(["next", "--markdown"], { runtime });
+    expect(markdown.stdout).toContain("# OH MY PM Next Tasks");
+    expect(markdown.stdout).toContain("- Total: 1");
+
+    const json = runCli(["next", "--json"], { runtime });
+    const parsed = JSON.parse(json.stdout);
+    expect(parsed.id).toBe("cli-next");
+    expect(parsed.ok).toBe(true);
+  });
+
+  it("returns exit 1 for a failed next runtime response", () => {
+    const result = runCli(["next"], { runtime: failingRuntime });
+    expect(result.ok).toBe(false);
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toBe("error OMP-R-2001: request failed kernel validation\n");
+  });
+
+  it("converts a thrown runtime into OMP-C-3003 for next", () => {
+    const result = runCli(["next"], { runtime: throwingRuntime });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toBe("error OMP-C-3003: runtime execution failed\n");
+  });
+
   it("runs install-preview locally without touching the Runtime", () => {
     const root = mkdtempSync(join(tmpdir(), "oh-my-pm-cli-preview-"));
     try {
