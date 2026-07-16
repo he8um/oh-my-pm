@@ -1354,6 +1354,57 @@ export type LocalArtifactCreationExecutionPlanDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Capability labels a local artifact creation adapter contract may declare. */
+export type LocalArtifactCreationAdapterCapability =
+  | "write-text-output"
+  | "write-binary-output";
+
+/**
+ * Declared, metadata-only description of a future local artifact creation
+ * adapter. It is a description, not an implementation: there is no adapter
+ * instance, function, or method field, and nothing here can be called.
+ */
+export type LocalArtifactCreationAdapterContract = {
+  name: string;
+  capabilities: LocalArtifactCreationAdapterCapability[];
+  supportsDryRun: boolean;
+  requiresExplicitPermission: boolean;
+};
+
+/**
+ * Input for validating a declared local artifact creation adapter contract
+ * against the already-built execution plan. Every value is an already
+ * computed local report; nothing is fetched, created, written, or executed.
+ */
+export type LocalArtifactCreationAdapterContractInput = {
+  contract: LocalArtifactCreationAdapterContract;
+  permission: GuardedArtifactCreationPermissionReport;
+  executionPlan: LocalArtifactCreationExecutionPlan;
+};
+
+/**
+ * Contract-fit verdict. `creationAllowed` is always the literal `false` —
+ * this phase validates declared capability labels only and never permits
+ * creation. There is no adapter-instance, function, method, file-content,
+ * bytes, output-path, destination, command, distribution-target, remote, or
+ * execution-result field.
+ */
+export type LocalArtifactCreationAdapterContractReport = {
+  ok: boolean;
+  name: string;
+  requiredCapabilities: LocalArtifactCreationAdapterCapability[];
+  declaredCapabilities: LocalArtifactCreationAdapterCapability[];
+  reasons: string[];
+  creationAllowed: false;
+};
+
+/** Result of a local artifact creation adapter contract dry run; nothing is written. */
+export type LocalArtifactCreationAdapterContractDryRunReport = {
+  ok: boolean;
+  report: LocalArtifactCreationAdapterContractReport;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;

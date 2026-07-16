@@ -34,6 +34,7 @@ import type {
   GuardedLocalArtifactAssemblyDryRunEnvelopeInput,
   GuardedArtifactCreationPermissionInput,
   LocalArtifactCreationExecutionPlanInput,
+  LocalArtifactCreationAdapterContractInput,
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -67,6 +68,7 @@ import { createPublicV0ReleaseNotesDraftDryRun } from "./public-v0-release-notes
 import { createGuardedReleaseArtifactPlanDryRun } from "./release-artifact-plan.js";
 import { createGuardedLocalArtifactAssemblyDryRun } from "./local-artifact-assembly-envelope.js";
 import { createGuardedArtifactCreationPermissionDryRun } from "./artifact-creation-permission.js";
+import { createLocalArtifactCreationExecutionPlan } from "./local-artifact-creation-plan.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -604,6 +606,29 @@ export function exampleLocalArtifactCreationExecutionPlanInput(): LocalArtifactC
     permission,
     artifactPlan,
     assembly,
+  };
+}
+
+/**
+ * Example local artifact creation adapter contract input built from the
+ * existing fixture chain: the execution plan fixture's permission report and
+ * the execution plan built from it, plus a declared in-memory contract that
+ * supports dry runs and requires explicit permission. Readiness is not forced
+ * — the input is ok only because the underlying fixtures are ready, while
+ * creation stays disabled and no adapter exists or is called.
+ */
+export function exampleLocalArtifactCreationAdapterContractInput(): LocalArtifactCreationAdapterContractInput {
+  const planInput = exampleLocalArtifactCreationExecutionPlanInput();
+  const executionPlan = createLocalArtifactCreationExecutionPlan(planInput);
+  return {
+    contract: {
+      name: "memory-artifact-adapter",
+      capabilities: ["write-text-output", "write-binary-output"],
+      supportsDryRun: true,
+      requiresExplicitPermission: true,
+    },
+    permission: planInput.permission.report,
+    executionPlan,
   };
 }
 

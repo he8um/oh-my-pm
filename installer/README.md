@@ -181,3 +181,9 @@ The permission model is evaluation-only. It can report permission as allowed onl
 The installer can build a deterministic plan for a future explicitly-enabled local artifact creation phase.
 
 The plan is planning-only. It keeps creation disabled and reports which local artifact creation steps would be prepared. It does not create release artifacts, archives, GitHub releases, tags, publishing workflows, installation commands, or write execution.
+
+## Local artifact creation adapter contract
+
+The installer can validate a metadata-only adapter contract against the capabilities required by the local artifact creation execution plan.
+
+The contract declares text-output and binary-output capabilities. It does not contain an adapter instance and does not call adapter methods. Creation remains disabled. No release artifact, archive, tag, publishing workflow, installation command, or write execution is produced.

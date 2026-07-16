@@ -8,6 +8,7 @@ import {
   runGuardedLocalArtifactAssemblyDryRunExample,
   runGuardedArtifactCreationPermissionExample,
   runLocalArtifactCreationExecutionPlanExample,
+  runLocalArtifactCreationAdapterContractExample,
   runInstallerReleaseReadinessExample,
   runInstallerArchivePlanExample,
   runInstallerAuditEventExample,
@@ -574,8 +575,46 @@ describe("runLocalArtifactCreationExecutionPlanExample", () => {
   });
 });
 
+describe("runLocalArtifactCreationAdapterContractExample", () => {
+  it("returns a passing metadata-only contract with creation disabled", () => {
+    const result = runLocalArtifactCreationAdapterContractExample();
+    expect(result.localArtifactAdapterContract.ok).toBe(true);
+    expect(result.localArtifactAdapterContract.report.name).toBe("memory-artifact-adapter");
+    expect(result.localArtifactAdapterContract.report.requiredCapabilities).toEqual([
+      "write-text-output",
+      "write-binary-output",
+    ]);
+    expect(result.localArtifactAdapterContract.report.creationAllowed).toBe(false);
+    expect(result.markdown).toContain("Local Artifact Creation Adapter Contract");
+    expect(result.markdown).toContain("Creation allowed: `false`");
+    expect(Object.keys(result).sort()).toEqual(["localArtifactAdapterContract", "markdown"]);
+
+    // Metadata-only: no adapter instance, function, bytes, path, or URL.
+    const serialized = JSON.stringify(result.localArtifactAdapterContract);
+    expect(serialized).not.toContain("writeFile");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    for (const key of Object.keys(result.localArtifactAdapterContract.report)) {
+      expect(key).not.toMatch(/object|fn|func|method|content|bytes|path|dest|command|publish|url|result|remote/i);
+    }
+    expect(
+      Object.values(result.localArtifactAdapterContract.report).some(
+        (value) => typeof value === "function",
+      ),
+    ).toBe(false);
+  });
+
+  it("is deterministic", () => {
+    expect(runLocalArtifactCreationAdapterContractExample()).toEqual(
+      runLocalArtifactCreationAdapterContractExample(),
+    );
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runLocalArtifactCreationAdapterContractExample).toBe("function");
     expect(typeof examples.runLocalArtifactCreationExecutionPlanExample).toBe("function");
     expect(typeof examples.runGuardedArtifactCreationPermissionExample).toBe("function");
     expect(typeof examples.runGuardedLocalArtifactAssemblyDryRunExample).toBe("function");

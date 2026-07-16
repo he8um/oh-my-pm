@@ -31,6 +31,7 @@ export {
   runGuardedLocalArtifactAssemblyDryRunExample,
   runGuardedArtifactCreationPermissionExample,
   runLocalArtifactCreationExecutionPlanExample,
+  runLocalArtifactCreationAdapterContractExample,
 } from "./installer.js";
 export type {
   ControlledWriteExecutionDryRunExample,
@@ -61,6 +62,7 @@ export type {
   GuardedLocalArtifactAssemblyDryRunExample,
   GuardedArtifactCreationPermissionExample,
   LocalArtifactCreationExecutionPlanExample,
+  LocalArtifactCreationAdapterContractExample,
 } from "./installer.js";
 export {
   createExampleKernelApi,

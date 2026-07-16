@@ -73,6 +73,8 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: artifact_creation_permission_approval_required",
         "OMP-I-6001: local_artifact_creation_permission_not_allowed",
         "OMP-I-6001: local_artifact_creation_assembly_not_ready",
+        "OMP-I-6001: local_artifact_adapter_permission_not_allowed",
+        "OMP-I-6001: local_artifact_adapter_execution_plan_not_ready",
       ]);
       expect(result.archive).toEqual({
         format: "zip",
@@ -169,6 +171,8 @@ describe("runInstallerPreview", () => {
         "OMP-I-6001: artifact_creation_permission_approval_required",
         "OMP-I-6001: local_artifact_creation_permission_not_allowed",
         "OMP-I-6001: local_artifact_creation_assembly_not_ready",
+        "OMP-I-6001: local_artifact_adapter_permission_not_allowed",
+        "OMP-I-6001: local_artifact_adapter_execution_plan_not_ready",
       ]);
       expect(result.operations).toHaveLength(1);
       expect(result.operations[0].path.endsWith("README.md")).toBe(true);
@@ -390,6 +394,27 @@ describe("runInstallerPreview", () => {
       for (const key of Object.keys(parsed.localArtifactCreationPlan)) {
         expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|fn|func|method|target|bytes|result|remote|url|download|upload/i);
       }
+      // Local artifact creation adapter contract summary; metadata-only. No
+      // adapter instance, function, or method reaches JSON, no adapter is
+      // called, and creation stays disallowed.
+      expect(parsed.localArtifactAdapterContract.name).toBe("preview-artifact-adapter");
+      expect(parsed.localArtifactAdapterContract.ok).toBe(false);
+      expect(parsed.localArtifactAdapterContract.creationAllowed).toBe(false);
+      expect(parsed.localArtifactAdapterContract.declaredCapabilities).toEqual([
+        "write-text-output",
+        "write-binary-output",
+      ]);
+      expect(Array.isArray(parsed.localArtifactAdapterContract.requiredCapabilities)).toBe(true);
+      expect(parsed.localArtifactAdapterContract.reasons).toContain(
+        "local_artifact_adapter_permission_not_allowed",
+      );
+      expect(parsed.localArtifactAdapterContract).not.toHaveProperty("adapter");
+      expect(parsed.localArtifactAdapterContract).not.toHaveProperty("contract");
+      expect(parsed.localArtifactAdapterContract).not.toHaveProperty("report");
+      expect(parsed.localArtifactAdapterContract).not.toHaveProperty("markdown");
+      for (const key of Object.keys(parsed.localArtifactAdapterContract)) {
+        expect(key).not.toMatch(/object|fn|func|method|content|bytes|path|dest|command|target|publish|url|result|remote|download|upload/i);
+      }
       expect(output).not.toContain("backupFile");
       expect(output).not.toContain("removeFile");
       expect(output).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
@@ -425,6 +450,8 @@ describe("runInstallerPreview", () => {
       expect(output).toContain("evaluation only, creation disabled");
       expect(output).toContain("## Local Artifact Creation Execution Plan");
       expect(output).toContain("planning only, creation disabled");
+      expect(output).toContain("## Local Artifact Creation Adapter Contract");
+      expect(output).toContain("metadata only, no adapter called, creation disabled");
       expect(output).not.toMatch(/https?:\/\//);
       expect(output).not.toContain("placeholder:preview-key:");
       expect(output).not.toContain("executeInstall");
@@ -494,6 +521,9 @@ describe("runInstallerPreview", () => {
       "OMP-I-6001: artifact_creation_permission_approval_required",
       "OMP-I-6001: local_artifact_creation_permission_not_allowed",
       "OMP-I-6001: local_artifact_creation_assembly_not_ready",
+      "OMP-I-6001: local_artifact_adapter_permission_not_allowed",
+      "OMP-I-6001: local_artifact_adapter_execution_plan_not_ready",
+      "OMP-I-6001: local_artifact_adapter_required_capabilities_empty",
       "invalid package manifest: package_files_must_not_be_empty",
     ]);
     expect(result.archive?.entries).toBe(0);

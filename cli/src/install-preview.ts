@@ -26,6 +26,7 @@ import {
   createGuardedLocalArtifactAssemblyDryRun,
   createGuardedArtifactCreationPermissionDryRun,
   createLocalArtifactCreationExecutionPlanDryRun,
+  createLocalArtifactCreationAdapterContractDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -309,6 +310,20 @@ export type InstallerPreviewResult = {
     plannedSteps: number;
     blockedSteps: number;
     totalSteps: number;
+    creationAllowed: boolean;
+    reasons: string[];
+  };
+  /**
+   * Declared local artifact creation adapter contract verdict; metadata-only.
+   * No adapter instance, function, or method reaches the result, no adapter is
+   * called, the markdown is never included in JSON, `creationAllowed` is
+   * always false, and nothing is created or executed.
+   */
+  localArtifactAdapterContract?: {
+    ok: boolean;
+    name: string;
+    requiredCapabilities: string[];
+    declaredCapabilities: string[];
     creationAllowed: boolean;
     reasons: string[];
   };
@@ -883,6 +898,33 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       (warning) => `${warning.code}: ${warning.message}`,
     ) ?? [];
 
+  // Validate a declared local artifact creation adapter metadata contract
+  // against the execution plan's required capability labels. Metadata-only —
+  // no adapter instance exists, no adapter method is called, creation stays
+  // disabled, and nothing is created or executed.
+  const localArtifactAdapterContractReport = createLocalArtifactCreationAdapterContractDryRun({
+    contract: {
+      name: "preview-artifact-adapter",
+      capabilities: ["write-text-output", "write-binary-output"],
+      supportsDryRun: true,
+      requiresExplicitPermission: true,
+    },
+    permission: guardedArtifactCreationPermissionReport.report,
+    executionPlan: localArtifactCreationPlanReport.plan,
+  });
+  const localArtifactAdapterContract = {
+    ok: localArtifactAdapterContractReport.ok,
+    name: localArtifactAdapterContractReport.report.name,
+    requiredCapabilities: [...localArtifactAdapterContractReport.report.requiredCapabilities],
+    declaredCapabilities: [...localArtifactAdapterContractReport.report.declaredCapabilities],
+    creationAllowed: localArtifactAdapterContractReport.report.creationAllowed,
+    reasons: [...localArtifactAdapterContractReport.report.reasons],
+  };
+  const localArtifactAdapterContractWarnings =
+    localArtifactAdapterContractReport.warnings?.map(
+      (warning) => `${warning.code}: ${warning.message}`,
+    ) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -914,6 +956,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...guardedLocalArtifactAssemblyWarnings,
         ...guardedArtifactCreationPermissionWarnings,
         ...localArtifactCreationPlanWarnings,
+        ...localArtifactAdapterContractWarnings,
         result.message,
       ]),
       archive,
@@ -939,6 +982,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       guardedLocalArtifactAssembly,
       guardedArtifactCreationPermission,
       localArtifactCreationPlan,
+      localArtifactAdapterContract,
     };
   }
 
@@ -976,6 +1020,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...guardedLocalArtifactAssemblyWarnings,
       ...guardedArtifactCreationPermissionWarnings,
       ...localArtifactCreationPlanWarnings,
+      ...localArtifactAdapterContractWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -1001,6 +1046,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     guardedLocalArtifactAssembly,
     guardedArtifactCreationPermission,
     localArtifactCreationPlan,
+    localArtifactAdapterContract,
   };
 }
 
@@ -1156,6 +1202,15 @@ function formatMarkdown(result: InstallerPreviewResult): string {
       "## Local Artifact Creation Execution Plan",
       "",
       `Local artifact creation plan \`${result.localArtifactCreationPlan.version}\`: \`${result.localArtifactCreationPlan.ok ? "ready" : "blocked"}\` (${result.localArtifactCreationPlan.plannedSteps}/${result.localArtifactCreationPlan.totalSteps} steps planned, planning only, creation disabled)`,
+    );
+  }
+  if (result.localArtifactAdapterContract !== undefined) {
+    // Metadata-contract note: no adapter exists or is called.
+    lines.push(
+      "",
+      "## Local Artifact Creation Adapter Contract",
+      "",
+      `Local artifact adapter contract \`${result.localArtifactAdapterContract.name}\`: \`${result.localArtifactAdapterContract.ok ? "ready" : "blocked"}\` (metadata only, no adapter called, creation disabled)`,
     );
   }
   let preview = `${lines.join("\n")}\n`;

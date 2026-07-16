@@ -13,6 +13,7 @@ import type {
   GuardedLocalArtifactAssemblyDryRunReport,
   GuardedArtifactCreationPermissionDryRunReport,
   LocalArtifactCreationExecutionPlanDryRunReport,
+  LocalArtifactCreationAdapterContractDryRunReport,
   InstallDryRunReport,
   InstallerAuditEventDryRunReport,
   InstallerAuditTrailExportDryRunReport,
@@ -49,6 +50,7 @@ import {
   createGuardedLocalArtifactAssemblyDryRun,
   createGuardedArtifactCreationPermissionDryRun,
   createLocalArtifactCreationExecutionPlanDryRun,
+  createLocalArtifactCreationAdapterContractDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -73,6 +75,7 @@ import {
   formatGuardedLocalArtifactAssemblyDryRunMarkdown,
   formatGuardedArtifactCreationPermissionMarkdown,
   formatLocalArtifactCreationExecutionPlanMarkdown,
+  formatLocalArtifactCreationAdapterContractMarkdown,
   DEFAULT_LOCAL_UPDATE_POLICY,
   exampleFilesystemEntries,
   exampleInstallerAuditEventInput,
@@ -87,6 +90,7 @@ import {
   exampleGuardedLocalArtifactAssemblyDryRunEnvelopeInput,
   exampleGuardedArtifactCreationPermissionInput,
   exampleLocalArtifactCreationExecutionPlanInput,
+  exampleLocalArtifactCreationAdapterContractInput,
   exampleInstallerWriteAdapterContractInput,
   exampleInstallerWriteConfirmationChecklistInput,
   exampleInstallerWriteExecutionPlanInput,
@@ -217,6 +221,11 @@ export type GuardedArtifactCreationPermissionExample = {
 
 export type LocalArtifactCreationExecutionPlanExample = {
   localArtifactCreationPlan: LocalArtifactCreationExecutionPlanDryRunReport;
+  markdown: string;
+};
+
+export type LocalArtifactCreationAdapterContractExample = {
+  localArtifactAdapterContract: LocalArtifactCreationAdapterContractDryRunReport;
   markdown: string;
 };
 
@@ -611,6 +620,23 @@ export function runLocalArtifactCreationExecutionPlanExample(): LocalArtifactCre
     localArtifactCreationPlan.plan,
   );
   return { localArtifactCreationPlan, markdown };
+}
+
+/**
+ * Validate the declared, metadata-only local artifact adapter contract
+ * against the capabilities required by the example execution plan and render
+ * the report as markdown. Metadata-only — no adapter instance exists, no
+ * adapter method is called, creation stays disabled, and nothing is created,
+ * written, executed, retrieved, logged, or sent.
+ */
+export function runLocalArtifactCreationAdapterContractExample(): LocalArtifactCreationAdapterContractExample {
+  const localArtifactAdapterContract = createLocalArtifactCreationAdapterContractDryRun(
+    exampleLocalArtifactCreationAdapterContractInput(),
+  );
+  const markdown = formatLocalArtifactCreationAdapterContractMarkdown(
+    localArtifactAdapterContract.report,
+  );
+  return { localArtifactAdapterContract, markdown };
 }
 
 /** Install the example package, then apply the example update plan. */

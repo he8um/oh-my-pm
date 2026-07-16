@@ -20,6 +20,7 @@ export {
   exampleGuardedLocalArtifactAssemblyDryRunEnvelopeInput,
   exampleGuardedArtifactCreationPermissionInput,
   exampleLocalArtifactCreationExecutionPlanInput,
+  exampleLocalArtifactCreationAdapterContractInput,
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
   exampleControlledWriteExecutionDryRunEnvelopeInput,
@@ -179,6 +180,15 @@ export {
   formatLocalArtifactCreationExecutionPlanMarkdown,
   summarizeLocalArtifactCreationExecutionPlan,
 } from "./local-artifact-creation-plan.js";
+export {
+  collectRequiredLocalArtifactCreationAdapterCapabilities,
+  createLocalArtifactCreationAdapterContractDryRun,
+  evaluateLocalArtifactCreationAdapterContract,
+  formatLocalArtifactCreationAdapterContractMarkdown,
+  mapLocalArtifactCreationStepToAdapterCapability,
+  validateLocalArtifactCreationAdapterCapability,
+  validateLocalArtifactCreationAdapterContract,
+} from "./local-artifact-adapter-contract.js";
 export {
   createPackageFileEntry,
   createPackageManifest,
@@ -353,6 +363,11 @@ export type {
   InstallerWriteIntent,
   InstallInput,
   InstallPlan,
+  LocalArtifactCreationAdapterCapability,
+  LocalArtifactCreationAdapterContract,
+  LocalArtifactCreationAdapterContractDryRunReport,
+  LocalArtifactCreationAdapterContractInput,
+  LocalArtifactCreationAdapterContractReport,
   LocalArtifactCreationExecutionPlan,
   LocalArtifactCreationExecutionPlanDryRunReport,
   LocalArtifactCreationExecutionPlanInput,
