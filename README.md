@@ -103,6 +103,42 @@ include match → exclude check → safety limits → read-only analysis
 
 Supported glob operators are `*` (zero or more non-slash characters), `?` (exactly one non-slash character), and `**` (across path segments, including zero). Matching is case-sensitive; the Markdown extension gate itself remains case-insensitive.
 
+## Local MCP server
+
+OH MY PM exposes its local Markdown project workflows over a read-only MCP stdio server.
+
+Available tools:
+
+- `project_brief`
+- `project_risks`
+- `project_next`
+- `project_handoff`
+
+After building the workspace, start the server with:
+
+```bash
+node mcp-server/bin/oh-my-pm-mcp.mjs
+```
+
+Each tool accepts a local project `root`, respects `oh-my-pm.config.json`, and uses the same Runtime, Planner, Skills, provider, and Rust/WASM Kernel pipeline as the CLI. The server does not modify files, upload project context, use telemetry, or expose an HTTP endpoint.
+
+A generic local MCP client configuration:
+
+```json
+{
+  "mcpServers": {
+    "oh-my-pm": {
+      "command": "node",
+      "args": [
+        "/absolute/path/to/oh-my-pm/mcp-server/bin/oh-my-pm-mcp.mjs"
+      ]
+    }
+  }
+}
+```
+
+Replace the placeholder with your local repository path.
+
 ---
 
 ## Current phase

@@ -36,6 +36,7 @@ const REQUIRED_FOLDERS = [
   "tests",
   "tools",
   "examples",
+  "mcp-server",
 ];
 
 const ALLOWED_TOP_FILES = [
@@ -101,6 +102,7 @@ const PACKAGES = [
   "skills",
   "cli",
   "installer",
+  "mcp-server",
 ];
 for (const pkg of PACKAGES) {
   for (const file of ["package.json", "tsconfig.json", "src/index.ts", "README.md"]) {
@@ -292,6 +294,24 @@ const MARKDOWN_PROJECT_FIXTURES = [
 ];
 for (const file of MARKDOWN_PROJECT_FIXTURES) {
   if (!existsSync(file)) err(`markdown project fixture missing: ${file}`);
+}
+
+// 7g3. Local read-only MCP server files exist.
+const MCP_SERVER_SOURCES = [
+  "mcp-server/package.json",
+  "mcp-server/tsconfig.json",
+  "mcp-server/README.md",
+  "mcp-server/src/types.ts",
+  "mcp-server/src/project-tool-runner.ts",
+  "mcp-server/src/server.ts",
+  "mcp-server/src/index.ts",
+  "mcp-server/bin/oh-my-pm-mcp.mjs",
+  "mcp-server/test/project-tool-runner.test.ts",
+  "mcp-server/test/server.test.ts",
+  "tools/check-mcp-server.mjs",
+];
+for (const file of MCP_SERVER_SOURCES) {
+  if (!existsSync(file)) err(`mcp server file missing: ${file}`);
 }
 
 // 7h. Installer foundation files exist.

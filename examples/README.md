@@ -9,6 +9,7 @@ Current examples:
 - status through the CLI and injected Runtime
 - doctor through the CLI and injected Runtime
 - plan through the CLI, Runtime, Planner, local Provider, and deterministic Skills
+- MCP project tools (brief, risks, next, handoff) through the exported read-only MCP runner, without spawning a stdio process
 - installer dry-run planning through in-memory adapters
 - controlled installer execution through explicit write adapters
 - rollback capture examples

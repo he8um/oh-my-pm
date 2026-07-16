@@ -102,15 +102,16 @@
 - Local project configuration: optional strict root-level `oh-my-pm.config.json` (JSON only, no upward search, no code execution, no environment reads), read through an explicit read-only Node boundary (in place)
 - Include/exclude document rules: dependency-free `*`/`?`/`**` glob subset with exclude precedence, case-sensitive matching, safety limits that may only lower loader defaults, and scanned/matched/excluded/loaded counts, shared by all four workflows (in place)
 - Example project fixture: public fictional Markdown project under `examples/fixtures/markdown-project`, with an example config and excluded sentinel documents (in place)
+- Read-only MCP stdio server: private `@oh-my-pm/mcp-server` package exposing `project_brief`, `project_risks`, `project_next`, and `project_handoff` over stdio, reusing the CLI config/loader/request/formatter surfaces and the Runtime/Planner/Skills/local-provider/real-WASM pipeline, with strict public structured-result projections and no HTTP, telemetry, or write tools (in place)
 - Read-only local operation: no write path, no network, no telemetry, no document content persistence (in place)
 
 Next priorities:
 
-1. MCP server exposing the four read-only project workflows (brief, risks, next, handoff)
-2. public CLI packaging and installation
+1. public/local installation and packaging for CLI + MCP
+2. MCP client onboarding examples
 3. GitHub read-only provider
-4. richer structured Markdown extraction
-5. optional project initialization later
+4. project diagnostics/config inspection command
+5. finer-grained Markdown extraction
 
 ## Phase 6 — Release lifecycle
 

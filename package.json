@@ -18,7 +18,8 @@
     "validate:structure": "node tools/validate-structure.mjs",
     "validate:boundaries": "node tools/validate-boundaries.mjs",
     "validate:contracts": "node tools/validate-contracts.mjs",
-    "validate": "pnpm validate:public && pnpm validate:structure && pnpm validate:boundaries && pnpm validate:contracts"
+    "validate": "pnpm validate:public && pnpm validate:structure && pnpm validate:boundaries && pnpm validate:contracts",
+    "mcp:smoke": "node tools/check-mcp-server.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

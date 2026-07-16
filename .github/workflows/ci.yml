@@ -51,3 +51,6 @@ jobs:
 
       - name: Validate
         run: pnpm validate
+
+      - name: MCP smoke
+        run: pnpm mcp:smoke

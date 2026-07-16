@@ -1,11 +1,14 @@
 {
-  "name": "@oh-my-pm/examples",
+  "name": "@oh-my-pm/mcp-server",
   "version": "2.0.0-alpha.0",
   "private": true,
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "oh-my-pm-mcp": "./bin/oh-my-pm-mcp.mjs"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -17,13 +20,13 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "@oh-my-pm/cli": "workspace:*",
     "@oh-my-pm/contracts": "workspace:*",
     "@oh-my-pm/kernel": "workspace:*",
-    "@oh-my-pm/runtime": "workspace:*",
-    "@oh-my-pm/cli": "workspace:*",
     "@oh-my-pm/providers": "workspace:*",
+    "@oh-my-pm/runtime": "workspace:*",
     "@oh-my-pm/skills": "workspace:*",
-    "@oh-my-pm/installer": "workspace:*",
-    "@oh-my-pm/mcp-server": "workspace:*"
+    "zod": "^3.25.76"
   }
 }

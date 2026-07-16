@@ -62,7 +62,7 @@ for (const prefix of ["specs/", "_dev/", "scripts/"]) {
 }
 
 // 3 + 4. No cross-package src imports; no imports from kernel/crate.
-const PACKAGE_SRC = /^(contracts|kernel\/binding|runtime|planner|providers|skills|cli|installer|examples)\/src\/.*\.ts$/;
+const PACKAGE_SRC = /^(contracts|kernel\/binding|runtime|planner|providers|skills|cli|installer|examples|mcp-server)\/src\/.*\.ts$/;
 const IMPORT_SPECIFIER = /(?:from\s+|import\s*\(\s*|import\s+)["']([^"']+)["']/g;
 const CROSS_SRC =
   /(?:@oh-my-pm\/[a-z-]+|(?:\.\.\/)+(?:contracts|kernel|runtime|planner|providers|skills|cli|installer))\/src\//;
@@ -154,6 +154,37 @@ for (const file of trackedFiles) {
         ["fs", "path", "os", "http", "https", "net", "tls", "dgram", "crypto", "zlib", "stream", "child_process"].includes(spec))
     ) {
       err(`${file} must not import a Node built-in module: "${spec}"`);
+    }
+    // MCP server package: no filesystem/network/child-process Node built-ins in
+    // package source; document reads flow only through the CLI public loader.
+    if (
+      file.startsWith("mcp-server/src/") &&
+      (spec.startsWith("node:") ||
+        ["fs", "path", "os", "http", "https", "net", "tls", "dgram", "crypto", "zlib", "stream", "child_process"].includes(spec))
+    ) {
+      err(`${file} must not import a Node built-in module: "${spec}"`);
+    }
+    // The MCP SDK stdio transport may be imported only by the server module.
+    if (
+      file.startsWith("mcp-server/src/") &&
+      file !== "mcp-server/src/server.ts" &&
+      spec.includes("@modelcontextprotocol/sdk")
+    ) {
+      err(`${file} imports the MCP SDK outside mcp-server/src/server.ts: "${spec}"`);
+    }
+    // Only the official stdio SDK transport is allowed; no HTTP/SSE variants.
+    if (
+      file.startsWith("mcp-server/src/") &&
+      /@modelcontextprotocol\/sdk\/(server|client)\/(streamableHttp|sse)/.test(spec)
+    ) {
+      err(`${file} imports a non-stdio MCP transport: "${spec}"`);
+    }
+    // No HTTP server frameworks or dotenv anywhere in the MCP package.
+    if (
+      file.startsWith("mcp-server/src/") &&
+      ["express", "hono", "fastify", "dotenv", "ws", "undici"].includes(spec)
+    ) {
+      err(`${file} imports a forbidden server/network/env module: "${spec}"`);
     }
     if (
       (file.startsWith("installer/src/") ||
@@ -516,6 +547,109 @@ for (const file of NODE_CLI_BOUNDARY_FILES) {
   ]) {
     if (contents.includes(marker)) {
       err(`${file} contains forbidden read-only boundary API "${marker}"`);
+    }
+  }
+}
+
+// 4d. MCP server package: local, read-only, stdio-only. Package source must
+// carry no filesystem-write, network, child-process, telemetry, or logging
+// APIs; the bin wrapper may use only process.stderr/process.exitCode; and no
+// ordinary stdout writing or startup banner is allowed (the SDK stdio
+// transport internally owns protocol stdout).
+const MCP_SOURCE_FILES = trackedFiles.filter(
+  (f) => f.startsWith("mcp-server/src/") && f.endsWith(".ts"),
+);
+const MCP_FORBIDDEN = [
+  "writeFile",
+  "appendFile",
+  "createWriteStream",
+  "mkdir",
+  "rmSync",
+  "rmdir",
+  "unlink",
+  "rename",
+  "copyFile",
+  "chmod",
+  "chown",
+  "fetch(",
+  "XMLHttpRequest",
+  "WebSocket",
+  "child_process",
+  "execSync",
+  "spawn",
+  "fork(",
+  "process.env",
+  "dotenv",
+  "console.log",
+  "console.error",
+  "console.info",
+  "console.warn",
+  "console.debug",
+  "logger",
+  "telemetry",
+  "upload",
+  "download",
+  "credentials",
+  "http://",
+  "https://",
+  "process.stdout",
+  "createServer",
+  "listen(",
+];
+// Public MCP results must never carry these keys/fields.
+const MCP_FORBIDDEN_RESULT_KEYS = [
+  "runtimeResponse:",
+  "providerResponses",
+  '"trace"',
+  "documentContent",
+  "rawContent",
+  "absolutePath",
+  "resolvedRoot",
+  "adapter:",
+  "credentials",
+  '"token"',
+  '"secret"',
+];
+// Tool descriptions and server instructions state what the server does NOT do
+// ("never upload project context", "never modifies files"); these exact
+// public-safe phrases are stripped before the API-term scan. Any other
+// occurrence of the term still fails.
+const MCP_DESCRIPTION_ALLOWED = [
+  "never upload project context",
+  "never uploads project context",
+  "never modifies files or uploads project context",
+];
+for (const file of MCP_SOURCE_FILES) {
+  const raw = readFileSync(file, "utf8");
+  let contents = raw;
+  for (const phrase of MCP_DESCRIPTION_ALLOWED) {
+    contents = contents.split(phrase).join("");
+  }
+  for (const marker of MCP_FORBIDDEN) {
+    // types.ts and the runner legitimately name the internal runtimeResponse
+    // field; the projection/leak guards below cover result safety instead.
+    if (contents.includes(marker)) {
+      err(`${file} contains forbidden MCP package API "${marker}"`);
+    }
+  }
+  // The public projectors (server.ts) must not build results from these keys.
+  if (file === "mcp-server/src/server.ts") {
+    for (const key of MCP_FORBIDDEN_RESULT_KEYS) {
+      if (contents.includes(key)) {
+        err(`${file} references a forbidden public-result field "${key}"`);
+      }
+    }
+  }
+}
+// The MCP bin wrapper: no stdout writing or startup banner; stderr/exitCode ok.
+const MCP_BIN = "mcp-server/bin/oh-my-pm-mcp.mjs";
+if (!trackedFiles.includes(MCP_BIN)) {
+  err(`mcp bin wrapper is not tracked: ${MCP_BIN}`);
+} else {
+  const contents = readFileSync(MCP_BIN, "utf8");
+  for (const marker of ["process.stdout", "console.log", "console.error", "process.env", "fetch(", "child_process"]) {
+    if (contents.includes(marker)) {
+      err(`${MCP_BIN} contains forbidden wrapper API "${marker}"`);
     }
   }
 }

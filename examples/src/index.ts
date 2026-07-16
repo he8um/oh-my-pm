@@ -70,6 +70,12 @@ export {
   createExampleKernelApi,
 } from "./kernel.js";
 export {
+  runMcpProjectToolExamples,
+} from "./mcp.js";
+export type {
+  McpProjectToolExamples,
+} from "./mcp.js";
+export {
   runPlanBriefExample,
   runPlanJsonExample,
   runPlanMarkdownExample,
