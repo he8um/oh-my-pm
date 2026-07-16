@@ -39,6 +39,28 @@ function arrayFrom(value: unknown): readonly unknown[] | undefined {
   return Array.isArray(value) ? value : undefined;
 }
 
+type SummaryCounts = { total: number; done: number; blocked: number; open: number };
+
+function asSummaryCounts(value: unknown): SummaryCounts | null {
+  if (!isRecord(value)) return null;
+  const { total, done, blocked, open } = value;
+  if (typeof total !== "number" || typeof done !== "number") return null;
+  if (typeof blocked !== "number" || typeof open !== "number") return null;
+  return { total, done, blocked, open };
+}
+
+function stringsFrom(value: unknown): string[] {
+  const entries = arrayFrom(value) ?? [];
+  const result: string[] = [];
+  for (const entry of entries) {
+    const text = stringFrom(entry);
+    if (text !== undefined) {
+      result.push(text);
+    }
+  }
+  return result;
+}
+
 function titlesFrom(entries: readonly unknown[], key: string): string[] {
   const titles: string[] = [];
   for (const entry of entries) {
@@ -57,6 +79,16 @@ function planBriefList(label: string, count: number, titles: readonly string[]):
 }
 
 function formatPlanBrief(output: Record<string, unknown>): string {
+  const counts = asSummaryCounts(output["counts"]);
+  if (counts !== null) {
+    const highlights = stringsFrom(output["highlights"]);
+    return [
+      "OH MY PM plan: ok",
+      `items: ${counts.total} (open ${counts.open}, blocked ${counts.blocked}, done ${counts.done})`,
+      ...highlights.map((entry) => `- ${entry}`),
+      "",
+    ].join("\n");
+  }
   const summary = stringFrom(output["summary"]);
   if (summary !== undefined) {
     return `OH MY PM plan: ok\n${summary}\n`;
@@ -81,6 +113,25 @@ function planMarkdownList(heading: string, titles: readonly string[]): string {
 }
 
 function formatPlanMarkdown(output: Record<string, unknown>): string {
+  const counts = asSummaryCounts(output["counts"]);
+  if (counts !== null) {
+    const highlights = stringsFrom(output["highlights"]);
+    return [
+      "# OH MY PM Plan",
+      "",
+      "## Status",
+      "",
+      `- Total: ${counts.total}`,
+      `- Open: ${counts.open}`,
+      `- Blocked: ${counts.blocked}`,
+      `- Done: ${counts.done}`,
+      "",
+      "## Highlights",
+      "",
+      ...highlights.map((entry) => `- ${entry}`),
+      "",
+    ].join("\n");
+  }
   const summary = stringFrom(output["summary"]);
   if (summary !== undefined) {
     return `# OH MY PM Plan\n\n${summary}\n`;

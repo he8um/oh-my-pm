@@ -46,9 +46,23 @@ See [`docs/architecture.md`](docs/architecture.md).
 
 ---
 
+## First usable local workflow
+
+After building the workspace, OH MY PM can read Markdown documents from a local project directory and generate a project status brief:
+
+```bash
+node cli/bin/oh-my-pm.mjs brief ./examples/fixtures/markdown-project --markdown
+```
+
+The workflow is read-only. It does not modify project files, upload context, use telemetry, or require external integrations.
+
+---
+
 ## Current phase
 
-The repository scaffold, shared contracts, Kernel foundation, Runtime foundation, CLI status/doctor/plan foundation, provider framework foundation, Planner foundation, Skills foundation, Runtime plan execution shell, package-level examples, private CLI wrapper, real WASM Kernel binding, Installer foundation, installer filesystem planning, read-only Node filesystem adapter, controlled installer execution, installer examples, CLI installer preview, release package manifest design, local package assembly dry-run, archive plan design, signed release metadata design, release integrity verification design, release channel metadata design, local update policy evaluation design, update impact preview design, rollback impact preview design, installer decision report design, installer audit event model design, installer audit trail export plan design, guarded installer write capability design, explicit write approval token design, explicit write execution plan design, write execution confirmation checklist design, controlled write adapter contract hardening, controlled write execution dry-run envelope design, installer release readiness summary design, v0 release candidate checklist design, public v0 release notes draft design, guarded release artifact planning, guarded local artifact assembly dry-run envelope design, guarded artifact creation permission model, local artifact creation execution plan design, and local artifact creation adapter contract design are in place. The current focus is local artifact creation confirmation checklist design.
+The repository scaffold, shared contracts, Kernel foundation, Runtime foundation, CLI status/doctor/plan foundation, provider framework foundation, Planner foundation, Skills foundation, Runtime plan execution shell, package-level examples, private CLI wrapper, real WASM Kernel binding, Installer foundation, installer filesystem planning, read-only Node filesystem adapter, controlled installer execution, installer examples, CLI installer preview, release package manifest design, local package assembly dry-run, archive plan design, signed release metadata design, release integrity verification design, release channel metadata design, local update policy evaluation design, update impact preview design, rollback impact preview design, installer decision report design, installer audit event model design, installer audit trail export plan design, guarded installer write capability design, explicit write approval token design, explicit write execution plan design, write execution confirmation checklist design, controlled write adapter contract hardening, controlled write execution dry-run envelope design, installer release readiness summary design, v0 release candidate checklist design, public v0 release notes draft design, guarded release artifact planning, guarded local artifact assembly dry-run envelope design, guarded artifact creation permission model, local artifact creation execution plan design, local artifact creation adapter contract design, and local artifact creation confirmation checklist design are in place.
+
+The first user-facing v0.1 vertical slice is now focused on local Markdown project briefs. Installer and release safety foundations remain in place, but new work is prioritizing usable project workflows over additional release abstraction.
 
 Implementation will begin with:
 

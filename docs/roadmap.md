@@ -87,6 +87,24 @@
 - Local artifact creation adapter contract design: declared metadata-only contract (name, text/binary output capability labels, dry-run support, explicit-permission requirement), capability and contract validation, step-kind-to-capability mapping, planned-step required-capability collection (first-occurrence dedupe), contract evaluation against permission and execution plan with ordered reasons, always-false creationAllowed, contract dry-run, markdown formatter, CLI preview summary — metadata-only, no adapter instance, no adapter method calls, no artifact creation, no archive creation, no publish workflow, no tags, no GitHub release, no URLs/uploads/downloads, no production install command, no write path, no install execution, no rollback execution, no remote retrieval, no telemetry (in place)
 - Local artifact creation confirmation checklist design: deterministic 7-item checklist (version, permission allowed, execution plan ready, execution steps present, adapter contract ready, required capabilities present, creation remains disabled) composing the guarded creation permission report, local creation execution plan, and metadata-only adapter contract report, ordered failure reasons (no raw source reasons copied), always-false creationAllowed, checklist dry-run, markdown formatter, CLI preview summary — confirmation-only, no adapter instance, no adapter method calls, no artifact creation, no archive creation, no publish workflow, no tags, no GitHub release, no URLs/uploads/downloads, no production install command, no write path, no install execution, no rollback execution, no remote retrieval, no telemetry
 
+## Phase 5A — Usable local vertical slice
+
+- Markdown project document loading: read-only, root-confined, symlink-safe Node CLI boundary with deterministic file/byte limits (in place)
+- `brief [root]`: local Markdown project directory to project status brief (in place)
+- Status skill through the Runtime/Planner/Kernel pipeline: brief request, planner task graph, Kernel graph validation, local provider read, summarize-status skill, formatted output (in place)
+- Example project fixture: public fictional Markdown project under `examples/fixtures/markdown-project` (in place)
+- Read-only local operation: no write path, no network, no telemetry, no document content persistence (in place)
+
+Next priorities:
+
+1. `risks [root]`
+2. `next [root]`
+3. `handoff [root]`
+4. local project config
+5. MCP server
+6. GitHub provider
+7. public packaging/install
+
 ## Phase 6 — Release lifecycle
 
 - Version registry

@@ -139,6 +139,61 @@ describe("cli formatting", () => {
     );
   });
 
+  it("formats a status summary with counts and highlights in brief mode", () => {
+    const response: RuntimeResponse = {
+      id: "cli-brief",
+      ok: true,
+      data: {
+        output: {
+          title: "Project status",
+          summary: "status brief for the current project",
+          counts: { total: 4, done: 1, blocked: 1, open: 2 },
+          highlights: ["Riverline Field Guide", "Status"],
+          generatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      },
+    };
+    expect(formatRuntimeResponse(response, "brief")).toBe(
+      [
+        "OH MY PM plan: ok",
+        "items: 4 (open 2, blocked 1, done 1)",
+        "- Riverline Field Guide",
+        "- Status",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("formats a status summary with counts and highlights in markdown mode", () => {
+    const response: RuntimeResponse = {
+      id: "cli-brief",
+      ok: true,
+      data: {
+        output: {
+          counts: { total: 2, done: 0, blocked: 0, open: 2 },
+          highlights: ["Status"],
+        },
+      },
+    };
+    expect(formatRuntimeResponse(response, "markdown")).toBe(
+      [
+        "# OH MY PM Plan",
+        "",
+        "## Status",
+        "",
+        "- Total: 2",
+        "- Open: 2",
+        "- Blocked: 0",
+        "- Done: 0",
+        "",
+        "## Highlights",
+        "",
+        "- Status",
+        "",
+      ].join("\n"),
+    );
+  });
+
   it("keeps json mode as the full plan response", () => {
     const response: RuntimeResponse = {
       id: "cli-plan",

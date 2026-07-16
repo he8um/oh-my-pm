@@ -150,6 +150,69 @@ describe("cli core execution", () => {
     expect(result.stderr).toBe("error OMP-C-3002: missing plan request\n");
   });
 
+  it("dispatches brief through the Runtime without the root in the payload", () => {
+    const { runtime, requests } = respondingRuntime();
+    const result = runCli(["brief", "./my-project"], { runtime });
+    expect(result.exitCode).toBe(0);
+    expect(requests).toEqual([createRuntimeRequest("brief", "./my-project")]);
+    expect(JSON.stringify(requests[0])).not.toContain("my-project");
+  });
+
+  it("formats a brief status summary in every output mode", () => {
+    const runtime: Runtime = {
+      handle(request: RuntimeRequest): RuntimeResponse {
+        return {
+          id: request.id,
+          ok: true,
+          data: {
+            output: {
+              title: "Project status",
+              summary: "status brief for the current project",
+              counts: { total: 4, done: 0, blocked: 0, open: 4 },
+              highlights: ["Riverline Field Guide", "Decisions", "Risks"],
+              generatedAt: "2026-01-01T00:00:00.000Z",
+            },
+          },
+        };
+      },
+    };
+    const brief = runCli(["brief"], { runtime });
+    expect(brief.exitCode).toBe(0);
+    expect(brief.stdout).toBe(
+      [
+        "OH MY PM plan: ok",
+        "items: 4 (open 4, blocked 0, done 0)",
+        "- Riverline Field Guide",
+        "- Decisions",
+        "- Risks",
+        "",
+      ].join("\n"),
+    );
+
+    const markdown = runCli(["brief", "--markdown"], { runtime });
+    expect(markdown.stdout).toContain("# OH MY PM Plan");
+    expect(markdown.stdout).toContain("- Total: 4");
+    expect(markdown.stdout).toContain("- Riverline Field Guide");
+
+    const json = runCli(["brief", "--json"], { runtime });
+    const parsed = JSON.parse(json.stdout);
+    expect(parsed.id).toBe("cli-brief");
+    expect(parsed.ok).toBe(true);
+  });
+
+  it("returns exit 1 for a failed brief runtime response", () => {
+    const result = runCli(["brief"], { runtime: failingRuntime });
+    expect(result.ok).toBe(false);
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toBe("error OMP-R-2001: request failed kernel validation\n");
+  });
+
+  it("converts a thrown runtime into OMP-C-3003 for brief", () => {
+    const result = runCli(["brief"], { runtime: throwingRuntime });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toBe("error OMP-C-3003: runtime execution failed\n");
+  });
+
   it("runs install-preview locally without touching the Runtime", () => {
     const root = mkdtempSync(join(tmpdir(), "oh-my-pm-cli-preview-"));
     try {

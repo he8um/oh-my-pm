@@ -4,7 +4,7 @@ import type { CliCommand, CliParseResult } from "./types.js";
 export const OMP_C_INVALID_COMMAND = "OMP-C-3001";
 export const OMP_C_INVALID_OPTION = "OMP-C-3002";
 
-const COMMANDS: readonly CliCommand[] = ["status", "doctor", "plan", "install-preview"];
+const COMMANDS: readonly CliCommand[] = ["status", "doctor", "plan", "brief", "install-preview"];
 
 const OUTPUT_OPTIONS: Readonly<Record<string, CliOutputMode>> = {
   "--json": "json",
@@ -19,6 +19,7 @@ export function parseCliArgs(args: readonly string[]): CliParseResult {
   let command: CliCommand | null = null;
   let outputMode: CliOutputMode = "brief";
   const planTokens: string[] = [];
+  let briefRoot: string | null = null;
   let installPreviewRoot: string | null = null;
 
   for (const arg of args) {
@@ -42,6 +43,10 @@ export function parseCliArgs(args: readonly string[]): CliParseResult {
       planTokens.push(arg);
       continue;
     }
+    if (command === "brief" && briefRoot === null) {
+      briefRoot = arg;
+      continue;
+    }
     if (command === "install-preview" && installPreviewRoot === null) {
       installPreviewRoot = arg;
       continue;
@@ -59,6 +64,12 @@ export function parseCliArgs(args: readonly string[]): CliParseResult {
       return { ok: false, code: OMP_C_INVALID_OPTION, message: "missing plan request" };
     }
     return { ok: true, command, outputMode, input };
+  }
+
+  if (command === "brief") {
+    // The project root stays exactly as the user typed it; the parser never
+    // touches the filesystem and never normalizes to an absolute path.
+    return { ok: true, command, outputMode, input: briefRoot ?? "." };
   }
 
   if (command === "install-preview") {

@@ -19,6 +19,18 @@ export type {
   InstallerPreviewResult,
 } from "./install-preview.js";
 export {
+  DEFAULT_PROJECT_DOCUMENT_MAX_BYTES_PER_FILE,
+  DEFAULT_PROJECT_DOCUMENT_MAX_FILES,
+  DEFAULT_PROJECT_DOCUMENT_MAX_TOTAL_BYTES,
+  loadMarkdownProjectDocuments,
+} from "./node-project-documents.js";
+export type {
+  ProjectDocumentLoadOptions,
+  ProjectDocumentLoadResult,
+  ProjectDocumentLoadWarning,
+  ProjectDocumentLoadWarningCode,
+} from "./node-project-documents.js";
+export {
   createRuntimeRequest,
 } from "./request.js";
 export type {

@@ -182,6 +182,8 @@ const CLI_SOURCES = [
   "cli/test/local-runtime-smoke.test.ts",
   "cli/src/install-preview.ts",
   "cli/test/install-preview.test.ts",
+  "cli/src/node-project-documents.ts",
+  "cli/test/node-project-documents.test.ts",
 ];
 for (const file of CLI_SOURCES) {
   if (!existsSync(file)) err(`cli foundation file missing: ${file}`);
@@ -270,6 +272,17 @@ const EXAMPLES_SOURCES = [
 ];
 for (const file of EXAMPLES_SOURCES) {
   if (!existsSync(file)) err(`examples file missing: ${file}`);
+}
+
+// 7g2. Public Markdown project fixture files exist.
+const MARKDOWN_PROJECT_FIXTURES = [
+  "examples/fixtures/markdown-project/README.md",
+  "examples/fixtures/markdown-project/docs/status.md",
+  "examples/fixtures/markdown-project/docs/risks.md",
+  "examples/fixtures/markdown-project/docs/decisions.md",
+];
+for (const file of MARKDOWN_PROJECT_FIXTURES) {
+  if (!existsSync(file)) err(`markdown project fixture missing: ${file}`);
 }
 
 // 7h. Installer foundation files exist.

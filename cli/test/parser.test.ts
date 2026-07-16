@@ -132,6 +132,58 @@ describe("cli parser", () => {
     });
   });
 
+  it("parses brief with the default root", () => {
+    expect(parseCliArgs(["brief"])).toEqual({
+      ok: true,
+      command: "brief",
+      outputMode: "brief",
+      input: ".",
+    });
+  });
+
+  it("parses brief with an explicit root", () => {
+    expect(parseCliArgs(["brief", "./project"])).toEqual({
+      ok: true,
+      command: "brief",
+      outputMode: "brief",
+      input: "./project",
+    });
+  });
+
+  it("parses brief with json output", () => {
+    expect(parseCliArgs(["brief", "./project", "--json"])).toEqual({
+      ok: true,
+      command: "brief",
+      outputMode: "json",
+      input: "./project",
+    });
+  });
+
+  it("parses brief with markdown output and the default root", () => {
+    expect(parseCliArgs(["brief", "--markdown"])).toEqual({
+      ok: true,
+      command: "brief",
+      outputMode: "markdown",
+      input: ".",
+    });
+  });
+
+  it("rejects a second brief positional argument", () => {
+    expect(parseCliArgs(["brief", "./a", "./b"])).toEqual({
+      ok: false,
+      code: "OMP-C-3002",
+      message: "unsupported argument: ./b",
+    });
+  });
+
+  it("rejects unknown options for brief", () => {
+    expect(parseCliArgs(["brief", "--bad"])).toEqual({
+      ok: false,
+      code: "OMP-C-3002",
+      message: "unsupported option: --bad",
+    });
+  });
+
   it("parses install-preview with a root", () => {
     expect(parseCliArgs(["install-preview", "/tmp/oh-my-pm"])).toEqual({
       ok: true,

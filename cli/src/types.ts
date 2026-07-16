@@ -1,9 +1,14 @@
 import type { CliOutputMode, RuntimeRequest, RuntimeResponse } from "@oh-my-pm/contracts";
 import type { Runtime } from "@oh-my-pm/runtime";
 
-export type CliCommand = "status" | "doctor" | "plan" | "install-preview";
+export type CliCommand =
+  | "status"
+  | "doctor"
+  | "plan"
+  | "brief"
+  | "install-preview";
 
-/** Commands dispatched to the Runtime; install-preview runs locally. */
+/** Commands dispatched to the Runtime; only install-preview runs locally. */
 export type RuntimeCliCommand = Exclude<CliCommand, "install-preview">;
 
 export type CliParseResult =

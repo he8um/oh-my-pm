@@ -114,8 +114,23 @@ for (const file of trackedFiles) {
     if (file.startsWith("examples/src/") && (spec === "fs" || spec.startsWith("node:fs"))) {
       err(`${file} imports a Node filesystem module: "${spec}"`);
     }
-    if (file.startsWith("cli/src/") && (spec === "fs" || spec.startsWith("node:fs"))) {
+    // cli/src/node-project-documents.ts is the explicit read-only Node CLI
+    // boundary; it alone may import node:fs and node:path, and 4c below keeps
+    // it free of write, network, child-process, and telemetry APIs.
+    if (
+      file.startsWith("cli/src/") &&
+      file !== "cli/src/node-project-documents.ts" &&
+      (spec === "fs" || spec.startsWith("node:fs"))
+    ) {
       err(`${file} imports a Node filesystem module: "${spec}"`);
+    }
+    if (
+      file === "cli/src/node-project-documents.ts" &&
+      spec !== "node:fs" &&
+      spec !== "node:path" &&
+      (spec.startsWith("node:") || ["fs", "path", "os", "http", "https", "net", "tls", "dgram", "child_process"].includes(spec))
+    ) {
+      err(`${file} imports a Node module outside the read-only boundary allowlist: "${spec}"`);
     }
     if (
       (file.startsWith("installer/src/") ||
@@ -425,6 +440,55 @@ for (const file of trackedFiles) {
       if (contents.includes(marker)) {
         err(`${file} contains forbidden install-execution call "${marker}"`);
       }
+    }
+  }
+}
+
+// 4c. The Markdown project document loader and the CLI bin wrapper form the
+// explicit Node read-only CLI boundary. They may read the user-selected root
+// and write final CLI output to stdout/stderr, but they must never gain a
+// filesystem write path, network access, child-process execution, or
+// telemetry/logging of document content.
+const NODE_CLI_BOUNDARY_FILES = ["cli/src/node-project-documents.ts", "cli/bin/oh-my-pm.mjs"];
+const BOUNDARY_WRITE_APIS = [
+  "writeFile",
+  "appendFile",
+  "createWriteStream",
+  "mkdir",
+  "rmSync",
+  "rmdir",
+  "unlink",
+  "rename",
+  "copyFile",
+  "chmod",
+  "chown",
+];
+const BOUNDARY_NETWORK_APIS = [
+  "fetch(",
+  "XMLHttpRequest",
+  "WebSocket",
+  "node:http",
+  "node:https",
+  "node:net",
+  "node:tls",
+  "node:dgram",
+];
+const BOUNDARY_EXEC_APIS = ["child_process", "execSync", "spawn", "fork("];
+const BOUNDARY_TELEMETRY_APIS = ["telemetry", "logger", "console.log", "console.error"];
+for (const file of NODE_CLI_BOUNDARY_FILES) {
+  if (!trackedFiles.includes(file)) {
+    err(`node cli boundary file is not tracked: ${file}`);
+    continue;
+  }
+  const contents = readFileSync(file, "utf8");
+  for (const marker of [
+    ...BOUNDARY_WRITE_APIS,
+    ...BOUNDARY_NETWORK_APIS,
+    ...BOUNDARY_EXEC_APIS,
+    ...BOUNDARY_TELEMETRY_APIS,
+  ]) {
+    if (contents.includes(marker)) {
+      err(`${file} contains forbidden read-only boundary API "${marker}"`);
     }
   }
 }
