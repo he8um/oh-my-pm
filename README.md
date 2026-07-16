@@ -63,6 +63,30 @@ The current risk workflow reports document-level risk signals. Finer line- or it
 
 The current next-task workflow extracts explicit unchecked Markdown checklist items. It does not generate tasks from arbitrary prose.
 
+## Getting started locally
+
+The packages are private and repository-based — there is no published release yet. See [the getting-started guide](docs/getting-started.md) for the full walkthrough. The short path is:
+
+```bash
+rustup target add wasm32-unknown-unknown
+pnpm install
+pnpm build
+pnpm local:install -- --prefix "$HOME/.local"          # preview, writes nothing
+pnpm local:install -- --prefix "$HOME/.local" --apply  # writes four shims under <prefix>/bin
+pnpm local:check -- --prefix "$HOME/.local"            # read-only verification
+```
+
+Once `<prefix>/bin` is on your PATH, the installed CLI exposes the four read-only project workflows:
+
+```bash
+oh-my-pm brief ./project --markdown
+oh-my-pm risks ./project --markdown
+oh-my-pm next ./project --markdown
+oh-my-pm handoff ./project --markdown
+```
+
+Local MCP onboarding is available too — generate a generic stdio client configuration with `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is a local alpha, not a public release.
+
 ## Local project configuration
 
 Each project may define an optional `oh-my-pm.config.json` file at its root.

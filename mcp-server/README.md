@@ -14,11 +14,25 @@ pnpm build
 
 The only transport is local **stdio**. There is no HTTP, SSE, host, port, network listener, authentication, or session. `stdout` is reserved for MCP protocol messages; a fatal startup error writes one concise line to `stderr` and exits non-zero. Project roots are loaded only when a tool is called — the server does no scanning at startup.
 
-Start the server:
+Start the server (development, from the repository):
 
 ```bash
 node mcp-server/bin/oh-my-pm-mcp.mjs
 ```
+
+After a local installation (see [the getting-started guide](../docs/getting-started.md)), the server is available through the installed command once `<prefix>/bin` is on PATH:
+
+```bash
+oh-my-pm-mcp
+```
+
+Generate a generic stdio client configuration for the installed command:
+
+```bash
+pnpm mcp:config -- --prefix "$HOME/.local" --markdown
+```
+
+The generator prints the configuration only — it never writes to or edits a client application. Copy the entry into your MCP client's configuration manually.
 
 ## Tools
 

@@ -103,15 +103,19 @@
 - Include/exclude document rules: dependency-free `*`/`?`/`**` glob subset with exclude precedence, case-sensitive matching, safety limits that may only lower loader defaults, and scanned/matched/excluded/loaded counts, shared by all four workflows (in place)
 - Example project fixture: public fictional Markdown project under `examples/fixtures/markdown-project`, with an example config and excluded sentinel documents (in place)
 - Read-only MCP stdio server: private `@oh-my-pm/mcp-server` package exposing `project_brief`, `project_risks`, `project_next`, and `project_handoff` over stdio, reusing the CLI config/loader/request/formatter surfaces and the Runtime/Planner/Skills/local-provider/real-WASM pipeline, with strict public structured-result projections and no HTTP, telemetry, or write tools (in place)
-- Read-only local operation: no write path, no network, no telemetry, no document content persistence (in place)
+- Local preview-first command installation: `tools/install-local.mjs` writes stable `oh-my-pm` and `oh-my-pm-mcp` shims (POSIX + `.cmd`) only under an explicit `<prefix>/bin`, preview by default, `--apply`/`--force` gated, atomic, with no PATH, shell-profile, or client-config edits (in place)
+- Local install verification: read-only `tools/check-local-install.mjs` exercises the installed CLI (status + fixture brief) and the installed MCP command over stdio (tool list + `project_brief`) (in place)
+- Generic MCP client config generation: read-only `tools/print-mcp-client-config.mjs` prints a stdio client entry with an absolute command path and no env/root/network fields; never writes to a client (in place)
+- Getting-started onboarding guide covering clone/build/install/verify, PATH, CLI workflows, and MCP client setup (in place)
+- Read-only local operation: no write path in package source, no network, no telemetry, no document content persistence (in place)
 
 Next priorities:
 
-1. public/local installation and packaging for CLI + MCP
-2. MCP client onboarding examples
-3. GitHub read-only provider
-4. project diagnostics/config inspection command
-5. finer-grained Markdown extraction
+1. public packaging and versioned release distribution
+2. GitHub read-only provider
+3. MCP/CLI installation UX hardening
+4. finer risk/task extraction
+5. optional controlled write-back only after explicit approval design
 
 ## Phase 6 — Release lifecycle
 

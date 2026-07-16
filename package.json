@@ -19,7 +19,10 @@
     "validate:boundaries": "node tools/validate-boundaries.mjs",
     "validate:contracts": "node tools/validate-contracts.mjs",
     "validate": "pnpm validate:public && pnpm validate:structure && pnpm validate:boundaries && pnpm validate:contracts",
-    "mcp:smoke": "node tools/check-mcp-server.mjs"
+    "mcp:smoke": "node tools/check-mcp-server.mjs",
+    "local:install": "node tools/install-local.mjs",
+    "local:check": "node tools/check-local-install.mjs",
+    "mcp:config": "node tools/print-mcp-client-config.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

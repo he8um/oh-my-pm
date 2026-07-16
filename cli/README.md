@@ -6,6 +6,17 @@ The package exposes side-effect-free CLI core utilities and a local Node.js wrap
 
 The local wrapper is available as `oh-my-pm` inside the workspace after packages are built and linked by pnpm. It is private and is not published.
 
+After a local installation (see [the getting-started guide](../docs/getting-started.md)), the same commands are available through the installed `oh-my-pm` shim once `<prefix>/bin` is on PATH:
+
+```bash
+oh-my-pm brief ./project --markdown
+oh-my-pm risks ./project --markdown
+oh-my-pm next ./project --markdown
+oh-my-pm handoff ./project --markdown
+```
+
+For development inside the repository, invoke the wrapper directly with `node cli/bin/oh-my-pm.mjs <command>` as shown in the examples below.
+
 Current commands:
 
 - `status`

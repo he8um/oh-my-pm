@@ -314,6 +314,22 @@ for (const file of MCP_SERVER_SOURCES) {
   if (!existsSync(file)) err(`mcp server file missing: ${file}`);
 }
 
+// 7g4. Local installation and onboarding tooling exists.
+const LOCAL_INSTALL_SOURCES = [
+  "tools/local-install-utils.mjs",
+  "tools/install-local.mjs",
+  "tools/check-local-install.mjs",
+  "tools/print-mcp-client-config.mjs",
+  "tools/test/local-install-utils.test.mjs",
+  "tools/test/local-install-cli.test.mjs",
+  "tools/test/local-install-check.test.mjs",
+  "tools/test/mcp-client-config.test.mjs",
+  "docs/getting-started.md",
+];
+for (const file of LOCAL_INSTALL_SOURCES) {
+  if (!existsSync(file)) err(`local install tooling file missing: ${file}`);
+}
+
 // 7h. Installer foundation files exist.
 const INSTALLER_SOURCES = [
   "installer/README.md",
