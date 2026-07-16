@@ -39,6 +39,66 @@ function arrayFrom(value: unknown): readonly unknown[] | undefined {
   return Array.isArray(value) ? value : undefined;
 }
 
+type RiskEntry = {
+  id: string;
+  title: string;
+  severity: "low" | "medium" | "high";
+  reason: string;
+};
+
+/** Strict risk-summary entries; null for any malformed shape. */
+function asRiskEntries(value: unknown): RiskEntry[] | null {
+  if (!Array.isArray(value)) return null;
+  const entries: RiskEntry[] = [];
+  for (const raw of value) {
+    if (!isRecord(raw)) return null;
+    const { id, title, severity, reason } = raw;
+    if (typeof id !== "string" || typeof title !== "string" || typeof reason !== "string") {
+      return null;
+    }
+    if (severity !== "low" && severity !== "medium" && severity !== "high") {
+      return null;
+    }
+    entries.push({ id, title, severity, reason });
+  }
+  return entries;
+}
+
+function riskEntriesBrief(entries: readonly RiskEntry[]): string {
+  if (entries.length === 0) {
+    return "OH MY PM risks: 0\nno risks detected\n";
+  }
+  return [
+    `OH MY PM risks: ${entries.length}`,
+    ...entries.map((entry) => `- [${entry.severity}] ${entry.title} — ${entry.reason}`),
+    "",
+  ].join("\n");
+}
+
+function riskEntriesMarkdown(entries: readonly RiskEntry[]): string {
+  const bySeverity = (severity: RiskEntry["severity"]) =>
+    entries.filter((entry) => entry.severity === severity).length;
+  const riskLines =
+    entries.length === 0
+      ? ["- none"]
+      : entries.map((entry) => `- **${entry.severity}** — ${entry.title} — \`${entry.reason}\``);
+  return [
+    "# OH MY PM Project Risks",
+    "",
+    "## Summary",
+    "",
+    `- Total: ${entries.length}`,
+    `- High: ${bySeverity("high")}`,
+    `- Medium: ${bySeverity("medium")}`,
+    `- Low: ${bySeverity("low")}`,
+    "",
+    "## Risks",
+    "",
+    ...riskLines,
+    "",
+  ].join("\n");
+}
+
 type SummaryCounts = { total: number; done: number; blocked: number; open: number };
 
 function asSummaryCounts(value: unknown): SummaryCounts | null {
@@ -99,6 +159,10 @@ function formatPlanBrief(output: Record<string, unknown>): string {
   }
   const risks = arrayFrom(output["risks"]);
   if (risks !== undefined) {
+    const entries = asRiskEntries(risks);
+    if (entries !== null) {
+      return riskEntriesBrief(entries);
+    }
     return planBriefList("risks", risks.length, titlesFrom(risks, "title").slice(0, 5));
   }
   const sections = arrayFrom(output["sections"]);
@@ -142,6 +206,10 @@ function formatPlanMarkdown(output: Record<string, unknown>): string {
   }
   const risks = arrayFrom(output["risks"]);
   if (risks !== undefined) {
+    const entries = asRiskEntries(risks);
+    if (entries !== null) {
+      return riskEntriesMarkdown(entries);
+    }
     return planMarkdownList("Risks", titlesFrom(risks, "title"));
   }
   const sections = arrayFrom(output["sections"]);

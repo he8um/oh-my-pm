@@ -2,9 +2,9 @@
 // Private local development wrapper for the OH MY PM CLI core.
 // The Kernel is the real Rust Kernel loaded through the WASM binding.
 // For status/doctor/plan/install-preview the provider seed data remains
-// local; for brief the local provider is populated from read-only Markdown
-// project documents under the requested root. This is not a production
-// release and is not distributed.
+// local; for brief and risks the local provider is populated from read-only
+// Markdown project documents under the requested root. This is not a
+// production release and is not distributed.
 
 import { loadMarkdownProjectDocuments, parseCliArgs, runCli } from "../dist/index.js";
 import { createNodeWasmKernelApi } from "@oh-my-pm/kernel";
@@ -66,7 +66,10 @@ const parsed = parseCliArgs(args);
 let providerItems = SEED_ITEMS;
 let blocked = false;
 
-if (parsed.ok && parsed.command === "brief") {
+const usesProjectDocuments =
+  parsed.ok && (parsed.command === "brief" || parsed.command === "risks");
+
+if (usesProjectDocuments) {
   // Errors report the root exactly as the user typed it, never a resolved
   // internal absolute path, and never any document content.
   const root = parsed.input ?? ".";

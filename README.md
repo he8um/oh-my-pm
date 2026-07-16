@@ -48,13 +48,16 @@ See [`docs/architecture.md`](docs/architecture.md).
 
 ## First usable local workflow
 
-After building the workspace, OH MY PM can read Markdown documents from a local project directory and generate a project status brief:
+After building the workspace, OH MY PM can read Markdown documents from a local project directory and generate a project status brief or a project risk report:
 
 ```bash
 node cli/bin/oh-my-pm.mjs brief ./examples/fixtures/markdown-project --markdown
+node cli/bin/oh-my-pm.mjs risks ./examples/fixtures/markdown-project --markdown
 ```
 
-The workflow is read-only. It does not modify project files, upload context, use telemetry, or require external integrations.
+`brief` produces a project status overview. `risks` detects document-level risk signals from Markdown content with deterministic keyword matching and severity mapping. Both workflows are read-only and local-only: they do not modify project files, upload context, use telemetry, or require external integrations.
+
+The current risk workflow reports document-level risk signals. Finer line- or item-level extraction is planned for a later phase.
 
 ---
 

@@ -92,18 +92,19 @@
 - Markdown project document loading: read-only, root-confined, symlink-safe Node CLI boundary with deterministic file/byte limits (in place)
 - `brief [root]`: local Markdown project directory to project status brief (in place)
 - Status skill through the Runtime/Planner/Kernel pipeline: brief request, planner task graph, Kernel graph validation, local provider read, summarize-status skill, formatted output (in place)
+- Markdown content-to-skill body plumbing: document `data.content` mapped into Runtime skill item bodies so skills inspect document text, not just titles (in place)
+- `risks [root]`: local Markdown project directory to document-level risk report with deterministic severity and reason through the extractRisks skill (in place)
 - Example project fixture: public fictional Markdown project under `examples/fixtures/markdown-project` (in place)
 - Read-only local operation: no write path, no network, no telemetry, no document content persistence (in place)
 
 Next priorities:
 
-1. `risks [root]`
-2. `next [root]`
-3. `handoff [root]`
-4. local project config
-5. MCP server
-6. GitHub provider
-7. public packaging/install
+1. `next [root]`
+2. `handoff [root]`
+3. local project config
+4. MCP server
+5. GitHub provider
+6. public packaging/install
 
 ## Phase 6 — Release lifecycle
 

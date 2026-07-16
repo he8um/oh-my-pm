@@ -114,6 +114,16 @@ for (const file of trackedFiles) {
     if (file.startsWith("examples/src/") && (spec === "fs" || spec.startsWith("node:fs"))) {
       err(`${file} imports a Node filesystem module: "${spec}"`);
     }
+    // Runtime, Planner, Skills, contracts, and providers are pure packages:
+    // no Node built-in may be imported there. Only the explicit Node CLI
+    // boundary and the kernel binding loader touch the platform.
+    if (
+      /^(contracts|runtime|planner|providers|skills)\/src\/.*\.ts$/.test(file) &&
+      (spec.startsWith("node:") ||
+        ["fs", "path", "os", "http", "https", "net", "tls", "dgram", "crypto", "zlib", "stream", "child_process"].includes(spec))
+    ) {
+      err(`${file} imports a Node built-in module: "${spec}"`);
+    }
     // cli/src/node-project-documents.ts is the explicit read-only Node CLI
     // boundary; it alone may import node:fs and node:path, and 4c below keeps
     // it free of write, network, child-process, and telemetry APIs.

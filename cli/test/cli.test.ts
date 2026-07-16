@@ -213,6 +213,68 @@ describe("cli core execution", () => {
     expect(result.stderr).toBe("error OMP-C-3003: runtime execution failed\n");
   });
 
+  it("dispatches risks through the Runtime without the root in the payload", () => {
+    const { runtime, requests } = respondingRuntime();
+    const result = runCli(["risks", "./my-project"], { runtime });
+    expect(result.exitCode).toBe(0);
+    expect(requests).toEqual([createRuntimeRequest("risks", "./my-project")]);
+    expect(requests[0]?.id).toBe("cli-risks");
+    expect(requests[0]?.kind).toBe("plan");
+    expect(JSON.stringify(requests[0])).not.toContain("my-project");
+    expect(JSON.stringify(requests[0])).toContain("review project risks");
+  });
+
+  it("formats a risks response in every output mode", () => {
+    const runtime: Runtime = {
+      handle(request: RuntimeRequest): RuntimeResponse {
+        return {
+          id: request.id,
+          ok: true,
+          data: {
+            output: {
+              risks: [
+                {
+                  id: "docs/risks.md",
+                  title: "Delivery Constraints",
+                  severity: "high",
+                  reason: "keyword:blocked",
+                },
+              ],
+            },
+          },
+        };
+      },
+    };
+    const brief = runCli(["risks"], { runtime });
+    expect(brief.exitCode).toBe(0);
+    expect(brief.stdout).toBe(
+      "OH MY PM risks: 1\n- [high] Delivery Constraints — keyword:blocked\n",
+    );
+
+    const markdown = runCli(["risks", "--markdown"], { runtime });
+    expect(markdown.stdout).toContain("# OH MY PM Project Risks");
+    expect(markdown.stdout).toContain("- Total: 1");
+    expect(markdown.stdout).toContain("- **high** — Delivery Constraints — `keyword:blocked`");
+
+    const json = runCli(["risks", "--json"], { runtime });
+    const parsed = JSON.parse(json.stdout);
+    expect(parsed.id).toBe("cli-risks");
+    expect(parsed.ok).toBe(true);
+  });
+
+  it("returns exit 1 for a failed risks runtime response", () => {
+    const result = runCli(["risks"], { runtime: failingRuntime });
+    expect(result.ok).toBe(false);
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toBe("error OMP-R-2001: request failed kernel validation\n");
+  });
+
+  it("converts a thrown runtime into OMP-C-3003 for risks", () => {
+    const result = runCli(["risks"], { runtime: throwingRuntime });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toBe("error OMP-C-3003: runtime execution failed\n");
+  });
+
   it("runs install-preview locally without touching the Runtime", () => {
     const root = mkdtempSync(join(tmpdir(), "oh-my-pm-cli-preview-"));
     try {

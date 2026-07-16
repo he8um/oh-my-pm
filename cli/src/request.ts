@@ -12,18 +12,19 @@ export function createRuntimeRequest(command: RuntimeCliCommand, input?: string)
       payload: { source: "cli", request: input ?? "", context: {} },
     };
   }
-  if (command === "brief") {
+  if (command === "brief" || command === "risks") {
     // The project root never enters the Runtime payload; the Runtime only
     // sees normalized items from the already-populated local provider. The
-    // request text contains "status" so intent classification stays on the
-    // status intent deterministically.
+    // request text is chosen so deterministic intent classification selects
+    // the status intent for brief and the riskReview intent for risks.
     return {
-      id: "cli-brief",
+      id: `cli-${command}`,
       kind: "plan",
       locale: "en",
       payload: {
         source: "cli",
-        request: "status brief for the current project",
+        request:
+          command === "brief" ? "status brief for the current project" : "review project risks",
         context: {
           providerRequests: [
             {

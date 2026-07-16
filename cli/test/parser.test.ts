@@ -184,6 +184,76 @@ describe("cli parser", () => {
     });
   });
 
+  it("parses risks with the default root", () => {
+    expect(parseCliArgs(["risks"])).toEqual({
+      ok: true,
+      command: "risks",
+      outputMode: "brief",
+      input: ".",
+    });
+  });
+
+  it("parses risks with an explicit dot root", () => {
+    expect(parseCliArgs(["risks", "."])).toEqual({
+      ok: true,
+      command: "risks",
+      outputMode: "brief",
+      input: ".",
+    });
+  });
+
+  it("parses risks with an explicit root", () => {
+    expect(parseCliArgs(["risks", "./project"])).toEqual({
+      ok: true,
+      command: "risks",
+      outputMode: "brief",
+      input: "./project",
+    });
+  });
+
+  it("parses risks with json output", () => {
+    expect(parseCliArgs(["risks", "./project", "--json"])).toEqual({
+      ok: true,
+      command: "risks",
+      outputMode: "json",
+      input: "./project",
+    });
+  });
+
+  it("parses risks with markdown output", () => {
+    expect(parseCliArgs(["risks", "./project", "--markdown"])).toEqual({
+      ok: true,
+      command: "risks",
+      outputMode: "markdown",
+      input: "./project",
+    });
+  });
+
+  it("accepts risks options before the root", () => {
+    expect(parseCliArgs(["--json", "risks", "./project"])).toEqual({
+      ok: true,
+      command: "risks",
+      outputMode: "json",
+      input: "./project",
+    });
+  });
+
+  it("rejects a second risks positional argument", () => {
+    expect(parseCliArgs(["risks", "./a", "./b"])).toEqual({
+      ok: false,
+      code: "OMP-C-3002",
+      message: "unsupported argument: ./b",
+    });
+  });
+
+  it("rejects unknown options for risks", () => {
+    expect(parseCliArgs(["risks", "--bad"])).toEqual({
+      ok: false,
+      code: "OMP-C-3002",
+      message: "unsupported option: --bad",
+    });
+  });
+
   it("parses install-preview with a root", () => {
     expect(parseCliArgs(["install-preview", "/tmp/oh-my-pm"])).toEqual({
       ok: true,

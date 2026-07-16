@@ -85,7 +85,12 @@ export function providerItemsToTextItems(
   return items.map((item) => {
     const text: RuntimeTextItem = { id: item.id, title: item.title };
     if (isRecord(item.data)) {
-      const body = stringOf(item.data["body"]) ?? stringOf(item.data["summary"]);
+      // Document-shaped items (e.g. loaded Markdown files) carry their text
+      // in data.content; body and summary keep precedence when present.
+      const body =
+        stringOf(item.data["body"]) ??
+        stringOf(item.data["summary"]) ??
+        stringOf(item.data["content"]);
       if (body !== undefined) text.body = body;
       const status = stringOf(item.data["status"]);
       if (status !== undefined) text.status = status;

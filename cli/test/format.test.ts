@@ -194,6 +194,139 @@ describe("cli formatting", () => {
     );
   });
 
+  it("formats valid risk entries with severity and reason in brief mode", () => {
+    const response: RuntimeResponse = {
+      id: "cli-risks",
+      ok: true,
+      data: {
+        output: {
+          risks: [
+            { id: "a", title: "Supplier stall", severity: "high", reason: "keyword:blocked" },
+            { id: "b", title: "Licensing gap", severity: "medium", reason: "keyword:dependency" },
+            { id: "c", title: "Notes backlog", severity: "low", reason: "explicit" },
+          ],
+        },
+      },
+    };
+    expect(formatRuntimeResponse(response, "brief")).toBe(
+      [
+        "OH MY PM risks: 3",
+        "- [high] Supplier stall — keyword:blocked",
+        "- [medium] Licensing gap — keyword:dependency",
+        "- [low] Notes backlog — explicit",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("formats zero risks in brief mode", () => {
+    const response: RuntimeResponse = {
+      id: "cli-risks",
+      ok: true,
+      data: { output: { risks: [] } },
+    };
+    expect(formatRuntimeResponse(response, "brief")).toBe(
+      "OH MY PM risks: 0\nno risks detected\n",
+    );
+  });
+
+  it("formats valid risk entries with counts in markdown mode", () => {
+    const response: RuntimeResponse = {
+      id: "cli-risks",
+      ok: true,
+      data: {
+        output: {
+          risks: [
+            { id: "a", title: "Supplier stall", severity: "high", reason: "keyword:blocked" },
+            { id: "b", title: "Licensing gap", severity: "medium", reason: "keyword:dependency" },
+            { id: "c", title: "Notes backlog", severity: "low", reason: "explicit" },
+            { id: "d", title: "Courier strike", severity: "high", reason: "keyword:urgent" },
+          ],
+        },
+      },
+    };
+    expect(formatRuntimeResponse(response, "markdown")).toBe(
+      [
+        "# OH MY PM Project Risks",
+        "",
+        "## Summary",
+        "",
+        "- Total: 4",
+        "- High: 2",
+        "- Medium: 1",
+        "- Low: 1",
+        "",
+        "## Risks",
+        "",
+        "- **high** — Supplier stall — `keyword:blocked`",
+        "- **medium** — Licensing gap — `keyword:dependency`",
+        "- **low** — Notes backlog — `explicit`",
+        "- **high** — Courier strike — `keyword:urgent`",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("formats zero risks in markdown mode", () => {
+    const response: RuntimeResponse = {
+      id: "cli-risks",
+      ok: true,
+      data: { output: { risks: [] } },
+    };
+    expect(formatRuntimeResponse(response, "markdown")).toBe(
+      [
+        "# OH MY PM Project Risks",
+        "",
+        "## Summary",
+        "",
+        "- Total: 0",
+        "- High: 0",
+        "- Medium: 0",
+        "- Low: 0",
+        "",
+        "## Risks",
+        "",
+        "- none",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("falls back to the generic risk list for malformed risk entries", () => {
+    const malformed: RuntimeResponse = {
+      id: "cli-risks",
+      ok: true,
+      data: {
+        output: {
+          risks: [
+            { id: "a", title: "Vendor delay" },
+            { id: "b", title: "Bad severity", severity: "extreme", reason: "explicit" },
+          ],
+        },
+      },
+    };
+    expect(formatRuntimeResponse(malformed, "brief")).toBe(
+      "OH MY PM plan: ok\nrisks: 2\n- Vendor delay\n- Bad severity\n",
+    );
+    expect(formatRuntimeResponse(malformed, "markdown")).toBe(
+      "# OH MY PM Plan\n\n## Risks\n\n- Vendor delay\n- Bad severity\n",
+    );
+  });
+
+  it("keeps json mode untouched for risk outputs", () => {
+    const response: RuntimeResponse = {
+      id: "cli-risks",
+      ok: true,
+      data: {
+        output: {
+          risks: [{ id: "a", title: "Supplier stall", severity: "high", reason: "keyword:blocked" }],
+        },
+      },
+      trace: [{ step: "skill.execute", status: "ok" }],
+    };
+    expect(JSON.parse(formatRuntimeResponse(response, "json"))).toEqual(response);
+  });
+
   it("keeps json mode as the full plan response", () => {
     const response: RuntimeResponse = {
       id: "cli-plan",

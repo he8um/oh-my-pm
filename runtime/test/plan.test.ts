@@ -97,6 +97,48 @@ describe("runtime plan execution", () => {
     expect(steps(response)).toContain("provider.execute");
   });
 
+  it("feeds document data.content into the risk skill as item body", () => {
+    // Regression guard for the Markdown pipeline: the loader stores document
+    // text in data.content, the title is neutral, and there is no status or
+    // tag signal — detection must come from the body alone.
+    const documentItems = [
+      {
+        id: "docs/constraints.md",
+        type: "document" as const,
+        title: "Delivery Constraints",
+        data: {
+          path: "docs/constraints.md",
+          content: "The launch is blocked by an external dependency.",
+          bytes: 49,
+        },
+      },
+    ];
+    const snapshot = JSON.parse(JSON.stringify(documentItems));
+    const providers = createProviderRegistry([createLocalProvider({ items: documentItems })]);
+    const response = runtimeWith({ providers }).handle(
+      planRequest({
+        request: "review project risks",
+        context: { providerRequests: [{ providerId: "local", action: "list", query: "" }] },
+      }),
+    );
+    expect(response.ok).toBe(true);
+    const data = response.data as Record<string, JsonValue>;
+    const skillOutput = data["skillOutput"] as Record<string, JsonValue>;
+    expect(skillOutput["skillId"]).toBe("extractRisks");
+    const output = data["output"] as {
+      risks: Array<{ id: string; title: string; severity: string; reason: string }>;
+    };
+    expect(output.risks).toEqual([
+      {
+        id: "docs/constraints.md",
+        title: "Delivery Constraints",
+        severity: "high",
+        reason: "keyword:blocked",
+      },
+    ]);
+    expect(documentItems).toEqual(snapshot);
+  });
+
   it("returns OMP-R-2004 when the payload cannot become planner input", () => {
     const response = runtimeWith().handle(planRequest({ context: {} }));
     expect(response.ok).toBe(false);

@@ -10,7 +10,9 @@ describe("plan examples", () => {
   it("brief plan succeeds", () => {
     const result = runPlanBriefExample();
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("OH MY PM plan: ok");
+    // The example plans a risk review with no provider items, so the risk
+    // formatter reports a deterministic empty result.
+    expect(result.stdout).toBe("OH MY PM risks: 0\nno risks detected\n");
   });
 
   it("markdown plan renders the heading", () => {

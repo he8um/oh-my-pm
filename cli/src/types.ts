@@ -6,6 +6,7 @@ export type CliCommand =
   | "doctor"
   | "plan"
   | "brief"
+  | "risks"
   | "install-preview";
 
 /** Commands dispatched to the Runtime; only install-preview runs locally. */

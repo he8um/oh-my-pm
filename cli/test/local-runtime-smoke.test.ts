@@ -178,3 +178,82 @@ describe("bin wrapper brief smoke", () => {
     }
   });
 });
+
+describe("bin wrapper risks smoke", () => {
+  it("detects body-grounded risks through the full pipeline in json mode", () => {
+    const loaded = loadMarkdownProjectDocuments(fixtureRoot);
+    expect(loaded.ok).toBe(true);
+
+    const result = runBin(["risks", "examples/fixtures/markdown-project", "--json"]);
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+
+    const parsed = JSON.parse(result.stdout);
+    expect(parsed.id).toBe("cli-risks");
+    expect(parsed.ok).toBe(true);
+
+    // Full Runtime path with the final risk skill.
+    const steps = parsed.trace.map((entry: { step: string }) => entry.step);
+    expect(steps).toContain("planner.plan");
+    expect(steps).toContain("kernel.validate.taskGraph");
+    expect(steps).toContain("provider.execute");
+    expect(steps).toContain("skill.execute");
+    expect(parsed.data.skillOutput.skillId).toBe("extractRisks");
+    expect(parsed.data.skillOutput.ok).toBe(true);
+
+    // The constraints document has a neutral title and keywords only in its
+    // Markdown body, so this detection proves data.content reaches the skill.
+    const risks = parsed.data.output.risks;
+    expect(risks.length).toBeGreaterThanOrEqual(1);
+    const constraints = risks.find((risk: { id: string }) => risk.id === "docs/risks.md");
+    expect(constraints).toEqual({
+      id: "docs/risks.md",
+      title: "Delivery Constraints",
+      severity: "high",
+      reason: "keyword:blocked",
+    });
+
+    // The root path stays out of the Runtime payload and the seed items are gone.
+    expect(JSON.stringify(parsed.data.plannerInput)).not.toContain("markdown-project");
+    expect(result.stdout).not.toContain("Finalize project roadmap");
+    expect(result.stdout).not.toContain("Prepare launch handoff");
+
+    // The read-only run left the fixture project untouched.
+    const reloaded = loadMarkdownProjectDocuments(fixtureRoot);
+    expect(reloaded).toEqual(loaded);
+  });
+
+  it("renders a markdown risk report with counts, severity, and reason", () => {
+    const result = runBin(["risks", "examples/fixtures/markdown-project", "--markdown"]);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("# OH MY PM Project Risks");
+    expect(result.stdout).toContain("- Total: ");
+    expect(result.stdout).toContain("- High: ");
+    expect(result.stdout).toContain("- **high** — Delivery Constraints — `keyword:blocked`");
+    expect(result.stdout.endsWith("\n")).toBe(true);
+    expect(result.stdout.endsWith("\n\n")).toBe(false);
+    // The report lists titles and reasons, never document bodies.
+    expect(result.stdout).not.toContain("paper supplier");
+  });
+
+  it("exits with 2 for a missing risks root without executing the runtime", () => {
+    const result = runBin(["risks", "examples/fixtures/does-not-exist", "--json"]);
+    expect(result.status).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toBe(
+      "project root was not found: examples/fixtures/does-not-exist\n",
+    );
+  });
+
+  it("exits with 2 for a risks root without markdown documents", () => {
+    const emptyRoot = mkdtempSync(join(tmpdir(), "oh-my-pm-empty-"));
+    try {
+      const result = runBin(["risks", emptyRoot]);
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toBe(`no markdown project documents found under: ${emptyRoot}\n`);
+    } finally {
+      rmSync(emptyRoot, { recursive: true, force: true });
+    }
+  });
+});

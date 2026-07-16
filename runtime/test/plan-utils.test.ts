@@ -73,6 +73,54 @@ describe("providerItemsToTextItems", () => {
       { id: "3", title: "Three" },
     ]);
   });
+
+  it("maps document data.content into body as the third fallback", () => {
+    const items: NormalizedProviderItem[] = [
+      {
+        id: "docs/a.md",
+        type: "document",
+        title: "A",
+        source: "local",
+        data: { path: "docs/a.md", content: "The launch is blocked.", bytes: 22 },
+      },
+    ];
+    expect(providerItemsToTextItems(items)).toEqual([
+      { id: "docs/a.md", title: "A", body: "The launch is blocked." },
+    ]);
+  });
+
+  it("keeps body over summary over content precedence", () => {
+    const withAll: NormalizedProviderItem = {
+      id: "1",
+      type: "document",
+      title: "T",
+      source: "local",
+      data: { body: "the-body", summary: "the-summary", content: "the-content" },
+    };
+    const withSummaryAndContent: NormalizedProviderItem = {
+      id: "2",
+      type: "document",
+      title: "T",
+      source: "local",
+      data: { summary: "the-summary", content: "the-content" },
+    };
+    expect(providerItemsToTextItems([withAll])[0]?.body).toBe("the-body");
+    expect(providerItemsToTextItems([withSummaryAndContent])[0]?.body).toBe("the-summary");
+  });
+
+  it("does not copy path or bytes and does not mutate the provider item", () => {
+    const item: NormalizedProviderItem = {
+      id: "docs/a.md",
+      type: "document",
+      title: "A",
+      source: "local",
+      data: { path: "docs/a.md", content: "text", bytes: 4 },
+    };
+    const snapshot = JSON.parse(JSON.stringify(item));
+    const mapped = providerItemsToTextItems([item]);
+    expect(mapped).toEqual([{ id: "docs/a.md", title: "A", body: "text" }]);
+    expect(item).toEqual(snapshot);
+  });
 });
 
 describe("notesFromPlannerContext", () => {

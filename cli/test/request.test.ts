@@ -56,4 +56,32 @@ describe("cli runtime request factory", () => {
     expect(JSON.stringify(request)).not.toContain("secret-project-root");
     expect(createRuntimeRequest("brief", "./a")).toEqual(createRuntimeRequest("brief", "./b"));
   });
+
+  it("creates the exact risks request with local provider list context", () => {
+    expect(createRuntimeRequest("risks", "./my-project")).toEqual({
+      id: "cli-risks",
+      kind: "plan",
+      locale: "en",
+      payload: {
+        source: "cli",
+        request: "review project risks",
+        context: {
+          providerRequests: [
+            {
+              providerId: "local",
+              action: "list",
+              query: "",
+              limit: DEFAULT_PROJECT_DOCUMENT_MAX_FILES,
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it("never places the risks root path into the runtime payload", () => {
+    const request = createRuntimeRequest("risks", "./secret-project-root");
+    expect(JSON.stringify(request)).not.toContain("secret-project-root");
+    expect(createRuntimeRequest("risks", "./a")).toEqual(createRuntimeRequest("risks", "./b"));
+  });
 });
