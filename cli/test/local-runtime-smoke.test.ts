@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +8,11 @@ import { createLocalProvider, createProviderRegistry } from "@oh-my-pm/providers
 import { createRuntime } from "@oh-my-pm/runtime";
 import { createDefaultSkillRegistry } from "@oh-my-pm/skills";
 import { describe, expect, it } from "vitest";
-import { loadMarkdownProjectDocuments, runCli } from "../src/index.js";
+import {
+  loadConfiguredMarkdownProjectDocuments,
+  loadMarkdownProjectDocuments,
+  runCli,
+} from "../src/index.js";
 import type { RuntimeRequestFactory } from "../src/index.js";
 
 const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -88,13 +92,20 @@ describe("cli core with a wrapper-equivalent local runtime", () => {
     expect(steps).toContain("provider.execute");
   });
 
-  it("runs brief end-to-end over loaded fixture documents", () => {
-    const loaded = loadMarkdownProjectDocuments(fixtureRoot);
-    expect(loaded.ok).toBe(true);
-    expect(loaded.filesLoaded).toBe(4);
+  it("runs brief end-to-end over configured fixture documents", () => {
+    // The wrapper uses the configured loader, which applies the fixture's
+    // oh-my-pm.config.json: exactly the four included documents, with the
+    // archived and scratch documents excluded.
+    const configured = loadConfiguredMarkdownProjectDocuments(fixtureRoot);
+    expect(configured.ok).toBe(true);
+    if (!configured.ok) return;
+    expect(configured.configExists).toBe(true);
+    expect(configured.documents.filesLoaded).toBe(4);
     const runtime = createRuntime({
       kernel: createNodeWasmKernelApi(),
-      providers: createProviderRegistry([createLocalProvider({ items: loaded.items })]),
+      providers: createProviderRegistry([
+        createLocalProvider({ items: configured.documents.items }),
+      ]),
       skills: createDefaultSkillRegistry(),
       version: "2.0.0-alpha.0-local",
       now: "2026-01-01T00:00:00.000Z",
@@ -172,7 +183,7 @@ describe("bin wrapper brief smoke", () => {
       const result = runBin(["brief", emptyRoot]);
       expect(result.status).toBe(2);
       expect(result.stdout).toBe("");
-      expect(result.stderr).toBe(`no markdown project documents found under: ${emptyRoot}\n`);
+      expect(result.stderr).toBe(`no markdown project documents matched under: ${emptyRoot}\n`);
     } finally {
       rmSync(emptyRoot, { recursive: true, force: true });
     }
@@ -262,7 +273,7 @@ describe("bin wrapper risks smoke", () => {
       const result = runBin(["risks", emptyRoot]);
       expect(result.status).toBe(2);
       expect(result.stdout).toBe("");
-      expect(result.stderr).toBe(`no markdown project documents found under: ${emptyRoot}\n`);
+      expect(result.stderr).toBe(`no markdown project documents matched under: ${emptyRoot}\n`);
     } finally {
       rmSync(emptyRoot, { recursive: true, force: true });
     }
@@ -351,7 +362,7 @@ describe("bin wrapper next smoke", () => {
       const result = runBin(["next", emptyRoot]);
       expect(result.status).toBe(2);
       expect(result.stdout).toBe("");
-      expect(result.stderr).toBe(`no markdown project documents found under: ${emptyRoot}\n`);
+      expect(result.stderr).toBe(`no markdown project documents matched under: ${emptyRoot}\n`);
     } finally {
       rmSync(emptyRoot, { recursive: true, force: true });
     }
@@ -463,9 +474,128 @@ describe("bin wrapper handoff smoke", () => {
       const result = runBin(["handoff", emptyRoot]);
       expect(result.status).toBe(2);
       expect(result.stdout).toBe("");
-      expect(result.stderr).toBe(`no markdown project documents found under: ${emptyRoot}\n`);
+      expect(result.stderr).toBe(`no markdown project documents matched under: ${emptyRoot}\n`);
     } finally {
       rmSync(emptyRoot, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("bin wrapper configured document selection", () => {
+  const commands = ["brief", "risks", "next", "handoff"] as const;
+
+  it("applies the fixture config so sentinels never reach any workflow", () => {
+    for (const command of commands) {
+      const result = runBin([command, "examples/fixtures/markdown-project", "--json"]);
+      expect(result.stderr, command).toBe("");
+      expect(result.status, command).toBe(0);
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed.ok, command).toBe(true);
+
+      // Provider context is exactly the four included documents; the archived
+      // and scratch documents are excluded before the provider ever sees them.
+      const items = parsed.data.providerResponses[0].items;
+      expect(items.map((item: { id: string }) => item.id), command).toEqual([
+        "README.md",
+        "docs/decisions.md",
+        "docs/risks.md",
+        "docs/status.md",
+      ]);
+
+      // Excluded content never enters the response at all — the whole JSON
+      // (including raw provider content) is free of both sentinels.
+      expect(result.stdout, command).not.toContain("ARCHIVED-SENTINEL");
+      expect(result.stdout, command).not.toContain("SCRATCH-SENTINEL");
+      // Old hard-coded seed titles never appear.
+      expect(result.stdout, command).not.toContain("Finalize project roadmap");
+      expect(result.stdout, command).not.toContain("Prepare launch handoff");
+    }
+  });
+
+  it("keeps included content present across the workflows", () => {
+    const brief = runBin(["brief", "examples/fixtures/markdown-project", "--markdown"]);
+    expect(brief.stdout).toContain("Riverline Field Guide");
+    const handoff = runBin(["handoff", "examples/fixtures/markdown-project", "--markdown"]);
+    expect(handoff.stdout).toContain("Ship the printable spring edition of the trail guide.");
+  });
+
+  it("produces deterministic output across repeated runs", () => {
+    const first = runBin(["handoff", "examples/fixtures/markdown-project", "--json"]);
+    const second = runBin(["handoff", "examples/fixtures/markdown-project", "--json"]);
+    expect(first.status).toBe(0);
+    expect(first.stdout).toBe(second.stdout);
+  });
+
+  it("preserves current behavior when no config exists", () => {
+    const root = mkdtempSync(join(tmpdir(), "oh-my-pm-noconfig-"));
+    try {
+      writeFileSync(join(root, "README.md"), "# Solo\n\n## Current objective\n\nShip it.\n", "utf8");
+      const result = runBin(["handoff", root, "--json"]);
+      expect(result.status).toBe(0);
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed.ok).toBe(true);
+      expect(parsed.data.providerResponses[0].items.map((i: { id: string }) => i.id)).toEqual([
+        "README.md",
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("exits with 2 and skips the runtime for an invalid config", () => {
+    const root = mkdtempSync(join(tmpdir(), "oh-my-pm-badconfig-"));
+    try {
+      writeFileSync(join(root, "README.md"), "# Solo\n", "utf8");
+      writeFileSync(join(root, "oh-my-pm.config.json"), "{ invalid json", "utf8");
+      const result = runBin(["brief", root, "--json"]);
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("invalid project config:");
+      expect(result.stderr).toContain("project_config_invalid_json");
+      expect(result.stderr).toContain(`${root}/oh-my-pm.config.json`);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("exits with 2 when the config excludes every document", () => {
+    const root = mkdtempSync(join(tmpdir(), "oh-my-pm-excludeall-"));
+    try {
+      writeFileSync(join(root, "README.md"), "# Solo\n", "utf8");
+      writeFileSync(
+        join(root, "oh-my-pm.config.json"),
+        JSON.stringify({ version: 1, documents: { include: ["docs/**/*.md"] } }),
+        "utf8",
+      );
+      const result = runBin(["risks", root, "--json"]);
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toBe(`no markdown project documents matched under: ${root}\n`);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("applies a configured limit to reduce selected documents deterministically", () => {
+    const root = mkdtempSync(join(tmpdir(), "oh-my-pm-limit-"));
+    try {
+      writeFileSync(join(root, "a.md"), "# A\n\n## Current objective\n\nOne.\n", "utf8");
+      writeFileSync(join(root, "b.md"), "# B\n", "utf8");
+      writeFileSync(join(root, "c.md"), "# C\n", "utf8");
+      writeFileSync(
+        join(root, "oh-my-pm.config.json"),
+        JSON.stringify({ version: 1, documents: { include: ["*.md"], maxFiles: 2 } }),
+        "utf8",
+      );
+      const result = runBin(["brief", root, "--json"]);
+      expect(result.status).toBe(0);
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed.data.providerResponses[0].items.map((i: { id: string }) => i.id)).toEqual([
+        "a.md",
+        "b.md",
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
     }
   });
 });

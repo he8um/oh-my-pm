@@ -63,6 +63,46 @@ The current risk workflow reports document-level risk signals. Finer line- or it
 
 The current next-task workflow extracts explicit unchecked Markdown checklist items. It does not generate tasks from arbitrary prose.
 
+## Local project configuration
+
+Each project may define an optional `oh-my-pm.config.json` file at its root.
+
+The configuration controls which Markdown documents are analyzed and may lower the default file and byte limits. It cannot raise safety limits, enable writes, execute code, load environment variables, or access files outside the selected project root.
+
+```json
+{
+  "version": 1,
+  "documents": {
+    "include": [
+      "README.md",
+      "docs/**/*.md"
+    ],
+    "exclude": [
+      "docs/archive/**",
+      "docs/drafts/**"
+    ],
+    "maxFiles": 100,
+    "maxBytesPerFile": 131072,
+    "maxTotalBytes": 1048576
+  }
+}
+```
+
+Document selection follows a fixed precedence:
+
+```text
+include match → exclude check → safety limits → read-only analysis
+```
+
+- exclude rules win over include rules
+- hard ignored directories (for example `.git` and `node_modules`) cannot be re-enabled
+- only `<project-root>/oh-my-pm.config.json` is read; there is no upward config search
+- configuration is JSON only and is optional — an absent config preserves current behavior
+- an invalid config blocks the workflow with exit code `2` before any analysis
+- all four workflows — `brief`, `risks`, `next`, and `handoff` — use the same resolved document set
+
+Supported glob operators are `*` (zero or more non-slash characters), `?` (exactly one non-slash character), and `**` (across path segments, including zero). Matching is case-sensitive; the Markdown extension gate itself remains case-insensitive.
+
 ---
 
 ## Current phase

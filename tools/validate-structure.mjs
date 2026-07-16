@@ -184,6 +184,10 @@ const CLI_SOURCES = [
   "cli/test/install-preview.test.ts",
   "cli/src/node-project-documents.ts",
   "cli/test/node-project-documents.test.ts",
+  "cli/src/project-document-rules.ts",
+  "cli/test/project-document-rules.test.ts",
+  "cli/src/project-config.ts",
+  "cli/test/project-config.test.ts",
 ];
 for (const file of CLI_SOURCES) {
   if (!existsSync(file)) err(`cli foundation file missing: ${file}`);
@@ -282,6 +286,9 @@ const MARKDOWN_PROJECT_FIXTURES = [
   "examples/fixtures/markdown-project/docs/status.md",
   "examples/fixtures/markdown-project/docs/risks.md",
   "examples/fixtures/markdown-project/docs/decisions.md",
+  "examples/fixtures/markdown-project/oh-my-pm.config.json",
+  "examples/fixtures/markdown-project/docs/archive/obsolete-plan.md",
+  "examples/fixtures/markdown-project/misc/scratch.md",
 ];
 for (const file of MARKDOWN_PROJECT_FIXTURES) {
   if (!existsSync(file)) err(`markdown project fixture missing: ${file}`);

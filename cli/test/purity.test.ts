@@ -9,10 +9,12 @@ import { describe, expect, it } from "vitest";
 
 const srcDir = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
 
-// The Markdown project document loader is the one explicit Node read-only
-// boundary in the CLI package: it may import node:fs and node:path to read,
-// but it must never write, spawn, or reach the network.
+// The Markdown project document loader and the project configuration loader
+// are the explicit Node read-only boundaries in the CLI package: they may
+// import node:fs and node:path to read, but they must never write, spawn, or
+// reach the network. The pure document-rule module has no Node imports.
 const NODE_BOUNDARY_FILE = "node-project-documents.ts";
+const NODE_BOUNDARY_FILES = new Set([NODE_BOUNDARY_FILE, "project-config.ts"]);
 
 const FS_READ_IMPORTS = [
   'from "fs"',
@@ -82,10 +84,9 @@ describe("cli purity", () => {
     expect(files.length).toBeGreaterThanOrEqual(8);
     for (const file of files) {
       const contents = readFileSync(join(srcDir, file), "utf8");
-      const forbiddenForFile =
-        file === NODE_BOUNDARY_FILE
-          ? [...FORBIDDEN, ...WRITE_APIS]
-          : [...FS_READ_IMPORTS, ...FORBIDDEN, ...WRITE_APIS];
+      const forbiddenForFile = NODE_BOUNDARY_FILES.has(file)
+        ? [...FORBIDDEN, ...WRITE_APIS]
+        : [...FS_READ_IMPORTS, ...FORBIDDEN, ...WRITE_APIS];
       for (const forbidden of forbiddenForFile) {
         expect(contents, `${file} must not contain "${forbidden}"`).not.toContain(forbidden);
       }

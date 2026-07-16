@@ -232,6 +232,8 @@ describe("markdown project document loader", () => {
       root,
       items: [],
       filesScanned: 0,
+      filesMatched: 0,
+      filesExcluded: 0,
       filesLoaded: 0,
       totalBytes: 0,
       warnings: [{ code: "project_root_not_found", path: root }],
@@ -267,6 +269,115 @@ describe("markdown project document loader", () => {
     } finally {
       chmodSync(join(root, "locked.md"), 0o644);
     }
+  });
+
+  it("keeps default behavior identical when no include/exclude options are given", () => {
+    const root = makeRoot();
+    writeDoc(root, "a.md", "# A\n");
+    writeDoc(root, "docs/b.markdown", "# B\n");
+
+    const result = loadMarkdownProjectDocuments(root);
+    expect(result.items.map((item) => item.id)).toEqual(["a.md", "docs/b.markdown"]);
+    expect(result.filesScanned).toBe(2);
+    expect(result.filesMatched).toBe(2);
+    expect(result.filesExcluded).toBe(0);
+    expect(result.filesLoaded).toBe(2);
+  });
+
+  it("accepts files matching a custom include and rejects nonmatching ones", () => {
+    const root = makeRoot();
+    writeDoc(root, "README.md", "# Readme\n");
+    writeDoc(root, "docs/status.md", "# Status\n");
+    writeDoc(root, "notes/scratch.md", "# Scratch\n");
+
+    const result = loadMarkdownProjectDocuments(root, {
+      include: ["README.md", "docs/**/*.md"],
+    });
+    expect(result.items.map((item) => item.id)).toEqual(["README.md", "docs/status.md"]);
+    expect(result.filesScanned).toBe(3);
+    expect(result.filesMatched).toBe(2);
+    expect(result.filesExcluded).toBe(1);
+    expect(result.filesLoaded).toBe(2);
+  });
+
+  it("lets exclude win over include and never reads excluded files", () => {
+    const root = makeRoot();
+    writeDoc(root, "docs/status.md", "# Status\n");
+    writeDoc(root, "docs/archive/old.md", "# Archived ARCHIVED-SENTINEL\n");
+
+    const result = loadMarkdownProjectDocuments(root, {
+      include: ["docs/**/*.md"],
+      exclude: ["docs/archive/**"],
+    });
+    expect(result.items.map((item) => item.id)).toEqual(["docs/status.md"]);
+    expect(result.filesScanned).toBe(2);
+    expect(result.filesMatched).toBe(1);
+    expect(result.filesExcluded).toBe(1);
+    expect(JSON.stringify(result.items)).not.toContain("ARCHIVED-SENTINEL");
+  });
+
+  it("does not count excluded files toward the max file limit", () => {
+    const root = makeRoot();
+    writeDoc(root, "docs/a.md", "# A\n");
+    writeDoc(root, "docs/archive/x.md", "# X\n");
+    writeDoc(root, "docs/archive/y.md", "# Y\n");
+    writeDoc(root, "docs/b.md", "# B\n");
+
+    const result = loadMarkdownProjectDocuments(root, {
+      include: ["docs/**/*.md"],
+      exclude: ["docs/archive/**"],
+      maxFiles: 2,
+    });
+    // Only the two non-archived files matter; both fit under the limit.
+    expect(result.items.map((item) => item.id)).toEqual(["docs/a.md", "docs/b.md"]);
+    expect(result.filesMatched).toBe(2);
+    expect(result.filesLoaded).toBe(2);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("cannot re-enable hard ignored directories via include rules", () => {
+    const root = makeRoot();
+    writeDoc(root, "keep.md", "# Keep\n");
+    writeDoc(root, "node_modules/pkg/readme.md", "# Dep\n");
+
+    const result = loadMarkdownProjectDocuments(root, { include: ["**/*.md"] });
+    expect(result.items.map((item) => item.id)).toEqual(["keep.md"]);
+    expect(result.filesScanned).toBe(1);
+  });
+
+  it("keeps symlinks ignored even with a broad include rule", () => {
+    const outside = makeRoot();
+    writeDoc(outside, "secret.md", "# Outside\n");
+    const root = makeRoot();
+    writeDoc(root, "inside.md", "# Inside\n");
+    symlinkSync(join(outside, "secret.md"), join(root, "linked.md"));
+
+    const result = loadMarkdownProjectDocuments(root, { include: ["**/*.md"] });
+    expect(result.items.map((item) => item.id)).toEqual(["inside.md"]);
+  });
+
+  it("applies lower configured limits", () => {
+    const root = makeRoot();
+    writeDoc(root, "docs/a.md", "# A\n");
+    writeDoc(root, "docs/b.md", "# B\n");
+    writeDoc(root, "docs/c.md", "# C\n");
+
+    const result = loadMarkdownProjectDocuments(root, {
+      include: ["docs/**/*.md"],
+      maxFiles: 2,
+    });
+    expect(result.items.map((item) => item.id)).toEqual(["docs/a.md", "docs/b.md"]);
+    expect(result.filesLoaded).toBe(2);
+  });
+
+  it("orders filtered results deterministically", () => {
+    const root = makeRoot();
+    writeDoc(root, "docs/z.md", "# Z\n");
+    writeDoc(root, "docs/a.md", "# A\n");
+    writeDoc(root, "docs/m.md", "# M\n");
+
+    const result = loadMarkdownProjectDocuments(root, { include: ["docs/**/*.md"] });
+    expect(result.items.map((item) => item.id)).toEqual(["docs/a.md", "docs/m.md", "docs/z.md"]);
   });
 
   it("never mutates the project tree", () => {

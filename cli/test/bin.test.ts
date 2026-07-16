@@ -36,13 +36,15 @@ describe("bin wrapper source", () => {
   });
 
   it("loads markdown project documents for brief, risks, next, and handoff through the shared loader", () => {
-    expect(binSource).toContain("loadMarkdownProjectDocuments");
+    expect(binSource).toContain("loadConfiguredMarkdownProjectDocuments");
     expect(binSource).toContain("parseCliArgs");
     expect(binSource).toContain("usesProjectDocuments");
     for (const command of ["brief", "risks", "next", "handoff"]) {
       expect(binSource).toContain(`parsed.command === "${command}"`);
     }
-    expect(binSource).toContain("no markdown project documents found under:");
+    expect(binSource).toContain("loadConfiguredMarkdownProjectDocuments");
+    expect(binSource).toContain("no markdown project documents matched under:");
+    expect(binSource).toContain("invalid project config:");
   });
 
   it("avoids forbidden side effects beyond stdio and exit code", () => {

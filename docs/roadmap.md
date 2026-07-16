@@ -99,16 +99,18 @@
 - `next [root]`: local Markdown project directory to explicit next-task list through the deriveNextTasks skill (in place)
 - Deterministic Markdown section extraction: shared pure Skill-layer helper for heading normalization, section parsing (ATX headings, list/checkbox/paragraph content, fenced-code and wrapped-line handling), heading-scoped item collection, unchecked-task collection, and project-title inference; deriveNextTasks and createHandoff share the unchecked-checkbox extraction (in place)
 - `handoff [root]`: local Markdown project directory to a deterministic project handoff (project title, Summary, Open Tasks, Risks, Decisions) through the createHandoff skill, with objective/active/milestone summary, unchecked-task, blocker/constraint risk, and decision extraction (in place)
-- Example project fixture: public fictional Markdown project under `examples/fixtures/markdown-project` (in place)
+- Local project configuration: optional strict root-level `oh-my-pm.config.json` (JSON only, no upward search, no code execution, no environment reads), read through an explicit read-only Node boundary (in place)
+- Include/exclude document rules: dependency-free `*`/`?`/`**` glob subset with exclude precedence, case-sensitive matching, safety limits that may only lower loader defaults, and scanned/matched/excluded/loaded counts, shared by all four workflows (in place)
+- Example project fixture: public fictional Markdown project under `examples/fixtures/markdown-project`, with an example config and excluded sentinel documents (in place)
 - Read-only local operation: no write path, no network, no telemetry, no document content persistence (in place)
 
 Next priorities:
 
-1. local project configuration and include/exclude rules
-2. MCP server exposing brief/risks/next/handoff
+1. MCP server exposing the four read-only project workflows (brief, risks, next, handoff)
+2. public CLI packaging and installation
 3. GitHub read-only provider
-4. public packaging and installation
-5. finer line-level risk and decision provenance
+4. richer structured Markdown extraction
+5. optional project initialization later
 
 ## Phase 6 — Release lifecycle
 

@@ -6,6 +6,11 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve, sep } from "node:path";
 import type { LocalProviderItemInput } from "@oh-my-pm/providers";
+import {
+  DEFAULT_PROJECT_DOCUMENT_EXCLUDE,
+  DEFAULT_PROJECT_DOCUMENT_INCLUDE,
+  matchesLocalProjectDocumentRules,
+} from "./project-document-rules.js";
 
 export type ProjectDocumentLoadWarningCode =
   | "project_root_not_found"
@@ -23,6 +28,8 @@ export type ProjectDocumentLoadOptions = {
   maxFiles?: number;
   maxBytesPerFile?: number;
   maxTotalBytes?: number;
+  include?: readonly string[];
+  exclude?: readonly string[];
 };
 
 export type ProjectDocumentLoadResult = {
@@ -30,6 +37,8 @@ export type ProjectDocumentLoadResult = {
   root: string;
   items: LocalProviderItemInput[];
   filesScanned: number;
+  filesMatched: number;
+  filesExcluded: number;
   filesLoaded: number;
   totalBytes: number;
   warnings: ProjectDocumentLoadWarning[];
@@ -141,6 +150,8 @@ function rootFailure(
     root,
     items: [],
     filesScanned: 0,
+    filesMatched: 0,
+    filesExcluded: 0,
     filesLoaded: 0,
     totalBytes: 0,
     warnings: [{ code, path: root }],
@@ -174,11 +185,29 @@ export function loadMarkdownProjectDocuments(
     a.relativePath < b.relativePath ? -1 : a.relativePath > b.relativePath ? 1 : 0,
   );
 
+  // filesScanned counts Markdown candidates discovered before selection. Only
+  // when include/exclude rules are supplied are they applied to the normalized
+  // relative path before any content is read, so excluded files are never read
+  // and never count toward limits. With no rules supplied the loader preserves
+  // its original behavior: every case-insensitive Markdown candidate matches.
+  const filesScanned = candidates.length;
+  const rulesSupplied = options?.include !== undefined || options?.exclude !== undefined;
+  let matched: DocumentCandidate[];
+  if (rulesSupplied) {
+    const include = [...(options?.include ?? DEFAULT_PROJECT_DOCUMENT_INCLUDE)];
+    const exclude = [...(options?.exclude ?? DEFAULT_PROJECT_DOCUMENT_EXCLUDE)];
+    matched = candidates.filter((candidate) =>
+      matchesLocalProjectDocumentRules(candidate.relativePath, { include, exclude }),
+    );
+  } else {
+    matched = candidates;
+  }
+  const filesMatched = matched.length;
+  const filesExcluded = filesScanned - filesMatched;
+
   const items: LocalProviderItemInput[] = [];
-  let filesScanned = 0;
   let totalBytes = 0;
-  for (const candidate of candidates) {
-    filesScanned += 1;
+  for (const candidate of matched) {
     if (items.length >= maxFiles) {
       warnings.push({
         code: "project_document_total_limit_reached",
@@ -224,6 +253,8 @@ export function loadMarkdownProjectDocuments(
     root,
     items,
     filesScanned,
+    filesMatched,
+    filesExcluded,
     filesLoaded: items.length,
     totalBytes,
     warnings,

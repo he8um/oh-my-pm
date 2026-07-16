@@ -31,6 +31,30 @@ export type {
   ProjectDocumentLoadWarningCode,
 } from "./node-project-documents.js";
 export {
+  DEFAULT_PROJECT_DOCUMENT_EXCLUDE,
+  DEFAULT_PROJECT_DOCUMENT_INCLUDE,
+  matchesLocalProjectDocumentPattern,
+  matchesLocalProjectDocumentRules,
+  validateLocalProjectConfig,
+  validateLocalProjectDocumentPattern,
+} from "./project-document-rules.js";
+export type {
+  LocalProjectConfig,
+  LocalProjectConfigErrorCode,
+  LocalProjectDocumentConfig,
+  ResolvedLocalProjectDocumentConfig,
+} from "./project-document-rules.js";
+export {
+  OH_MY_PM_PROJECT_CONFIG_FILENAME,
+  OH_MY_PM_PROJECT_CONFIG_VERSION,
+  loadConfiguredMarkdownProjectDocuments,
+  loadLocalProjectConfig,
+} from "./project-config.js";
+export type {
+  ConfiguredProjectDocumentLoadResult,
+  LocalProjectConfigLoadResult,
+} from "./project-config.js";
+export {
   createRuntimeRequest,
 } from "./request.js";
 export type {

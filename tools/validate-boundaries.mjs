@@ -124,23 +124,36 @@ for (const file of trackedFiles) {
     ) {
       err(`${file} imports a Node built-in module: "${spec}"`);
     }
-    // cli/src/node-project-documents.ts is the explicit read-only Node CLI
-    // boundary; it alone may import node:fs and node:path, and 4c below keeps
-    // it free of write, network, child-process, and telemetry APIs.
+    // cli/src/node-project-documents.ts and cli/src/project-config.ts are the
+    // explicit read-only Node CLI boundaries; they alone may import node:fs and
+    // node:path, and 4c below keeps them free of write, network, child-process,
+    // and telemetry APIs. The pure rules module below must import no Node module.
+    const CLI_NODE_BOUNDARY_SRC = new Set([
+      "cli/src/node-project-documents.ts",
+      "cli/src/project-config.ts",
+    ]);
     if (
       file.startsWith("cli/src/") &&
-      file !== "cli/src/node-project-documents.ts" &&
+      !CLI_NODE_BOUNDARY_SRC.has(file) &&
       (spec === "fs" || spec.startsWith("node:fs"))
     ) {
       err(`${file} imports a Node filesystem module: "${spec}"`);
     }
     if (
-      file === "cli/src/node-project-documents.ts" &&
+      CLI_NODE_BOUNDARY_SRC.has(file) &&
       spec !== "node:fs" &&
       spec !== "node:path" &&
       (spec.startsWith("node:") || ["fs", "path", "os", "http", "https", "net", "tls", "dgram", "child_process"].includes(spec))
     ) {
       err(`${file} imports a Node module outside the read-only boundary allowlist: "${spec}"`);
+    }
+    // cli/src/project-document-rules.ts is a pure module: no Node built-in.
+    if (
+      file === "cli/src/project-document-rules.ts" &&
+      (spec.startsWith("node:") ||
+        ["fs", "path", "os", "http", "https", "net", "tls", "dgram", "crypto", "zlib", "stream", "child_process"].includes(spec))
+    ) {
+      err(`${file} must not import a Node built-in module: "${spec}"`);
     }
     if (
       (file.startsWith("installer/src/") ||
@@ -454,12 +467,16 @@ for (const file of trackedFiles) {
   }
 }
 
-// 4c. The Markdown project document loader and the CLI bin wrapper form the
-// explicit Node read-only CLI boundary. They may read the user-selected root
-// and write final CLI output to stdout/stderr, but they must never gain a
-// filesystem write path, network access, child-process execution, or
-// telemetry/logging of document content.
-const NODE_CLI_BOUNDARY_FILES = ["cli/src/node-project-documents.ts", "cli/bin/oh-my-pm.mjs"];
+// 4c. The Markdown project document loader, the project configuration loader,
+// and the CLI bin wrapper form the explicit Node read-only CLI boundary. They
+// may read the user-selected root and write final CLI output to stdout/stderr,
+// but they must never gain a filesystem write path, network access,
+// child-process execution, or telemetry/logging of document content.
+const NODE_CLI_BOUNDARY_FILES = [
+  "cli/src/node-project-documents.ts",
+  "cli/src/project-config.ts",
+  "cli/bin/oh-my-pm.mjs",
+];
 const BOUNDARY_WRITE_APIS = [
   "writeFile",
   "appendFile",

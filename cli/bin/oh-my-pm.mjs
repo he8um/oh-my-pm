@@ -4,9 +4,14 @@
 // For status/doctor/plan/install-preview the provider seed data remains
 // local; for the brief, risks, next, and handoff project workflows the local
 // provider is populated from read-only Markdown project documents under the
-// requested root. This is not a production release and is not distributed.
+// requested root, selected by the optional root-level oh-my-pm.config.json
+// include/exclude rules. This is not a production release and is not distributed.
 
-import { loadMarkdownProjectDocuments, parseCliArgs, runCli } from "../dist/index.js";
+import {
+  loadConfiguredMarkdownProjectDocuments,
+  parseCliArgs,
+  runCli,
+} from "../dist/index.js";
 import { createNodeWasmKernelApi } from "@oh-my-pm/kernel";
 import { createRuntime } from "@oh-my-pm/runtime";
 import { createLocalProvider, createProviderRegistry } from "@oh-my-pm/providers";
@@ -75,23 +80,30 @@ const usesProjectDocuments =
 
 if (usesProjectDocuments) {
   // Errors report the root exactly as the user typed it, never a resolved
-  // internal absolute path, and never any document content.
+  // internal absolute path, and never any document content or config text.
   const root = parsed.input ?? ".";
-  const loaded = loadMarkdownProjectDocuments(root);
-  if (!loaded.ok) {
+  const configured = loadConfiguredMarkdownProjectDocuments(root);
+  if (!configured.ok) {
+    // Invalid project config blocks before any Runtime execution.
+    process.stderr.write(
+      `invalid project config: ${configured.configDisplayPath} (${configured.code})\n`,
+    );
+    process.exitCode = 2;
+    blocked = true;
+  } else if (!configured.documents.ok) {
     const reason =
-      loaded.warnings[0]?.code === "project_root_not_directory"
+      configured.documents.warnings[0]?.code === "project_root_not_directory"
         ? "project root is not a directory"
         : "project root was not found";
     process.stderr.write(`${reason}: ${root}\n`);
     process.exitCode = 2;
     blocked = true;
-  } else if (loaded.filesLoaded === 0) {
-    process.stderr.write(`no markdown project documents found under: ${root}\n`);
+  } else if (configured.documents.filesLoaded === 0) {
+    process.stderr.write(`no markdown project documents matched under: ${root}\n`);
     process.exitCode = 2;
     blocked = true;
   } else {
-    providerItems = loaded.items;
+    providerItems = configured.documents.items;
   }
 }
 
