@@ -7,6 +7,7 @@ import {
   runGuardedReleaseArtifactPlanExample,
   runGuardedLocalArtifactAssemblyDryRunExample,
   runGuardedArtifactCreationPermissionExample,
+  runLocalArtifactCreationExecutionPlanExample,
   runInstallerReleaseReadinessExample,
   runInstallerArchivePlanExample,
   runInstallerAuditEventExample,
@@ -541,8 +542,41 @@ describe("runGuardedArtifactCreationPermissionExample", () => {
   });
 });
 
+describe("runLocalArtifactCreationExecutionPlanExample", () => {
+  it("returns a ready execution plan with creation disabled", () => {
+    const result = runLocalArtifactCreationExecutionPlanExample();
+    expect(result.localArtifactCreationPlan.ok).toBe(true);
+    expect(result.localArtifactCreationPlan.plan.steps).toHaveLength(6);
+    expect(result.localArtifactCreationPlan.plan.summary.permissionAllowed).toBe(true);
+    expect(result.localArtifactCreationPlan.plan.summary.assemblyReady).toBe(true);
+    expect(result.localArtifactCreationPlan.plan.summary.creationAllowed).toBe(false);
+    expect(result.markdown).toContain("Local Artifact Creation Execution Plan");
+    expect(result.markdown).toContain("Creation allowed: `false`");
+    expect(Object.keys(result).sort()).toEqual(["localArtifactCreationPlan", "markdown"]);
+
+    // Planning-only: no artifact bytes, output path, command, adapter, or URL.
+    const serialized = JSON.stringify(result.localArtifactCreationPlan);
+    expect(serialized).not.toContain("writeFile");
+    expect(serialized).not.toContain("executeInstall");
+    expect(serialized).not.toContain("executeRollback");
+    expect(serialized).not.toMatch(/https?:\/\//);
+    for (const step of result.localArtifactCreationPlan.plan.steps) {
+      for (const key of Object.keys(step)) {
+        expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|url|bytes|result/i);
+      }
+    }
+  });
+
+  it("is deterministic", () => {
+    expect(runLocalArtifactCreationExecutionPlanExample()).toEqual(
+      runLocalArtifactCreationExecutionPlanExample(),
+    );
+  });
+});
+
 describe("examples index", () => {
   it("exports the installer example functions", () => {
+    expect(typeof examples.runLocalArtifactCreationExecutionPlanExample).toBe("function");
     expect(typeof examples.runGuardedArtifactCreationPermissionExample).toBe("function");
     expect(typeof examples.runGuardedLocalArtifactAssemblyDryRunExample).toBe("function");
     expect(typeof examples.runGuardedReleaseArtifactPlanExample).toBe("function");

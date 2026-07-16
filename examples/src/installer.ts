@@ -12,6 +12,7 @@ import type {
   GuardedReleaseArtifactPlanDryRunReport,
   GuardedLocalArtifactAssemblyDryRunReport,
   GuardedArtifactCreationPermissionDryRunReport,
+  LocalArtifactCreationExecutionPlanDryRunReport,
   InstallDryRunReport,
   InstallerAuditEventDryRunReport,
   InstallerAuditTrailExportDryRunReport,
@@ -47,6 +48,7 @@ import {
   createGuardedReleaseArtifactPlanDryRun,
   createGuardedLocalArtifactAssemblyDryRun,
   createGuardedArtifactCreationPermissionDryRun,
+  createLocalArtifactCreationExecutionPlanDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -70,6 +72,7 @@ import {
   formatGuardedReleaseArtifactPlanMarkdown,
   formatGuardedLocalArtifactAssemblyDryRunMarkdown,
   formatGuardedArtifactCreationPermissionMarkdown,
+  formatLocalArtifactCreationExecutionPlanMarkdown,
   DEFAULT_LOCAL_UPDATE_POLICY,
   exampleFilesystemEntries,
   exampleInstallerAuditEventInput,
@@ -83,6 +86,7 @@ import {
   exampleGuardedReleaseArtifactPlanInput,
   exampleGuardedLocalArtifactAssemblyDryRunEnvelopeInput,
   exampleGuardedArtifactCreationPermissionInput,
+  exampleLocalArtifactCreationExecutionPlanInput,
   exampleInstallerWriteAdapterContractInput,
   exampleInstallerWriteConfirmationChecklistInput,
   exampleInstallerWriteExecutionPlanInput,
@@ -208,6 +212,11 @@ export type GuardedLocalArtifactAssemblyDryRunExample = {
 
 export type GuardedArtifactCreationPermissionExample = {
   guardedArtifactCreationPermission: GuardedArtifactCreationPermissionDryRunReport;
+  markdown: string;
+};
+
+export type LocalArtifactCreationExecutionPlanExample = {
+  localArtifactCreationPlan: LocalArtifactCreationExecutionPlanDryRunReport;
   markdown: string;
 };
 
@@ -585,6 +594,23 @@ export function runGuardedArtifactCreationPermissionExample(): GuardedArtifactCr
     guardedArtifactCreationPermission.report,
   );
   return { guardedArtifactCreationPermission, markdown };
+}
+
+/**
+ * Sequence the ordered local creation steps a future explicitly-enabled phase
+ * would take, from the example permission, artifact plan, and assembly
+ * dry-runs, and render the plan as markdown. Planning-only — creation stays
+ * disabled and nothing is created, written, executed, retrieved, logged, or
+ * sent.
+ */
+export function runLocalArtifactCreationExecutionPlanExample(): LocalArtifactCreationExecutionPlanExample {
+  const localArtifactCreationPlan = createLocalArtifactCreationExecutionPlanDryRun(
+    exampleLocalArtifactCreationExecutionPlanInput(),
+  );
+  const markdown = formatLocalArtifactCreationExecutionPlanMarkdown(
+    localArtifactCreationPlan.plan,
+  );
+  return { localArtifactCreationPlan, markdown };
 }
 
 /** Install the example package, then apply the example update plan. */

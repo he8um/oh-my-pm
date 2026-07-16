@@ -25,6 +25,7 @@ import {
   createGuardedReleaseArtifactPlanDryRun,
   createGuardedLocalArtifactAssemblyDryRun,
   createGuardedArtifactCreationPermissionDryRun,
+  createLocalArtifactCreationExecutionPlanDryRun,
   createInstallerWriteAdapterContractDryRun,
   createInstallerWriteConfirmationChecklistDryRun,
   createInstallerWriteExecutionPlanDryRun,
@@ -292,6 +293,22 @@ export type InstallerPreviewResult = {
     version: string;
     mode: string;
     allowed: boolean;
+    creationAllowed: boolean;
+    reasons: string[];
+  };
+  /**
+   * Local artifact creation execution plan summary; planning-only. The raw
+   * steps and markdown are never included in JSON, no step is executed,
+   * `creationAllowed` is always false, and nothing is created or written.
+   */
+  localArtifactCreationPlan?: {
+    ok: boolean;
+    version: string;
+    permissionAllowed: boolean;
+    assemblyReady: boolean;
+    plannedSteps: number;
+    blockedSteps: number;
+    totalSteps: number;
     creationAllowed: boolean;
     reasons: string[];
   };
@@ -840,6 +857,32 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       (warning) => `${warning.code}: ${warning.message}`,
     ) ?? [];
 
+  // Sequence the ordered local creation steps a future explicitly-enabled
+  // phase would take. Planning-only — no step is executed, creation stays
+  // disabled, the raw steps stay out of the summary, and nothing is created.
+  const localArtifactCreationPlanReport = createLocalArtifactCreationExecutionPlanDryRun({
+    version: "v0.1.0",
+    permission: guardedArtifactCreationPermissionReport,
+    artifactPlan: guardedReleaseArtifactPlanReport,
+    assembly: guardedLocalArtifactAssemblyReport,
+  });
+  const localCreationSummary = localArtifactCreationPlanReport.plan.summary;
+  const localArtifactCreationPlan = {
+    ok: localArtifactCreationPlanReport.ok,
+    version: localCreationSummary.version,
+    permissionAllowed: localCreationSummary.permissionAllowed,
+    assemblyReady: localCreationSummary.assemblyReady,
+    plannedSteps: localCreationSummary.plannedSteps,
+    blockedSteps: localCreationSummary.blockedSteps,
+    totalSteps: localCreationSummary.totalSteps,
+    creationAllowed: localCreationSummary.creationAllowed,
+    reasons: [...localArtifactCreationPlanReport.plan.reasons],
+  };
+  const localArtifactCreationPlanWarnings =
+    localArtifactCreationPlanReport.warnings?.map(
+      (warning) => `${warning.code}: ${warning.message}`,
+    ) ?? [];
+
   if ("code" in result) {
     return {
       ok: false,
@@ -870,6 +913,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
         ...guardedReleaseArtifactPlanWarnings,
         ...guardedLocalArtifactAssemblyWarnings,
         ...guardedArtifactCreationPermissionWarnings,
+        ...localArtifactCreationPlanWarnings,
         result.message,
       ]),
       archive,
@@ -894,6 +938,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       guardedReleaseArtifactPlan,
       guardedLocalArtifactAssembly,
       guardedArtifactCreationPermission,
+      localArtifactCreationPlan,
     };
   }
 
@@ -930,6 +975,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
       ...guardedReleaseArtifactPlanWarnings,
       ...guardedLocalArtifactAssemblyWarnings,
       ...guardedArtifactCreationPermissionWarnings,
+      ...localArtifactCreationPlanWarnings,
       ...(result.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? []),
     ]),
     archive,
@@ -954,6 +1000,7 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     guardedReleaseArtifactPlan,
     guardedLocalArtifactAssembly,
     guardedArtifactCreationPermission,
+    localArtifactCreationPlan,
   };
 }
 
@@ -1100,6 +1147,15 @@ function formatMarkdown(result: InstallerPreviewResult): string {
       "## Guarded Artifact Creation Permission",
       "",
       `Guarded artifact creation permission \`${result.guardedArtifactCreationPermission.version}\`: \`${result.guardedArtifactCreationPermission.allowed ? "allowed" : "blocked"}\` (mode \`${result.guardedArtifactCreationPermission.mode}\`, evaluation only, creation disabled)`,
+    );
+  }
+  if (result.localArtifactCreationPlan !== undefined) {
+    // Planning-only note: no step is executed and nothing is created.
+    lines.push(
+      "",
+      "## Local Artifact Creation Execution Plan",
+      "",
+      `Local artifact creation plan \`${result.localArtifactCreationPlan.version}\`: \`${result.localArtifactCreationPlan.ok ? "ready" : "blocked"}\` (${result.localArtifactCreationPlan.plannedSteps}/${result.localArtifactCreationPlan.totalSteps} steps planned, planning only, creation disabled)`,
     );
   }
   let preview = `${lines.join("\n")}\n`;

@@ -19,6 +19,7 @@ export {
   exampleGuardedReleaseArtifactPlanInput,
   exampleGuardedLocalArtifactAssemblyDryRunEnvelopeInput,
   exampleGuardedArtifactCreationPermissionInput,
+  exampleLocalArtifactCreationExecutionPlanInput,
   exampleInstallerWriteApprovalTokenInput,
   exampleInstallerWriteCapabilityInput,
   exampleControlledWriteExecutionDryRunEnvelopeInput,
@@ -170,6 +171,14 @@ export {
   validateGuardedArtifactCreationPermissionMode,
   validateGuardedArtifactCreationPermissionPolicy,
 } from "./artifact-creation-permission.js";
+export {
+  collectLocalArtifactCreationExecutionPlanReasons,
+  createLocalArtifactCreationExecutionPlan,
+  createLocalArtifactCreationExecutionPlanDryRun,
+  createLocalArtifactCreationExecutionPlanSteps,
+  formatLocalArtifactCreationExecutionPlanMarkdown,
+  summarizeLocalArtifactCreationExecutionPlan,
+} from "./local-artifact-creation-plan.js";
 export {
   createPackageFileEntry,
   createPackageManifest,
@@ -344,6 +353,12 @@ export type {
   InstallerWriteIntent,
   InstallInput,
   InstallPlan,
+  LocalArtifactCreationExecutionPlan,
+  LocalArtifactCreationExecutionPlanDryRunReport,
+  LocalArtifactCreationExecutionPlanInput,
+  LocalArtifactCreationExecutionPlanStep,
+  LocalArtifactCreationExecutionPlanStepKind,
+  LocalArtifactCreationExecutionPlanSummary,
   LocalUpdatePolicy,
   LocalUpdatePolicyDryRunReport,
   LocalUpdatePolicyInput,

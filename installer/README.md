@@ -175,3 +175,9 @@ The envelope is readiness-only. It keeps creation disabled. It does not create r
 The installer can evaluate whether artifact creation permission would be granted for a future explicitly-enabled local artifact creation phase.
 
 The permission model is evaluation-only. It can report permission as allowed only under explicit mode, ready assembly, and explicit approval, but creation remains disabled in this phase. It does not create release artifacts, archives, GitHub releases, tags, publishing workflows, installation commands, or write execution.
+
+## Local artifact creation execution plan
+
+The installer can build a deterministic plan for a future explicitly-enabled local artifact creation phase.
+
+The plan is planning-only. It keeps creation disabled and reports which local artifact creation steps would be prepared. It does not create release artifacts, archives, GitHub releases, tags, publishing workflows, installation commands, or write execution.

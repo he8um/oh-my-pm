@@ -33,6 +33,7 @@ import type {
   GuardedReleaseArtifactPlanInput,
   GuardedLocalArtifactAssemblyDryRunEnvelopeInput,
   GuardedArtifactCreationPermissionInput,
+  LocalArtifactCreationExecutionPlanInput,
 } from "./types.js";
 import { createArchiveDryRunFromAssembly } from "./package-assembly.js";
 import { createArchivePlan } from "./archive-plan.js";
@@ -65,6 +66,7 @@ import { createV0ReleaseCandidateChecklistDryRun } from "./v0-release-candidate.
 import { createPublicV0ReleaseNotesDraftDryRun } from "./public-v0-release-notes.js";
 import { createGuardedReleaseArtifactPlanDryRun } from "./release-artifact-plan.js";
 import { createGuardedLocalArtifactAssemblyDryRun } from "./local-artifact-assembly-envelope.js";
+import { createGuardedArtifactCreationPermissionDryRun } from "./artifact-creation-permission.js";
 
 /** Example installable package manifest. */
 export function examplePackageManifest(): PackageManifest {
@@ -576,6 +578,32 @@ export function exampleGuardedArtifactCreationPermissionInput(): GuardedArtifact
     },
     approved: true,
     assembly: assembly.envelope,
+  };
+}
+
+/**
+ * Example local artifact creation execution plan input built from the
+ * existing fixture chain: the guarded artifact creation permission dry-run,
+ * the guarded release artifact plan dry-run, and the guarded local artifact
+ * assembly dry-run. Readiness is not forced — the fixture is ok only because
+ * the underlying fixtures are ready and permission is allowed, while creation
+ * stays disabled.
+ */
+export function exampleLocalArtifactCreationExecutionPlanInput(): LocalArtifactCreationExecutionPlanInput {
+  const permission = createGuardedArtifactCreationPermissionDryRun(
+    exampleGuardedArtifactCreationPermissionInput(),
+  );
+  const artifactPlan = createGuardedReleaseArtifactPlanDryRun(
+    exampleGuardedReleaseArtifactPlanInput(),
+  );
+  const assembly = createGuardedLocalArtifactAssemblyDryRun(
+    exampleGuardedLocalArtifactAssemblyDryRunEnvelopeInput(),
+  );
+  return {
+    version: "v0.1.0",
+    permission,
+    artifactPlan,
+    assembly,
   };
 }
 

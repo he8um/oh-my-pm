@@ -1281,6 +1281,79 @@ export type GuardedArtifactCreationPermissionDryRunReport = {
   warnings?: KernelWarning[];
 };
 
+/** Step kinds a local artifact creation execution plan may sequence. */
+export type LocalArtifactCreationExecutionPlanStepKind =
+  | "prepare-release-notes"
+  | "prepare-package-manifest"
+  | "prepare-archive"
+  | "prepare-release-metadata"
+  | "prepare-integrity-metadata"
+  | "prepare-channel-metadata";
+
+/**
+ * One planned local creation step. `reason` is present only when the step is
+ * not planned. There is no file-content, output-path, destination, command,
+ * distribution-target, remote, adapter-object, execution-result, or
+ * artifact-bytes field — steps describe what would be prepared, nothing
+ * created.
+ */
+export type LocalArtifactCreationExecutionPlanStep = {
+  sequence: number;
+  kind: LocalArtifactCreationExecutionPlanStepKind;
+  name: string;
+  planned: boolean;
+  reason?: string;
+};
+
+/**
+ * Input aggregating the local dry-run reports a local artifact creation
+ * execution plan reads. Every value is an already computed local report;
+ * nothing is fetched, created, written, or executed.
+ */
+export type LocalArtifactCreationExecutionPlanInput = {
+  version: string;
+  permission: GuardedArtifactCreationPermissionDryRunReport;
+  artifactPlan: GuardedReleaseArtifactPlanDryRunReport;
+  assembly: GuardedLocalArtifactAssemblyDryRunReport;
+};
+
+/**
+ * Flat plan summary. `creationAllowed` is always `false` — this phase plans
+ * the ordered steps a future explicitly-enabled phase would take and never
+ * permits creation itself.
+ */
+export type LocalArtifactCreationExecutionPlanSummary = {
+  version: string;
+  permissionAllowed: boolean;
+  assemblyReady: boolean;
+  plannedSteps: number;
+  blockedSteps: number;
+  totalSteps: number;
+  creationAllowed: false;
+};
+
+/**
+ * Deterministic execution plan for a future explicitly-enabled local artifact
+ * creation phase. Planning-only: it can be ok while still not allowing
+ * creation, and it carries no file-content, output-path, destination,
+ * command, distribution-target, remote, adapter-object, execution-result, or
+ * artifact-bytes field.
+ */
+export type LocalArtifactCreationExecutionPlan = {
+  ok: boolean;
+  version: string;
+  steps: LocalArtifactCreationExecutionPlanStep[];
+  reasons: string[];
+  summary: LocalArtifactCreationExecutionPlanSummary;
+};
+
+/** Result of a local artifact creation execution plan dry run; nothing is written. */
+export type LocalArtifactCreationExecutionPlanDryRunReport = {
+  ok: boolean;
+  plan: LocalArtifactCreationExecutionPlan;
+  warnings?: KernelWarning[];
+};
+
 /** Options for the read-only Node filesystem adapter. */
 export type NodeFilesystemAdapterOptions = {
   root: string;
