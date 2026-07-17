@@ -9,3 +9,4 @@ packages:
   - "installer"
   - "examples"
   - "mcp-server"
+  - "distribution"

@@ -4,6 +4,11 @@
 
 This is a local alpha of OH MY PM. It is installed from the repository, not from a package registry — the workspace packages remain private and unpublished. The CLI and the MCP server are both read-only: they analyze local Markdown project documents and never modify project files. No external integration is required, and no project context is uploaded and no telemetry is emitted.
 
+There are two ways to run OH MY PM:
+
+1. **Repository development installation** — clone, build, and install command shims from the repository (below).
+2. **Portable bundle usage** — run a self-contained `oh-my-pm-v0.1.0/` bundle that needs only Node.js 20+ (see [Portable bundle usage](#portable-bundle-usage)).
+
 ## Requirements
 
 - Git
@@ -113,6 +118,25 @@ Each tool takes a single input naming a local project root:
 ```json
 { "root": "./project" }
 ```
+
+## Portable bundle usage
+
+A maintainer can assemble a self-contained, versioned bundle from a repository checkout:
+
+```bash
+pnpm build
+pnpm release:bundle -- --output .release --apply
+```
+
+This produces `.release/oh-my-pm-v0.1.0/`, which is movable anywhere and runs standalone:
+
+```bash
+node ./oh-my-pm-v0.1.0/bin/oh-my-pm.mjs status
+node ./oh-my-pm-v0.1.0/bin/oh-my-pm.mjs brief ./project --markdown
+node ./oh-my-pm-v0.1.0/bin/oh-my-pm-mcp.mjs
+```
+
+Bundle consumers need **Node.js 20+** and do **not** need Rust or pnpm. This commit prepares release-candidate packaging only; there is no official public download until a later release step. See [the v0.1.0 release notes](releases/v0.1.0.md) for the bundle contents and verification.
 
 ## Troubleshooting
 

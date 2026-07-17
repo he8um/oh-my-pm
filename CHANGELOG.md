@@ -1,12 +1,22 @@
 # Changelog
 
-All notable changes to OH MY PM will be documented here.
-
-## [2.0.0-alpha.0] — Unreleased
+## 0.1.0 — Release candidate
 
 ### Added
 
-- Public repository foundation.
-- Project README.
-- Governance documents.
-- Architecture, roadmap, and security model docs.
+- Local read-only Markdown project brief workflow
+- Deterministic project risk extraction
+- Unchecked Markdown next-task extraction
+- Deterministic project handoff generation
+- Root-level project document configuration with include/exclude rules
+- Local stdio MCP server with four read-only tools
+- Preview-first repository-local installation and verification
+- Portable versioned release bundle assembly and verification
+
+### Safety and privacy
+
+- No project file writes
+- No context upload
+- No telemetry
+- No HTTP MCP transport
+- No external provider integration in v0.1.0

@@ -64,3 +64,14 @@ jobs:
           node tools/check-local-install.mjs --prefix "$PREFIX"
           node tools/print-mcp-client-config.mjs --prefix "$PREFIX" > "$RUNNER_TEMP/oh-my-pm-mcp.json"
           node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' "$RUNNER_TEMP/oh-my-pm-mcp.json"
+
+      - name: Portable release bundle smoke
+        run: |
+          OUT="$RUNNER_TEMP/oh-my-pm-release"
+          MOVED="$RUNNER_TEMP/oh-my-pm-release-moved"
+          node tools/build-release-bundle.mjs --output "$OUT"
+          test ! -e "$OUT/oh-my-pm-v0.1.0"
+          node tools/build-release-bundle.mjs --output "$OUT" --apply
+          mkdir -p "$MOVED"
+          mv "$OUT/oh-my-pm-v0.1.0" "$MOVED/oh-my-pm-v0.1.0"
+          node tools/check-release-bundle.mjs --bundle "$MOVED/oh-my-pm-v0.1.0"

@@ -1,0 +1,26 @@
+{
+  "name": "@oh-my-pm/distribution",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "oh-my-pm": "./bin/oh-my-pm.mjs",
+    "oh-my-pm-mcp": "./bin/oh-my-pm-mcp.mjs"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "dependencies": {
+    "@oh-my-pm/cli": "workspace:*",
+    "@oh-my-pm/kernel": "workspace:*",
+    "@oh-my-pm/mcp-server": "workspace:*",
+    "@oh-my-pm/providers": "workspace:*",
+    "@oh-my-pm/runtime": "workspace:*",
+    "@oh-my-pm/skills": "workspace:*"
+  }
+}

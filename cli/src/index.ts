@@ -55,6 +55,13 @@ export type {
   LocalProjectConfigLoadResult,
 } from "./project-config.js";
 export {
+  runLocalCliProcess,
+} from "./local-process.js";
+export type {
+  LocalCliProcessOptions,
+  LocalCliProcessResult,
+} from "./local-process.js";
+export {
   createRuntimeRequest,
 } from "./request.js";
 export type {

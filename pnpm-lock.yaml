@@ -44,6 +44,27 @@ importers:
 
   contracts: {}
 
+  distribution:
+    dependencies:
+      '@oh-my-pm/cli':
+        specifier: workspace:*
+        version: link:../cli
+      '@oh-my-pm/kernel':
+        specifier: workspace:*
+        version: link:../kernel/binding
+      '@oh-my-pm/mcp-server':
+        specifier: workspace:*
+        version: link:../mcp-server
+      '@oh-my-pm/providers':
+        specifier: workspace:*
+        version: link:../providers
+      '@oh-my-pm/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@oh-my-pm/skills':
+        specifier: workspace:*
+        version: link:../skills
+
   examples:
     dependencies:
       '@oh-my-pm/cli':

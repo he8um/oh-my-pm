@@ -1,9 +1,14 @@
 {
   "name": "@oh-my-pm/mcp-server",
-  "version": "2.0.0-alpha.0",
+  "version": "0.1.0",
   "private": true,
   "license": "MIT",
   "type": "module",
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {

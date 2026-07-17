@@ -107,15 +107,19 @@
 - Local install verification: read-only `tools/check-local-install.mjs` exercises the installed CLI (status + fixture brief) and the installed MCP command over stdio (tool list + `project_brief`) (in place)
 - Generic MCP client config generation: read-only `tools/print-mcp-client-config.mjs` prints a stdio client entry with an absolute command path and no env/root/network fields; never writes to a client (in place)
 - Getting-started onboarding guide covering clone/build/install/verify, PATH, CLI workflows, and MCP client setup (in place)
+- Canonical `0.1.0` version alignment with a read-only version consistency check across manifests, runtime constants, and the Kernel (in place)
+- Portable versioned release bundle: preview-first `oh-my-pm-v0.1.0/` assembly (compiled packages, production dependency tree, real WASM Kernel, fixture, deterministic `RELEASE.json`, `SHA256SUMS`) that runs outside the repository on Node.js 20+ with no Rust or pnpm (in place)
+- Relocated release bundle verification: read-only checker validating metadata, checksums, CLI workflows, and the MCP server against the bundle's own dependency tree (in place)
 - Read-only local operation: no write path in package source, no network, no telemetry, no document content persistence (in place)
 
 Next priorities:
 
-1. public packaging and versioned release distribution
-2. GitHub read-only provider
-3. MCP/CLI installation UX hardening
-4. finer risk/task extraction
-5. optional controlled write-back only after explicit approval design
+1. deterministic `tar.gz` and `zip` archives of the verified bundle
+2. GitHub Release workflow with manual approval
+3. public release checksums attached to the release
+4. installation from downloaded archives
+5. GitHub read-only provider
+6. controlled write-back only after an explicit separate safety phase
 
 ## Phase 6 — Release lifecycle
 

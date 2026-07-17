@@ -1,6 +1,6 @@
 {
   "name": "oh-my-pm",
-  "version": "2.0.0-alpha.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Local project intelligence system for structured project and product delivery.",
   "license": "MIT",
@@ -18,11 +18,15 @@
     "validate:structure": "node tools/validate-structure.mjs",
     "validate:boundaries": "node tools/validate-boundaries.mjs",
     "validate:contracts": "node tools/validate-contracts.mjs",
-    "validate": "pnpm validate:public && pnpm validate:structure && pnpm validate:boundaries && pnpm validate:contracts",
+    "version:check": "node tools/check-version-consistency.mjs",
+    "validate": "pnpm validate:public && pnpm validate:structure && pnpm validate:boundaries && pnpm validate:contracts && pnpm version:check",
     "mcp:smoke": "node tools/check-mcp-server.mjs",
     "local:install": "node tools/install-local.mjs",
     "local:check": "node tools/check-local-install.mjs",
-    "mcp:config": "node tools/print-mcp-client-config.mjs"
+    "mcp:config": "node tools/print-mcp-client-config.mjs",
+    "release:preview": "node tools/build-release-bundle.mjs",
+    "release:bundle": "node tools/build-release-bundle.mjs",
+    "release:check": "node tools/check-release-bundle.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

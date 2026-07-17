@@ -37,6 +37,7 @@ const REQUIRED_FOLDERS = [
   "tools",
   "examples",
   "mcp-server",
+  "distribution",
 ];
 
 const ALLOWED_TOP_FILES = [
@@ -60,7 +61,11 @@ const ALLOWED_TOP_FILES = [
   "pnpm-workspace.yaml",
   "rust-toolchain.toml",
   "tsconfig.base.json",
+  "version.json",
 ];
+
+// Canonical public release version. Every workspace package pins to this.
+const CANONICAL_VERSION = "0.1.0";
 
 const FORBIDDEN_TOP_FOLDERS = ["specs", "_dev", "scripts", "brain", "mcp"];
 
@@ -114,8 +119,8 @@ for (const pkg of PACKAGES) {
   if (existsSync(pkgJsonPath)) {
     const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf8"));
     if (pkgJson.private !== true) err(`${pkg}/package.json must set "private": true`);
-    if (pkgJson.version !== "2.0.0-alpha.0")
-      err(`${pkg}/package.json must set "version": "2.0.0-alpha.0"`);
+    if (pkgJson.version !== CANONICAL_VERSION)
+      err(`${pkg}/package.json must set "version": "${CANONICAL_VERSION}"`);
     if (pkgJson.type !== "module") err(`${pkg}/package.json must set "type": "module"`);
   }
 }
@@ -328,6 +333,60 @@ const LOCAL_INSTALL_SOURCES = [
 ];
 for (const file of LOCAL_INSTALL_SOURCES) {
   if (!existsSync(file)) err(`local install tooling file missing: ${file}`);
+}
+
+// 7g5. Portable release bundle tooling, distribution package, and metadata.
+const RELEASE_BUNDLE_SOURCES = [
+  "version.json",
+  "CHANGELOG.md",
+  "distribution/package.json",
+  "distribution/README.md",
+  "distribution/bin/oh-my-pm.mjs",
+  "distribution/bin/oh-my-pm-mcp.mjs",
+  "cli/src/local-process.ts",
+  "tools/check-version-consistency.mjs",
+  "tools/release-bundle-utils.mjs",
+  "tools/build-release-bundle.mjs",
+  "tools/check-release-bundle.mjs",
+  "docs/releases/v0.1.0.md",
+  "tools/test/check-version-consistency.test.mjs",
+  "tools/test/release-bundle-utils.test.mjs",
+  "tools/test/release-bundle-e2e.test.mjs",
+];
+for (const file of RELEASE_BUNDLE_SOURCES) {
+  if (!existsSync(file)) err(`release bundle file missing: ${file}`);
+}
+
+// The distribution package must be private and carry no publish config.
+if (existsSync("distribution/package.json")) {
+  const distJson = JSON.parse(readFileSync("distribution/package.json", "utf8"));
+  if (distJson.private !== true) err(`distribution/package.json must set "private": true`);
+  if (distJson.version !== CANONICAL_VERSION)
+    err(`distribution/package.json must set "version": "${CANONICAL_VERSION}"`);
+  if (distJson.publishConfig !== undefined)
+    err("distribution/package.json must not set publishConfig");
+}
+
+// Every first-party runtime package must declare an explicit files surface.
+const FILES_SURFACE_PACKAGES = [
+  "contracts",
+  "kernel/binding",
+  "runtime",
+  "planner",
+  "providers",
+  "skills",
+  "cli",
+  "installer",
+  "mcp-server",
+];
+for (const pkg of FILES_SURFACE_PACKAGES) {
+  const pkgJsonPath = join(pkg, "package.json");
+  if (existsSync(pkgJsonPath)) {
+    const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf8"));
+    if (!Array.isArray(pkgJson.files) || pkgJson.files.length === 0) {
+      err(`${pkg}/package.json must declare an explicit non-empty "files" array`);
+    }
+  }
 }
 
 // 7h. Installer foundation files exist.

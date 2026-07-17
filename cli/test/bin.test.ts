@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const pkgJson = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8"));
 const binSource = readFileSync(join(pkgDir, "bin", "oh-my-pm.mjs"), "utf8");
+const localProcessSource = readFileSync(join(pkgDir, "src", "local-process.ts"), "utf8");
 const readme = readFileSync(join(pkgDir, "README.md"), "utf8");
 
 describe("cli package bin metadata", () => {
@@ -20,31 +21,14 @@ describe("cli package bin metadata", () => {
 });
 
 describe("bin wrapper source", () => {
-  it("is a node script wired to the built CLI core", () => {
+  it("is a thin process adapter wired to the built CLI core", () => {
     expect(binSource.startsWith("#!/usr/bin/env node")).toBe(true);
     expect(binSource).toContain('from "../dist/index.js"');
+    expect(binSource).toContain("runLocalCliProcess");
     expect(binSource).toContain("process.argv.slice(2)");
     expect(binSource).toContain("process.stdout.write");
     expect(binSource).toContain("process.stderr.write");
     expect(binSource).toContain("process.exitCode");
-  });
-
-  it("uses the real WASM Kernel binding instead of a local fake", () => {
-    expect(binSource).toContain('from "@oh-my-pm/kernel"');
-    expect(binSource).toContain("createNodeWasmKernelApi");
-    expect(binSource).not.toContain("createLocalCliKernelApi");
-  });
-
-  it("loads markdown project documents for brief, risks, next, and handoff through the shared loader", () => {
-    expect(binSource).toContain("loadConfiguredMarkdownProjectDocuments");
-    expect(binSource).toContain("parseCliArgs");
-    expect(binSource).toContain("usesProjectDocuments");
-    for (const command of ["brief", "risks", "next", "handoff"]) {
-      expect(binSource).toContain(`parsed.command === "${command}"`);
-    }
-    expect(binSource).toContain("loadConfiguredMarkdownProjectDocuments");
-    expect(binSource).toContain("no markdown project documents matched under:");
-    expect(binSource).toContain("invalid project config:");
   });
 
   it("avoids forbidden side effects beyond stdio and exit code", () => {
@@ -59,6 +43,37 @@ describe("bin wrapper source", () => {
       "crypto.randomUUID",
     ]) {
       expect(binSource, `bin must not contain "${forbidden}"`).not.toContain(forbidden);
+    }
+  });
+});
+
+describe("local CLI process runner source", () => {
+  it("uses the real WASM Kernel binding instead of a local fake", () => {
+    expect(localProcessSource).toContain('from "@oh-my-pm/kernel"');
+    expect(localProcessSource).toContain("createNodeWasmKernelApi");
+    expect(localProcessSource).not.toContain("createLocalCliKernelApi");
+  });
+
+  it("loads markdown project documents for brief, risks, next, and handoff through the shared loader", () => {
+    expect(localProcessSource).toContain("loadConfiguredMarkdownProjectDocuments");
+    expect(localProcessSource).toContain("parseCliArgs");
+    for (const command of ["brief", "risks", "next", "handoff"]) {
+      expect(localProcessSource).toContain(`"${command}"`);
+    }
+    expect(localProcessSource).toContain("no markdown project documents matched under:");
+    expect(localProcessSource).toContain("invalid project config:");
+  });
+
+  it("does not write to process streams or read the environment or clock", () => {
+    for (const forbidden of [
+      "process.stdout",
+      "process.stderr",
+      "process.env",
+      "Date.now",
+      "new Date",
+      "Math.random",
+    ]) {
+      expect(localProcessSource, `runner must not contain "${forbidden}"`).not.toContain(forbidden);
     }
   });
 });
