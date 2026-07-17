@@ -19,7 +19,7 @@ export type LocalCliProcessOptions = {
 };
 
 // Default local runtime identity. Deterministic: no real clock, no randomness.
-const DEFAULT_VERSION = "0.1.0";
+const DEFAULT_VERSION = "0.2.0-alpha.0";
 const DEFAULT_NOW = "2026-01-01T00:00:00.000Z";
 
 // Seed items for the commands that do not read project documents

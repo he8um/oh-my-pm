@@ -17,7 +17,7 @@ import type {
 // Deterministic runtime identity for the MCP server: no real clock, no
 // randomness, no environment reads. Distinct from the CLI wrapper's value so
 // the MCP surface is self-describing.
-export const MCP_PROJECT_RUNTIME_VERSION = "0.1.0";
+export const MCP_PROJECT_RUNTIME_VERSION = "0.2.0-alpha.0";
 export const MCP_PROJECT_RUNTIME_NOW = "2026-01-01T00:00:00.000Z";
 
 const OPERATION_TO_TOOL: Readonly<Record<McpProjectOperation, McpProjectToolName>> = {

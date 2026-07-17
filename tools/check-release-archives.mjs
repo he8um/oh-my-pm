@@ -11,14 +11,30 @@ import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// Repository-independent: the version is derived from the asset filenames the
+// verifier is pointed at, never from the source repository's version.json.
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const CANONICAL_VERSION = JSON.parse(
-  readFileSync(join(repoRoot, "version.json"), "utf8"),
-).version;
-const BUNDLE_NAME = `oh-my-pm-v${CANONICAL_VERSION}`;
-const TAR_NAME = `${BUNDLE_NAME}.tar.gz`;
-const ZIP_NAME = `${BUNDLE_NAME}.zip`;
-const SUMS_NAME = `${BUNDLE_NAME}-SHA256SUMS.txt`;
+
+/** Strict canonical SemVer (major.minor.patch with optional prerelease). */
+function isValidCanonicalSemver(value) {
+  if (typeof value !== "string" || value !== value.trim() || value === "") return false;
+  const match = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/.exec(value);
+  if (match === null) return false;
+  const [, major, minor, patch, prerelease] = match;
+  for (const part of [major, minor, patch]) {
+    if (part.length > 1 && part.startsWith("0")) return false;
+  }
+  if (prerelease !== undefined) {
+    for (const id of prerelease.split(".")) {
+      if (id === "") return false;
+      if (/^\d+$/.test(id) && id.length > 1 && id.startsWith("0")) return false;
+    }
+  }
+  return true;
+}
+
+const SUMS_SUFFIX = "-SHA256SUMS.txt";
+const SUMS_RE = /^oh-my-pm-v(.+)-SHA256SUMS\.txt$/;
 
 function fail(message) {
   process.stderr.write(`release archives check failed: ${message}\n`);
@@ -94,15 +110,33 @@ if (!parsed.ok) {
   process.exitCode = 2;
 } else {
   const assets = isAbsolute(parsed.assets) ? parsed.assets : resolve(parsed.assets);
-  const ok = run(assets);
-  if (ok) {
-    process.stdout.write(`OH MY PM release archives check: OK (${CANONICAL_VERSION})\n`);
+  const version = run(assets);
+  if (version !== false) {
+    process.stdout.write(`OH MY PM release archives check: OK (${version})\n`);
   }
 }
 
 function run(assetsDir) {
   const tarBin = findTar();
   if (tarBin === null) return fail("no GNU tar available for extraction");
+
+  // Deterministic discovery: exactly one checksum file names the version.
+  const entries = readdirSync(assetsDir);
+  const sumsCandidates = entries.filter((name) => SUMS_RE.test(name));
+  if (sumsCandidates.length === 0) {
+    return fail(`no checksum file matching oh-my-pm-v*${SUMS_SUFFIX} found`);
+  }
+  if (sumsCandidates.length > 1) {
+    return fail(`multiple checksum files found: ${sumsCandidates.join(", ")}`);
+  }
+  const SUMS_NAME = sumsCandidates[0];
+  const derivedVersion = SUMS_RE.exec(SUMS_NAME)[1];
+  if (!isValidCanonicalSemver(derivedVersion)) {
+    return fail(`checksum filename version is not valid canonical SemVer: ${derivedVersion}`);
+  }
+  const BUNDLE_NAME = `oh-my-pm-v${derivedVersion}`;
+  const TAR_NAME = `${BUNDLE_NAME}.tar.gz`;
+  const ZIP_NAME = `${BUNDLE_NAME}.zip`;
 
   const tarPath = join(assetsDir, TAR_NAME);
   const zipPath = join(assetsDir, ZIP_NAME);
@@ -115,15 +149,15 @@ function run(assetsDir) {
     if (!isRegularFile(path)) return fail(`missing release asset: ${name}`);
   }
 
-  // Reject extra release archives for the same version.
-  for (const name of readdirSync(assetsDir)) {
-    if (
-      (name.endsWith(".tar.gz") || name.endsWith(".zip")) &&
-      name.startsWith(BUNDLE_NAME) &&
-      name !== TAR_NAME &&
-      name !== ZIP_NAME
-    ) {
+  // Reject any additional versioned archive/checksum set.
+  for (const name of entries) {
+    const isVersionedArchive =
+      (name.endsWith(".tar.gz") || name.endsWith(".zip")) && /^oh-my-pm-v.+/.test(name);
+    if (isVersionedArchive && name !== TAR_NAME && name !== ZIP_NAME) {
       return fail(`unexpected extra release archive present: ${name}`);
+    }
+    if (SUMS_RE.test(name) && name !== SUMS_NAME) {
+      return fail(`unexpected extra checksum file present: ${name}`);
     }
   }
 
@@ -202,10 +236,27 @@ function run(assetsDir) {
           message = `${label} archive did not extract to exactly ${BUNDLE_NAME}`;
           break;
         }
+        const extractedBundle = join(temp, BUNDLE_NAME);
+        // Cross-check: the extracted RELEASE.json must declare the same version
+        // derived from the asset filenames.
+        try {
+          const release = JSON.parse(
+            readFileSync(join(extractedBundle, "RELEASE.json"), "utf8"),
+          );
+          if (release.version !== derivedVersion) {
+            ok = false;
+            message = `${label} archive RELEASE.json version ${release.version} != ${derivedVersion}`;
+            break;
+          }
+        } catch {
+          ok = false;
+          message = `${label} archive RELEASE.json is missing or invalid`;
+          break;
+        }
         const verify = spawnSync(process.execPath, [
           join(repoRoot, "tools", "check-release-bundle.mjs"),
           "--bundle",
-          join(temp, BUNDLE_NAME),
+          extractedBundle,
         ]);
         if (verify.status !== 0) {
           ok = false;
@@ -219,5 +270,5 @@ function run(assetsDir) {
     rmSync(zipTemp, { recursive: true, force: true });
   }
   if (!ok) return fail(message);
-  return true;
+  return derivedVersion;
 }

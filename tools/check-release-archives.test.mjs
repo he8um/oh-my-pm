@@ -9,7 +9,8 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const buildBundle = join(repoRoot, "tools", "build-release-bundle.mjs");
 const buildArchives = join(repoRoot, "tools", "build-release-archives.mjs");
 const checkArchives = join(repoRoot, "tools", "check-release-archives.mjs");
-const BUNDLE_NAME = "oh-my-pm-v0.1.0";
+const CANONICAL_VERSION = JSON.parse(readFileSync(join(repoRoot, "version.json"), "utf8")).version;
+const BUNDLE_NAME = `oh-my-pm-v${CANONICAL_VERSION}`;
 const TAR = `${BUNDLE_NAME}.tar.gz`;
 const ZIP = `${BUNDLE_NAME}.zip`;
 const SUMS = `${BUNDLE_NAME}-SHA256SUMS.txt`;
@@ -51,7 +52,7 @@ describe("check-release-archives command", () => {
     const result = run(checkArchives, ["--assets", goodAssets]);
     expect(result.stderr, result.stderr).toBe("");
     expect(result.status).toBe(0);
-    expect(result.stdout).toBe("OH MY PM release archives check: OK (0.1.0)\n");
+    expect(result.stdout).toBe(`OH MY PM release archives check: OK (${CANONICAL_VERSION})\n`);
   }, 120_000);
 
   it("requires --assets", () => {

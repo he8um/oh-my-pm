@@ -7,10 +7,46 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const CANONICAL_VERSION = "0.1.0";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** Validate version.json shape and value. Returns an error string or null. */
+/**
+ * Strict, dependency-free canonical SemVer check. Accepts `major.minor.patch`
+ * with an optional dot-separated prerelease, e.g. `1.2.3`, `1.0.0`,
+ * `0.2.0-alpha.0`. Rejects whitespace, a `v` prefix, missing core components,
+ * leading zeroes in numeric core components, empty prerelease identifiers, and
+ * invalid characters. Build metadata (`+...`) is not accepted for this project.
+ */
+export function isValidCanonicalSemver(value) {
+  if (typeof value !== "string" || value !== value.trim() || value === "") {
+    return false;
+  }
+  const match = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/.exec(value);
+  if (match === null) {
+    return false;
+  }
+  const [, major, minor, patch, prerelease] = match;
+  // No leading zeroes in numeric core components.
+  for (const part of [major, minor, patch]) {
+    if (part.length > 1 && part.startsWith("0")) {
+      return false;
+    }
+  }
+  if (prerelease !== undefined) {
+    const ids = prerelease.split(".");
+    for (const id of ids) {
+      if (id === "") {
+        return false; // empty prerelease identifier
+      }
+      // A purely numeric prerelease identifier must not have leading zeroes.
+      if (/^\d+$/.test(id) && id.length > 1 && id.startsWith("0")) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+/** Validate version.json shape (exactly one key `version`, valid SemVer). */
 export function validateVersionFile(raw) {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     return "version.json must be a JSON object";
@@ -22,8 +58,8 @@ export function validateVersionFile(raw) {
   if (typeof raw.version !== "string") {
     return "version.json version must be a string";
   }
-  if (raw.version !== CANONICAL_VERSION) {
-    return `version.json version must be ${CANONICAL_VERSION}, found ${raw.version}`;
+  if (!isValidCanonicalSemver(raw.version)) {
+    return `version.json version is not valid canonical SemVer: ${raw.version}`;
   }
   return null;
 }
@@ -60,8 +96,15 @@ function main() {
   }
   const versionError = validateVersionFile(versionFile);
   if (versionError) {
-    errors.push(versionError);
+    // version.json itself is the single source of truth; if it is malformed we
+    // cannot meaningfully compare anything else.
+    process.stderr.write(`check-version-consistency: ${versionError}\n`);
+    process.stderr.write("check-version-consistency: FAILED\n");
+    process.exitCode = 1;
+    return;
   }
+  // The canonical version is whatever version.json declares — never hard-coded.
+  const CANONICAL_VERSION = versionFile.version;
 
   // 2. Root + every workspace package manifest.
   const manifests = ["package.json", ...workspacePackageDirs().map((d) => join(d, "package.json"))];
@@ -103,6 +146,18 @@ function main() {
       errors.push("kernel/crate/src/lib.rs: kernel_version literal not found");
     } else if (match[1] !== CANONICAL_VERSION) {
       errors.push(`kernel/crate/src/lib.rs: kernel_version ${match[1]} != ${CANONICAL_VERSION}`);
+    }
+  }
+
+  // 5. Rust Kernel crate manifest version.
+  const kernelCargo = join(repoRoot, "kernel/crate/Cargo.toml");
+  if (existsSync(kernelCargo)) {
+    const source = readFileSync(kernelCargo, "utf8");
+    const match = /^version = "([^"]*)"/m.exec(source);
+    if (!match) {
+      errors.push("kernel/crate/Cargo.toml: version field not found");
+    } else if (match[1] !== CANONICAL_VERSION) {
+      errors.push(`kernel/crate/Cargo.toml: version ${match[1]} != ${CANONICAL_VERSION}`);
     }
   }
 

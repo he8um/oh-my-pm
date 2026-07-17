@@ -7,7 +7,7 @@ This is a local alpha of OH MY PM. It is installed from the repository, not from
 There are two ways to run OH MY PM:
 
 1. **Repository development installation** — clone, build, and install command shims from the repository (below).
-2. **Portable bundle usage** — run a self-contained `oh-my-pm-v0.1.0/` bundle that needs only Node.js 20+ (see [Portable bundle usage](#portable-bundle-usage)).
+2. **Stable release archive** — download the published [`v0.1.0`](#installing-the-stable-v010-release) bundle that needs only Node.js 20+. Contributors can also [build a development bundle from `main`](#building-a-development-bundle-from-main).
 
 ## Requirements
 
@@ -119,37 +119,18 @@ Each tool takes a single input naming a local project root:
 { "root": "./project" }
 ```
 
-## Portable bundle usage
+## Installing the stable v0.1.0 release
 
-A maintainer can assemble a self-contained, versioned bundle from a repository checkout:
+The stable release is published at:
 
-```bash
-pnpm build
-pnpm release:bundle -- --output .release --apply
+```text
+https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0
 ```
 
-This produces `.release/oh-my-pm-v0.1.0/`, which is movable anywhere and runs standalone:
+Stable archive users need only **Node.js 20+** (no Rust or pnpm). Download the three assets, verify the checksums, extract, and run:
 
 ```bash
-node ./oh-my-pm-v0.1.0/bin/oh-my-pm.mjs status
-node ./oh-my-pm-v0.1.0/bin/oh-my-pm.mjs brief ./project --markdown
-node ./oh-my-pm-v0.1.0/bin/oh-my-pm-mcp.mjs
-```
-
-Bundle consumers need **Node.js 20+** and do **not** need Rust or pnpm. This commit prepares release-candidate packaging only; there is no official public download until a later release step. See [the v0.1.0 release notes](releases/v0.1.0.md) for the bundle contents and verification.
-
-### Installing from a release archive
-
-The bundle can also be packaged into deterministic archives:
-
-```bash
-pnpm release:archives -- --bundle .release/oh-my-pm-v0.1.0 --output .release --apply
-```
-
-This writes `oh-my-pm-v0.1.0.tar.gz`, `oh-my-pm-v0.1.0.zip`, and `oh-my-pm-v0.1.0-SHA256SUMS.txt`. An archive consumer needs only Node.js 20+:
-
-```bash
-sha256sum -c oh-my-pm-v0.1.0-SHA256SUMS.txt   # verify the archives
+sha256sum -c oh-my-pm-v0.1.0-SHA256SUMS.txt   # checksum verification is required
 
 tar -xzf oh-my-pm-v0.1.0.tar.gz               # or: unzip oh-my-pm-v0.1.0.zip
 node ./oh-my-pm-v0.1.0/bin/oh-my-pm.mjs status
@@ -157,7 +138,33 @@ node ./oh-my-pm-v0.1.0/bin/oh-my-pm.mjs brief ./project --markdown
 node ./oh-my-pm-v0.1.0/bin/oh-my-pm-mcp.mjs
 ```
 
-Each archive expands to a single `oh-my-pm-v0.1.0/` directory. There is no public release URL yet; publication is manually gated.
+Each archive expands to a single `oh-my-pm-v0.1.0/` directory. See [the v0.1.0 release notes](releases/v0.1.0.md).
+
+## Building a development bundle from main
+
+`main` may contain unreleased `0.2.0-alpha.0` work. Contributors can assemble a self-contained, versioned bundle whose name is derived from `version.json`:
+
+```bash
+pnpm build
+pnpm release:bundle -- --output .release --apply
+```
+
+This produces `.release/oh-my-pm-v0.2.0-alpha.0/`, which is movable anywhere and runs standalone on Node.js 20+:
+
+```bash
+node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm.mjs status
+node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm.mjs brief ./project --markdown
+node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm-mcp.mjs
+```
+
+The bundle can also be packaged into deterministic archives, verified for reproducibility:
+
+```bash
+pnpm release:archives -- --bundle .release/oh-my-pm-v0.2.0-alpha.0 --output .release --apply
+pnpm release:archives:check -- --assets .release
+```
+
+Development builds of `0.2.0-alpha.0` are not published; only the stable `v0.1.0` release has public downloads.
 
 ## Troubleshooting
 

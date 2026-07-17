@@ -19,6 +19,7 @@ import {
 } from "./release-archive-utils.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const CANONICAL_VERSION = JSON.parse(readFileSync(join(repoRoot, "version.json"), "utf8")).version;
 const roots = [];
 let bundle;
 
@@ -45,11 +46,11 @@ afterAll(() => {
 
 describe("constants", () => {
   it("derives canonical names from version.json", () => {
-    expect(RELEASE_ARCHIVE_VERSION).toBe("0.1.0");
-    expect(RELEASE_ARCHIVE_BUNDLE_NAME).toBe("oh-my-pm-v0.1.0");
-    expect(RELEASE_ARCHIVE_TAR_NAME).toBe("oh-my-pm-v0.1.0.tar.gz");
-    expect(RELEASE_ARCHIVE_ZIP_NAME).toBe("oh-my-pm-v0.1.0.zip");
-    expect(RELEASE_ARCHIVE_SUMS_NAME).toBe("oh-my-pm-v0.1.0-SHA256SUMS.txt");
+    expect(RELEASE_ARCHIVE_VERSION).toBe(CANONICAL_VERSION);
+    expect(RELEASE_ARCHIVE_BUNDLE_NAME).toBe(`oh-my-pm-v${CANONICAL_VERSION}`);
+    expect(RELEASE_ARCHIVE_TAR_NAME).toBe(`oh-my-pm-v${CANONICAL_VERSION}.tar.gz`);
+    expect(RELEASE_ARCHIVE_ZIP_NAME).toBe(`oh-my-pm-v${CANONICAL_VERSION}.zip`);
+    expect(RELEASE_ARCHIVE_SUMS_NAME).toBe(`oh-my-pm-v${CANONICAL_VERSION}-SHA256SUMS.txt`);
   });
 });
 
@@ -87,9 +88,9 @@ describe("resolveReleaseArchivePlan", () => {
     const plan = resolveReleaseArchivePlan({ bundle, output: tempDir("oh-my-pm-arch-out-") });
     expect(plan.ok).toBe(true);
     expect(plan.action).toBe("create");
-    expect(plan.tarPath.endsWith("oh-my-pm-v0.1.0.tar.gz")).toBe(true);
-    expect(plan.zipPath.endsWith("oh-my-pm-v0.1.0.zip")).toBe(true);
-    expect(plan.sumsPath.endsWith("oh-my-pm-v0.1.0-SHA256SUMS.txt")).toBe(true);
+    expect(plan.tarPath.endsWith(`oh-my-pm-v${CANONICAL_VERSION}.tar.gz`)).toBe(true);
+    expect(plan.zipPath.endsWith(`oh-my-pm-v${CANONICAL_VERSION}.zip`)).toBe(true);
+    expect(plan.sumsPath.endsWith(`oh-my-pm-v${CANONICAL_VERSION}-SHA256SUMS.txt`)).toBe(true);
   });
 
   it("blocks a missing bundle and a wrong basename", () => {
@@ -156,8 +157,10 @@ describe("applyReleaseArchivePlan", () => {
     const lines = sums.split("\n");
     expect(lines.length).toBe(3);
     expect(lines[2]).toBe("");
-    expect(lines[0]).toMatch(/^[0-9a-f]{64} {2}oh-my-pm-v0\.1\.0\.tar\.gz$/);
-    expect(lines[1]).toMatch(/^[0-9a-f]{64} {2}oh-my-pm-v0\.1\.0\.zip$/);
+    expect(lines[0]).toMatch(/^[0-9a-f]{64} {2}\S+$/);
+    expect(lines[1]).toMatch(/^[0-9a-f]{64} {2}\S+$/);
+    expect(lines[0].endsWith(`  ${RELEASE_ARCHIVE_TAR_NAME}`)).toBe(true);
+    expect(lines[1].endsWith(`  ${RELEASE_ARCHIVE_ZIP_NAME}`)).toBe(true);
 
     // Extract filenames and assert the exact filename order.
     const filenames = lines.slice(0, 2).map((line) => line.slice(66));

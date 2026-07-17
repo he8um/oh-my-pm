@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.1.0 — Release candidate
+## [Unreleased]
+
+### Changed
+
+- Opened the `0.2.0-alpha.0` development line.
+- Generalized version, bundle, and archive verification around self-describing metadata.
+
+## 0.1.0
 
 ### Added
 

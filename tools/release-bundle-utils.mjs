@@ -22,10 +22,19 @@ import {
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const RELEASE_BUNDLE_VERSION = "0.1.0";
-export const RELEASE_BUNDLE_NAME = "oh-my-pm-v0.1.0";
-
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+/** Canonical version, read once from version.json (single source of truth). */
+function readCanonicalVersion() {
+  const parsed = JSON.parse(readFileSync(join(REPO_ROOT, "version.json"), "utf8"));
+  if (typeof parsed.version !== "string" || parsed.version === "") {
+    throw new Error("version.json has no version string");
+  }
+  return parsed.version;
+}
+
+export const RELEASE_BUNDLE_VERSION = readCanonicalVersion();
+export const RELEASE_BUNDLE_NAME = `oh-my-pm-v${RELEASE_BUNDLE_VERSION}`;
 
 /** Deterministic list of prerequisite files the bundle assembly requires. */
 function prerequisiteDefinitions() {

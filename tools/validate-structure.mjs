@@ -64,8 +64,9 @@ const ALLOWED_TOP_FILES = [
   "version.json",
 ];
 
-// Canonical public release version. Every workspace package pins to this.
-const CANONICAL_VERSION = "0.1.0";
+// Canonical current-development version. version.json is the single source of
+// truth; every workspace package and the distribution package pin to it.
+const CANONICAL_VERSION = JSON.parse(readFileSync("version.json", "utf8")).version;
 
 const FORBIDDEN_TOP_FOLDERS = ["specs", "_dev", "scripts", "brain", "mcp"];
 
@@ -349,6 +350,7 @@ const RELEASE_BUNDLE_SOURCES = [
   "tools/build-release-bundle.mjs",
   "tools/check-release-bundle.mjs",
   "docs/releases/v0.1.0.md",
+  "docs/releases/v0.2.0.md",
   "tools/test/check-version-consistency.test.mjs",
   "tools/test/release-bundle-utils.test.mjs",
   "tools/test/release-bundle-e2e.test.mjs",

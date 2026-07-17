@@ -18,11 +18,11 @@ function runBin(args) {
 }
 
 describe("runLocalCliProcess", () => {
-  it("reports version 0.1.0 and kernel 0.1.0 for status", () => {
+  it("reports the current version and kernel version for status", () => {
     const result = runLocalCliProcess(["status"]);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("version: 0.1.0");
-    expect(result.stdout).toContain("kernel: 0.1.0");
+    expect(result.stdout).toContain("version: 0.2.0-alpha.0");
+    expect(result.stdout).toContain("kernel: 0.2.0-alpha.0");
   });
 
   it("matches the repository bin output for status", () => {

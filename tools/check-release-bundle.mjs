@@ -9,11 +9,31 @@ import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const CANONICAL_VERSION = "0.1.0";
 const isWindows = process.platform === "win32";
+
+/**
+ * Strict canonical SemVer (major.minor.patch with optional dot-separated
+ * prerelease). Kept inline so this verifier stays repository-independent.
+ */
+function isValidCanonicalSemver(value) {
+  if (typeof value !== "string" || value !== value.trim() || value === "") return false;
+  const match = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/.exec(value);
+  if (match === null) return false;
+  const [, major, minor, patch, prerelease] = match;
+  for (const part of [major, minor, patch]) {
+    if (part.length > 1 && part.startsWith("0")) return false;
+  }
+  if (prerelease !== undefined) {
+    for (const id of prerelease.split(".")) {
+      if (id === "") return false;
+      if (/^\d+$/.test(id) && id.length > 1 && id.startsWith("0")) return false;
+    }
+  }
+  return true;
+}
 
 function fail(message) {
   process.stderr.write(`release bundle check failed: ${message}\n`);
@@ -68,9 +88,9 @@ if (!parsed.ok) {
   process.exitCode = 2;
 } else {
   const bundle = isAbsolute(parsed.bundle) ? parsed.bundle : resolve(parsed.bundle);
-  const ok = await run(bundle);
-  if (ok) {
-    process.stdout.write(`OH MY PM release bundle check: OK (${CANONICAL_VERSION})\n`);
+  const version = await run(bundle);
+  if (version !== false) {
+    process.stdout.write(`OH MY PM release bundle check: OK (${version})\n`);
   }
 }
 
@@ -86,8 +106,18 @@ async function run(bundle) {
   } catch {
     return fail("RELEASE.json is not valid JSON");
   }
-  if (release.version !== CANONICAL_VERSION) {
-    return fail(`RELEASE.json version ${release.version} != ${CANONICAL_VERSION}`);
+  // The bundle is self-describing: its own RELEASE.json declares the version.
+  // This verifier never reads the source repository's version.json.
+  if (!isValidCanonicalSemver(release.version)) {
+    return fail(`RELEASE.json version is not valid canonical SemVer: ${release.version}`);
+  }
+  const expectedVersion = release.version;
+  const expectedBundleName = `oh-my-pm-v${expectedVersion}`;
+  if (release.bundle !== expectedBundleName) {
+    return fail(`RELEASE.json bundle ${release.bundle} != ${expectedBundleName}`);
+  }
+  if (basename(bundle) !== expectedBundleName) {
+    return fail(`bundle directory basename ${basename(bundle)} != ${expectedBundleName}`);
   }
   const expectedTools = ["project_brief", "project_risks", "project_next", "project_handoff"];
   if (JSON.stringify(release.mcpTools) !== JSON.stringify(expectedTools)) {
@@ -144,8 +174,8 @@ async function run(bundle) {
   } catch {
     return fail("bundled CLI status did not exit cleanly");
   }
-  if (!statusOut.includes(`version: ${CANONICAL_VERSION}`)) {
-    return fail("bundled CLI status did not report the canonical version");
+  if (!statusOut.includes(`version: ${expectedVersion}`)) {
+    return fail("bundled CLI status did not report the bundle's declared version");
   }
   for (const workflow of ["brief", "risks", "next", "handoff"]) {
     let out;
@@ -239,5 +269,5 @@ async function run(bundle) {
   }
   if (!mcpOk) return fail(mcpMessage);
 
-  return true;
+  return expectedVersion;
 }

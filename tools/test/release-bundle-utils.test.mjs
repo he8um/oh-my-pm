@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +12,10 @@ import {
 } from "../release-bundle-utils.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+// The expected version is derived from version.json, never hard-coded, so this
+// suite stays correct across version bumps.
+const CANONICAL_VERSION = JSON.parse(readFileSync(join(repoRoot, "version.json"), "utf8")).version;
+const CANONICAL_BUNDLE_NAME = `oh-my-pm-v${CANONICAL_VERSION}`;
 const outputs = [];
 
 function makeOutput() {
@@ -27,9 +31,9 @@ afterEach(() => {
 });
 
 describe("constants", () => {
-  it("pins the canonical version and bundle name", () => {
-    expect(RELEASE_BUNDLE_VERSION).toBe("0.1.0");
-    expect(RELEASE_BUNDLE_NAME).toBe("oh-my-pm-v0.1.0");
+  it("derives the version and bundle name from version.json", () => {
+    expect(RELEASE_BUNDLE_VERSION).toBe(CANONICAL_VERSION);
+    expect(RELEASE_BUNDLE_NAME).toBe(CANONICAL_BUNDLE_NAME);
   });
 });
 
@@ -64,8 +68,8 @@ describe("parseReleaseBundleArgs", () => {
 describe("resolveReleaseBundlePlan", () => {
   it("reports a create action for a fresh output and lists prerequisites", () => {
     const plan = resolveReleaseBundlePlan({ output: makeOutput() });
-    expect(plan.version).toBe("0.1.0");
-    expect(plan.bundleName).toBe("oh-my-pm-v0.1.0");
+    expect(plan.version).toBe(CANONICAL_VERSION);
+    expect(plan.bundleName).toBe(CANONICAL_BUNDLE_NAME);
     expect(plan.prerequisites.length).toBeGreaterThan(10);
     // The workspace is built during the suite, so prerequisites should exist.
     expect(plan.ok).toBe(true);

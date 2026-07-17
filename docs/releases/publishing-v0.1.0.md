@@ -1,8 +1,12 @@
 # Publishing OH MY PM v0.1.0
 
-The `v0.1.0` GitHub Release is created only through a manual, multi-gated
-workflow. The implementation commit does not create the release, does not create
-or push a Git tag, and does not publish to npm or any registry.
+> `v0.1.0` has been published: <https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0>.
+> The tag and its assets are immutable. This document is retained as the
+> historical record of the gated process used to publish it; the `Release v0.1`
+> workflow is release-specific and must not be reused for `v0.2`.
+
+The `v0.1.0` GitHub Release was created only through a manual, multi-gated
+workflow. It does not publish to npm or any registry.
 
 ## Required one-time setup: the `github-release` environment
 

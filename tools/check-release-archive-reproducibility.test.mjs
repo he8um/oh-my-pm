@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +8,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const buildBundle = join(repoRoot, "tools", "build-release-bundle.mjs");
 const repro = join(repoRoot, "tools", "check-release-archive-reproducibility.mjs");
-const BUNDLE_NAME = "oh-my-pm-v0.1.0";
+const CANONICAL_VERSION = JSON.parse(readFileSync(join(repoRoot, "version.json"), "utf8")).version;
+const BUNDLE_NAME = `oh-my-pm-v${CANONICAL_VERSION}`;
 const roots = [];
 let bundle;
 
@@ -38,7 +39,7 @@ describe("check-release-archive-reproducibility command", () => {
     const result = run(repro, ["--bundle", bundle]);
     expect(result.stderr, result.stderr).toBe("");
     expect(result.status).toBe(0);
-    expect(result.stdout).toBe("OH MY PM release archive reproducibility: OK (0.1.0)\n");
+    expect(result.stdout).toBe(`OH MY PM release archive reproducibility: OK (${CANONICAL_VERSION})\n`);
   }, 180_000);
 
   it("requires --bundle", () => {

@@ -9,7 +9,10 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const buildCli = join(repoRoot, "tools", "build-release-bundle.mjs");
 const checkCli = join(repoRoot, "tools", "check-release-bundle.mjs");
 
-const BUNDLE = "oh-my-pm-v0.1.0";
+// Version and bundle name derive from version.json, keeping this e2e suite
+// version-independent across development cycles.
+const CANONICAL_VERSION = JSON.parse(readFileSync(join(repoRoot, "version.json"), "utf8")).version;
+const BUNDLE = `oh-my-pm-v${CANONICAL_VERSION}`;
 const roots = [];
 
 function tempDir(prefix) {
@@ -56,7 +59,7 @@ describe("portable release bundle e2e", () => {
     const result = run(checkCli, ["--bundle", movedBundle]);
     expect(result.stderr, result.stderr).toBe("");
     expect(result.status).toBe(0);
-    expect(result.stdout).toBe("OH MY PM release bundle check: OK (0.1.0)\n");
+    expect(result.stdout).toBe(`OH MY PM release bundle check: OK (${CANONICAL_VERSION})\n`);
   }, 120_000);
 
   it("has no repository path anywhere in the moved bundle text", () => {
@@ -70,8 +73,8 @@ describe("portable release bundle e2e", () => {
     const cliBin = join(movedBundle, "bin", "oh-my-pm.mjs");
     const fixture = join(movedBundle, "examples", "markdown-project");
     const status = spawnSync(process.execPath, [cliBin, "status"], { encoding: "utf8" });
-    expect(status.stdout).toContain("version: 0.1.0");
-    expect(status.stdout).toContain("kernel: 0.1.0");
+    expect(status.stdout).toContain(`version: ${CANONICAL_VERSION}`);
+    expect(status.stdout).toContain(`kernel: ${CANONICAL_VERSION}`);
     for (const workflow of ["brief", "risks", "next", "handoff"]) {
       const result = spawnSync(process.execPath, [cliBin, workflow, fixture, "--json"], {
         encoding: "utf8",

@@ -4,7 +4,10 @@
 
 It is designed for teams that want clearer delivery context, safer execution boundaries, and repeatable validation around project work.
 
-> Status: `v0.1.0` release candidate — local alpha. Repository-based and portable-bundle installation are available; packages remain private and there is no public release or npm package yet.
+> **Latest stable release:** [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0)
+> **Current main development version:** `0.2.0-alpha.0` (unreleased)
+>
+> Local alpha. `main` may contain unreleased `0.2.0-alpha.0` work. Packages remain private; there is no npm package. `0.2.0-alpha.0` is not published.
 
 ---
 
@@ -87,30 +90,9 @@ oh-my-pm handoff ./project --markdown
 
 Local MCP onboarding is available too — generate a generic stdio client configuration with `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is a local alpha, not a public release.
 
-### Portable release bundle
+### Latest stable release (v0.1.0)
 
-A maintainer can assemble a self-contained, versioned bundle that runs on Node.js 20+ with no Rust, pnpm, or repository checkout:
-
-```bash
-pnpm build
-pnpm release:bundle -- --output .release --apply   # writes .release/oh-my-pm-v0.1.0/
-node .release/oh-my-pm-v0.1.0/bin/oh-my-pm.mjs status
-node .release/oh-my-pm-v0.1.0/bin/oh-my-pm-mcp.mjs
-```
-
-The bundle contains the compiled packages, the real Rust/WASM Kernel, the four CLI workflows, the four read-only MCP tools, deterministic `RELEASE.json` metadata, and `SHA256SUMS`. It is a release candidate: `v0.1.0` is not publicly released or tagged, and there is no official download yet. See [the v0.1.0 release notes](docs/releases/v0.1.0.md).
-
-### Deterministic release archives
-
-The verified bundle can be packaged into two byte-reproducible archives plus a checksum file:
-
-```bash
-pnpm release:archives -- --bundle .release/oh-my-pm-v0.1.0 --output .release --apply
-pnpm release:archives:check -- --assets .release
-pnpm release:archives:repro -- --bundle .release/oh-my-pm-v0.1.0
-```
-
-This produces exactly:
+The stable [`v0.1.0` release](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) ships three assets:
 
 ```text
 oh-my-pm-v0.1.0.tar.gz
@@ -118,7 +100,32 @@ oh-my-pm-v0.1.0.zip
 oh-my-pm-v0.1.0-SHA256SUMS.txt
 ```
 
-Both archives expand to a single `oh-my-pm-v0.1.0/` directory and re-pass the bundle verifier. A `v0.1.0` GitHub Release has **not** been published or tagged yet — publication happens only through the manually gated `Release v0.1` workflow. See [the release publication guide](docs/releases/publishing-v0.1.0.md).
+Stable archive users need only Node.js 20+ (no Rust or pnpm). Download, verify the checksums, extract, and run — see [the v0.1.0 release notes](docs/releases/v0.1.0.md).
+
+### Portable release bundle (development)
+
+A maintainer can assemble a self-contained, versioned bundle from `main` that runs on Node.js 20+ with no Rust, pnpm, or repository checkout. The bundle name is derived from the canonical version in `version.json` (currently `0.2.0-alpha.0`):
+
+```bash
+pnpm build
+pnpm release:bundle -- --output .release --apply   # writes .release/oh-my-pm-v0.2.0-alpha.0/
+node .release/oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm.mjs status
+node .release/oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm-mcp.mjs
+```
+
+The bundle contains the compiled packages, the real Rust/WASM Kernel, the four CLI workflows, the four read-only MCP tools, deterministic `RELEASE.json` metadata, and `SHA256SUMS`. Development builds of `0.2.0-alpha.0` are not published.
+
+### Deterministic release archives
+
+The verified bundle can be packaged into two byte-reproducible archives plus a checksum file:
+
+```bash
+pnpm release:archives -- --bundle .release/oh-my-pm-v0.2.0-alpha.0 --output .release --apply
+pnpm release:archives:check -- --assets .release
+pnpm release:archives:repro -- --bundle .release/oh-my-pm-v0.2.0-alpha.0
+```
+
+Both archives expand to a single `oh-my-pm-v<version>/` directory and re-pass the bundle verifier. The `v0.1.0` GitHub Release was published through the manually gated `Release v0.1` workflow; see [the release publication guide](docs/releases/publishing-v0.1.0.md). No `v0.2` release exists yet.
 
 ## Local project configuration
 

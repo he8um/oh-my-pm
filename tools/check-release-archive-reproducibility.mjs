@@ -4,17 +4,15 @@
 // No network. Cleans only its own temporary roots.
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// The version is derived from the supplied bundle's own RELEASE.json, never
+// from the source repository's version.json, so this works for a relocated
+// bundle just as well as for the current development one.
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const CANONICAL_VERSION = JSON.parse(
-  readFileSync(join(repoRoot, "version.json"), "utf8"),
-).version;
-const BUNDLE_NAME = `oh-my-pm-v${CANONICAL_VERSION}`;
-const ASSETS = [`${BUNDLE_NAME}.tar.gz`, `${BUNDLE_NAME}.zip`, `${BUNDLE_NAME}-SHA256SUMS.txt`];
 
 function fail(message) {
   process.stderr.write(`release archive reproducibility failed: ${message}\n`);
@@ -51,9 +49,9 @@ if (!parsed.ok) {
   process.exitCode = 2;
 } else {
   const bundle = isAbsolute(parsed.bundle) ? parsed.bundle : resolve(parsed.bundle);
-  const ok = run(bundle);
-  if (ok) {
-    process.stdout.write(`OH MY PM release archive reproducibility: OK (${CANONICAL_VERSION})\n`);
+  const version = run(bundle);
+  if (version !== false) {
+    process.stdout.write(`OH MY PM release archive reproducibility: OK (${version})\n`);
   }
 }
 
@@ -76,12 +74,27 @@ function buildInto(bundle, outputRoot) {
 }
 
 function run(bundle) {
+  // Derive the version (and thus asset filenames) from the bundle's own metadata.
+  const releasePath = join(bundle, "RELEASE.json");
+  if (!existsSync(releasePath)) return fail(`bundle RELEASE.json not found: ${releasePath}`);
+  let version;
+  try {
+    version = JSON.parse(readFileSync(releasePath, "utf8")).version;
+  } catch {
+    return fail("bundle RELEASE.json is not valid JSON");
+  }
+  if (typeof version !== "string" || version === "") {
+    return fail("bundle RELEASE.json has no version string");
+  }
+  const bundleName = `oh-my-pm-v${version}`;
+  const assets = [`${bundleName}.tar.gz`, `${bundleName}.zip`, `${bundleName}-SHA256SUMS.txt`];
+
   const rootA = mkdtempSync(join(tmpdir(), "oh-my-pm-repro-a-"));
   const rootB = mkdtempSync(join(tmpdir(), "oh-my-pm-repro-b-"));
   try {
     if (!buildInto(bundle, rootA)) return fail("first archive build/verify failed");
     if (!buildInto(bundle, rootB)) return fail("second archive build/verify failed");
-    for (const asset of ASSETS) {
+    for (const asset of assets) {
       const a = readFileSync(join(rootA, asset));
       const b = readFileSync(join(rootB, asset));
       if (!a.equals(b)) return fail(`asset differs between builds: ${asset}`);
@@ -90,5 +103,5 @@ function run(bundle) {
     rmSync(rootA, { recursive: true, force: true });
     rmSync(rootB, { recursive: true, force: true });
   }
-  return true;
+  return version;
 }

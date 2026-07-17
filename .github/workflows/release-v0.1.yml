@@ -1,5 +1,8 @@
 name: Release v0.1
 
+# Historical release-specific workflow for the already published immutable v0.1.0.
+# Do not reuse this workflow for v0.2.
+#
 # Manually triggered only. There is no push, pull_request, release, schedule, or
 # tag trigger. The prepare job cannot write repository contents; only the gated
 # publish job receives contents: write, and only when publish == true with the

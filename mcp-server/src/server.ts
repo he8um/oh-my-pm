@@ -10,7 +10,7 @@ import type {
 } from "./types.js";
 
 export const OH_MY_PM_MCP_SERVER_NAME = "oh-my-pm";
-export const OH_MY_PM_MCP_SERVER_VERSION = "0.1.0";
+export const OH_MY_PM_MCP_SERVER_VERSION = "0.2.0-alpha.0";
 
 // --- Public structured result shapes -------------------------------------
 
