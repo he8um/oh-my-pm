@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Portable release bundles now contain a preview-first self-installer that creates a versioned, source-independent local installation under an explicit prefix.
+
 ### Changed
 
 - Opened the `0.2.0-alpha.0` development line.

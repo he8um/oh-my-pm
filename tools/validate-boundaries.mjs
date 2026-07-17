@@ -849,6 +849,123 @@ if (trackedFiles.includes("distribution/package.json")) {
   }
 }
 
+// 4i. Portable release-bundle installer surfaces. Only the shared install core
+// (distribution/libexec/release-install-core.mjs) may perform release-install
+// filesystem writes; the bundled entrypoint and the repository wrapper are thin
+// process adapters that must not write. No installer surface may reach the
+// network, run a package manager, publish, tag, edit shell profiles, edit MCP
+// client configs, or read an environment-derived prefix/approval. The installed
+// verifier and e2e test may spawn the installed commands; other surfaces may
+// spawn only local verification processes as documented below.
+const RELEASE_INSTALL_CORE = "distribution/libexec/release-install-core.mjs";
+const RELEASE_INSTALL_WRITER_FILES = new Set([RELEASE_INSTALL_CORE]);
+const RELEASE_INSTALL_SURFACES = [
+  "distribution/bin/oh-my-pm-install.mjs",
+  "distribution/libexec/release-install-core.mjs",
+  "tools/install-release-bundle.mjs",
+  "tools/check-release-install.mjs",
+];
+const RELEASE_INSTALL_WRITE_APIS = [
+  "writeFileSync",
+  "writeFile(",
+  "appendFile",
+  "createWriteStream",
+  "mkdirSync",
+  "mkdir(",
+  "renameSync",
+  "rename(",
+  "rmSync",
+  "rm(",
+  "unlink",
+  "chmodSync",
+  "chmod(",
+  "cpSync",
+  "copyFile",
+];
+// No network, package-manager, publish, tag, profile, or client-config markers
+// in any installer surface. "download"/"upload" included so no transfer verb
+// appears. Environment-derived prefix/approval is forbidden via process.env.
+const RELEASE_INSTALL_FORBIDDEN = [
+  "process.env",
+  "fetch(",
+  "XMLHttpRequest",
+  "WebSocket",
+  "node:http",
+  "node:https",
+  "node:net",
+  "node:tls",
+  "node:dgram",
+  "http://",
+  "https://",
+  "curl ",
+  "wget ",
+  "npm install",
+  "pnpm install",
+  "npm publish",
+  "pnpm publish",
+  "registry.npmjs",
+  "gh release",
+  "gh api",
+  "git tag",
+  "git push",
+  "refs/tags",
+  "createRelease",
+  "uploadReleaseAsset",
+  "upload",
+  "download",
+  ".bashrc",
+  ".zshrc",
+  ".profile",
+  "config.fish",
+  "Microsoft.PowerShell_profile",
+  "claude_desktop_config",
+  "mcp.json",
+];
+for (const file of RELEASE_INSTALL_SURFACES) {
+  if (!trackedFiles.includes(file)) {
+    err(`release install surface is not tracked: ${file}`);
+    continue;
+  }
+  const contents = readFileSync(file, "utf8");
+  // Writes only in the shared install core.
+  if (!RELEASE_INSTALL_WRITER_FILES.has(file)) {
+    for (const api of RELEASE_INSTALL_WRITE_APIS) {
+      if (contents.includes(api)) {
+        err(`${file} contains a filesystem write API outside the install core: "${api}"`);
+      }
+    }
+  }
+  for (const marker of RELEASE_INSTALL_FORBIDDEN) {
+    if (contents.includes(marker)) {
+      err(`${file} contains a forbidden installer marker: "${marker}"`);
+    }
+  }
+}
+// The bundled entrypoint and the repository wrapper must not spawn child
+// processes; only the install core (staged verification) and the installed
+// verifier (installed commands) may. This keeps the thin adapters thin.
+const RELEASE_INSTALL_NO_CHILD_PROC = [
+  "distribution/bin/oh-my-pm-install.mjs",
+  "tools/install-release-bundle.mjs",
+];
+for (const file of RELEASE_INSTALL_NO_CHILD_PROC) {
+  if (!trackedFiles.includes(file)) continue;
+  const contents = readFileSync(file, "utf8");
+  for (const api of ["child_process", "execSync", "execFileSync", "spawn", "spawnSync", "fork("]) {
+    if (contents.includes(api)) {
+      err(`${file} uses a child-process API outside the core/verifier: "${api}"`);
+    }
+  }
+}
+// The bundled installer entrypoint must embed no machine-local absolute path.
+const INSTALL_ENTRYPOINT = "distribution/bin/oh-my-pm-install.mjs";
+if (trackedFiles.includes(INSTALL_ENTRYPOINT)) {
+  const contents = readFileSync(INSTALL_ENTRYPOINT, "utf8");
+  if (/\/Users\/|\/home\/|[A-Z]:\\/.test(contents)) {
+    err(`${INSTALL_ENTRYPOINT} embeds a machine-local absolute path`);
+  }
+}
+
 // 4g. The manually gated release workflow. It must be workflow_dispatch only,
 // have top-level contents: read, gate publishing behind a publish boolean, an
 // exact confirmation string, a contents: write publish job, and the protected

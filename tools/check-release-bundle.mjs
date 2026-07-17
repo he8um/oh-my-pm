@@ -116,13 +116,39 @@ async function run(bundle) {
   if (release.bundle !== expectedBundleName) {
     return fail(`RELEASE.json bundle ${release.bundle} != ${expectedBundleName}`);
   }
-  if (basename(bundle) !== expectedBundleName) {
-    return fail(`bundle directory basename ${basename(bundle)} != ${expectedBundleName}`);
+  // A release bundle uses the oh-my-pm-v<version> basename; an installed copy
+  // lives under lib/oh-my-pm/versions/<version> and uses the bare version as
+  // its basename. Accept either so the same verifier serves both layouts.
+  const bundleBasename = basename(bundle);
+  if (bundleBasename !== expectedBundleName && bundleBasename !== expectedVersion) {
+    return fail(`bundle directory basename ${bundleBasename} != ${expectedBundleName}`);
   }
   const expectedTools = ["project_brief", "project_risks", "project_next", "project_handoff"];
   if (JSON.stringify(release.mcpTools) !== JSON.stringify(expectedTools)) {
     return fail("RELEASE.json mcpTools list is unexpected");
   }
+
+  // Installer metadata: preview-first, prefix-required, no network/profile/
+  // client/project writes. Validated structurally without applying anything.
+  const installer = release.installer;
+  if (installer === null || typeof installer !== "object") {
+    return fail("RELEASE.json installer metadata is missing");
+  }
+  if (installer.entrypoint !== "bin/oh-my-pm-install.mjs") {
+    return fail("RELEASE.json installer.entrypoint is unexpected");
+  }
+  if (installer.previewFirst !== true) return fail("RELEASE.json installer.previewFirst must be true");
+  if (installer.prefixRequired !== true) return fail("RELEASE.json installer.prefixRequired must be true");
+  if (installer.applyFlag !== "--apply") return fail("RELEASE.json installer.applyFlag must be --apply");
+  if (installer.forceFlag !== "--force") return fail("RELEASE.json installer.forceFlag must be --force");
+  if (installer.network !== false) return fail("RELEASE.json installer.network must be false");
+  if (installer.shellProfileWrites !== false) {
+    return fail("RELEASE.json installer.shellProfileWrites must be false");
+  }
+  if (installer.clientConfigWrites !== false) {
+    return fail("RELEASE.json installer.clientConfigWrites must be false");
+  }
+  if (installer.projectWrites !== false) return fail("RELEASE.json installer.projectWrites must be false");
 
   // SHA256SUMS: every listed file matches; every regular file is listed.
   const sumsPath = join(bundle, "SHA256SUMS");
@@ -150,6 +176,14 @@ async function run(bundle) {
   const mcpBin = join(bundle, "bin", "oh-my-pm-mcp.mjs");
   if (!isRegularFile(cliBin)) return fail("CLI entrypoint missing");
   if (!isRegularFile(mcpBin)) return fail("MCP entrypoint missing");
+
+  // Installer surfaces: entrypoint, core, and the shipped bundle verifier.
+  const installBin = join(bundle, "bin", "oh-my-pm-install.mjs");
+  const installCore = join(bundle, "libexec", "release-install-core.mjs");
+  const shippedVerifier = join(bundle, "libexec", "check-release-bundle.mjs");
+  if (!isRegularFile(installBin)) return fail("installer entrypoint missing");
+  if (!isRegularFile(installCore)) return fail("release install core missing");
+  if (!isRegularFile(shippedVerifier)) return fail("shipped bundle verifier missing");
   if (!isWindows) {
     for (const bin of [cliBin, mcpBin]) {
       if ((lstatSync(bin).mode & 0o111) === 0) return fail(`entrypoint not executable: ${bin}`);

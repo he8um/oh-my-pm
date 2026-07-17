@@ -69,6 +69,30 @@ describe("portable release bundle e2e", () => {
     expect(sums).not.toContain(repoRoot);
   });
 
+  it("ships the installer surfaces and deterministic installer metadata", () => {
+    for (const rel of [
+      "bin/oh-my-pm-install.mjs",
+      "libexec/release-install-core.mjs",
+      "libexec/check-release-bundle.mjs",
+    ]) {
+      expect(existsSync(join(movedBundle, ...rel.split("/"))), rel).toBe(true);
+    }
+    const release = JSON.parse(readFileSync(join(movedBundle, "RELEASE.json"), "utf8"));
+    expect(release.installer).toEqual({
+      entrypoint: "bin/oh-my-pm-install.mjs",
+      previewFirst: true,
+      prefixRequired: true,
+      applyFlag: "--apply",
+      forceFlag: "--force",
+      network: false,
+      shellProfileWrites: false,
+      clientConfigWrites: false,
+      projectWrites: false,
+    });
+    // No installer core test leaks into the bundle.
+    expect(existsSync(join(movedBundle, "libexec", "release-install-core.test.mjs"))).toBe(false);
+  });
+
   it("runs every CLI workflow from the moved bundle", () => {
     const cliBin = join(movedBundle, "bin", "oh-my-pm.mjs");
     const fixture = join(movedBundle, "examples", "markdown-project");

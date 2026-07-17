@@ -127,6 +127,30 @@ pnpm release:archives:repro -- --bundle .release/oh-my-pm-v0.2.0-alpha.0
 
 Both archives expand to a single `oh-my-pm-v<version>/` directory and re-pass the bundle verifier. The `v0.1.0` GitHub Release was published through the manually gated `Release v0.1` workflow; see [the release publication guide](docs/releases/publishing-v0.1.0.md). No `v0.2` release exists yet.
 
+### Self-installation from a v0.2 development bundle
+
+Every portable `0.2.0-alpha.0` bundle now ships a preview-first installer at `bin/oh-my-pm-install.mjs`. Extract a future `v0.2` archive, preview the installation, then apply it into an explicit prefix:
+
+```bash
+tar -xzf oh-my-pm-v0.2.0-alpha.0.tar.gz
+# or: unzip oh-my-pm-v0.2.0-alpha.0.zip
+
+# Preview writes nothing.
+node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local"
+
+# Apply installs a versioned, source-independent copy under the prefix.
+node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local" --apply
+
+# Add the prefix bin to PATH yourself — the installer never edits it.
+export PATH="$HOME/.local/bin:$PATH"
+
+oh-my-pm status
+oh-my-pm brief ./project --markdown
+oh-my-pm-mcp
+```
+
+Installation is preview-first and requires an explicit `--prefix`; `--apply` is required for any write, and `--force` replaces only the exact managed targets (it is not a version-policy engine). The installer never downloads anything, never edits your PATH, shell profiles, or MCP client configuration, and never writes to project files. After a successful apply the installation is independent of the extracted bundle — you may move or delete the archive and extraction directory, and the installed commands (and the whole prefix, if relocated) keep working. This is unreleased development tooling, not a public release. Stable `v0.1.0` remains manual extraction (its immutable archive predates this installer).
+
 ## Local project configuration
 
 Each project may define an optional `oh-my-pm.config.json` file at its root.

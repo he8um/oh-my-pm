@@ -166,6 +166,83 @@ pnpm release:archives:check -- --assets .release
 
 Development builds of `0.2.0-alpha.0` are not published; only the stable `v0.1.0` release has public downloads.
 
+## Self-installing a v0.2 development bundle
+
+There are three distinct ways to run OH MY PM, in increasing independence from a repository checkout:
+
+1. **Stable v0.1.0 manual archive** — download, verify checksums, extract, and run `node ./oh-my-pm-v0.1.0/bin/*.mjs` directly (see above). v0.1 has no installer; its immutable archive predates this feature.
+2. **Repository-development install** — from a checkout, `pnpm local:install -- --prefix <prefix> --apply` writes four shims that point back into the repository (see [Apply local installation](#apply-local-installation)).
+3. **v0.2 development bundle self-installation** — extract a portable `0.2.0-alpha.0` bundle and run its own installer, which copies a complete, versioned, source-independent installation into an explicit prefix.
+
+The third path uses the installer shipped inside every current bundle:
+
+```bash
+tar -xzf oh-my-pm-v0.2.0-alpha.0.tar.gz          # or: unzip oh-my-pm-v0.2.0-alpha.0.zip
+
+# Preview writes nothing and requires an explicit --prefix.
+node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local"
+
+# Apply installs the versioned copy and the four command shims.
+node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local" --apply
+
+export PATH="$HOME/.local/bin:$PATH"                # add it yourself; the installer never edits PATH
+
+oh-my-pm status
+oh-my-pm brief ./project --markdown
+oh-my-pm-mcp
+```
+
+### Installed layout
+
+Apply produces a self-contained tree under the prefix:
+
+```text
+<prefix>/
+├── bin/
+│   ├── oh-my-pm            # POSIX shim → ../lib/oh-my-pm/versions/<version>/bin/oh-my-pm.mjs
+│   ├── oh-my-pm.cmd        # Windows shim → ..\lib\oh-my-pm\versions\<version>\bin\oh-my-pm.mjs
+│   ├── oh-my-pm-mcp
+│   └── oh-my-pm-mcp.cmd
+└── lib/
+    └── oh-my-pm/
+        ├── install.json    # deterministic manifest (no timestamps, no absolute paths)
+        └── versions/
+            └── <version>/  # the complete verified bundle
+```
+
+The shims use paths relative to `<prefix>/bin`, so the whole prefix is movable as one tree. After a successful apply the installation no longer depends on the extracted bundle — you may delete the archive and extraction directory and the installed commands keep working.
+
+### Preview, apply, and force semantics
+
+- **Preview is the default** and performs no writes. It reports `create`, `already-installed`, `replace`, or `blocked`.
+- **`--apply`** is required for any write.
+- **`--force`** (only with `--apply`) replaces the exact managed targets — the version directory, the four shims, and `install.json` — and nothing else. Unrelated files under `<prefix>/bin` and `<prefix>/lib`, and other version directories, are left untouched. `--force` is the explicit replacement gate; it is **not** a version-policy engine and performs no update, downgrade, rollback, or uninstall.
+- A second apply from the same bundle is a no-op that reports **already installed**.
+- Any managed target that exists but does not exactly match the expected installation **blocks** without `--force`.
+
+The installer never downloads anything, never edits your PATH, shell profiles, or MCP client configuration, and never writes to project files.
+
+### Verifying an installation
+
+From a repository checkout:
+
+```bash
+pnpm release:install:check -- --prefix "$HOME/.local"
+```
+
+The read-only verifier validates the manifest, the versioned bundle, the four shims, then runs the installed CLI (`status` plus the four workflows) and the installed MCP server over stdio. Outside a checkout, verify directly with the installed commands:
+
+```bash
+oh-my-pm status
+oh-my-pm brief ./project --markdown
+```
+
+Maintainers with a checkout can also install any explicitly supplied verified bundle through the repository wrapper:
+
+```bash
+pnpm release:install -- --bundle <path-to-bundle> --prefix "$HOME/.local" --apply
+```
+
 ## Troubleshooting
 
 - **Build target missing** — run `rustup target add wasm32-unknown-unknown`, then `pnpm build`.

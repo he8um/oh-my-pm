@@ -376,6 +376,22 @@ for (const file of RELEASE_ARCHIVE_SOURCES) {
   if (!existsSync(file)) err(`release archive file missing: ${file}`);
 }
 
+// 7g7. Portable release-bundle installer surfaces, repository wrapper,
+// read-only installed-state verifier, and their tests.
+const RELEASE_INSTALL_SOURCES = [
+  "distribution/bin/oh-my-pm-install.mjs",
+  "distribution/libexec/release-install-core.mjs",
+  "distribution/libexec/release-install-core.test.mjs",
+  "tools/install-release-bundle.mjs",
+  "tools/check-release-install.mjs",
+  "tools/install-release-bundle.test.mjs",
+  "tools/check-release-install.test.mjs",
+  "tools/release-install-e2e.test.mjs",
+];
+for (const file of RELEASE_INSTALL_SOURCES) {
+  if (!existsSync(file)) err(`release install file missing: ${file}`);
+}
+
 // The distribution package must be private and carry no publish config.
 if (existsSync("distribution/package.json")) {
   const distJson = JSON.parse(readFileSync("distribution/package.json", "utf8"));

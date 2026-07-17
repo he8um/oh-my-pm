@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,6 +9,7 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const buildBundle = join(repoRoot, "tools", "build-release-bundle.mjs");
 const buildArchives = join(repoRoot, "tools", "build-release-archives.mjs");
 const checkArchives = join(repoRoot, "tools", "check-release-archives.mjs");
+const installedCheck = join(repoRoot, "tools", "check-release-install.mjs");
 const CANONICAL_VERSION = JSON.parse(readFileSync(join(repoRoot, "version.json"), "utf8")).version;
 const BUNDLE_NAME = `oh-my-pm-v${CANONICAL_VERSION}`;
 const TAR = `${BUNDLE_NAME}.tar.gz`;
@@ -59,6 +60,45 @@ describe("check-release-archives command", () => {
     const result = run(checkArchives, []);
     expect(result.status).toBe(2);
   });
+
+  it("installs from a tar.gz-extracted bundle, independent of the extraction dir", () => {
+    const extractRoot = tempDir("oh-my-pm-arch-tar-extract-");
+    const extract = spawnSync("tar", ["-xzf", join(goodAssets, TAR), "-C", extractRoot], {
+      encoding: "utf8",
+    });
+    expect(extract.status, extract.stderr).toBe(0);
+    const bundle = join(extractRoot, BUNDLE_NAME);
+    for (const rel of ["bin/oh-my-pm-install.mjs", "libexec/release-install-core.mjs", "libexec/check-release-bundle.mjs"]) {
+      expect(existsSync(join(bundle, ...rel.split("/"))), rel).toBe(true);
+    }
+    const installer = join(bundle, "bin", "oh-my-pm-install.mjs");
+    const prefix = join(tempDir("oh-my-pm-arch-tar-prefix-"), "prefix");
+    // Preview writes nothing.
+    expect(run(installer, ["--prefix", prefix]).status).toBe(0);
+    expect(existsSync(prefix)).toBe(false);
+    // Apply then verify.
+    expect(run(installer, ["--prefix", prefix, "--apply"]).status).toBe(0);
+    expect(run(installedCheck, ["--prefix", prefix]).status).toBe(0);
+    // Removing the extraction dir does not break installed commands.
+    rmSync(extractRoot, { recursive: true, force: true });
+    expect(run(installedCheck, ["--prefix", prefix]).status).toBe(0);
+  }, 180_000);
+
+  it("installs from a ZIP-extracted bundle", () => {
+    const extractRoot = tempDir("oh-my-pm-arch-zip-extract-");
+    const extract = spawnSync("unzip", ["-q", join(goodAssets, ZIP), "-d", extractRoot], {
+      encoding: "utf8",
+    });
+    expect(extract.status, extract.stderr).toBe(0);
+    const bundle = join(extractRoot, BUNDLE_NAME);
+    for (const rel of ["bin/oh-my-pm-install.mjs", "libexec/release-install-core.mjs", "libexec/check-release-bundle.mjs"]) {
+      expect(existsSync(join(bundle, ...rel.split("/"))), rel).toBe(true);
+    }
+    const installer = join(bundle, "bin", "oh-my-pm-install.mjs");
+    const prefix = join(tempDir("oh-my-pm-arch-zip-prefix-"), "prefix");
+    expect(run(installer, ["--prefix", prefix, "--apply"]).status).toBe(0);
+    expect(run(installedCheck, ["--prefix", prefix]).status).toBe(0);
+  }, 180_000);
 
   it("rejects a missing asset", () => {
     const dir = copyAssets();

@@ -67,24 +67,127 @@ jobs:
 
       - name: Portable release bundle smoke
         run: |
+          VERSION="$(node -p "require('./version.json').version")"
+          BUNDLE_NAME="oh-my-pm-v$VERSION"
           OUT="$RUNNER_TEMP/oh-my-pm-release"
           MOVED="$RUNNER_TEMP/oh-my-pm-release-moved"
           node tools/build-release-bundle.mjs --output "$OUT"
-          test ! -e "$OUT/oh-my-pm-v0.1.0"
+          test ! -e "$OUT/$BUNDLE_NAME"
           node tools/build-release-bundle.mjs --output "$OUT" --apply
           mkdir -p "$MOVED"
-          mv "$OUT/oh-my-pm-v0.1.0" "$MOVED/oh-my-pm-v0.1.0"
-          node tools/check-release-bundle.mjs --bundle "$MOVED/oh-my-pm-v0.1.0"
+          mv "$OUT/$BUNDLE_NAME" "$MOVED/$BUNDLE_NAME"
+          node tools/check-release-bundle.mjs --bundle "$MOVED/$BUNDLE_NAME"
 
       - name: Release archives smoke
         run: |
+          VERSION="$(node -p "require('./version.json').version")"
+          BUNDLE_NAME="oh-my-pm-v$VERSION"
           BUNDLE_OUT="$RUNNER_TEMP/oh-my-pm-archive-bundle"
           ASSETS="$RUNNER_TEMP/oh-my-pm-archive-assets"
           node tools/build-release-bundle.mjs --output "$BUNDLE_OUT" --apply
-          BUNDLE="$BUNDLE_OUT/oh-my-pm-v0.1.0"
+          BUNDLE="$BUNDLE_OUT/$BUNDLE_NAME"
           node tools/build-release-archives.mjs --bundle "$BUNDLE" --output "$ASSETS"
-          test ! -e "$ASSETS/oh-my-pm-v0.1.0.tar.gz"
+          test ! -e "$ASSETS/$BUNDLE_NAME.tar.gz"
           node tools/build-release-archives.mjs --bundle "$BUNDLE" --output "$ASSETS" --apply
           node tools/check-release-archives.mjs --assets "$ASSETS"
           node tools/check-release-archive-reproducibility.mjs --bundle "$BUNDLE"
           test -z "$(git status --porcelain)"
+
+      - name: Release install smoke
+        run: |
+          VERSION="$(node -p "require('./version.json').version")"
+          BUNDLE_NAME="oh-my-pm-v$VERSION"
+          BUILD_OUT="$RUNNER_TEMP/oh-my-pm-install-build"
+          BUNDLE_HOME="$RUNNER_TEMP/oh-my-pm-install-bundle"
+          PREFIX="$RUNNER_TEMP/oh-my-pm-install-prefix"
+          MOVED_PREFIX="$RUNNER_TEMP/oh-my-pm-install-prefix-moved"
+          # Build and verify a current bundle, then move it outside the checkout.
+          node tools/build-release-bundle.mjs --output "$BUILD_OUT" --apply
+          node tools/check-release-bundle.mjs --bundle "$BUILD_OUT/$BUNDLE_NAME"
+          mkdir -p "$BUNDLE_HOME"
+          mv "$BUILD_OUT/$BUNDLE_NAME" "$BUNDLE_HOME/$BUNDLE_NAME"
+          BUNDLE="$BUNDLE_HOME/$BUNDLE_NAME"
+          # Preview must create no prefix.
+          node "$BUNDLE/bin/oh-my-pm-install.mjs" --prefix "$PREFIX"
+          test ! -e "$PREFIX"
+          # Apply, verify installed state.
+          node "$BUNDLE/bin/oh-my-pm-install.mjs" --prefix "$PREFIX" --apply
+          node tools/check-release-install.mjs --prefix "$PREFIX" --expected-version "$VERSION"
+          # Remove the source bundle; installed CLI must still work.
+          rm -rf "$BUNDLE_HOME"
+          "$PREFIX/bin/oh-my-pm" status
+          # Move the whole prefix; relative shims must still work.
+          mkdir -p "$(dirname "$MOVED_PREFIX")"
+          mv "$PREFIX" "$MOVED_PREFIX"
+          "$MOVED_PREFIX/bin/oh-my-pm" status
+          node tools/check-release-install.mjs --prefix "$MOVED_PREFIX" --expected-version "$VERSION"
+          test -z "$(git status --porcelain)"
+
+  windows-release-install:
+    name: Windows release install smoke
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.4.0
+        with:
+          version: 9.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy, rustfmt
+
+      - name: Install wasm-bindgen CLI
+        run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build contracts
+        run: pnpm build:contracts
+
+      - name: Build kernel
+        run: pnpm build:kernel
+
+      - name: Build
+        run: pnpm build
+
+      - name: Release install smoke via .cmd shims
+        shell: pwsh
+        run: |
+          $version = node -p "require('./version.json').version"
+          $bundleName = "oh-my-pm-v$version"
+          $buildOut = Join-Path $env:RUNNER_TEMP "omp-install-build"
+          $prefix = Join-Path $env:RUNNER_TEMP "omp-install-prefix"
+          node tools/build-release-bundle.mjs --output $buildOut --apply
+          $bundle = Join-Path $buildOut $bundleName
+          node tools/check-release-bundle.mjs --bundle $bundle
+          $installer = Join-Path $bundle "bin/oh-my-pm-install.mjs"
+          # Preview must create no prefix.
+          node $installer --prefix $prefix
+          if (Test-Path $prefix) { throw "preview created a prefix" }
+          # Apply and verify the four shims, including the .cmd shims, exist.
+          node $installer --prefix $prefix --apply
+          foreach ($shim in @("oh-my-pm", "oh-my-pm.cmd", "oh-my-pm-mcp", "oh-my-pm-mcp.cmd")) {
+            $path = Join-Path $prefix (Join-Path "bin" $shim)
+            if (-not (Test-Path $path)) { throw "missing shim: $path" }
+          }
+          # Installed CLI status through the .cmd shim.
+          & (Join-Path $prefix "bin/oh-my-pm.cmd") status
+          if ($LASTEXITCODE -ne 0) { throw "installed CLI .cmd status failed" }
+          # Installed MCP entrypoint availability (resolves without launching).
+          $mcpTarget = Join-Path $prefix (Join-Path "lib" (Join-Path "oh-my-pm" (Join-Path "versions" (Join-Path $version (Join-Path "bin" "oh-my-pm-mcp.mjs")))))
+          if (-not (Test-Path $mcpTarget)) { throw "installed MCP entrypoint missing: $mcpTarget" }
+          # Full read-only installed-state verification.
+          node tools/check-release-install.mjs --prefix $prefix --expected-version $version

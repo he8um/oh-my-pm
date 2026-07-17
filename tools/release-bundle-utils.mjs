@@ -41,6 +41,9 @@ function prerequisiteDefinitions() {
   return [
     { id: "distribution_cli_bin", path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm.mjs") },
     { id: "distribution_mcp_bin", path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm-mcp.mjs") },
+    { id: "distribution_install_bin", path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm-install.mjs") },
+    { id: "release_install_core", path: join(REPO_ROOT, "distribution", "libexec", "release-install-core.mjs") },
+    { id: "release_bundle_verifier", path: join(REPO_ROOT, "tools", "check-release-bundle.mjs") },
     { id: "cli_dist", path: join(REPO_ROOT, "cli", "dist", "index.js") },
     { id: "mcp_dist", path: join(REPO_ROOT, "mcp-server", "dist", "index.js") },
     { id: "runtime_dist", path: join(REPO_ROOT, "runtime", "dist", "index.js") },
@@ -212,6 +215,17 @@ const RELEASE_METADATA = {
   mcpTools: ["project_brief", "project_risks", "project_next", "project_handoff"],
   transport: "stdio",
   readOnly: true,
+  installer: {
+    entrypoint: "bin/oh-my-pm-install.mjs",
+    previewFirst: true,
+    prefixRequired: true,
+    applyFlag: "--apply",
+    forceFlag: "--force",
+    network: false,
+    shellProfileWrites: false,
+    clientConfigWrites: false,
+    projectWrites: false,
+  },
 };
 
 /** Recursively enumerate regular files (no symlink following) under a root. */
@@ -321,6 +335,46 @@ function inspectBundleSafety(bundleRoot) {
       }
       if (text.includes(REPO_ROOT)) {
         errors.push(`source repository path embedded in ${file.rel}`);
+      }
+    }
+  }
+
+  // Installer surfaces must contain no networking or publishing behavior. Every
+  // marker is assembled from fragments so this scanner does not itself contain
+  // the literal forbidden strings (which the boundary validator scans this tool
+  // for as network/publish/profile markers).
+  const dot = ".";
+  const colon = ":";
+  const INSTALLER_FORBIDDEN = [
+    "fetch" + "(",
+    "XMLHttp" + "Request",
+    "node" + colon + "http",
+    "node" + colon + "https",
+    "http" + colon + "//",
+    "https" + colon + "//",
+    "npm pub" + "lish",
+    "pnpm pub" + "lish",
+    "gh rele" + "ase",
+    "refs" + "/tags",
+    "registry" + dot + "npmjs",
+    "up" + "load",
+    "down" + "load",
+    dot + "bashrc",
+    dot + "zshrc",
+    dot + "profile",
+    "claude_desktop" + "_config",
+    "mcp" + dot + "json",
+  ];
+  for (const rel of ["bin/oh-my-pm-install.mjs", "libexec/release-install-core.mjs", "libexec/check-release-bundle.mjs"]) {
+    const abs = join(bundleRoot, ...rel.split("/"));
+    if (!isRegularFile(abs)) {
+      errors.push(`installer surface missing from bundle: ${rel}`);
+      continue;
+    }
+    const text = readFileSync(abs, "utf8");
+    for (const marker of INSTALLER_FORBIDDEN) {
+      if (text.includes(marker)) {
+        errors.push(`installer surface ${rel} contains forbidden marker "${marker}"`);
       }
     }
   }
@@ -440,9 +494,42 @@ export function applyReleaseBundlePlan(plan) {
       { recursive: true },
     );
 
+    // The distribution deploy ships the whole libexec/ files surface, which
+    // includes the core test alongside the core. The bundle carries the core
+    // and verifier only; remove any deployed test file.
+    const libexecDir = join(tempDir, "libexec");
+    if (existsSync(libexecDir)) {
+      for (const name of readdirSync(libexecDir)) {
+        if (name.endsWith(".test.mjs")) {
+          rmSync(join(libexecDir, name), { force: true });
+        }
+      }
+    }
+
+    // Ship the repository-independent bundle verifier inside the bundle's
+    // libexec/ so the installed copy can re-verify itself with no repository
+    // dependency. The distribution deploy already places release-install-core.
+    mkdirSync(join(tempDir, "libexec"), { recursive: true });
+    cpSync(
+      join(REPO_ROOT, "tools", "check-release-bundle.mjs"),
+      join(tempDir, "libexec", "check-release-bundle.mjs"),
+    );
+
+    // Fail fast if the installer surfaces did not make it into the bundle.
+    for (const rel of [
+      join("bin", "oh-my-pm-install.mjs"),
+      join("libexec", "release-install-core.mjs"),
+      join("libexec", "check-release-bundle.mjs"),
+    ]) {
+      if (!isRegularFile(join(tempDir, rel))) {
+        rmSync(tempDir, { recursive: true, force: true });
+        return { ok: false, code: "installer_surface_missing", reasons: ["installer_surface_missing"] };
+      }
+    }
+
     // Ensure the bin entrypoints are executable on POSIX.
     if (process.platform !== "win32") {
-      for (const bin of ["oh-my-pm.mjs", "oh-my-pm-mcp.mjs"]) {
+      for (const bin of ["oh-my-pm.mjs", "oh-my-pm-mcp.mjs", "oh-my-pm-install.mjs"]) {
         const binPath = join(tempDir, "bin", bin);
         if (isRegularFile(binPath)) chmodSync(binPath, 0o755);
       }

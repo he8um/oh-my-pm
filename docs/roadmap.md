@@ -117,17 +117,18 @@
 
 Next priorities:
 
-1. installation directly from downloaded release archives
-2. GitHub read-only provider
-3. finer risk/task extraction
-4. controlled write-back only in a later separately approved safety phase
+1. GitHub read-only provider
+2. finer risk/task extraction
+3. controlled write-back only in a later separately approved safety phase
+
+Preview-first installation from an extracted verified release bundle is now in place (see Phase 5B).
 
 ## Phase 5B — v0.2 development
 
 - development baseline `0.2.0-alpha.0` (in place)
 - self-describing version/bundle/archive verification (in place)
-- archive-native local installation
-- GitHub read-only provider
+- archive-native preview-first installation from an extracted verified release bundle (in place)
+- GitHub read-only provider (next priority)
 
 ## Phase 6 — Release lifecycle
 

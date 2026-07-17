@@ -109,17 +109,29 @@ jobs:
       - name: Build and verify portable bundle
         run: |
           BUNDLE_OUT="$RUNNER_TEMP/bundle"
-          node tools/build-release-bundle.mjs --output "$BUNDLE_OUT" --apply
-          node tools/check-release-bundle.mjs --bundle "$BUNDLE_OUT/oh-my-pm-v0.1.0"
-          echo "BUNDLE_DIR=$BUNDLE_OUT/oh-my-pm-v0.1.0" >> "$GITHUB_ENV"
+
+          node tools/build-release-bundle.mjs \
+            --output "$BUNDLE_OUT" \
+            --apply
+
+          node tools/check-release-bundle.mjs \
+            --bundle "$BUNDLE_OUT/oh-my-pm-v0.1.0"
 
       - name: Build and verify deterministic archives
         run: |
-          ASSETS="$RUNNER_TEMP/release-assets"
-          node tools/build-release-archives.mjs --bundle "$BUNDLE_DIR" --output "$ASSETS" --apply
-          node tools/check-release-archives.mjs --assets "$ASSETS"
-          node tools/check-release-archive-reproducibility.mjs --bundle "$BUNDLE_DIR"
-          echo "ASSETS_DIR=$ASSETS" >> "$GITHUB_ENV"
+          BUNDLE_DIR="$RUNNER_TEMP/bundle/oh-my-pm-v0.1.0"
+          ASSETS_DIR="$RUNNER_TEMP/release-assets"
+
+          node tools/build-release-archives.mjs \
+            --bundle "$BUNDLE_DIR" \
+            --output "$ASSETS_DIR" \
+            --apply
+
+          node tools/check-release-archives.mjs \
+            --assets "$ASSETS_DIR"
+
+          node tools/check-release-archive-reproducibility.mjs \
+            --bundle "$BUNDLE_DIR"
 
       - name: Print archive checksums to summary
         run: |
@@ -127,7 +139,7 @@ jobs:
             echo "### OH MY PM v0.1.0 release archive checksums"
             echo ""
             echo '```'
-            cat "$ASSETS_DIR/oh-my-pm-v0.1.0-SHA256SUMS.txt"
+            cat "$RUNNER_TEMP/release-assets/oh-my-pm-v0.1.0-SHA256SUMS.txt"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -136,9 +148,9 @@ jobs:
         with:
           name: oh-my-pm-v0.1.0-release-assets
           path: |
-            ${{ env.ASSETS_DIR }}/oh-my-pm-v0.1.0.tar.gz
-            ${{ env.ASSETS_DIR }}/oh-my-pm-v0.1.0.zip
-            ${{ env.ASSETS_DIR }}/oh-my-pm-v0.1.0-SHA256SUMS.txt
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.1.0.tar.gz
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.1.0.zip
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.1.0-SHA256SUMS.txt
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
