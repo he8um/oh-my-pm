@@ -50,6 +50,19 @@ export function sha256File(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
+/**
+ * Format `<digest>  <filename>` checksum lines sorted by filename only (never by
+ * digest), so the output order is independent of the digest values. Preserves
+ * exactly two spaces between digest and filename.
+ */
+export function formatReleaseArchiveChecksumLines(entries) {
+  return [...entries]
+    .sort((left, right) =>
+      left.filename < right.filename ? -1 : left.filename > right.filename ? 1 : 0,
+    )
+    .map(({ filename, digest }) => `${digest}  ${filename}`);
+}
+
 /** Locate a GNU tar binary ("tar" then "gtar"); null when none is GNU tar. */
 function findGnuTar() {
   for (const candidate of ["tar", "gtar"]) {
@@ -437,10 +450,10 @@ export function applyReleaseArchivePlan(plan) {
 
     const tarSum = sha256File(tarTmp);
     const zipSum = sha256File(zipTmp);
-    const sumLines = [
-      `${tarSum}  ${RELEASE_ARCHIVE_TAR_NAME}`,
-      `${zipSum}  ${RELEASE_ARCHIVE_ZIP_NAME}`,
-    ].sort();
+    const sumLines = formatReleaseArchiveChecksumLines([
+      { filename: RELEASE_ARCHIVE_TAR_NAME, digest: tarSum },
+      { filename: RELEASE_ARCHIVE_ZIP_NAME, digest: zipSum },
+    ]);
     writeFileSync(sumsTmp, `${sumLines.join("\n")}\n`, "utf8");
 
     // Atomically move the three assets into their exact final paths.

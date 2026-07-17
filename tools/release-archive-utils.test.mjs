@@ -11,6 +11,7 @@ import {
   RELEASE_ARCHIVE_VERSION,
   RELEASE_ARCHIVE_ZIP_NAME,
   applyReleaseArchivePlan,
+  formatReleaseArchiveChecksumLines,
   formatReleaseArchivePlan,
   parseReleaseArchiveArgs,
   resolveReleaseArchivePlan,
@@ -148,7 +149,7 @@ describe("applyReleaseArchivePlan", () => {
     expect(applyReleaseArchivePlan(preview)).toMatchObject({ ok: false, code: "apply_not_requested" });
   });
 
-  it("writes a sorted two-line checksum file", () => {
+  it("writes a filename-sorted two-line checksum file (tar.gz then zip)", () => {
     const out = tempDir("oh-my-pm-arch-sums-");
     applyReleaseArchivePlan(resolveReleaseArchivePlan({ bundle, output: out, apply: true }));
     const sums = readFileSync(join(out, RELEASE_ARCHIVE_SUMS_NAME), "utf8");
@@ -157,8 +158,48 @@ describe("applyReleaseArchivePlan", () => {
     expect(lines[2]).toBe("");
     expect(lines[0]).toMatch(/^[0-9a-f]{64} {2}oh-my-pm-v0\.1\.0\.tar\.gz$/);
     expect(lines[1]).toMatch(/^[0-9a-f]{64} {2}oh-my-pm-v0\.1\.0\.zip$/);
-    expect(sha256File(join(out, RELEASE_ARCHIVE_TAR_NAME))).toBe(lines[0].slice(0, 64));
+
+    // Extract filenames and assert the exact filename order.
+    const filenames = lines.slice(0, 2).map((line) => line.slice(66));
+    expect(filenames).toEqual([RELEASE_ARCHIVE_TAR_NAME, RELEASE_ARCHIVE_ZIP_NAME]);
+
+    // Match each digest by locating its line via filename, never by position.
+    const digestFor = (filename) => {
+      const line = lines.find((l) => l.endsWith(`  ${filename}`));
+      return line.slice(0, 64);
+    };
+    expect(digestFor(RELEASE_ARCHIVE_TAR_NAME)).toBe(sha256File(join(out, RELEASE_ARCHIVE_TAR_NAME)));
+    expect(digestFor(RELEASE_ARCHIVE_ZIP_NAME)).toBe(sha256File(join(out, RELEASE_ARCHIVE_ZIP_NAME)));
   }, 120_000);
+});
+
+describe("formatReleaseArchiveChecksumLines", () => {
+  it("sorts by filename, not by digest", () => {
+    // Fake digests deliberately chosen so a full-line sort would place the zip
+    // line first; filename sorting must still put tar.gz first.
+    const zipDigest = "0".repeat(64);
+    const tarDigest = "f".repeat(64);
+    const lines = formatReleaseArchiveChecksumLines([
+      { filename: RELEASE_ARCHIVE_ZIP_NAME, digest: zipDigest },
+      { filename: RELEASE_ARCHIVE_TAR_NAME, digest: tarDigest },
+    ]);
+    expect(lines).toEqual([
+      `${tarDigest}  ${RELEASE_ARCHIVE_TAR_NAME}`,
+      `${zipDigest}  ${RELEASE_ARCHIVE_ZIP_NAME}`,
+    ]);
+  });
+
+  it("preserves exactly two spaces and does not mutate its input", () => {
+    const entries = [
+      { filename: RELEASE_ARCHIVE_TAR_NAME, digest: "a".repeat(64) },
+      { filename: RELEASE_ARCHIVE_ZIP_NAME, digest: "b".repeat(64) },
+    ];
+    const snapshot = JSON.parse(JSON.stringify(entries));
+    const lines = formatReleaseArchiveChecksumLines(entries);
+    expect(lines[0]).toBe(`${"a".repeat(64)}  ${RELEASE_ARCHIVE_TAR_NAME}`);
+    expect(lines[0]).toMatch(/^[0-9a-f]{64} {2}\S/);
+    expect(entries).toEqual(snapshot);
+  });
 });
 
 describe("formatReleaseArchivePlan", () => {

@@ -127,20 +127,25 @@ function run(assetsDir) {
     }
   }
 
-  // Validate the checksum file: exactly two sorted lines, exact names.
+  // Validate the checksum file: exactly two lines sorted by filename (never by
+  // digest), with the exact archive names.
   const sumsText = readFileSync(sumsPath, "utf8");
   const sumLines = sumsText.split("\n");
   if (sumLines.length !== 3 || sumLines[2] !== "") {
     return fail("SHA256SUMS file must contain exactly two lines and a trailing newline");
   }
   const expected = new Map();
+  const filenameOrder = [];
   for (const line of sumLines.slice(0, 2)) {
     const match = /^([0-9a-f]{64})  (.+)$/.exec(line);
     if (!match) return fail(`malformed checksum line: ${line}`);
     expected.set(match[2], match[1]);
+    filenameOrder.push(match[2]);
   }
-  if (![...sumLines.slice(0, 2)].every((line, i, arr) => i === 0 || arr[i - 1] <= line)) {
-    return fail("checksum lines are not sorted");
+  // Order is defined by filename, not by the leading digest.
+  const sortedByFilename = [...filenameOrder].sort();
+  if (JSON.stringify(filenameOrder) !== JSON.stringify(sortedByFilename)) {
+    return fail("checksum lines are not sorted by filename");
   }
   if (!expected.has(TAR_NAME) || !expected.has(ZIP_NAME)) {
     return fail("checksum file does not list both archives");
