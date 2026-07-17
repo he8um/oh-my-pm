@@ -26,7 +26,11 @@
     "mcp:config": "node tools/print-mcp-client-config.mjs",
     "release:preview": "node tools/build-release-bundle.mjs",
     "release:bundle": "node tools/build-release-bundle.mjs",
-    "release:check": "node tools/check-release-bundle.mjs"
+    "release:check": "node tools/check-release-bundle.mjs",
+    "release:archives:preview": "node tools/build-release-archives.mjs",
+    "release:archives": "node tools/build-release-archives.mjs",
+    "release:archives:check": "node tools/check-release-archives.mjs",
+    "release:archives:repro": "node tools/check-release-archive-reproducibility.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

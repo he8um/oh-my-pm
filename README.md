@@ -100,6 +100,26 @@ node .release/oh-my-pm-v0.1.0/bin/oh-my-pm-mcp.mjs
 
 The bundle contains the compiled packages, the real Rust/WASM Kernel, the four CLI workflows, the four read-only MCP tools, deterministic `RELEASE.json` metadata, and `SHA256SUMS`. It is a release candidate: `v0.1.0` is not publicly released or tagged, and there is no official download yet. See [the v0.1.0 release notes](docs/releases/v0.1.0.md).
 
+### Deterministic release archives
+
+The verified bundle can be packaged into two byte-reproducible archives plus a checksum file:
+
+```bash
+pnpm release:archives -- --bundle .release/oh-my-pm-v0.1.0 --output .release --apply
+pnpm release:archives:check -- --assets .release
+pnpm release:archives:repro -- --bundle .release/oh-my-pm-v0.1.0
+```
+
+This produces exactly:
+
+```text
+oh-my-pm-v0.1.0.tar.gz
+oh-my-pm-v0.1.0.zip
+oh-my-pm-v0.1.0-SHA256SUMS.txt
+```
+
+Both archives expand to a single `oh-my-pm-v0.1.0/` directory and re-pass the bundle verifier. A `v0.1.0` GitHub Release has **not** been published or tagged yet — publication happens only through the manually gated `Release v0.1` workflow. See [the release publication guide](docs/releases/publishing-v0.1.0.md).
+
 ## Local project configuration
 
 Each project may define an optional `oh-my-pm.config.json` file at its root.

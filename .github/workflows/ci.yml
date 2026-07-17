@@ -75,3 +75,16 @@ jobs:
           mkdir -p "$MOVED"
           mv "$OUT/oh-my-pm-v0.1.0" "$MOVED/oh-my-pm-v0.1.0"
           node tools/check-release-bundle.mjs --bundle "$MOVED/oh-my-pm-v0.1.0"
+
+      - name: Release archives smoke
+        run: |
+          BUNDLE_OUT="$RUNNER_TEMP/oh-my-pm-archive-bundle"
+          ASSETS="$RUNNER_TEMP/oh-my-pm-archive-assets"
+          node tools/build-release-bundle.mjs --output "$BUNDLE_OUT" --apply
+          BUNDLE="$BUNDLE_OUT/oh-my-pm-v0.1.0"
+          node tools/build-release-archives.mjs --bundle "$BUNDLE" --output "$ASSETS"
+          test ! -e "$ASSETS/oh-my-pm-v0.1.0.tar.gz"
+          node tools/build-release-archives.mjs --bundle "$BUNDLE" --output "$ASSETS" --apply
+          node tools/check-release-archives.mjs --assets "$ASSETS"
+          node tools/check-release-archive-reproducibility.mjs --bundle "$BUNDLE"
+          test -z "$(git status --porcelain)"

@@ -12,6 +12,9 @@
 - Local stdio MCP server with four read-only tools
 - Preview-first repository-local installation and verification
 - Portable versioned release bundle assembly and verification
+- Deterministic `tar.gz` and `zip` release archives with reproducible SHA-256 checksums
+- Repository-independent release archive verification and reproducibility checks
+- Manually gated GitHub Release workflow prepared (not yet published)
 
 ### Safety and privacy
 

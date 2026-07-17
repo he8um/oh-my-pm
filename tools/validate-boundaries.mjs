@@ -760,6 +760,10 @@ const RELEASE_TOOLS = [
   "tools/build-release-bundle.mjs",
   "tools/check-release-bundle.mjs",
   "tools/check-version-consistency.mjs",
+  "tools/release-archive-utils.mjs",
+  "tools/build-release-archives.mjs",
+  "tools/check-release-archives.mjs",
+  "tools/check-release-archive-reproducibility.mjs",
 ];
 // "deploy" is allowed (pnpm deploy); publishing/tagging/remote verbs are not.
 const RELEASE_FORBIDDEN = [
@@ -842,6 +846,67 @@ if (trackedFiles.includes("distribution/package.json")) {
   if (distJson.private !== true) err("distribution/package.json must set private: true");
   if (distJson.publishConfig !== undefined) {
     err("distribution/package.json must not set publishConfig");
+  }
+}
+
+// 4g. The manually gated release workflow. It must be workflow_dispatch only,
+// have top-level contents: read, gate publishing behind a publish boolean, an
+// exact confirmation string, a contents: write publish job, and the protected
+// github-release environment. GitHub-Release/tag-publish verbs may appear ONLY
+// in this workflow (plus its docs/tests); package/tool source stays clean.
+const RELEASE_WORKFLOW = ".github/workflows/release-v0.1.yml";
+if (!trackedFiles.includes(RELEASE_WORKFLOW)) {
+  err(`release workflow is not tracked: ${RELEASE_WORKFLOW}`);
+} else {
+  const wf = readFileSync(RELEASE_WORKFLOW, "utf8");
+  // Trigger must be workflow_dispatch only.
+  if (!/^on:\s*\n\s+workflow_dispatch:/m.test(wf)) {
+    err(`${RELEASE_WORKFLOW} must trigger on workflow_dispatch only`);
+  }
+  for (const forbiddenTrigger of ["\n  push:", "\n  pull_request:", "\n  schedule:", "\n  release:"]) {
+    if (wf.includes(forbiddenTrigger)) {
+      err(`${RELEASE_WORKFLOW} must not use trigger "${forbiddenTrigger.trim()}"`);
+    }
+  }
+  // Top-level read permission; publish job write permission and env gate.
+  if (!/^permissions:\s*\n\s+contents:\s*read\s*$/m.test(wf)) {
+    err(`${RELEASE_WORKFLOW} must declare top-level permissions: contents: read`);
+  }
+  if (!wf.includes("contents: write")) {
+    err(`${RELEASE_WORKFLOW} publish job must declare contents: write`);
+  }
+  if (!/if:\s*\$\{\{\s*inputs\.publish\s*==\s*true\s*\}\}/.test(wf)) {
+    err(`${RELEASE_WORKFLOW} publish job must be gated on inputs.publish == true`);
+  }
+  if (!/name:\s*github-release/.test(wf)) {
+    err(`${RELEASE_WORKFLOW} publish job must use the github-release environment`);
+  }
+  if (!wf.includes("RELEASE v0.1.0")) {
+    err(`${RELEASE_WORKFLOW} must enforce the exact confirmation string RELEASE v0.1.0`);
+  }
+}
+
+// GitHub-Release / tag-publish verbs are confined to the release workflow, its
+// documentation, and its dedicated test/tool scope. No package or general tool
+// source may create tags or GitHub Releases.
+const RELEASE_PUBLISH_MARKERS = ["gh release create", "softprops/action-gh-release"];
+const RELEASE_PUBLISH_ALLOWED = new Set([
+  RELEASE_WORKFLOW,
+  "docs/releases/publishing-v0.1.0.md",
+  "docs/releases/v0.1.0.md",
+  "tools/validate-boundaries.mjs",
+  "tools/validate-structure.mjs",
+]);
+for (const file of trackedFiles) {
+  if (RELEASE_PUBLISH_ALLOWED.has(file)) continue;
+  // Only scan text source we own (skip binaries/generated/lockfiles).
+  if (!/\.(mjs|ts|js|json|md|yml|yaml|sh|rs)$/.test(file)) continue;
+  if (file.startsWith("contracts/generated/")) continue;
+  const contents = readFileSync(file, "utf8");
+  for (const marker of RELEASE_PUBLISH_MARKERS) {
+    if (contents.includes(marker)) {
+      err(`${file} contains a GitHub-Release publish marker outside the release workflow: "${marker}"`);
+    }
   }
 }
 

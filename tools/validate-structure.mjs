@@ -357,6 +357,23 @@ for (const file of RELEASE_BUNDLE_SOURCES) {
   if (!existsSync(file)) err(`release bundle file missing: ${file}`);
 }
 
+// 7g6. Deterministic release archive tooling, tests, workflow, and docs.
+const RELEASE_ARCHIVE_SOURCES = [
+  "tools/release-archive-utils.mjs",
+  "tools/build-release-archives.mjs",
+  "tools/check-release-archives.mjs",
+  "tools/check-release-archive-reproducibility.mjs",
+  "tools/release-archive-utils.test.mjs",
+  "tools/build-release-archives.test.mjs",
+  "tools/check-release-archives.test.mjs",
+  "tools/check-release-archive-reproducibility.test.mjs",
+  ".github/workflows/release-v0.1.yml",
+  "docs/releases/publishing-v0.1.0.md",
+];
+for (const file of RELEASE_ARCHIVE_SOURCES) {
+  if (!existsSync(file)) err(`release archive file missing: ${file}`);
+}
+
 // The distribution package must be private and carry no publish config.
 if (existsSync("distribution/package.json")) {
   const distJson = JSON.parse(readFileSync("distribution/package.json", "utf8"));
@@ -491,22 +508,31 @@ for (const file of REQUIRED_GENERATED) {
   if (!existsSync(file)) err(`generated contracts file missing: ${file}`);
 }
 
-// 9 + 10. CI workflow exists; no release workflow.
+// 9 + 10. CI workflow exists. The only release-publishing workflow allowed is
+// the dedicated, manually gated release-v0.1.yml; no other workflow may contain
+// npm-publish or GitHub-Release markers, and no other workflow may be
+// release-named.
 const workflowsDir = ".github/workflows";
 if (!existsSync(join(workflowsDir, "ci.yml"))) {
   err(".github/workflows/ci.yml missing");
 }
-const RELEASE_MARKERS = ["npm publish", "gh release", "softprops/action-gh-release", "refs/tags"];
+const RELEASE_MARKERS = ["npm publish", "softprops/action-gh-release"];
+const ALLOWED_RELEASE_WORKFLOW = "release-v0.1.yml";
 if (existsSync(workflowsDir)) {
   for (const name of readdirSync(workflowsDir)) {
     const path = join(workflowsDir, name);
     if (!statSync(path).isFile()) continue;
+    if (name === ALLOWED_RELEASE_WORKFLOW) {
+      // The dedicated release workflow is validated in detail by
+      // validate-boundaries.mjs; it legitimately uses gh release / tags.
+      continue;
+    }
     if (name.toLowerCase().includes("release")) {
-      err(`release workflow is not allowed in this phase: ${path}`);
+      err(`unexpected release workflow (only ${ALLOWED_RELEASE_WORKFLOW} is allowed): ${path}`);
       continue;
     }
     const contents = readFileSync(path, "utf8");
-    for (const marker of RELEASE_MARKERS) {
+    for (const marker of [...RELEASE_MARKERS, "gh release", "refs/tags"]) {
       if (contents.includes(marker)) {
         err(`workflow ${path} contains release marker "${marker}"`);
       }

@@ -138,6 +138,27 @@ node ./oh-my-pm-v0.1.0/bin/oh-my-pm-mcp.mjs
 
 Bundle consumers need **Node.js 20+** and do **not** need Rust or pnpm. This commit prepares release-candidate packaging only; there is no official public download until a later release step. See [the v0.1.0 release notes](releases/v0.1.0.md) for the bundle contents and verification.
 
+### Installing from a release archive
+
+The bundle can also be packaged into deterministic archives:
+
+```bash
+pnpm release:archives -- --bundle .release/oh-my-pm-v0.1.0 --output .release --apply
+```
+
+This writes `oh-my-pm-v0.1.0.tar.gz`, `oh-my-pm-v0.1.0.zip`, and `oh-my-pm-v0.1.0-SHA256SUMS.txt`. An archive consumer needs only Node.js 20+:
+
+```bash
+sha256sum -c oh-my-pm-v0.1.0-SHA256SUMS.txt   # verify the archives
+
+tar -xzf oh-my-pm-v0.1.0.tar.gz               # or: unzip oh-my-pm-v0.1.0.zip
+node ./oh-my-pm-v0.1.0/bin/oh-my-pm.mjs status
+node ./oh-my-pm-v0.1.0/bin/oh-my-pm.mjs brief ./project --markdown
+node ./oh-my-pm-v0.1.0/bin/oh-my-pm-mcp.mjs
+```
+
+Each archive expands to a single `oh-my-pm-v0.1.0/` directory. There is no public release URL yet; publication is manually gated.
+
 ## Troubleshooting
 
 - **Build target missing** — run `rustup target add wasm32-unknown-unknown`, then `pnpm build`.

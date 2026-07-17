@@ -1,0 +1,232 @@
+name: Release v0.1
+
+# Manually triggered only. There is no push, pull_request, release, schedule, or
+# tag trigger. The prepare job cannot write repository contents; only the gated
+# publish job receives contents: write, and only when publish == true with the
+# exact confirmation and the protected github-release environment approval.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Canonical version without v prefix
+        required: true
+        default: "0.1.0"
+        type: string
+      publish:
+        description: Create the Git tag and public GitHub Release after validation
+        required: true
+        default: false
+        type: boolean
+      confirmation:
+        description: Type RELEASE v0.1.0 when publish is enabled
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oh-my-pm-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare release assets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Enforce main branch
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Release v0.1 must run from refs/heads/main (got $GITHUB_REF)" >&2
+            exit 1
+          fi
+
+      - name: Enforce version and confirmation gates
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$INPUT_VERSION" != "0.1.0" ]; then
+            echo "Only version 0.1.0 is accepted by this workflow (got $INPUT_VERSION)" >&2
+            exit 1
+          fi
+          if [ "$INPUT_PUBLISH" = "true" ] && [ "$INPUT_CONFIRMATION" != "RELEASE v0.1.0" ]; then
+            echo "publish requires confirmation exactly equal to: RELEASE v0.1.0" >&2
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy, rustfmt
+
+      - name: Install wasm-bindgen CLI
+        run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build contracts
+        run: pnpm build:contracts
+
+      - name: Build kernel
+        run: pnpm build:kernel
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Validate
+        run: pnpm validate
+
+      - name: MCP smoke
+        run: pnpm mcp:smoke
+
+      - name: Build and verify portable bundle
+        run: |
+          BUNDLE_OUT="$RUNNER_TEMP/bundle"
+          node tools/build-release-bundle.mjs --output "$BUNDLE_OUT" --apply
+          node tools/check-release-bundle.mjs --bundle "$BUNDLE_OUT/oh-my-pm-v0.1.0"
+          echo "BUNDLE_DIR=$BUNDLE_OUT/oh-my-pm-v0.1.0" >> "$GITHUB_ENV"
+
+      - name: Build and verify deterministic archives
+        run: |
+          ASSETS="$RUNNER_TEMP/release-assets"
+          node tools/build-release-archives.mjs --bundle "$BUNDLE_DIR" --output "$ASSETS" --apply
+          node tools/check-release-archives.mjs --assets "$ASSETS"
+          node tools/check-release-archive-reproducibility.mjs --bundle "$BUNDLE_DIR"
+          echo "ASSETS_DIR=$ASSETS" >> "$GITHUB_ENV"
+
+      - name: Print archive checksums to summary
+        run: |
+          {
+            echo "### OH MY PM v0.1.0 release archive checksums"
+            echo ""
+            echo '```'
+            cat "$ASSETS_DIR/oh-my-pm-v0.1.0-SHA256SUMS.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload release assets artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: oh-my-pm-v0.1.0-release-assets
+          path: |
+            ${{ env.ASSETS_DIR }}/oh-my-pm-v0.1.0.tar.gz
+            ${{ env.ASSETS_DIR }}/oh-my-pm-v0.1.0.zip
+            ${{ env.ASSETS_DIR }}/oh-my-pm-v0.1.0-SHA256SUMS.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  publish:
+    name: Publish GitHub Release
+    needs: prepare
+    if: ${{ inputs.publish == true }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-release
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: oh-my-pm-v0.1.0-release-assets
+          path: release-assets
+
+      - name: Re-verify archive checksums
+        run: |
+          cd release-assets
+          sha256sum -c oh-my-pm-v0.1.0-SHA256SUMS.txt
+
+      - name: Ensure release notes exist
+        run: test -f docs/releases/v0.1.0.md
+
+      - name: Ensure tag and release do not already exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=v0.1.0
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists on origin; refusing to overwrite" >&2
+            exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "GitHub Release $TAG already exists; refusing to overwrite" >&2
+            exit 1
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v0.1.0" \
+            "release-assets/oh-my-pm-v0.1.0.tar.gz" \
+            "release-assets/oh-my-pm-v0.1.0.zip" \
+            "release-assets/oh-my-pm-v0.1.0-SHA256SUMS.txt" \
+            --target "$GITHUB_SHA" \
+            --title "OH MY PM v0.1.0" \
+            --notes-file "docs/releases/v0.1.0.md" \
+            --latest
+
+      - name: Verify published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          META="$(gh release view v0.1.0 --json tagName,isDraft,isPrerelease,assets)"
+          echo "$META"
+          echo "$META" | node -e '
+            const meta = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+            const expected = [
+              "oh-my-pm-v0.1.0-SHA256SUMS.txt",
+              "oh-my-pm-v0.1.0.tar.gz",
+              "oh-my-pm-v0.1.0.zip",
+            ].sort();
+            const names = (meta.assets || []).map((a) => a.name).sort();
+            if (meta.tagName !== "v0.1.0") { console.error("bad tag"); process.exit(1); }
+            if (meta.isDraft !== false) { console.error("draft must be false"); process.exit(1); }
+            if (meta.isPrerelease !== false) { console.error("prerelease must be false"); process.exit(1); }
+            if (JSON.stringify(names) !== JSON.stringify(expected)) { console.error("asset mismatch"); process.exit(1); }
+          '
+
+      - name: Revalidate published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DL="$RUNNER_TEMP/published"
+          mkdir -p "$DL"
+          gh release download v0.1.0 --dir "$DL"
+          cd "$DL"
+          sha256sum -c oh-my-pm-v0.1.0-SHA256SUMS.txt
+
+      - name: Print release URL to summary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          URL="$(gh release view v0.1.0 --json url --jq .url)"
+          echo "Published release: $URL" >> "$GITHUB_STEP_SUMMARY"

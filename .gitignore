@@ -56,12 +56,13 @@ target/
 # Generated release artifacts
 release-artifacts/
 
-# Portable release bundle output
+# Portable release bundle and archive output
 .release/
 *.zip
 *.tar
 *.tar.gz
 *.tgz
+oh-my-pm-v*-SHA256SUMS.txt
 checksums.txt
 validation-report.md
 

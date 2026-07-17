@@ -110,16 +110,18 @@
 - Canonical `0.1.0` version alignment with a read-only version consistency check across manifests, runtime constants, and the Kernel (in place)
 - Portable versioned release bundle: preview-first `oh-my-pm-v0.1.0/` assembly (compiled packages, production dependency tree, real WASM Kernel, fixture, deterministic `RELEASE.json`, `SHA256SUMS`) that runs outside the repository on Node.js 20+ with no Rust or pnpm (in place)
 - Relocated release bundle verification: read-only checker validating metadata, checksums, CLI workflows, and the MCP server against the bundle's own dependency tree (in place)
+- Deterministic release archives: byte-reproducible `oh-my-pm-v0.1.0.tar.gz` and `.zip` plus `SHA256SUMS`, normalized modes/timestamps/ordering, one top-level directory, with a repository-independent archive verifier and a reproducibility checker (in place)
+- Manually gated GitHub Release workflow: `workflow_dispatch`-only, `contents: read` top-level, a `contents: write` publish job behind a `publish` boolean, an exact confirmation string, and a protected `github-release` environment (prepared — not yet run)
+- Actual `v0.1.0` GitHub Release publication: pending manual approval
 - Read-only local operation: no write path in package source, no network, no telemetry, no document content persistence (in place)
 
 Next priorities:
 
-1. deterministic `tar.gz` and `zip` archives of the verified bundle
-2. GitHub Release workflow with manual approval
-3. public release checksums attached to the release
-4. installation from downloaded archives
-5. GitHub read-only provider
-6. controlled write-back only after an explicit separate safety phase
+1. run the manually gated `Release v0.1` workflow to publish `v0.1.0`
+2. installation from downloaded release archives
+3. GitHub read-only provider
+4. finer risk/task extraction
+5. controlled write-back only after an explicit separate safety phase
 
 ## Phase 6 — Release lifecycle
 
