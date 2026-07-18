@@ -44,7 +44,21 @@ type RiskEntry = {
   title: string;
   severity: "low" | "medium" | "high";
   reason: string;
+  url?: string;
+  owner?: string;
+  due?: string;
+  repository?: string;
+  number?: number;
 };
+
+function optionalStringField(raw: Record<string, unknown>, key: string): string | undefined {
+  return stringFrom(raw[key]);
+}
+
+function optionalNumberField(raw: Record<string, unknown>, key: string): number | undefined {
+  const value = raw[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
 
 /** Strict risk-summary entries; null for any malformed shape. */
 function asRiskEntries(value: unknown): RiskEntry[] | null {
@@ -59,29 +73,60 @@ function asRiskEntries(value: unknown): RiskEntry[] | null {
     if (severity !== "low" && severity !== "medium" && severity !== "high") {
       return null;
     }
-    entries.push({ id, title, severity, reason });
+    const entry: RiskEntry = { id, title, severity, reason };
+    const url = optionalStringField(raw, "url");
+    if (url !== undefined) entry.url = url;
+    const owner = optionalStringField(raw, "owner");
+    if (owner !== undefined) entry.owner = owner;
+    const due = optionalStringField(raw, "due");
+    if (due !== undefined) entry.due = due;
+    const repository = optionalStringField(raw, "repository");
+    if (repository !== undefined) entry.repository = repository;
+    const number = optionalNumberField(raw, "number");
+    if (number !== undefined) entry.number = number;
+    entries.push(entry);
   }
   return entries;
+}
+
+/** Append present metadata to a brief line in the canonical order. */
+function riskBriefMetadata(entry: RiskEntry): string {
+  let line = `- [${entry.severity}] ${entry.title} — ${entry.reason}`;
+  if (entry.owner !== undefined) line += ` — owner: ${entry.owner}`;
+  if (entry.due !== undefined) line += ` — due: ${entry.due}`;
+  if (entry.repository !== undefined && entry.number !== undefined) {
+    line += ` — source: ${entry.repository}#${entry.number}`;
+  }
+  if (entry.url !== undefined) line += ` — ${entry.url}`;
+  return line;
 }
 
 function riskEntriesBrief(entries: readonly RiskEntry[]): string {
   if (entries.length === 0) {
     return "OH MY PM risks: 0\nno risks detected\n";
   }
-  return [
-    `OH MY PM risks: ${entries.length}`,
-    ...entries.map((entry) => `- [${entry.severity}] ${entry.title} — ${entry.reason}`),
-    "",
-  ].join("\n");
+  return [`OH MY PM risks: ${entries.length}`, ...entries.map(riskBriefMetadata), ""].join("\n");
+}
+
+/** A safe Markdown title cell: a link when a URL is present, else plain text. */
+function markdownTitleCell(title: string, url: string | undefined): string {
+  if (url === undefined) return title;
+  const safeText = title.replace(/\]/g, "\\]");
+  const safeUrl = url.replace(/[()\s]/g, encodeURIComponent);
+  return `[${safeText}](${safeUrl})`;
+}
+
+function riskMarkdownMetadata(entry: RiskEntry): string {
+  let line = `- **${entry.severity}** — ${markdownTitleCell(entry.title, entry.url)} — \`${entry.reason}\``;
+  if (entry.owner !== undefined) line += ` — owner: \`${entry.owner}\``;
+  if (entry.due !== undefined) line += ` — due: \`${entry.due}\``;
+  return line;
 }
 
 function riskEntriesMarkdown(entries: readonly RiskEntry[]): string {
   const bySeverity = (severity: RiskEntry["severity"]) =>
     entries.filter((entry) => entry.severity === severity).length;
-  const riskLines =
-    entries.length === 0
-      ? ["- none"]
-      : entries.map((entry) => `- **${entry.severity}** — ${entry.title} — \`${entry.reason}\``);
+  const riskLines = entries.length === 0 ? ["- none"] : entries.map(riskMarkdownMetadata);
   return [
     "# OH MY PM Project Risks",
     "",
@@ -103,6 +148,12 @@ type NextTaskEntry = {
   id: string;
   title: string;
   reason: string;
+  priority?: "low" | "medium" | "high";
+  url?: string;
+  owner?: string;
+  due?: string;
+  repository?: string;
+  number?: number;
 };
 
 /** Strict next-task entries; null for any malformed shape. */
@@ -111,31 +162,58 @@ function asNextTaskEntries(value: unknown): NextTaskEntry[] | null {
   const entries: NextTaskEntry[] = [];
   for (const raw of value) {
     if (!isRecord(raw)) return null;
-    const { id, title, reason } = raw;
+    const { id, title, reason, priority } = raw;
     if (typeof id !== "string" || typeof title !== "string" || typeof reason !== "string") {
       return null;
     }
-    entries.push({ id, title, reason });
+    const entry: NextTaskEntry = { id, title, reason };
+    if (priority === "low" || priority === "medium" || priority === "high") {
+      entry.priority = priority;
+    }
+    const url = optionalStringField(raw, "url");
+    if (url !== undefined) entry.url = url;
+    const owner = optionalStringField(raw, "owner");
+    if (owner !== undefined) entry.owner = owner;
+    const due = optionalStringField(raw, "due");
+    if (due !== undefined) entry.due = due;
+    const repository = optionalStringField(raw, "repository");
+    if (repository !== undefined) entry.repository = repository;
+    const number = optionalNumberField(raw, "number");
+    if (number !== undefined) entry.number = number;
+    entries.push(entry);
   }
   return entries;
+}
+
+function nextTaskBriefLine(entry: NextTaskEntry): string {
+  const prefix = entry.priority !== undefined ? `- [${entry.priority}] ` : "- ";
+  let line = `${prefix}${entry.title} — ${entry.reason}`;
+  if (entry.owner !== undefined) line += ` — owner: ${entry.owner}`;
+  if (entry.due !== undefined) line += ` — due: ${entry.due}`;
+  if (entry.repository !== undefined && entry.number !== undefined) {
+    line += ` — source: ${entry.repository}#${entry.number}`;
+  }
+  if (entry.url !== undefined) line += ` — ${entry.url}`;
+  return line;
 }
 
 function nextTaskEntriesBrief(entries: readonly NextTaskEntry[]): string {
   if (entries.length === 0) {
     return "OH MY PM next: 0\nno next tasks detected\n";
   }
-  return [
-    `OH MY PM next: ${entries.length}`,
-    ...entries.map((entry) => `- ${entry.title} — ${entry.reason}`),
-    "",
-  ].join("\n");
+  return [`OH MY PM next: ${entries.length}`, ...entries.map(nextTaskBriefLine), ""].join("\n");
+}
+
+function nextTaskMarkdownLine(entry: NextTaskEntry): string {
+  const severity = entry.priority !== undefined ? `**${entry.priority}** — ` : "";
+  let line = `- ${severity}${markdownTitleCell(entry.title, entry.url)} — \`${entry.reason}\``;
+  if (entry.owner !== undefined) line += ` — owner: \`${entry.owner}\``;
+  if (entry.due !== undefined) line += ` — due: \`${entry.due}\``;
+  return line;
 }
 
 function nextTaskEntriesMarkdown(entries: readonly NextTaskEntry[]): string {
-  const taskLines =
-    entries.length === 0
-      ? ["- none"]
-      : entries.map((entry) => `- ${entry.title} — \`${entry.reason}\``);
+  const taskLines = entries.length === 0 ? ["- none"] : entries.map(nextTaskMarkdownLine);
   return [
     "# OH MY PM Next Tasks",
     "",

@@ -113,3 +113,84 @@ describe("executeMcpGitHubTool", () => {
     }
   });
 });
+
+describe("executeMcpGitHubTool risk/next public metadata", () => {
+  function scenarioTransport(): GitHubHttpTransport {
+    return {
+      async request(request: GitHubHttpRequest): Promise<GitHubHttpResponse> {
+        const url = new URL(request.url);
+        if (url.pathname === `/repos/${SLUG}`) {
+          return { status: 200, headers: {}, body: load("repository.json") };
+        }
+        // One blocker issue (risk, not next) and one ordinary open issue (next).
+        return {
+          status: 200,
+          headers: {},
+          body: [
+            {
+              number: 21,
+              title: "Blocked deploy",
+              body: "Sensitive body text that must not leak.",
+              state: "open",
+              html_url: `https://github.com/${SLUG}/issues/21`,
+              user: { login: "a" },
+              assignees: [{ login: "mika" }],
+              labels: [{ name: "blocker" }],
+              comments: 0,
+              locked: false,
+            },
+            {
+              number: 22,
+              title: "Write onboarding docs",
+              body: "Another body that must not leak.",
+              state: "open",
+              html_url: `https://github.com/${SLUG}/issues/22`,
+              user: { login: "b" },
+              assignees: [],
+              labels: [],
+              comments: 0,
+              locked: false,
+            },
+          ],
+        };
+      },
+    };
+  }
+
+  it("carries url/repository/number on risks and excludes raw body", async () => {
+    const transport = scenarioTransport();
+    const result = await executeMcpGitHubTool("risks", SLUG, 10, { transport });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const risks = (result.output as { risks: Array<Record<string, unknown>> }).risks;
+    expect(risks).toHaveLength(1);
+    expect(risks[0]).toMatchObject({
+      repository: SLUG,
+      number: 21,
+      url: `https://github.com/${SLUG}/issues/21`,
+      reason: "github_state:blocked",
+      severity: "high",
+    });
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("Sensitive body text");
+    expect(serialized).not.toContain("providerResponses");
+    expect(serialized).not.toContain("runtimeResponse");
+  });
+
+  it("includes only the actionable open issue in next with public metadata", async () => {
+    const transport = scenarioTransport();
+    const result = await executeMcpGitHubTool("next", SLUG, 10, { transport });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const tasks = (result.output as { tasks: Array<Record<string, unknown>> }).tasks;
+    // The blocker issue is a risk, never a next task.
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({
+      repository: SLUG,
+      number: 22,
+      url: `https://github.com/${SLUG}/issues/22`,
+      reason: "github_issue:open",
+    });
+    expect(JSON.stringify(result)).not.toContain("must not leak");
+  });
+});

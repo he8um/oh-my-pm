@@ -212,22 +212,16 @@ describe("bin wrapper risks smoke", () => {
     expect(parsed.data.skillOutput.skillId).toBe("extractRisks");
     expect(parsed.data.skillOutput.ok).toBe(true);
 
-    // The constraints document has a neutral title and keywords only in its
-    // Markdown body, so this detection proves data.content reaches the skill.
-    // Only keyword-bearing documents are reported: keyword-free documents are
-    // no longer aliased into explicit risks by the Runtime.
+    // Risks are line-level and come from recognized risk headings in the
+    // Markdown body, never a document-title collapse. The status document's
+    // "Blocked" section contributes one high-severity line-level risk.
     expect(parsed.data.output.risks).toEqual([
       {
-        id: "docs/risks.md",
-        title: "Delivery Constraints",
+        id: "docs/status.md#risk-5",
+        title: "The printing quote is blocked waiting on the paper supplier (owner: Jordan).",
         severity: "high",
-        reason: "keyword:blocked",
-      },
-      {
-        id: "docs/status.md",
-        title: "Status",
-        severity: "high",
-        reason: "keyword:blocked",
+        reason: "markdown_heading:blockers",
+        source: "markdown",
       },
     ]);
     expect(JSON.stringify(parsed.data.output)).not.toContain("explicit");
@@ -242,20 +236,20 @@ describe("bin wrapper risks smoke", () => {
     expect(reloaded).toEqual(loaded);
   });
 
-  it("renders a markdown risk report limited to keyword-bearing documents", async () => {
+  it("renders a markdown risk report with line-level risks from recognized headings", async () => {
     const result = runBin(["risks", "examples/fixtures/markdown-project", "--markdown"]);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("# OH MY PM Project Risks");
-    expect(result.stdout).toContain("- Total: 2");
-    expect(result.stdout).toContain("- High: 2");
-    expect(result.stdout).toContain("- **high** — Delivery Constraints — `keyword:blocked`");
-    expect(result.stdout).toContain("- **high** — Status — `keyword:blocked`");
+    expect(result.stdout).toContain("- Total: 1");
+    expect(result.stdout).toContain("- High: 1");
+    expect(result.stdout).toContain(
+      "- **high** — The printing quote is blocked waiting on the paper supplier (owner: Jordan). — `markdown_heading:blockers`",
+    );
     expect(result.stdout).not.toContain("Riverline Field Guide");
-    expect(result.stdout).not.toContain("Decisions");
     expect(result.stdout.endsWith("\n")).toBe(true);
     expect(result.stdout.endsWith("\n\n")).toBe(false);
-    // The report lists titles and reasons, never document bodies.
-    expect(result.stdout).not.toContain("paper supplier");
+    // Risk titles are the actual risk lines, never the whole document body.
+    expect(result.stdout).not.toContain("The map legend design is approved");
   });
 
   it("exits with 2 for a missing risks root without executing the runtime", async () => {
@@ -299,19 +293,22 @@ describe("bin wrapper next smoke", () => {
     // checked task and plain document titles never become tasks.
     expect(parsed.data.output.tasks).toEqual([
       {
-        id: "docs/status.md#task-1",
+        id: "docs/status.md#task-7",
         title: "Confirm final paper stock with the supplier.",
         reason: "markdown_unchecked_task",
+        source: "markdown",
       },
       {
-        id: "docs/status.md#task-2",
+        id: "docs/status.md#task-8",
         title: "Export the elevation maps for print.",
         reason: "markdown_unchecked_task",
+        source: "markdown",
       },
       {
-        id: "docs/status.md#task-3",
+        id: "docs/status.md#task-9",
         title: "Assemble the print-ready guide draft.",
         reason: "markdown_unchecked_task",
+        source: "markdown",
       },
     ]);
     // The checked checkbox appears in the raw document content that the JSON

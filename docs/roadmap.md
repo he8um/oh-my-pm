@@ -117,12 +117,13 @@
 
 Next priorities:
 
-1. finer risk/task extraction for GitHub and Markdown context
-2. provider configuration/diagnostics
-3. controlled write-back only in a later separately approved safety phase
+1. provider configuration and diagnostics
+2. richer GitHub fetch/source selection
+3. controlled write-back only in a separately approved later phase
 
-Preview-first installation from an extracted verified release bundle and the
-read-only GitHub provider are now in place (see Phase 5B).
+Preview-first installation from an extracted verified release bundle, the
+read-only GitHub provider, and finer deterministic risk/task extraction are now
+in place (see Phase 5B).
 
 ## Phase 5B — v0.2 development
 
@@ -131,6 +132,7 @@ read-only GitHub provider are now in place (see Phase 5B).
 - archive-native preview-first installation from an extracted verified release bundle (in place)
 - GitHub read-only provider (in place)
 - asynchronous provider/Runtime/CLI/MCP execution boundary (in place)
+- finer deterministic risk/task extraction for GitHub and Markdown context (complete)
 
 ## Phase 6 — Release lifecycle
 

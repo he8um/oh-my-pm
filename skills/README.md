@@ -14,31 +14,34 @@ Built-in skills:
 
 The Runtime plan path supplies generic provider items to skills as `items` only. Explicit `tasks`, `risks`, and `changes` collections are reserved for direct package consumers that call a skill with pre-declared collections.
 
-## extractRisks
+## extractRisks and deriveNextTasks
 
-Risk detection is deterministic keyword matching over the normalized combined item text (title, body, status, and tags):
+`extractRisks` and `deriveNextTasks` delegate to the pure `project-signals`
+module for **source-aware, line-level, deterministic** extraction over
+explicit Skill input, local Markdown documents, and normalized GitHub items.
+There is no LLM, embedding model, fuzzy matcher, or probabilistic scorer, and no
+filesystem, environment, network, real-clock, or random access — extraction is a
+pure function of the inputs plus `context.now`. Raw provider response objects are
+never passed in; the Runtime maps only selected provenance fields into each item.
 
-- generic Runtime items are keyword-filtered: an item without a risk keyword produces no risk entry
-- items are not automatically treated as explicit risks; only a directly supplied `risks` collection is explicit
-- items are document-level: at most one risk entry per supplied item
-- `blocked`, `blocker`, `overdue`, and `urgent` map to high severity
-- `delay`, `dependency`, and `missing` map to medium severity
-- explicitly supplied risk items without a keyword are reported with low severity and the reason `explicit`
-- the reason is `keyword:<first-matching-keyword>` when a keyword is found
+Risks are line-level (one candidate per recognized risk-heading list item or
+explicit marker), never a document-title collapse. Next tasks come from
+unchecked Markdown checkboxes, list items under recognized action headings, and
+explicit action markers, plus actionable GitHub issues/PRs. English and Persian
+headings and markers are recognized by exact normalized match. Checked
+(resolved) items and fenced code are excluded, and false-positive guards apply
+(`unblocked` is not `blocked`, `riskless` is not `risk`, exact GitHub labels
+replace substring matching). GitHub items follow exact label/status rules, an
+overdue check from the injected time, one risk/task per item, and repository
+records are never next tasks. At most 20 risks and 10 next tasks are returned,
+ordered explicit → Markdown → GitHub → generic fallback, with GitHub tasks in
+high/medium/low priority buckets.
 
-There is no LLM, no semantic analysis, no network access, and no write path — the skill only transforms the in-memory items it is given.
-
-## deriveNextTasks
-
-Task derivation is deterministic and builds up to five tasks in this priority order:
-
-1. explicitly supplied `tasks` (reason `explicit`)
-2. unchecked Markdown checklist items extracted from item bodies — `- [ ]`, `* [ ]`, or `+ [ ]` single-line entries, in item and line order (reason `markdown_unchecked_task`); checked entries (`[x]`/`[X]`) are ignored
-3. a structured fallback for open items that carry at least one operational field (`status`, `owner`, `due`, or non-empty `tags`); done and blocked items are excluded (reason `open_with_due` or `open_item`)
-
-Plain document titles without operational metadata never become tasks, task IDs are deduped first-wins, and no task text is generated. There is no LLM, no network access, and no write path.
-
-`deriveNextTasks` and `createHandoff` share the same unchecked Markdown checkbox extraction helper (`collectMarkdownUncheckedTasks`), so both derive open tasks from identical `- [ ]` / `* [ ]` / `+ [ ]` semantics.
+Both skills emit optional public provenance (`source`, `sourceType`, `url`,
+`owner`, `due`, `repository`, `number`, and task `priority`) but never body
+text, labels, provider responses, tokens, headers, or transport metadata. See
+[the deterministic extraction guide](../docs/deterministic-extraction.md) for
+the full rule set.
 
 ## createHandoff
 

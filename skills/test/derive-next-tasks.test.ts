@@ -5,187 +5,162 @@ import type { NextTasksResult } from "../src/index.js";
 
 const skill = createDeriveNextTasksSkill();
 
-function envelope(input: SkillInputEnvelope["input"]): SkillInputEnvelope {
-  return { skillId: "deriveNextTasks", context: { locale: "en", now: "t0" }, input };
+function envelope(input: SkillInputEnvelope["input"], now = "2026-03-01T00:00:00.000Z"): SkillInputEnvelope {
+  return { skillId: "deriveNextTasks", context: { locale: "en", now }, input };
 }
 
-function tasksOf(input: SkillInputEnvelope["input"]): NextTasksResult["tasks"] {
-  return (skill.execute(envelope(input)).output as NextTasksResult).tasks;
+function tasksOf(input: SkillInputEnvelope["input"], now?: string): NextTasksResult["tasks"] {
+  return (skill.execute(envelope(input, now)).output as NextTasksResult).tasks;
 }
 
-describe("deriveNextTasks explicit tasks", () => {
-  it("includes explicit tasks first", () => {
-    const tasks = tasksOf({
-      tasks: [{ id: "t1", title: "Prepare demo" }],
-      items: [{ id: "i1", title: "Open item", status: "open" }],
-    });
-    expect(tasks.map((t) => t.id)).toEqual(["t1", "i1"]);
-    expect(tasks[0]?.reason).toBe("explicit");
+function doc(id: string, body: string) {
+  return { id, title: id, source: "local", type: "document", body };
+}
+
+function gh(over: Record<string, unknown>) {
+  return { source: "github", ...over };
+}
+
+describe("deriveNextTasks — explicit and Markdown", () => {
+  it("lists explicit tasks first with a stable reason", () => {
+    const tasks = tasksOf({ tasks: [{ id: "t1", title: "Ship it" }] });
+    expect(tasks).toEqual([{ id: "t1", title: "Ship it", reason: "explicit", source: "structured" }]);
   });
 
   it("keeps first-wins dedupe for explicit task ids", () => {
     const tasks = tasksOf({
       tasks: [
-        { id: "t1", title: "First title" },
-        { id: "t1", title: "Duplicate title" },
+        { id: "t1", title: "First" },
+        { id: "t1", title: "Duplicate" },
       ],
     });
-    expect(tasks).toEqual([{ id: "t1", title: "First title", reason: "explicit" }]);
+    expect(tasks).toEqual([{ id: "t1", title: "First", reason: "explicit", source: "structured" }]);
+  });
+
+  it("extracts unchecked checkboxes and excludes checked ones", () => {
+    const tasks = tasksOf({
+      items: [doc("d1", "# Plan\n\n- [ ] Alpha\n- [x] Done\n- [ ] Beta")],
+    });
+    expect(tasks.map((t) => [t.id, t.title, t.reason])).toEqual([
+      ["d1#task-1", "Alpha", "markdown_unchecked_task"],
+      ["d1#task-3", "Beta", "markdown_unchecked_task"],
+    ]);
+  });
+
+  it("extracts list items under an action heading and explicit action markers", () => {
+    const tasks = tasksOf({
+      items: [
+        doc("d1", "## Next Steps\n\n- Draft the spec.\n- Review the plan."),
+        doc("d2", "Action: Book the venue."),
+      ],
+    });
+    expect(tasks.map((t) => [t.reason, t.title])).toEqual([
+      ["markdown_heading:next_steps", "Draft the spec."],
+      ["markdown_heading:next_steps", "Review the plan."],
+      ["markdown_marker:action", "Book the venue."],
+    ]);
+  });
+
+  it("supports Persian action headings and markers", () => {
+    const tasks = tasksOf({
+      items: [
+        doc("fa1", "## اقدامات بعدی\n\n- بازبینی طرح."),
+        doc("fa2", "اقدام: ارسال گزارش."),
+      ],
+    });
+    expect(tasks.map((t) => [t.reason, t.title])).toEqual([
+      ["markdown_heading:next_steps", "بازبینی طرح."],
+      ["markdown_marker:action", "ارسال گزارش."],
+    ]);
+  });
+
+  it("strips a priority marker from an unchecked task title and records the priority", () => {
+    const tasks = tasksOf({ items: [doc("d1", "- [ ] [P0] Fix the outage.")] });
+    expect(tasks).toEqual([
+      { id: "d1#task-1", title: "Fix the outage.", reason: "markdown_unchecked_task", source: "markdown", priority: "high" },
+    ]);
+  });
+
+  it("dedupes duplicate local task text within the same document", () => {
+    const tasks = tasksOf({ items: [doc("d1", "- [ ] Same task\n- [ ] Same task")] });
+    expect(tasks.map((t) => t.title)).toEqual(["Same task"]);
+  });
+
+  it("does not treat arbitrary prose or risk-section items as tasks", () => {
+    const prose = tasksOf({ items: [doc("d1", "# Notes\n\nThis is just narrative text.")] });
+    expect(prose).toEqual([]);
+    const riskSection = tasksOf({ items: [doc("d2", "## Risks\n\n- A risk item.")] });
+    expect(riskSection).toEqual([]);
   });
 });
 
-describe("deriveNextTasks markdown checkbox extraction", () => {
-  it("extracts dash, star, and plus unchecked checkboxes", () => {
+describe("deriveNextTasks — GitHub", () => {
+  it("includes an open issue and open/draft PRs, excluding the repository record", () => {
     const tasks = tasksOf({
       items: [
-        {
-          id: "docs/a.md",
-          title: "A",
-          body: ["- [ ] Dash task", "* [ ] Star task", "+ [ ] Plus task"].join("\n"),
-        },
+        gh({ id: "github:repository:o/r", type: "record", kind: "repository", title: "o/r", status: "active", repository: "o/r" }),
+        gh({ id: "github:issue:o/r#1", type: "issue", title: "#1 Open issue", status: "open", repository: "o/r", number: 1, url: "https://github.com/o/r/issues/1" }),
+        gh({ id: "github:pull-request:o/r#2", type: "pullRequest", kind: "pullRequest", title: "#2 Draft PR", status: "draft", repository: "o/r", number: 2 }),
       ],
     });
-    expect(tasks).toEqual([
-      { id: "docs/a.md#task-1", title: "Dash task", reason: "markdown_unchecked_task" },
-      { id: "docs/a.md#task-2", title: "Star task", reason: "markdown_unchecked_task" },
-      { id: "docs/a.md#task-3", title: "Plus task", reason: "markdown_unchecked_task" },
+    expect(tasks.map((t) => [t.id, t.reason])).toEqual([
+      ["github:issue:o/r#1", "github_issue:open"],
+      ["github:pull-request:o/r#2", "github_pull_request:draft"],
     ]);
+    expect(tasks[0]?.repository).toBe("o/r");
+    expect(tasks[0]?.url).toBe("https://github.com/o/r/issues/1");
   });
 
-  it("allows leading whitespace and spaces inside the brackets", () => {
+  it("excludes closed issues, merged/closed PRs, blocked items, and no-action labels", () => {
     const tasks = tasksOf({
       items: [
-        {
-          id: "d",
-          title: "D",
-          body: ["   - [ ] Indented task", "- [  ] Wide bracket task"].join("\n"),
-        },
+        gh({ id: "github:issue:o/r#3", type: "issue", title: "#3 Closed", status: "closed", repository: "o/r", number: 3 }),
+        gh({ id: "github:pull-request:o/r#4", type: "pullRequest", kind: "pullRequest", title: "#4 Merged", status: "merged", repository: "o/r", number: 4 }),
+        gh({ id: "github:issue:o/r#5", type: "issue", title: "#5 Blocked", status: "blocked", repository: "o/r", number: 5 }),
+        gh({ id: "github:issue:o/r#6", type: "issue", title: "#6 Dup", status: "open", labels: ["duplicate"], repository: "o/r", number: 6 }),
       ],
-    });
-    expect(tasks.map((t) => t.title)).toEqual(["Indented task", "Wide bracket task"]);
-  });
-
-  it("ignores checked tasks with lowercase and uppercase x", () => {
-    const tasks = tasksOf({
-      items: [
-        {
-          id: "d",
-          title: "D",
-          body: ["- [x] Done lower", "- [X] Done upper", "- [ ] Still open"].join("\n"),
-        },
-      ],
-    });
-    expect(tasks.map((t) => t.title)).toEqual(["Still open"]);
-  });
-
-  it("ignores empty checkbox titles", () => {
-    const tasks = tasksOf({
-      items: [
-        { id: "d", title: "D", body: ["- [ ]", "- [ ]   ", "- [ ] Real task"].join("\n") },
-      ],
-    });
-    expect(tasks).toEqual([
-      { id: "d#task-1", title: "Real task", reason: "markdown_unchecked_task" },
-    ]);
-  });
-
-  it("preserves line order and keeps ids contiguous per document", () => {
-    const tasks = tasksOf({
-      items: [
-        {
-          id: "docs/plan.md",
-          title: "Plan",
-          body: ["- [ ] First", "- [x] Skipped", "- [ ] Second", "text", "- [ ] Third"].join("\n"),
-        },
-      ],
-    });
-    expect(tasks).toEqual([
-      { id: "docs/plan.md#task-1", title: "First", reason: "markdown_unchecked_task" },
-      { id: "docs/plan.md#task-2", title: "Second", reason: "markdown_unchecked_task" },
-      { id: "docs/plan.md#task-3", title: "Third", reason: "markdown_unchecked_task" },
-    ]);
-  });
-
-  it("returns no markdown tasks when the body is absent", () => {
-    expect(tasksOf({ items: [{ id: "d", title: "No body" }] })).toEqual([]);
-  });
-
-  it("places markdown tasks before the structured fallback", () => {
-    const tasks = tasksOf({
-      items: [
-        { id: "i1", title: "Operational item", status: "open" },
-        { id: "docs/a.md", title: "A", body: "- [ ] Checklist task" },
-      ],
-    });
-    expect(tasks.map((t) => t.reason)).toEqual(["markdown_unchecked_task", "open_item"]);
-    expect(tasks.map((t) => t.id)).toEqual(["docs/a.md#task-1", "i1"]);
-  });
-});
-
-describe("deriveNextTasks structured fallback", () => {
-  it("does not turn a plain document title into a task", () => {
-    const tasks = tasksOf({
-      items: [{ id: "docs/readme.md", title: "Project Guide", body: "Just prose." }],
     });
     expect(tasks).toEqual([]);
   });
 
-  it("returns metadata-bearing open items as fallback tasks", () => {
-    const tasks = tasksOf({
-      items: [
-        { id: "1", title: "Owned work", owner: "sam" },
-        { id: "2", title: "Tagged work", tags: ["planning"] },
-        { id: "3", title: "Due work", due: "2026-08-01" },
-      ],
-    });
-    expect(tasks.map((t) => t.reason)).toEqual(["open_item", "open_item", "open_with_due"]);
-  });
-
-  it("skips done and blocked structured items", () => {
-    const tasks = tasksOf({
-      items: [
-        { id: "1", title: "Done work", status: "done" },
-        { id: "2", title: "Blocked work", status: "blocked" },
-        { id: "3", title: "Open work", status: "open" },
-      ],
-    });
-    expect(tasks.map((t) => t.id)).toEqual(["3"]);
-  });
-
-  it("uses open_with_due and open_item reasons", () => {
-    const tasks = tasksOf({
-      items: [
-        { id: "1", title: "Due soon", due: "2026-02-01" },
-        { id: "2", title: "No due", status: "open" },
-      ],
-    });
-    expect(tasks.map((t) => t.reason)).toEqual(["open_with_due", "open_item"]);
+  it("orders GitHub tasks by high, then medium, then low priority in provider order", () => {
+    const tasks = tasksOf(
+      {
+        items: [
+          gh({ id: "github:issue:o/r#1", type: "issue", title: "#1 low", status: "open", repository: "o/r", number: 1 }),
+          gh({ id: "github:issue:o/r#2", type: "issue", title: "#2 high", status: "open", labels: ["critical"], repository: "o/r", number: 2 }),
+          gh({ id: "github:issue:o/r#3", type: "issue", title: "#3 medium", status: "open", labels: ["dependency"], repository: "o/r", number: 3 }),
+        ],
+      },
+      "2026-03-01T00:00:00.000Z",
+    );
+    expect(tasks.map((t) => [t.id, t.priority])).toEqual([
+      ["github:issue:o/r#2", "high"],
+      ["github:issue:o/r#3", "medium"],
+      ["github:issue:o/r#1", "low"],
+    ]);
   });
 });
 
-describe("deriveNextTasks limits and purity", () => {
-  it("caps at five tasks", () => {
-    const items = Array.from({ length: 8 }, (_, i) => ({
-      id: `i${i}`,
-      title: `Item ${i}`,
-      status: "open",
-    }));
-    expect(tasksOf({ items })).toHaveLength(5);
+describe("deriveNextTasks — limits and purity", () => {
+  it("caps at 10 tasks", () => {
+    const items = Array.from({ length: 15 }, (_v, i) =>
+      gh({ id: `github:issue:o/r#${i + 1}`, type: "issue", title: `#${i + 1} open`, status: "open", repository: "o/r", number: i + 1 }),
+    );
+    expect(tasksOf({ items }).length).toBe(10);
   });
 
-  it("caps markdown extraction at five tasks", () => {
-    const body = Array.from({ length: 8 }, (_, i) => `- [ ] Task ${i}`).join("\n");
-    const tasks = tasksOf({ items: [{ id: "d", title: "D", body }] });
-    expect(tasks).toHaveLength(5);
-    expect(tasks[4]?.id).toBe("d#task-5");
-  });
-
-  it("does not mutate the input items", () => {
-    const input = {
-      items: [{ id: "d", title: "D", body: "- [ ] Task", status: "open" }],
-    };
+  it("is deterministic across repeated runs and does not mutate input", () => {
+    const input = { items: [doc("d1", "## Tasks\n\n- [ ] One\n- [ ] Two")] };
     const snapshot = JSON.parse(JSON.stringify(input));
-    tasksOf(input);
+    const first = tasksOf(structuredClone(input));
+    const second = tasksOf(structuredClone(input));
+    expect(first).toEqual(second);
     expect(input).toEqual(snapshot);
+  });
+
+  it("rejects the wrong skill id", () => {
+    const out = skill.execute({ skillId: "extractRisks", context: { locale: "en", now: "t0" }, input: {} });
+    expect(out.ok).toBe(false);
   });
 });

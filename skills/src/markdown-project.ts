@@ -257,3 +257,223 @@ export function inferMarkdownProjectTitle(items: readonly TextItem[]): string | 
   }
   return undefined;
 }
+
+// --- Line-level signal parsing --------------------------------------------
+
+/** One parsed, non-empty Markdown line relevant to signal extraction. */
+export type MarkdownSignalEntry = {
+  documentId: string;
+  documentTitle: string;
+  heading: string;
+  normalizedHeading: string;
+  line: number;
+  sequence: number;
+  kind:
+    | "unchecked-task"
+    | "checked-task"
+    | "list-item"
+    | "numbered-item"
+    | "paragraph"
+    | "marker";
+  text: string;
+};
+
+// Explicit inline risk/action markers. Recognized only at the start of a line
+// (after optional bullet syntax), requiring an exact prefix plus a colon.
+export const MARKDOWN_RISK_MARKER_PREFIXES = [
+  "risk",
+  "blocker",
+  "blocked by",
+  "dependency",
+  "concern",
+  "known issue",
+  "ریسک",
+  "مانع",
+  "مسدودکننده",
+  "وابستگی",
+  "نگرانی",
+  "مشکل شناخته‌شده",
+  "مشکل شناخته شده",
+] as const;
+
+export const MARKDOWN_ACTION_MARKER_PREFIXES = [
+  "next",
+  "next step",
+  "action",
+  "action item",
+  "todo",
+  "task",
+  "بعدی",
+  "گام بعدی",
+  "اقدام",
+  "اقدام بعدی",
+  "کار",
+  "وظیفه",
+  "تسک",
+] as const;
+
+const CHECKED_TASK_LINE = /^\s*[-*+]\s+\[[xX]\]\s+(.+)$/;
+const BULLET_PREFIX = /^\s*[-*+]\s+/;
+const NUMBERED_PREFIX = /^\s*\d+[.)]\s+/;
+
+/**
+ * Detect an explicit `Prefix:` marker at the start of a value (already stripped
+ * of any leading bullet syntax). Returns the recognized prefix and the non-empty
+ * body, or null. Matching is exact prefix + colon (case-insensitive for ASCII);
+ * arbitrary inline occurrences never match.
+ */
+function matchMarker(
+  value: string,
+  prefixes: readonly string[],
+): { prefix: string; body: string } | null {
+  const colonIndex = value.indexOf(":");
+  if (colonIndex === -1) return null;
+  const head = value.slice(0, colonIndex).trim();
+  const normalizedHead = head.toLowerCase().replace(/\s+/g, " ");
+  for (const prefix of prefixes) {
+    if (normalizedHead === prefix) {
+      const body = value.slice(colonIndex + 1).trim();
+      if (body === "") return null;
+      return { prefix, body };
+    }
+  }
+  return null;
+}
+
+/** Recognize a risk marker on a line body (bullet already stripped). */
+export function matchRiskMarker(value: string): { prefix: string; body: string } | null {
+  return matchMarker(value, MARKDOWN_RISK_MARKER_PREFIXES);
+}
+
+/** Recognize an action marker on a line body (bullet already stripped). */
+export function matchActionMarker(value: string): { prefix: string; body: string } | null {
+  return matchMarker(value, MARKDOWN_ACTION_MARKER_PREFIXES);
+}
+
+/**
+ * Parse a generic item's Markdown body into ordered, line-level signal entries.
+ * One-based line numbers; document order preserved. Fenced code and fence
+ * markers are ignored. Checkbox state is preserved. List continuation lines are
+ * merged into the preceding entry. Empty items are ignored. Content before the
+ * first heading is ignored except explicit markers. Never mutates the input.
+ */
+export function parseMarkdownSignalEntries(item: TextItem): MarkdownSignalEntry[] {
+  if (item.body === undefined) {
+    return [];
+  }
+
+  const entries: MarkdownSignalEntry[] = [];
+  let heading = "";
+  let normalizedHeading = "";
+  let fence: string | null = null;
+  let sequence = 0;
+  let lastMergeable: MarkdownSignalEntry | null = null;
+
+  const push = (line: number, kind: MarkdownSignalEntry["kind"], text: string): MarkdownSignalEntry => {
+    sequence += 1;
+    const entry: MarkdownSignalEntry = {
+      documentId: item.id,
+      documentTitle: item.title,
+      heading,
+      normalizedHeading,
+      line,
+      sequence,
+      kind,
+      text,
+    };
+    entries.push(entry);
+    return entry;
+  };
+
+  const rawLines = item.body.split(/\r?\n/);
+  for (let i = 0; i < rawLines.length; i += 1) {
+    const raw = rawLines[i] ?? "";
+    const lineNumber = i + 1;
+
+    const fenceMatch = FENCE.exec(raw);
+    if (fenceMatch !== null) {
+      const marker = (fenceMatch[1] ?? "").startsWith("~") ? "~~~" : "```";
+      if (fence === null) fence = marker;
+      else if (fence === marker) fence = null;
+      lastMergeable = null;
+      continue;
+    }
+    if (fence !== null) {
+      continue;
+    }
+
+    const headingMatch = ATX_HEADING.exec(raw);
+    if (headingMatch !== null) {
+      heading = (headingMatch[2] ?? "").trim();
+      normalizedHeading = normalizeMarkdownHeading(heading);
+      lastMergeable = null;
+      continue;
+    }
+
+    if (raw.trim() === "") {
+      lastMergeable = null;
+      continue;
+    }
+
+    // Unchecked checklist entry.
+    const uncheckedMatch = UNCHECKED_TASK_LINE.exec(raw);
+    if (uncheckedMatch !== null) {
+      const text = (uncheckedMatch[1] ?? "").trim();
+      if (text !== "") lastMergeable = push(lineNumber, "unchecked-task", text);
+      continue;
+    }
+
+    // Checked checklist entry.
+    const checkedMatch = CHECKED_TASK_LINE.exec(raw);
+    if (checkedMatch !== null) {
+      const text = (checkedMatch[1] ?? "").trim();
+      if (text !== "") lastMergeable = push(lineNumber, "checked-task", text);
+      continue;
+    }
+
+    const bulletMatch = BULLET_PREFIX.exec(raw);
+    const numberedMatch = NUMBERED_PREFIX.exec(raw);
+    const listBody = bulletMatch !== null ? raw.slice(bulletMatch[0].length).trim() : undefined;
+    const numberedBody =
+      numberedMatch !== null ? raw.slice(numberedMatch[0].length).trim() : undefined;
+    const inlineBody = listBody ?? numberedBody ?? raw.trim();
+
+    // Explicit markers take precedence over generic list/paragraph handling,
+    // and are recognized even before the first heading.
+    const riskMarker = matchRiskMarker(inlineBody);
+    const actionMarker = matchActionMarker(inlineBody);
+    if (riskMarker !== null || actionMarker !== null) {
+      const marker = (riskMarker ?? actionMarker) as { body: string };
+      lastMergeable = push(lineNumber, "marker", marker.body);
+      // Preserve the recognized prefix by re-reading it during classification;
+      // store the full "Prefix: body" text so classifiers can re-derive it.
+      entries[entries.length - 1]!.text = inlineBody;
+      continue;
+    }
+
+    // Before the first heading, non-marker content is ignored.
+    if (heading === "" && normalizedHeading === "") {
+      lastMergeable = null;
+      continue;
+    }
+
+    if (listBody !== undefined) {
+      if (listBody !== "") lastMergeable = push(lineNumber, "list-item", listBody);
+      continue;
+    }
+    if (numberedBody !== undefined) {
+      if (numberedBody !== "") lastMergeable = push(lineNumber, "numbered-item", numberedBody);
+      continue;
+    }
+
+    // A non-empty, non-marker, non-list line: merge into the preceding entry as
+    // a wrapped continuation, otherwise start a paragraph entry.
+    if (lastMergeable !== null) {
+      lastMergeable.text = `${lastMergeable.text} ${raw.trim()}`.replace(/\s+/g, " ").trim();
+      continue;
+    }
+    lastMergeable = push(lineNumber, "paragraph", raw.trim());
+  }
+
+  return entries;
+}

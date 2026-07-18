@@ -57,21 +57,16 @@ describe("executeMcpProjectTool over the fixture", () => {
     expect(execution.markdown).not.toContain("Trail survey for the north loop");
   });
 
-  it("produces the CLI-equivalent risk set", async () => {
+  it("produces the CLI-equivalent line-level risk set", async () => {
     const execution = await successOf("risks", fixtureRoot);
     expect(execution.output).toEqual({
       risks: [
         {
-          id: "docs/risks.md",
-          title: "Delivery Constraints",
+          id: "docs/status.md#risk-5",
+          title: "The printing quote is blocked waiting on the paper supplier (owner: Jordan).",
           severity: "high",
-          reason: "keyword:blocked",
-        },
-        {
-          id: "docs/status.md",
-          title: "Status",
-          severity: "high",
-          reason: "keyword:blocked",
+          reason: "markdown_heading:blockers",
+          source: "markdown",
         },
       ],
     });
@@ -84,19 +79,22 @@ describe("executeMcpProjectTool over the fixture", () => {
     expect(execution.output).toEqual({
       tasks: [
         {
-          id: "docs/status.md#task-1",
+          id: "docs/status.md#task-7",
           title: "Confirm final paper stock with the supplier.",
           reason: "markdown_unchecked_task",
+          source: "markdown",
         },
         {
-          id: "docs/status.md#task-2",
+          id: "docs/status.md#task-8",
           title: "Export the elevation maps for print.",
           reason: "markdown_unchecked_task",
+          source: "markdown",
         },
         {
-          id: "docs/status.md#task-3",
+          id: "docs/status.md#task-9",
           title: "Assemble the print-ready guide draft.",
           reason: "markdown_unchecked_task",
+          source: "markdown",
         },
       ],
     });

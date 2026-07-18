@@ -3,24 +3,29 @@ import {
   OMP_S_INVALID_INPUT,
   OMP_S_SKILL_MISMATCH,
   failSkillOutput,
-  isBlockedItem,
-  isDoneItem,
   okSkillOutput,
   skillInputObject,
 } from "./helpers.js";
-import { collectMarkdownUncheckedTasks } from "./markdown-project.js";
-import type { NextTasksResult, Skill, TextItem } from "./types.js";
+import { extractNextTaskCandidates } from "./project-signals.js";
+import type { NextTaskCandidate } from "./project-signals.js";
+import type { NextTasksResult, Skill } from "./types.js";
 
-const MAX_TASKS = 5;
-
-/** Structured fallback applies only to items carrying operational metadata. */
-function hasOperationalField(item: TextItem): boolean {
-  return (
-    item.status !== undefined ||
-    item.owner !== undefined ||
-    item.due !== undefined ||
-    (item.tags !== undefined && item.tags.length > 0)
-  );
+/** Project a task candidate into the public NextTasks entry (no body/labels). */
+function toTaskEntry(candidate: NextTaskCandidate): NextTasksResult["tasks"][number] {
+  const entry: NextTasksResult["tasks"][number] = {
+    id: candidate.id,
+    title: candidate.title,
+    reason: candidate.reason,
+    source: candidate.source,
+  };
+  if (candidate.priority !== undefined) entry.priority = candidate.priority;
+  if (candidate.sourceType !== undefined) entry.sourceType = candidate.sourceType;
+  if (candidate.url !== undefined) entry.url = candidate.url;
+  if (candidate.owner !== undefined) entry.owner = candidate.owner;
+  if (candidate.due !== undefined) entry.due = candidate.due;
+  if (candidate.repository !== undefined) entry.repository = candidate.repository;
+  if (candidate.number !== undefined) entry.number = candidate.number;
+  return entry;
 }
 
 export function createDeriveNextTasksSkill(): Skill {
@@ -48,31 +53,13 @@ export function createDeriveNextTasksSkill(): Skill {
         );
       }
 
-      const seen = new Set<string>();
-      const tasks: NextTasksResult["tasks"] = [];
-      const add = (id: string, title: string, reason: string) => {
-        if (tasks.length < MAX_TASKS && !seen.has(id)) {
-          seen.add(id);
-          tasks.push({ id, title, reason });
-        }
-      };
+      const candidates = extractNextTaskCandidates({
+        explicitTasks: parsed.tasks ?? [],
+        items: parsed.items ?? [],
+        now: input.context.now,
+      });
 
-      for (const task of parsed.tasks ?? []) {
-        add(task.id, task.title, "explicit");
-      }
-      for (const candidate of collectMarkdownUncheckedTasks(parsed.items ?? [])) {
-        add(candidate.id, candidate.title, "markdown_unchecked_task");
-      }
-      for (const item of parsed.items ?? []) {
-        // Generic titles alone are not tasks: the structured fallback needs
-        // at least one operational field and skips done/blocked items.
-        if (!hasOperationalField(item) || isDoneItem(item) || isBlockedItem(item)) {
-          continue;
-        }
-        add(item.id, item.title, item.due !== undefined ? "open_with_due" : "open_item");
-      }
-
-      const result: NextTasksResult = { tasks };
+      const result: NextTasksResult = { tasks: candidates.map(toTaskEntry) };
       return okSkillOutput("deriveNextTasks", result);
     },
   };

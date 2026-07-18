@@ -3,8 +3,11 @@ import {
   collectMarkdownSectionItems,
   collectMarkdownUncheckedTasks,
   inferMarkdownProjectTitle,
+  matchActionMarker,
+  matchRiskMarker,
   normalizeMarkdownHeading,
   parseMarkdownProjectSections,
+  parseMarkdownSignalEntries,
 } from "../src/index.js";
 import type { TextItem } from "../src/index.js";
 
@@ -210,5 +213,59 @@ describe("inferMarkdownProjectTitle", () => {
 
   it("returns undefined when there are no items", () => {
     expect(inferMarkdownProjectTitle([])).toBeUndefined();
+  });
+});
+
+describe("parseMarkdownSignalEntries", () => {
+  const item = (body: string): TextItem => ({ id: "d1", title: "Doc", body });
+
+  it("emits one-based line numbers in document order", () => {
+    const entries = parseMarkdownSignalEntries(item("# H\n\n- one\n- two"));
+    expect(entries.map((e) => [e.line, e.kind, e.text])).toEqual([
+      [3, "list-item", "one"],
+      [4, "list-item", "two"],
+    ]);
+  });
+
+  it("preserves checkbox state and ignores fenced code", () => {
+    const entries = parseMarkdownSignalEntries(
+      item("# H\n\n- [ ] open\n- [x] done\n\n```\n- [ ] in code\n```\n\n- plain"),
+    );
+    expect(entries.map((e) => e.kind)).toEqual(["unchecked-task", "checked-task", "list-item"]);
+  });
+
+  it("merges list continuation lines", () => {
+    const entries = parseMarkdownSignalEntries(item("# H\n\n- first line\n  continues here\n- second"));
+    expect(entries.map((e) => e.text)).toEqual(["first line continues here", "second"]);
+  });
+
+  it("ignores content before the first heading except explicit markers", () => {
+    const entries = parseMarkdownSignalEntries(item("plain preamble\nRisk: pre-heading risk\n# H\n\n- item"));
+    expect(entries.map((e) => [e.kind, e.text])).toEqual([
+      ["marker", "Risk: pre-heading risk"],
+      ["list-item", "item"],
+    ]);
+  });
+
+  it("does not mutate the input item", () => {
+    const original = item("# H\n\n- a");
+    const snapshot = JSON.parse(JSON.stringify(original));
+    parseMarkdownSignalEntries(original);
+    expect(original).toEqual(snapshot);
+  });
+});
+
+describe("marker matchers", () => {
+  it("matches an exact risk prefix plus colon and strips it", () => {
+    expect(matchRiskMarker("Blocker: the build")).toEqual({ prefix: "blocker", body: "the build" });
+    expect(matchRiskMarker("مانع: انتشار")).toEqual({ prefix: "مانع", body: "انتشار" });
+  });
+  it("rejects an arbitrary inline occurrence and an empty body", () => {
+    expect(matchRiskMarker("There is a risk: maybe")).toBeNull();
+    expect(matchRiskMarker("Risk:")).toBeNull();
+  });
+  it("matches action prefixes", () => {
+    expect(matchActionMarker("Action: do it")).toEqual({ prefix: "action", body: "do it" });
+    expect(matchActionMarker("اقدام: انجام بده")).toEqual({ prefix: "اقدام", body: "انجام بده" });
   });
 });

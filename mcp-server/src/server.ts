@@ -42,13 +42,42 @@ export type McpProjectBriefResult = {
   result: McpProjectBriefOutput;
 };
 
+export type McpSignalSource =
+  | "structured"
+  | "markdown"
+  | "github-repository"
+  | "github-issue"
+  | "github-pull-request"
+  | "generic";
+
+export type McpSignalItemType =
+  | "task"
+  | "document"
+  | "issue"
+  | "pullRequest"
+  | "record"
+  | "note"
+  | "unknown";
+
+export type McpSignalMetadata = {
+  source?: McpSignalSource;
+  sourceType?: McpSignalItemType;
+  url?: string;
+  owner?: string;
+  due?: string;
+  repository?: string;
+  number?: number;
+};
+
 export type McpProjectRisksOutput = {
-  risks: Array<{
-    id: string;
-    title: string;
-    severity: "low" | "medium" | "high";
-    reason: string;
-  }>;
+  risks: Array<
+    {
+      id: string;
+      title: string;
+      severity: "low" | "medium" | "high";
+      reason: string;
+    } & McpSignalMetadata
+  >;
 };
 
 export type McpProjectRisksResult = {
@@ -59,7 +88,14 @@ export type McpProjectRisksResult = {
 };
 
 export type McpProjectNextOutput = {
-  tasks: Array<{ id: string; title: string; reason: string }>;
+  tasks: Array<
+    {
+      id: string;
+      title: string;
+      reason: string;
+      priority?: "low" | "medium" | "high";
+    } & McpSignalMetadata
+  >;
 };
 
 export type McpProjectNextResult = {
@@ -125,6 +161,22 @@ const briefOutputShape = {
     .strict(),
 } as const;
 
+// Optional public provenance shared by risk and next-task entries. Never
+// includes body text, labels, provider responses, or transport metadata.
+const signalMetadataShape = {
+  source: z
+    .enum(["structured", "markdown", "github-repository", "github-issue", "github-pull-request", "generic"])
+    .optional(),
+  sourceType: z
+    .enum(["task", "document", "issue", "pullRequest", "record", "note", "unknown"])
+    .optional(),
+  url: z.string().optional(),
+  owner: z.string().optional(),
+  due: z.string().optional(),
+  repository: z.string().optional(),
+  number: z.number().int().optional(),
+} as const;
+
 const risksOutputShape = {
   operation: z.literal("risks"),
   root: z.string(),
@@ -138,6 +190,7 @@ const risksOutputShape = {
             title: z.string(),
             severity: z.enum(["low", "medium", "high"]),
             reason: z.string(),
+            ...signalMetadataShape,
           })
           .strict(),
       ),
@@ -152,7 +205,15 @@ const nextOutputShape = {
   result: z
     .object({
       tasks: z.array(
-        z.object({ id: z.string(), title: z.string(), reason: z.string() }).strict(),
+        z
+          .object({
+            id: z.string(),
+            title: z.string(),
+            reason: z.string(),
+            priority: z.enum(["low", "medium", "high"]).optional(),
+            ...signalMetadataShape,
+          })
+          .strict(),
       ),
     })
     .strict(),
@@ -234,6 +295,43 @@ export function projectBriefResult(
   };
 }
 
+const SIGNAL_SOURCES = new Set([
+  "structured",
+  "markdown",
+  "github-repository",
+  "github-issue",
+  "github-pull-request",
+  "generic",
+]);
+const SIGNAL_ITEM_TYPES = new Set([
+  "task",
+  "document",
+  "issue",
+  "pullRequest",
+  "record",
+  "note",
+  "unknown",
+]);
+
+/** Extract only the public, safe provenance fields from a raw signal entry. */
+function signalMetadata(raw: Record<string, unknown>): McpSignalMetadata {
+  const meta: McpSignalMetadata = {};
+  if (typeof raw["source"] === "string" && SIGNAL_SOURCES.has(raw["source"])) {
+    meta.source = raw["source"] as McpSignalSource;
+  }
+  if (typeof raw["sourceType"] === "string" && SIGNAL_ITEM_TYPES.has(raw["sourceType"])) {
+    meta.sourceType = raw["sourceType"] as McpSignalItemType;
+  }
+  if (typeof raw["url"] === "string") meta.url = raw["url"];
+  if (typeof raw["owner"] === "string") meta.owner = raw["owner"];
+  if (typeof raw["due"] === "string") meta.due = raw["due"];
+  if (typeof raw["repository"] === "string") meta.repository = raw["repository"];
+  if (typeof raw["number"] === "number" && Number.isInteger(raw["number"])) {
+    meta.number = raw["number"];
+  }
+  return meta;
+}
+
 export function projectRisksResult(
   execution: McpProjectToolSuccess,
 ): McpProjectRisksResult | null {
@@ -247,7 +345,7 @@ export function projectRisksResult(
       return null;
     }
     if (severity !== "low" && severity !== "medium" && severity !== "high") return null;
-    risks.push({ id, title, severity, reason });
+    risks.push({ id, title, severity, reason, ...signalMetadata(raw) });
   }
   return {
     operation: "risks",
@@ -265,11 +363,15 @@ export function projectNextResult(
   const tasks: McpProjectNextOutput["tasks"] = [];
   for (const raw of output["tasks"]) {
     if (!isRecord(raw)) return null;
-    const { id, title, reason } = raw;
+    const { id, title, reason, priority } = raw;
     if (typeof id !== "string" || typeof title !== "string" || typeof reason !== "string") {
       return null;
     }
-    tasks.push({ id, title, reason });
+    const task: McpProjectNextOutput["tasks"][number] = { id, title, reason, ...signalMetadata(raw) };
+    if (priority === "low" || priority === "medium" || priority === "high") {
+      task.priority = priority;
+    }
+    tasks.push(task);
   }
   return {
     operation: "next",

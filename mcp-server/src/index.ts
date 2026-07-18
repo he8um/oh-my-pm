@@ -27,6 +27,9 @@ export {
 export type {
   CreateOhMyPmMcpServerOptions,
   McpGitHubToolExecutor,
+  McpSignalItemType,
+  McpSignalMetadata,
+  McpSignalSource,
   McpProjectBriefOutput,
   McpProjectBriefResult,
   McpProjectHandoffOutput,

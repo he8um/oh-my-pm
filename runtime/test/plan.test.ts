@@ -98,10 +98,10 @@ describe("runtime plan execution", () => {
     expect(steps(response)).toContain("provider.execute");
   });
 
-  it("no longer declares keyword-free documents as explicit risks", async () => {
-    // Regression for the generic fan-out: provider items reach the risk
-    // skill as items only, so a document without any risk keyword must not
-    // surface as an "explicit" risk.
+  it("extracts line-level risks only from recognized risk headings", async () => {
+    // A document with no risk heading contributes no risk; a document with a
+    // Blockers section contributes one line-level risk per list item, never a
+    // document-title collapse.
     const providers = createProviderRegistry([
       createLocalProvider({
         items: [
@@ -115,7 +115,11 @@ describe("runtime plan execution", () => {
             id: "docs/constraints.md",
             type: "document",
             title: "Delivery Constraints",
-            data: { path: "docs/constraints.md", content: "The launch is blocked.", bytes: 22 },
+            data: {
+              path: "docs/constraints.md",
+              content: ["# Delivery Constraints", "", "## Blockers", "", "- The launch is blocked by the vendor."].join("\n"),
+              bytes: 80,
+            },
           },
         ],
       }),
@@ -129,10 +133,16 @@ describe("runtime plan execution", () => {
     expect(response.ok).toBe(true);
     const data = response.data as Record<string, JsonValue>;
     const output = data["output"] as {
-      risks: Array<{ id: string; severity: string; reason: string }>;
+      risks: Array<{ id: string; title: string; severity: string; reason: string }>;
     };
     expect(output.risks).toEqual([
-      { id: "docs/constraints.md", title: "Delivery Constraints", severity: "high", reason: "keyword:blocked" },
+      {
+        id: "docs/constraints.md#risk-1",
+        title: "The launch is blocked by the vendor.",
+        severity: "high",
+        reason: "markdown_heading:blockers",
+        source: "markdown",
+      },
     ]);
   });
 
@@ -175,20 +185,22 @@ describe("runtime plan execution", () => {
         id: "docs/actions.md#task-1",
         title: "Confirm print quantity.",
         reason: "markdown_unchecked_task",
+        source: "markdown",
       },
       {
-        id: "docs/actions.md#task-2",
+        id: "docs/actions.md#task-3",
         title: "Schedule the proof review.",
         reason: "markdown_unchecked_task",
+        source: "markdown",
       },
     ]);
     expect(documentItems).toEqual(snapshot);
   });
 
-  it("feeds document data.content into the risk skill as item body", async () => {
+  it("feeds document data.content into the risk skill as item body via a marker", async () => {
     // Regression guard for the Markdown pipeline: the loader stores document
-    // text in data.content, the title is neutral, and there is no status or
-    // tag signal — detection must come from the body alone.
+    // text in data.content and detection comes from the body alone — here an
+    // explicit Blocker: marker line, recognized even before any heading.
     const documentItems = [
       {
         id: "docs/constraints.md",
@@ -196,8 +208,8 @@ describe("runtime plan execution", () => {
         title: "Delivery Constraints",
         data: {
           path: "docs/constraints.md",
-          content: "The launch is blocked by an external dependency.",
-          bytes: 49,
+          content: "Blocker: The launch is blocked by an external dependency.",
+          bytes: 57,
         },
       },
     ];
@@ -218,10 +230,11 @@ describe("runtime plan execution", () => {
     };
     expect(output.risks).toEqual([
       {
-        id: "docs/constraints.md",
-        title: "Delivery Constraints",
+        id: "docs/constraints.md#risk-1",
+        title: "The launch is blocked by an external dependency.",
         severity: "high",
-        reason: "keyword:blocked",
+        reason: "markdown_marker:blocker",
+        source: "markdown",
       },
     ]);
     expect(documentItems).toEqual(snapshot);

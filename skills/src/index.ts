@@ -24,13 +24,34 @@ export {
   collectMarkdownSectionItems,
   collectMarkdownUncheckedTasks,
   inferMarkdownProjectTitle,
+  matchActionMarker,
+  matchRiskMarker,
   normalizeMarkdownHeading,
   parseMarkdownProjectSections,
+  parseMarkdownSignalEntries,
 } from "./markdown-project.js";
 export type {
   MarkdownProjectSection,
+  MarkdownSignalEntry,
   MarkdownUncheckedTask,
 } from "./markdown-project.js";
+export {
+  MAX_NEXT_TASKS,
+  MAX_RISKS,
+  classifyGitHubNextTask,
+  classifyGitHubRisk,
+  extractNextTaskCandidates,
+  extractRiskCandidates,
+  isOverdue,
+  normalizeSignalText,
+  normalizeSignalToken,
+  parseComparableInstant,
+} from "./project-signals.js";
+export type {
+  NextTaskCandidate,
+  ProjectSignalSource,
+  RiskCandidate,
+} from "./project-signals.js";
 export {
   createReviewChangesSkill,
 } from "./review-changes.js";

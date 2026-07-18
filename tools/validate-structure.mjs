@@ -274,6 +274,7 @@ const SKILLS_SOURCES = [
   "skills/src/derive-next-tasks.ts",
   "skills/src/create-handoff.ts",
   "skills/src/markdown-project.ts",
+  "skills/src/project-signals.ts",
   "skills/src/review-changes.ts",
   "skills/src/registry.ts",
   "skills/test/helpers.test.ts",
@@ -282,6 +283,7 @@ const SKILLS_SOURCES = [
   "skills/test/derive-next-tasks.test.ts",
   "skills/test/create-handoff.test.ts",
   "skills/test/markdown-project.test.ts",
+  "skills/test/project-signals.test.ts",
   "skills/test/review-changes.test.ts",
   "skills/test/registry.test.ts",
   "skills/test/purity.test.ts",
@@ -325,6 +327,18 @@ const MARKDOWN_PROJECT_FIXTURES = [
 ];
 for (const file of MARKDOWN_PROJECT_FIXTURES) {
   if (!existsSync(file)) err(`markdown project fixture missing: ${file}`);
+}
+
+// 7g2b. Deterministic project-signal fixtures, extraction E2E, and docs.
+const PROJECT_SIGNAL_SOURCES = [
+  "examples/fixtures/project-signals/README.md",
+  "examples/fixtures/project-signals/planning.md",
+  "examples/fixtures/project-signals/fa-signals.md",
+  "mcp-server/test/extraction-e2e.test.ts",
+  "docs/deterministic-extraction.md",
+];
+for (const file of PROJECT_SIGNAL_SOURCES) {
+  if (!existsSync(file)) err(`project signal file missing: ${file}`);
 }
 
 // 7g3. Local read-only MCP server files exist.

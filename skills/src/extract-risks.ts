@@ -3,57 +3,29 @@ import {
   OMP_S_INVALID_INPUT,
   OMP_S_SKILL_MISMATCH,
   failSkillOutput,
-  itemSearchText,
   okSkillOutput,
   skillInputObject,
 } from "./helpers.js";
-import type { RiskSummary, Skill, TextItem } from "./types.js";
+import { extractRiskCandidates } from "./project-signals.js";
+import type { RiskCandidate } from "./project-signals.js";
+import type { RiskSummary, Skill } from "./types.js";
 
-const RISK_KEYWORDS = [
-  "risk",
-  "blocked",
-  "blocker",
-  "delay",
-  "dependency",
-  "missing",
-  "overdue",
-  "urgent",
-] as const;
-
-const HIGH_SEVERITY = ["blocked", "blocker", "overdue", "urgent"] as const;
-const MEDIUM_SEVERITY = ["delay", "dependency", "missing"] as const;
-
-function firstKeyword(text: string): string | null {
-  for (const keyword of RISK_KEYWORDS) {
-    if (text.includes(keyword)) {
-      return keyword;
-    }
-  }
-  return null;
-}
-
-function severityOf(text: string): "low" | "medium" | "high" {
-  if (HIGH_SEVERITY.some((keyword) => text.includes(keyword))) {
-    return "high";
-  }
-  if (MEDIUM_SEVERITY.some((keyword) => text.includes(keyword))) {
-    return "medium";
-  }
-  return "low";
-}
-
-function riskEntry(item: TextItem, explicit: boolean): RiskSummary["risks"][number] | null {
-  const text = itemSearchText(item);
-  const keyword = firstKeyword(text);
-  if (!explicit && keyword === null) {
-    return null;
-  }
-  return {
-    id: item.id,
-    title: item.title,
-    severity: severityOf(text),
-    reason: keyword === null ? "explicit" : `keyword:${keyword}`,
+/** Project a risk candidate into the public RiskSummary entry (no body/labels). */
+function toRiskEntry(candidate: RiskCandidate): RiskSummary["risks"][number] {
+  const entry: RiskSummary["risks"][number] = {
+    id: candidate.id,
+    title: candidate.title,
+    severity: candidate.severity,
+    reason: candidate.reason,
+    source: candidate.source,
   };
+  if (candidate.sourceType !== undefined) entry.sourceType = candidate.sourceType;
+  if (candidate.url !== undefined) entry.url = candidate.url;
+  if (candidate.owner !== undefined) entry.owner = candidate.owner;
+  if (candidate.due !== undefined) entry.due = candidate.due;
+  if (candidate.repository !== undefined) entry.repository = candidate.repository;
+  if (candidate.number !== undefined) entry.number = candidate.number;
+  return entry;
 }
 
 export function createExtractRisksSkill(): Skill {
@@ -81,23 +53,13 @@ export function createExtractRisksSkill(): Skill {
         );
       }
 
-      const seen = new Set<string>();
-      const risks: RiskSummary["risks"] = [];
-      const add = (entry: RiskSummary["risks"][number] | null) => {
-        if (entry !== null && !seen.has(entry.id)) {
-          seen.add(entry.id);
-          risks.push(entry);
-        }
-      };
+      const candidates = extractRiskCandidates({
+        explicitRisks: parsed.risks ?? [],
+        items: parsed.items ?? [],
+        now: input.context.now,
+      });
 
-      for (const item of parsed.risks ?? []) {
-        add(riskEntry(item, true));
-      }
-      for (const item of parsed.items ?? []) {
-        add(riskEntry(item, false));
-      }
-
-      const summary: RiskSummary = { risks };
+      const summary: RiskSummary = { risks: candidates.map(toRiskEntry) };
       return okSkillOutput("extractRisks", summary);
     },
   };

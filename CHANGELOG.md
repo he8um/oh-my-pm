@@ -7,12 +7,17 @@
 - Portable release bundles now contain a preview-first self-installer that creates a versioned, source-independent local installation under an explicit prefix.
 - A strictly read-only, explicitly opt-in GitHub provider for repository metadata, issues, and pull requests.
 - GitHub-backed brief, risks, next, and handoff workflows in CLI and MCP.
+- Source-aware, line-level deterministic risk extraction for Markdown and GitHub context.
+- Deterministic next-task extraction from Markdown action structures and actionable GitHub issues/pull requests.
+- English and Persian project-signal headings and markers.
 
 ### Changed
 
 - Opened the `0.2.0-alpha.0` development line.
 - Generalized version, bundle, and archive verification around self-describing metadata.
 - Provider, Runtime, CLI, and MCP execution boundaries are asynchronous to support real read-only network providers.
+- Runtime preserves selected provider provenance for Skill execution without passing raw provider data.
+- Risk and next-task output includes optional public provenance, ownership, due-date, and priority metadata.
 
 ## 0.1.0
 

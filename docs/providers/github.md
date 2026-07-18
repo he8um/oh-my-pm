@@ -93,6 +93,17 @@ and never retries automatically.
 | `OMP-P-4008` | transport failed (timeout, DNS, connection, abort, redirect rejection) |
 | `OMP-P-4009` | invalid response (malformed JSON, oversized, wrong shape) |
 
+## Deterministic extraction over GitHub context
+
+Normalized issues and pull requests feed the same deterministic risk and
+next-task extraction as local Markdown. Exact label and status rules apply
+(never substring matching), overdue is inferred from the injected timestamp,
+repository records are never next tasks, blocked/closed/merged/no-action items
+are excluded from next tasks, and at most one risk is produced per issue/PR. The
+public output carries `url`, `repository`, `number`, `owner`, `due`, and (for
+next tasks) `priority`, but never raw issue/PR bodies. See
+[the deterministic extraction guide](../deterministic-extraction.md).
+
 ## CLI examples
 
 ```bash

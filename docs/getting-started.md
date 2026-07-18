@@ -93,6 +93,8 @@ oh-my-pm handoff ./project --markdown
 
 Each command reads an optional `oh-my-pm.config.json` at the project root to select which Markdown documents are analyzed. See [the CLI guide](../cli/README.md) for the full configuration and glob rules. These local workflows are fully offline: no network request is made and no token is read.
 
+`risks` and `next` use deterministic, line-level, rule-based extraction over recognized English and Persian Markdown headings and markers — no LLM or fuzzy matcher. See [the deterministic extraction guide](deterministic-extraction.md).
+
 ## GitHub workflows (opt-in network)
 
 The same four workflows can run against a GitHub repository through the explicit `github` command. This is the only part of OH MY PM that reaches the network, and only when invoked:

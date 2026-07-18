@@ -42,8 +42,8 @@ The generator prints the configuration only — it never writes to or edits a cl
 Exactly eight tools are registered, in this order — four local, then four GitHub:
 
 - `project_brief` — deterministic project status brief
-- `project_risks` — document-level risk signals
-- `project_next` — unchecked Markdown checklist tasks
+- `project_risks` — line-level risk signals from recognized Markdown headings/markers
+- `project_next` — next tasks from Markdown checklists, action headings, and markers
 - `project_handoff` — deterministic project handoff
 - `github_project_brief` — GitHub repository status brief
 - `github_project_risks` — GitHub repository risk signals
@@ -71,7 +71,7 @@ The four GitHub tools accept a repository and an optional limit:
 - `content` contains the human-readable Markdown, identical to the CLI's `--markdown` output for the same workflow.
 - `structuredContent` contains a compact, public-safe projection: `operation`, `root` (the caller-provided value, never an absolute path), a small `documents` metadata object, and the strict `result` shape for the operation.
 
-The result never contains raw document bodies, raw provider responses, the internal runtime response, execution traces, absolute paths, filesystem handles, secrets, or adapter objects.
+Risk and next-task results are line-level and may carry optional public provenance fields — `source`, `sourceType`, `url`, `owner`, `due`, `repository`, `number`, and (for next tasks) `priority`. The result never contains raw document bodies, raw provider responses, the internal runtime response, execution traces, absolute paths, filesystem handles, secrets, tokens, or adapter objects.
 
 ### Errors
 

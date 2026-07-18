@@ -1,4 +1,6 @@
 import type { JsonValue, SkillId, SkillInputEnvelope, SkillOutputEnvelope } from "@oh-my-pm/contracts";
+import { NORMALIZED_ITEM_TYPE_VALUES, PROVIDER_ID_VALUES } from "@oh-my-pm/contracts";
+import type { NormalizedItemType, ProviderId } from "@oh-my-pm/contracts";
 import type { SkillFailureCode, SkillInputObject, TextItem } from "./types.js";
 
 export const OMP_S_UNKNOWN_SKILL = "OMP-S-5001";
@@ -38,6 +40,18 @@ export function stringArrayFrom(value: JsonValue | undefined): string[] {
   return result;
 }
 
+/** Positive safe integer, or undefined. */
+function positiveIntegerFrom(value: JsonValue | undefined): number | undefined {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) {
+    return undefined;
+  }
+  return value;
+}
+
+/**
+ * Build a TextItem from structured input, carrying only the selected fields.
+ * Unknown and raw fields are dropped; the input object is never mutated.
+ */
 function textItemFrom(value: JsonValue): TextItem | null {
   if (!isRecord(value)) {
     return null;
@@ -58,6 +72,41 @@ function textItemFrom(value: JsonValue): TextItem | null {
   if (due !== undefined) item.due = due;
   if (Array.isArray(value["tags"])) {
     item.tags = stringArrayFrom(value["tags"]);
+  }
+
+  // Selected provider provenance (validated; unknown values dropped).
+  const source = textFrom(value["source"]);
+  if (source !== undefined && (PROVIDER_ID_VALUES as readonly string[]).includes(source)) {
+    item.source = source as ProviderId;
+  }
+  const type = textFrom(value["type"]);
+  if (type !== undefined && (NORMALIZED_ITEM_TYPE_VALUES as readonly string[]).includes(type)) {
+    item.type = type as NormalizedItemType;
+  }
+  const url = textFrom(value["url"]);
+  if (url !== undefined) item.url = url;
+  const repository = textFrom(value["repository"]);
+  if (repository !== undefined) item.repository = repository;
+  const number = positiveIntegerFrom(value["number"]);
+  if (number !== undefined) item.number = number;
+  const kind = textFrom(value["kind"]);
+  if (kind !== undefined) item.kind = kind;
+  if (Array.isArray(value["labels"])) item.labels = stringArrayFrom(value["labels"]);
+  if (Array.isArray(value["assignees"])) item.assignees = stringArrayFrom(value["assignees"]);
+  const author = textFrom(value["author"]);
+  if (author !== undefined) item.author = author;
+  const milestone = textFrom(value["milestone"]);
+  if (milestone !== undefined) item.milestone = milestone;
+  const createdAt = textFrom(value["createdAt"]);
+  if (createdAt !== undefined) item.createdAt = createdAt;
+  const updatedAt = textFrom(value["updatedAt"]);
+  if (updatedAt !== undefined) item.updatedAt = updatedAt;
+  const closedAt = textFrom(value["closedAt"]);
+  if (closedAt !== undefined) item.closedAt = closedAt;
+  const mergedAt = textFrom(value["mergedAt"]);
+  if (mergedAt !== undefined) item.mergedAt = mergedAt;
+  if (Array.isArray(value["requestedReviewers"])) {
+    item.requestedReviewers = stringArrayFrom(value["requestedReviewers"]);
   }
   return item;
 }
@@ -122,16 +171,39 @@ export function itemSearchText(item: TextItem): string {
   );
 }
 
-/** An item counts as done when its status is done, closed, or complete. */
+const DONE_STATUSES = new Set([
+  "done",
+  "closed",
+  "complete",
+  "completed",
+  "merged",
+  "resolved",
+  "cancelled",
+  "canceled",
+]);
+
+const BLOCKED_STATUSES = new Set([
+  "blocked",
+  "blocker",
+  "waiting",
+  "on-hold",
+  "on hold",
+  "waiting-on",
+]);
+
+/** An item is done when its normalized status is an exact terminal status. */
 export function isDoneItem(item: TextItem): boolean {
-  const status = normalizeText(item.status ?? "");
-  return status === "done" || status === "closed" || status === "complete";
+  return DONE_STATUSES.has(normalizeText(item.status ?? ""));
 }
 
-/** An item counts as blocked via its status or a blocked tag. */
+/**
+ * An item is blocked when its normalized status, or any normalized tag, is an
+ * exact blocked status. Exact matching only — never `includes("blocked")`, so
+ * "unblocked" never matches.
+ */
 export function isBlockedItem(item: TextItem): boolean {
-  if (normalizeText(item.status ?? "").includes("blocked")) {
+  if (BLOCKED_STATUSES.has(normalizeText(item.status ?? ""))) {
     return true;
   }
-  return (item.tags ?? []).some((tag) => normalizeText(tag).includes("blocked"));
+  return (item.tags ?? []).some((tag) => BLOCKED_STATUSES.has(normalizeText(tag)));
 }

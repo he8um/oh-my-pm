@@ -68,9 +68,19 @@ describe("providerItemsToTextItems", () => {
       { id: "3", type: "task", title: "Three", source: "local", data: {} },
     ];
     expect(providerItemsToTextItems(items)).toEqual([
-      { id: "1", title: "One", body: "b", status: "open", owner: "sam", due: "2026-08-01", tags: ["x"] },
-      { id: "2", title: "Two", body: "s" },
-      { id: "3", title: "Three" },
+      {
+        id: "1",
+        title: "One",
+        source: "local",
+        type: "task",
+        body: "b",
+        status: "open",
+        owner: "sam",
+        due: "2026-08-01",
+        tags: ["x"],
+      },
+      { id: "2", title: "Two", source: "local", type: "task", body: "s" },
+      { id: "3", title: "Three", source: "local", type: "task" },
     ]);
   });
 
@@ -85,8 +95,68 @@ describe("providerItemsToTextItems", () => {
       },
     ];
     expect(providerItemsToTextItems(items)).toEqual([
-      { id: "docs/a.md", title: "A", body: "The launch is blocked." },
+      { id: "docs/a.md", title: "A", source: "local", type: "document", body: "The launch is blocked." },
     ]);
+  });
+
+  it("maps selected github provenance and drops raw data/unknown fields", () => {
+    const items: NormalizedProviderItem[] = [
+      {
+        id: "github:issue:o/r#7",
+        type: "issue",
+        title: "#7 T",
+        url: "https://github.com/o/r/issues/7",
+        source: "github",
+        data: {
+          repository: "o/r",
+          number: 7,
+          kind: "issue",
+          body: "b",
+          status: "open",
+          owner: "alice",
+          labels: ["bug", "bug"],
+          assignees: ["bob"],
+          author: "carol",
+          milestone: "M1",
+          due: "2026-04-01",
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-02T00:00:00Z",
+          closedAt: "2026-01-03T00:00:00Z",
+          mergedAt: "2026-01-04T00:00:00Z",
+          requestedReviewers: ["rev"],
+          nodeId: "SHOULD_NOT_LEAK",
+          comments: 3,
+        },
+      },
+    ];
+    const mapped = providerItemsToTextItems(items);
+    expect(mapped[0]).toEqual({
+      id: "github:issue:o/r#7",
+      title: "#7 T",
+      source: "github",
+      type: "issue",
+      url: "https://github.com/o/r/issues/7",
+      body: "b",
+      status: "open",
+      owner: "alice",
+      due: "2026-04-01",
+      repository: "o/r",
+      number: 7,
+      kind: "issue",
+      labels: ["bug"],
+      assignees: ["bob"],
+      author: "carol",
+      milestone: "M1",
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-02T00:00:00Z",
+      closedAt: "2026-01-03T00:00:00Z",
+      mergedAt: "2026-01-04T00:00:00Z",
+      requestedReviewers: ["rev"],
+    });
+    const serialized = JSON.stringify(mapped[0]);
+    expect(serialized).not.toContain("SHOULD_NOT_LEAK");
+    expect(serialized).not.toContain("comments");
+    expect(serialized).not.toContain("nodeId");
   });
 
   it("keeps body over summary over content precedence", () => {
@@ -118,7 +188,9 @@ describe("providerItemsToTextItems", () => {
     };
     const snapshot = JSON.parse(JSON.stringify(item));
     const mapped = providerItemsToTextItems([item]);
-    expect(mapped).toEqual([{ id: "docs/a.md", title: "A", body: "text" }]);
+    expect(mapped).toEqual([
+      { id: "docs/a.md", title: "A", source: "local", type: "document", body: "text" },
+    ]);
     expect(item).toEqual(snapshot);
   });
 });
@@ -148,7 +220,7 @@ describe("skillInputForPlan", () => {
     expect(envelope.context).toEqual({ locale: "en", now: "injected-now" });
     const input = envelope.input as Record<string, unknown>;
     expect(input["title"]).toBe("what is next");
-    expect(input["items"]).toEqual([{ id: "1", title: "One" }]);
+    expect(input["items"]).toEqual([{ id: "1", title: "One", source: "local", type: "task" }]);
     expect(input["notes"]).toEqual(["remember"]);
     expect(input["context"]).toEqual({ graph: { nodes: [] } });
   });
@@ -166,7 +238,9 @@ describe("skillInputForPlan", () => {
       notes: [],
     });
     const input = envelope.input as Record<string, unknown>;
-    expect(input["items"]).toEqual([{ id: "docs/a.md", title: "A", body: "x" }]);
+    expect(input["items"]).toEqual([
+      { id: "docs/a.md", title: "A", source: "local", type: "document", body: "x" },
+    ]);
     expect("tasks" in input).toBe(false);
     expect("risks" in input).toBe(false);
     expect("changes" in input).toBe(false);

@@ -621,3 +621,113 @@ describe("cli formatting", () => {
     }
   });
 });
+
+describe("cli formatting — signal metadata", () => {
+  it("appends risk metadata in the canonical brief order", () => {
+    const response: RuntimeResponse = {
+      id: "cli-risks",
+      ok: true,
+      data: {
+        output: {
+          risks: [
+            {
+              id: "github:issue:o/r#7",
+              title: "#7 Flaky pipeline",
+              severity: "high",
+              reason: "github_label:blocker",
+              source: "github-issue",
+              url: "https://github.com/o/r/issues/7",
+              owner: "alice",
+              due: "2026-04-01",
+              repository: "o/r",
+              number: 7,
+            },
+          ],
+        },
+      },
+    };
+    expect(formatRuntimeResponse(response, "brief")).toBe(
+      [
+        "OH MY PM risks: 1",
+        "- [high] #7 Flaky pipeline — github_label:blocker — owner: alice — due: 2026-04-01 — source: o/r#7 — https://github.com/o/r/issues/7",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("renders a risk as a safe Markdown link with owner and due", () => {
+    const response: RuntimeResponse = {
+      id: "cli-risks",
+      ok: true,
+      data: {
+        output: {
+          risks: [
+            {
+              id: "github:issue:o/r#7",
+              title: "#7 Flaky pipeline",
+              severity: "high",
+              reason: "github_label:blocker",
+              source: "github-issue",
+              url: "https://github.com/o/r/issues/7",
+              owner: "alice",
+              due: "2026-04-01",
+            },
+          ],
+        },
+      },
+    };
+    const md = formatRuntimeResponse(response, "markdown");
+    expect(md).toContain(
+      "- **high** — [#7 Flaky pipeline](https://github.com/o/r/issues/7) — `github_label:blocker` — owner: `alice` — due: `2026-04-01`",
+    );
+    expect(md.endsWith("\n")).toBe(true);
+    expect(md.endsWith("\n\n")).toBe(false);
+  });
+
+  it("includes a next-task priority and repository source in brief mode", () => {
+    const response: RuntimeResponse = {
+      id: "cli-next",
+      ok: true,
+      data: {
+        output: {
+          tasks: [
+            {
+              id: "github:issue:o/r#8",
+              title: "#8 Add docs",
+              reason: "github_issue:open",
+              priority: "high",
+              source: "github-issue",
+              repository: "o/r",
+              number: 8,
+              url: "https://github.com/o/r/issues/8",
+            },
+            { id: "d1#task-1", title: "Local task", reason: "markdown_unchecked_task", source: "markdown" },
+          ],
+        },
+      },
+    };
+    const brief = formatRuntimeResponse(response, "brief");
+    expect(brief).toContain(
+      "- [high] #8 Add docs — github_issue:open — source: o/r#8 — https://github.com/o/r/issues/8",
+    );
+    // A task with no priority keeps the plain "- Title — reason" shape.
+    expect(brief).toContain("- Local task — markdown_unchecked_task");
+  });
+
+  it("never emits body, token, or trace fields in output", () => {
+    const response: RuntimeResponse = {
+      id: "cli-risks",
+      ok: true,
+      data: {
+        output: {
+          risks: [{ id: "a", title: "T", severity: "low", reason: "explicit", source: "structured" }],
+        },
+      },
+    };
+    const json = formatRuntimeResponse(response, "json");
+    expect(json).not.toContain("Bearer");
+    expect(json).not.toContain("Authorization");
+    const md = formatRuntimeResponse(response, "markdown");
+    expect(md).not.toContain("body");
+  });
+});

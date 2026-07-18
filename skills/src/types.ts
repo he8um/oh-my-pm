@@ -1,5 +1,7 @@
 import type {
   JsonValue,
+  NormalizedItemType,
+  ProviderId,
   SkillId,
   SkillInputEnvelope,
   SkillOutputEnvelope,
@@ -35,7 +37,31 @@ export type TextItem = {
   owner?: string;
   due?: string;
   tags?: string[];
+  // Selected provider provenance (never a raw provider data object).
+  source?: ProviderId;
+  type?: NormalizedItemType;
+  url?: string;
+  repository?: string;
+  number?: number;
+  kind?: string;
+  labels?: string[];
+  assignees?: string[];
+  author?: string;
+  milestone?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  closedAt?: string;
+  mergedAt?: string;
+  requestedReviewers?: string[];
 };
+
+export type ProjectSignalSource =
+  | "structured"
+  | "markdown"
+  | "github-repository"
+  | "github-issue"
+  | "github-pull-request"
+  | "generic";
 
 export type SkillInputObject = {
   title?: string;
@@ -68,6 +94,13 @@ export type RiskSummary = {
     title: string;
     severity: "low" | "medium" | "high";
     reason: string;
+    source?: ProjectSignalSource;
+    sourceType?: NormalizedItemType;
+    url?: string;
+    owner?: string;
+    due?: string;
+    repository?: string;
+    number?: number;
   }>;
 };
 
@@ -76,6 +109,14 @@ export type NextTasksResult = {
     id: string;
     title: string;
     reason: string;
+    source?: ProjectSignalSource;
+    sourceType?: NormalizedItemType;
+    priority?: "low" | "medium" | "high";
+    url?: string;
+    owner?: string;
+    due?: string;
+    repository?: string;
+    number?: number;
   }>;
 };
 

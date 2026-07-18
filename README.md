@@ -60,9 +60,9 @@ node cli/bin/oh-my-pm.mjs next ./examples/fixtures/markdown-project --markdown
 node cli/bin/oh-my-pm.mjs handoff ./examples/fixtures/markdown-project --markdown
 ```
 
-`brief` gives a local project overview from document-level project status. `risks` reports deterministic document-level risk signals from Markdown content: only documents containing a risk keyword are reported. `next` extracts unchecked Markdown checklist tasks. `handoff` assembles a project's objective, active work, open tasks, risks, milestones, and decisions from deterministic Markdown sections into a titled handoff with a fixed Summary / Open Tasks / Risks / Decisions layout. Every workflow is read-only and local-only: no context is uploaded, no project file is modified, and no external integration or LLM is required.
+`brief` gives a local project overview from document-level project status. `risks` reports deterministic, line-level risk signals from recognized Markdown risk headings and explicit markers (English and Persian) — each risk is the actual risk line, never a document-title collapse. `next` derives next tasks from unchecked Markdown checklists, list items under recognized action headings, and explicit action markers, stripping any priority marker. `handoff` assembles a project's objective, active work, open tasks, risks, milestones, and decisions from deterministic Markdown sections into a titled handoff with a fixed Summary / Open Tasks / Risks / Decisions layout. Every workflow is read-only and local-only: no context is uploaded, no project file is modified, and no external integration or LLM is required.
 
-The current risk workflow reports document-level risk signals. Finer line- or item-level extraction is planned for a later phase.
+Risk and next-task extraction is deterministic and rule-based — no LLM, embedding, or fuzzy scorer. It reads exact English and Persian headings/markers, excludes checked (resolved) items and fenced code, and applies false-positive guards (for example `unblocked` is not `blocked`). The same extraction runs over GitHub issues and pull requests through the `github` command, using exact label and status rules, overdue inference, and one risk/task per item. See [the deterministic extraction guide](docs/deterministic-extraction.md).
 
 ## GitHub read-only workflows
 
