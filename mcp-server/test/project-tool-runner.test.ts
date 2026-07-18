@@ -17,15 +17,15 @@ import type {
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const fixtureRoot = join(repoRoot, "examples", "fixtures", "markdown-project");
 
-function successOf(operation: McpProjectOperation, root: string): McpProjectToolSuccess {
-  const execution = executeMcpProjectTool(operation, root);
+async function successOf(operation: McpProjectOperation, root: string): Promise<McpProjectToolSuccess> {
+  const execution = await executeMcpProjectTool(operation, root);
   expect(execution.ok, execution.ok ? "" : execution.message).toBe(true);
   if (!execution.ok) throw new Error("unreachable");
   return execution;
 }
 
 describe("tool/operation mapping", () => {
-  it("maps each operation to its exact tool name and back", () => {
+  it("maps each operation to its exact tool name and back", async () => {
     const pairs: Array<[McpProjectOperation, McpProjectToolName]> = [
       ["brief", "project_brief"],
       ["risks", "project_risks"],
@@ -40,8 +40,8 @@ describe("tool/operation mapping", () => {
 });
 
 describe("executeMcpProjectTool over the fixture", () => {
-  it("produces a config-aware brief without sentinel content", () => {
-    const execution = successOf("brief", fixtureRoot);
+  it("produces a config-aware brief without sentinel content", async () => {
+    const execution = await successOf("brief", fixtureRoot);
     expect(execution.operation).toBe("brief");
     expect(execution.root).toBe(fixtureRoot);
     expect(execution.documents.configExists).toBe(true);
@@ -57,8 +57,8 @@ describe("executeMcpProjectTool over the fixture", () => {
     expect(execution.markdown).not.toContain("Trail survey for the north loop");
   });
 
-  it("produces the CLI-equivalent risk set", () => {
-    const execution = successOf("risks", fixtureRoot);
+  it("produces the CLI-equivalent risk set", async () => {
+    const execution = await successOf("risks", fixtureRoot);
     expect(execution.output).toEqual({
       risks: [
         {
@@ -79,8 +79,8 @@ describe("executeMcpProjectTool over the fixture", () => {
     expect(JSON.stringify(execution.output)).not.toContain("SENTINEL");
   });
 
-  it("derives exactly the three unchecked fixture tasks", () => {
-    const execution = successOf("next", fixtureRoot);
+  it("derives exactly the three unchecked fixture tasks", async () => {
+    const execution = await successOf("next", fixtureRoot);
     expect(execution.output).toEqual({
       tasks: [
         {
@@ -104,8 +104,8 @@ describe("executeMcpProjectTool over the fixture", () => {
     expect(JSON.stringify(execution.output)).not.toContain("SENTINEL");
   });
 
-  it("assembles the fixture handoff sections", () => {
-    const execution = successOf("handoff", fixtureRoot);
+  it("assembles the fixture handoff sections", async () => {
+    const execution = await successOf("handoff", fixtureRoot);
     const output = execution.output as {
       title: string;
       sections: Array<{ heading: string; items: string[] }>;
@@ -128,34 +128,34 @@ describe("executeMcpProjectTool over the fixture", () => {
 });
 
 describe("executeMcpProjectTool failure mapping", () => {
-  it("returns project_root_not_found for an empty string root", () => {
-    const execution = executeMcpProjectTool("brief", "   ");
+  it("returns project_root_not_found for an empty string root", async () => {
+    const execution = await executeMcpProjectTool("brief", "   ");
     expect(execution).toMatchObject({ ok: false, code: "project_root_not_found" });
   });
 
-  it("returns project_root_not_found for a missing root", () => {
-    const execution = executeMcpProjectTool("brief", join(repoRoot, "does-not-exist"));
+  it("returns project_root_not_found for a missing root", async () => {
+    const execution = await executeMcpProjectTool("brief", join(repoRoot, "does-not-exist"));
     expect(execution).toMatchObject({ ok: false, code: "project_root_not_found" });
   });
 
-  it("returns project_root_not_directory for a file root", () => {
+  it("returns project_root_not_directory for a file root", async () => {
     const base = mkdtempSync(join(tmpdir(), "oh-my-pm-mcp-"));
     try {
       const file = join(base, "file.md");
       writeFileSync(file, "# Not a dir\n", "utf8");
-      const execution = executeMcpProjectTool("brief", file);
+      const execution = await executeMcpProjectTool("brief", file);
       expect(execution).toMatchObject({ ok: false, code: "project_root_not_directory" });
     } finally {
       rmSync(base, { recursive: true, force: true });
     }
   });
 
-  it("returns project_config_invalid for a malformed config", () => {
+  it("returns project_config_invalid for a malformed config", async () => {
     const root = mkdtempSync(join(tmpdir(), "oh-my-pm-mcp-cfg-"));
     try {
       writeFileSync(join(root, "README.md"), "# R\n", "utf8");
       writeFileSync(join(root, "oh-my-pm.config.json"), "{ invalid", "utf8");
-      const execution = executeMcpProjectTool("brief", root);
+      const execution = await executeMcpProjectTool("brief", root);
       expect(execution).toMatchObject({ ok: false, code: "project_config_invalid" });
       if (!execution.ok) {
         // The message carries the config code and echoes the caller-provided
@@ -171,7 +171,7 @@ describe("executeMcpProjectTool failure mapping", () => {
     }
   });
 
-  it("returns project_documents_empty when the config excludes everything", () => {
+  it("returns project_documents_empty when the config excludes everything", async () => {
     const root = mkdtempSync(join(tmpdir(), "oh-my-pm-mcp-empty-"));
     try {
       writeFileSync(join(root, "README.md"), "# R\n", "utf8");
@@ -180,7 +180,7 @@ describe("executeMcpProjectTool failure mapping", () => {
         JSON.stringify({ version: 1, documents: { include: ["docs/**/*.md"] } }),
         "utf8",
       );
-      const execution = executeMcpProjectTool("brief", root);
+      const execution = await executeMcpProjectTool("brief", root);
       expect(execution).toMatchObject({ ok: false, code: "project_documents_empty" });
       if (!execution.ok) {
         expect(execution.message).toBe(`no markdown project documents matched under: ${root}`);
@@ -192,30 +192,30 @@ describe("executeMcpProjectTool failure mapping", () => {
 });
 
 describe("executeMcpProjectTool safety", () => {
-  it("never places the root in the Runtime request payload", () => {
-    const execution = successOf("brief", fixtureRoot);
+  it("never places the root in the Runtime request payload", async () => {
+    const execution = await successOf("brief", fixtureRoot);
     const data = execution.runtimeResponse.data as { plannerInput?: unknown };
     expect(JSON.stringify(data.plannerInput)).not.toContain("markdown-project");
   });
 
-  it("runs the real WASM Kernel pipeline", () => {
-    const execution = successOf("brief", fixtureRoot);
+  it("runs the real WASM Kernel pipeline", async () => {
+    const execution = await successOf("brief", fixtureRoot);
     const steps = (execution.runtimeResponse.trace ?? []).map((entry) => entry.step);
     expect(steps).toContain("kernel.validate.taskGraph");
     expect(steps).toContain("provider.execute");
     expect(steps).toContain("skill.execute");
   });
 
-  it("is deterministic across repeated runs", () => {
-    const first = successOf("handoff", fixtureRoot);
-    const second = successOf("handoff", fixtureRoot);
+  it("is deterministic across repeated runs", async () => {
+    const first = await successOf("handoff", fixtureRoot);
+    const second = await successOf("handoff", fixtureRoot);
     expect(first.output).toEqual(second.output);
     expect(first.markdown).toBe(second.markdown);
   });
 
-  it("leaves the fixture untouched (no writes)", () => {
-    const before = executeMcpProjectTool("brief", fixtureRoot);
-    const after = executeMcpProjectTool("brief", fixtureRoot);
+  it("leaves the fixture untouched (no writes)", async () => {
+    const before = await executeMcpProjectTool("brief", fixtureRoot);
+    const after = await executeMcpProjectTool("brief", fixtureRoot);
     expect(JSON.stringify(before)).toBe(JSON.stringify(after));
   });
 });

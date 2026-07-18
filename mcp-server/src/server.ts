@@ -1,8 +1,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { executeMcpGitHubTool, githubOperationForToolName } from "./github-tool-runner.js";
 import { executeMcpProjectTool, projectOperationForToolName } from "./project-tool-runner.js";
 import type {
+  McpGitHubOperation,
+  McpGitHubToolExecution,
+  McpGitHubToolName,
+  McpGitHubToolSuccess,
   McpProjectOperation,
   McpProjectToolExecution,
   McpProjectToolName,
@@ -302,11 +307,78 @@ export function projectHandoffResult(
 export type McpProjectToolExecutor = (
   operation: McpProjectOperation,
   root: string,
-) => McpProjectToolExecution;
+) => Promise<McpProjectToolExecution>;
+
+export type McpGitHubToolExecutor = (
+  operation: McpGitHubOperation,
+  repository: string,
+  limit: number,
+) => Promise<McpGitHubToolExecution>;
 
 export type CreateOhMyPmMcpServerOptions = {
   executeProjectTool?: McpProjectToolExecutor;
+  executeGitHubTool?: McpGitHubToolExecutor;
 };
+
+// GitHub tool input/output schemas. Input is a strict owner/repo plus an
+// optional 1..100 limit; there is no token, API-URL, arbitrary-query, or local
+// root field. Output carries a sanitized source list only — never raw bodies,
+// provider responses, planner input, task graph, or Runtime trace.
+const githubInputShape = {
+  repository: z
+    .string()
+    .trim()
+    .min(1)
+    .describe("Target GitHub repository in owner/repository form"),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(50)
+    .describe("Maximum number of repository/issue/pull-request items (1..100)"),
+} as const;
+
+const githubSourceSchema = z
+  .object({
+    type: z.enum(["issue", "pullRequest"]),
+    number: z.number().int(),
+    title: z.string(),
+    state: z.string(),
+    url: z.string().optional(),
+  })
+  .strict();
+
+function githubOutputShape(operation: McpGitHubOperation) {
+  return {
+    ok: z.literal(true),
+    operation: z.literal(operation),
+    repository: z.string(),
+    sourceSummary: z
+      .object({
+        total: z.number().int(),
+        repositories: z.number().int(),
+        issues: z.number().int(),
+        pullRequests: z.number().int(),
+      })
+      .strict(),
+    sources: z.array(githubSourceSchema),
+    output: z.unknown(),
+    markdown: z.string(),
+  } as const;
+}
+
+function githubPublicResult(execution: McpGitHubToolSuccess): Record<string, unknown> {
+  return {
+    ok: true,
+    operation: execution.operation,
+    repository: execution.repository,
+    sourceSummary: execution.sourceSummary,
+    sources: execution.sources,
+    output: execution.output,
+    markdown: execution.markdown,
+  };
+}
 
 const PROJECT_OUTPUT_INVALID_TEXT =
   "project_output_invalid: runtime output did not match the expected tool shape";
@@ -329,16 +401,16 @@ function successResult(markdown: string, structured: Record<string, unknown>): T
 }
 
 /** Run one tool operation and project it to a public MCP result. */
-function handleProjectTool(
+async function handleProjectTool(
   execute: McpProjectToolExecutor,
   toolName: McpProjectToolName,
   root: string,
   project: (execution: McpProjectToolSuccess) => Record<string, unknown> | null,
-): ToolResult {
+): Promise<ToolResult> {
   const operation = projectOperationForToolName(toolName);
   let execution: McpProjectToolExecution;
   try {
-    execution = execute(operation, root);
+    execution = await execute(operation, root);
   } catch {
     // Unexpected programmer error at the executor boundary: never leak stack
     // traces or raw exception text.
@@ -354,8 +426,31 @@ function handleProjectTool(
   return successResult(execution.markdown, projected);
 }
 
+/** Run one GitHub tool operation and project it to a public MCP result. */
+async function handleGitHubTool(
+  execute: McpGitHubToolExecutor,
+  toolName: McpGitHubToolName,
+  repository: string,
+  limit: number,
+): Promise<ToolResult> {
+  const operation = githubOperationForToolName(toolName);
+  let execution: McpGitHubToolExecution;
+  try {
+    execution = await execute(operation, repository, limit);
+  } catch {
+    // Never leak stack traces or raw exception text (which could contain a URL
+    // or token). A generic, stable public-safe message only.
+    return errorResult("github_runtime_failed: unexpected GitHub tool failure");
+  }
+  if (!execution.ok) {
+    return errorResult(`${execution.code}: ${execution.message}`);
+  }
+  return successResult(execution.markdown, githubPublicResult(execution));
+}
+
 export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): McpServer {
   const execute = options?.executeProjectTool ?? executeMcpProjectTool;
+  const executeGitHub = options?.executeGitHubTool ?? executeMcpGitHubTool;
 
   const server = new McpServer(
     {
@@ -415,6 +510,58 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
     },
     ({ root }) => handleProjectTool(execute, "project_handoff", root, projectHandoffResult),
   );
+
+  // GitHub tools follow the local project tools. Registration performs no
+  // network request; a GitHub request happens only when one of these is called.
+  const githubTools: ReadonlyArray<{
+    name: McpGitHubToolName;
+    title: string;
+    operation: McpGitHubOperation;
+    description: string;
+  }> = [
+    {
+      name: "github_project_brief",
+      title: "GitHub Project Brief",
+      operation: "brief",
+      description:
+        "Generate a read-only status brief for a GitHub repository from repository metadata plus open issues and pull requests. Read-only; performs an outbound GET request to api.github.com only when called.",
+    },
+    {
+      name: "github_project_risks",
+      title: "GitHub Project Risks",
+      operation: "risks",
+      description:
+        "Detect risk signals for a GitHub repository from open issues and pull requests. Read-only; performs an outbound GET request to api.github.com only when called.",
+    },
+    {
+      name: "github_project_next",
+      title: "GitHub Project Next Tasks",
+      operation: "next",
+      description:
+        "Derive next tasks for a GitHub repository from open issues and pull requests. Read-only; performs an outbound GET request to api.github.com only when called.",
+    },
+    {
+      name: "github_project_handoff",
+      title: "GitHub Project Handoff",
+      operation: "handoff",
+      description:
+        "Build a handoff for a GitHub repository from open issues and pull requests. Read-only; performs an outbound GET request to api.github.com only when called.",
+    },
+  ];
+
+  for (const tool of githubTools) {
+    server.registerTool(
+      tool.name,
+      {
+        title: tool.title,
+        description: tool.description,
+        inputSchema: githubInputShape,
+        outputSchema: githubOutputShape(tool.operation),
+      },
+      ({ repository, limit }) =>
+        handleGitHubTool(executeGitHub, tool.name, repository, limit ?? 50),
+    );
+  }
 
   return server;
 }

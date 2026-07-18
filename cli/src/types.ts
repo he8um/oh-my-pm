@@ -9,17 +9,29 @@ export type CliCommand =
   | "risks"
   | "next"
   | "handoff"
-  | "install-preview";
+  | "install-preview"
+  | "github";
 
 /** Commands dispatched to the Runtime; only install-preview runs locally. */
-export type RuntimeCliCommand = Exclude<CliCommand, "install-preview">;
+export type RuntimeCliCommand = Exclude<CliCommand, "install-preview" | "github">;
+
+/** GitHub-backed workflow operations. */
+export type GitHubCliOperation = "brief" | "risks" | "next" | "handoff";
 
 export type CliParseResult =
   | {
       ok: true;
-      command: CliCommand;
+      command: Exclude<CliCommand, "github">;
       outputMode: CliOutputMode;
       input?: string;
+    }
+  | {
+      ok: true;
+      command: "github";
+      operation: GitHubCliOperation;
+      repository: string;
+      limit: number;
+      outputMode: CliOutputMode;
     }
   | {
       ok: false;

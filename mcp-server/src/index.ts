@@ -6,6 +6,15 @@ export {
   toolNameForProjectOperation,
 } from "./project-tool-runner.js";
 export {
+  MCP_GITHUB_DEFAULT_LIMIT,
+  MCP_GITHUB_RUNTIME_NOW,
+  MCP_GITHUB_RUNTIME_VERSION,
+  executeMcpGitHubTool,
+  githubOperationForToolName,
+  toolNameForGitHubOperation,
+} from "./github-tool-runner.js";
+export type { ExecuteMcpGitHubToolOptions } from "./github-tool-runner.js";
+export {
   OH_MY_PM_MCP_SERVER_NAME,
   OH_MY_PM_MCP_SERVER_VERSION,
   createOhMyPmMcpServer,
@@ -17,6 +26,7 @@ export {
 } from "./server.js";
 export type {
   CreateOhMyPmMcpServerOptions,
+  McpGitHubToolExecutor,
   McpProjectBriefOutput,
   McpProjectBriefResult,
   McpProjectHandoffOutput,
@@ -29,6 +39,13 @@ export type {
   McpPublicProjectDocuments,
 } from "./server.js";
 export type {
+  McpGitHubOperation,
+  McpGitHubSource,
+  McpGitHubSourceSummary,
+  McpGitHubToolExecution,
+  McpGitHubToolFailure,
+  McpGitHubToolName,
+  McpGitHubToolSuccess,
   McpProjectDocumentSummary,
   McpProjectOperation,
   McpProjectToolExecution,

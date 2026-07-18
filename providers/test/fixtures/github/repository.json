@@ -1,0 +1,25 @@
+{
+  "id": 900001,
+  "node_id": "R_fixture_repo",
+  "full_name": "riverline/field-guide",
+  "name": "field-guide",
+  "html_url": "https://github.com/riverline/field-guide",
+  "description": "Fictional field guide used for OH MY PM provider tests.",
+  "private": false,
+  "archived": false,
+  "disabled": false,
+  "fork": false,
+  "default_branch": "main",
+  "open_issues_count": 5,
+  "created_at": "2026-01-02T09:00:00Z",
+  "updated_at": "2026-02-10T12:30:00Z",
+  "pushed_at": "2026-02-11T08:15:00Z",
+  "owner": {
+    "login": "riverline",
+    "id": 700001,
+    "node_id": "U_fixture_owner",
+    "type": "Organization"
+  },
+  "clone_url": "https://github.com/riverline/field-guide.git",
+  "url": "https://api.github.com/repos/riverline/field-guide"
+}

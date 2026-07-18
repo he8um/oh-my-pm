@@ -9,7 +9,7 @@ import { DEFAULT_PROJECT_DOCUMENT_MAX_FILES, createRuntimeRequest, runCli } from
 function respondingRuntime(): { runtime: Runtime; requests: RuntimeRequest[] } {
   const requests: RuntimeRequest[] = [];
   const runtime: Runtime = {
-    handle(request: RuntimeRequest): RuntimeResponse {
+    async handle(request: RuntimeRequest): Promise<RuntimeResponse> {
       requests.push(request);
       if (request.kind === "status") {
         return {
@@ -33,7 +33,7 @@ function respondingRuntime(): { runtime: Runtime; requests: RuntimeRequest[] } {
 }
 
 const failingRuntime: Runtime = {
-  handle(request: RuntimeRequest): RuntimeResponse {
+  async handle(request: RuntimeRequest): Promise<RuntimeResponse> {
     return {
       id: request.id,
       ok: false,
@@ -44,15 +44,15 @@ const failingRuntime: Runtime = {
 };
 
 const throwingRuntime: Runtime = {
-  handle(): RuntimeResponse {
+  async handle(): Promise<RuntimeResponse> {
     throw new Error("secret stack detail");
   },
 };
 
 describe("cli core execution", () => {
-  it("runs status with exit 0 and brief stdout", () => {
+  it("runs status with exit 0 and brief stdout", async () => {
     const { runtime, requests } = respondingRuntime();
-    const result = runCli(["status"], { runtime });
+    const result = await runCli(["status"], { runtime });
     expect(result.ok).toBe(true);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("OH MY PM status: healthy");
@@ -60,41 +60,41 @@ describe("cli core execution", () => {
     expect(requests).toEqual([createRuntimeRequest("status")]);
   });
 
-  it("runs doctor with json stdout", () => {
+  it("runs doctor with json stdout", async () => {
     const { runtime } = respondingRuntime();
-    const result = runCli(["doctor", "--json"], { runtime });
+    const result = await runCli(["doctor", "--json"], { runtime });
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
     expect(parsed.id).toBe("cli-doctor");
     expect(parsed.ok).toBe(true);
   });
 
-  it("returns exit 2 and stderr for an invalid command", () => {
+  it("returns exit 2 and stderr for an invalid command", async () => {
     const { runtime } = respondingRuntime();
-    const result = runCli(["nonsense"], { runtime });
+    const result = await runCli(["nonsense"], { runtime });
     expect(result.ok).toBe(false);
     expect(result.exitCode).toBe(2);
     expect(result.stdout).toBe("");
     expect(result.stderr).toBe("error OMP-C-3001: unsupported command: nonsense\n");
   });
 
-  it("infers the requested mode for parse errors", () => {
+  it("infers the requested mode for parse errors", async () => {
     const { runtime } = respondingRuntime();
-    const result = runCli(["nonsense", "--json"], { runtime });
+    const result = await runCli(["nonsense", "--json"], { runtime });
     expect(result.exitCode).toBe(2);
     expect(JSON.parse(result.stderr).error.code).toBe("OMP-C-3001");
   });
 
-  it("returns exit 1 with formatted error for a failed runtime response", () => {
-    const result = runCli(["status"], { runtime: failingRuntime });
+  it("returns exit 1 with formatted error for a failed runtime response", async () => {
+    const result = await runCli(["status"], { runtime: failingRuntime });
     expect(result.ok).toBe(false);
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("error OMP-R-2001: request failed kernel validation\n");
     expect(result.response?.ok).toBe(false);
   });
 
-  it("converts a thrown runtime into OMP-C-3003 without stack traces", () => {
-    const result = runCli(["status"], { runtime: throwingRuntime });
+  it("converts a thrown runtime into OMP-C-3003 without stack traces", async () => {
+    const result = await runCli(["status"], { runtime: throwingRuntime });
     expect(result.ok).toBe(false);
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toBe("error OMP-C-3003: runtime execution failed\n");
@@ -102,9 +102,9 @@ describe("cli core execution", () => {
     expect(result.stderr).not.toContain("at ");
   });
 
-  it("uses a custom request factory when supplied", () => {
+  it("uses a custom request factory when supplied", async () => {
     const { runtime, requests } = respondingRuntime();
-    runCli(["status"], { runtime }, (command) => ({
+    await runCli(["status"], { runtime }, (command) => ({
       id: `custom-${command}`,
       kind: command,
       locale: "en",
@@ -113,10 +113,10 @@ describe("cli core execution", () => {
     expect(requests[0]?.id).toBe("custom-status");
   });
 
-  it("sends a plan request with the joined input", () => {
+  it("sends a plan request with the joined input", async () => {
     const requests: RuntimeRequest[] = [];
     const runtime: Runtime = {
-      handle(request: RuntimeRequest): RuntimeResponse {
+      async handle(request: RuntimeRequest): Promise<RuntimeResponse> {
         requests.push(request);
         return {
           id: request.id,
@@ -125,7 +125,7 @@ describe("cli core execution", () => {
         };
       },
     };
-    const result = runCli(["plan", "review", "risks"], { runtime });
+    const result = await runCli(["plan", "review", "risks"], { runtime });
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toBe("OH MY PM plan: ok\ntasks: 1\n- Fix login\n");
     expect(requests[0]).toEqual({
@@ -136,31 +136,31 @@ describe("cli core execution", () => {
     });
   });
 
-  it("returns exit 1 for a failed plan response", () => {
-    const result = runCli(["plan", "x"], { runtime: failingRuntime });
+  it("returns exit 1 for a failed plan response", async () => {
+    const result = await runCli(["plan", "x"], { runtime: failingRuntime });
     expect(result.ok).toBe(false);
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("error OMP-R-2001: request failed kernel validation\n");
   });
 
-  it("returns exit 2 for a plan parse failure", () => {
+  it("returns exit 2 for a plan parse failure", async () => {
     const { runtime } = respondingRuntime();
-    const result = runCli(["plan"], { runtime });
+    const result = await runCli(["plan"], { runtime });
     expect(result.exitCode).toBe(2);
     expect(result.stderr).toBe("error OMP-C-3002: missing plan request\n");
   });
 
-  it("dispatches brief through the Runtime without the root in the payload", () => {
+  it("dispatches brief through the Runtime without the root in the payload", async () => {
     const { runtime, requests } = respondingRuntime();
-    const result = runCli(["brief", "./my-project"], { runtime });
+    const result = await runCli(["brief", "./my-project"], { runtime });
     expect(result.exitCode).toBe(0);
     expect(requests).toEqual([createRuntimeRequest("brief", "./my-project")]);
     expect(JSON.stringify(requests[0])).not.toContain("my-project");
   });
 
-  it("formats a brief status summary in every output mode", () => {
+  it("formats a brief status summary in every output mode", async () => {
     const runtime: Runtime = {
-      handle(request: RuntimeRequest): RuntimeResponse {
+      async handle(request: RuntimeRequest): Promise<RuntimeResponse> {
         return {
           id: request.id,
           ok: true,
@@ -176,7 +176,7 @@ describe("cli core execution", () => {
         };
       },
     };
-    const brief = runCli(["brief"], { runtime });
+    const brief = await runCli(["brief"], { runtime });
     expect(brief.exitCode).toBe(0);
     expect(brief.stdout).toBe(
       [
@@ -189,33 +189,33 @@ describe("cli core execution", () => {
       ].join("\n"),
     );
 
-    const markdown = runCli(["brief", "--markdown"], { runtime });
+    const markdown = await runCli(["brief", "--markdown"], { runtime });
     expect(markdown.stdout).toContain("# OH MY PM Plan");
     expect(markdown.stdout).toContain("- Total: 4");
     expect(markdown.stdout).toContain("- Riverline Field Guide");
 
-    const json = runCli(["brief", "--json"], { runtime });
+    const json = await runCli(["brief", "--json"], { runtime });
     const parsed = JSON.parse(json.stdout);
     expect(parsed.id).toBe("cli-brief");
     expect(parsed.ok).toBe(true);
   });
 
-  it("returns exit 1 for a failed brief runtime response", () => {
-    const result = runCli(["brief"], { runtime: failingRuntime });
+  it("returns exit 1 for a failed brief runtime response", async () => {
+    const result = await runCli(["brief"], { runtime: failingRuntime });
     expect(result.ok).toBe(false);
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("error OMP-R-2001: request failed kernel validation\n");
   });
 
-  it("converts a thrown runtime into OMP-C-3003 for brief", () => {
-    const result = runCli(["brief"], { runtime: throwingRuntime });
+  it("converts a thrown runtime into OMP-C-3003 for brief", async () => {
+    const result = await runCli(["brief"], { runtime: throwingRuntime });
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toBe("error OMP-C-3003: runtime execution failed\n");
   });
 
-  it("dispatches risks through the Runtime without the root in the payload", () => {
+  it("dispatches risks through the Runtime without the root in the payload", async () => {
     const { runtime, requests } = respondingRuntime();
-    const result = runCli(["risks", "./my-project"], { runtime });
+    const result = await runCli(["risks", "./my-project"], { runtime });
     expect(result.exitCode).toBe(0);
     expect(requests).toEqual([createRuntimeRequest("risks", "./my-project")]);
     expect(requests[0]?.id).toBe("cli-risks");
@@ -224,9 +224,9 @@ describe("cli core execution", () => {
     expect(JSON.stringify(requests[0])).toContain("review project risks");
   });
 
-  it("formats a risks response in every output mode", () => {
+  it("formats a risks response in every output mode", async () => {
     const runtime: Runtime = {
-      handle(request: RuntimeRequest): RuntimeResponse {
+      async handle(request: RuntimeRequest): Promise<RuntimeResponse> {
         return {
           id: request.id,
           ok: true,
@@ -245,39 +245,39 @@ describe("cli core execution", () => {
         };
       },
     };
-    const brief = runCli(["risks"], { runtime });
+    const brief = await runCli(["risks"], { runtime });
     expect(brief.exitCode).toBe(0);
     expect(brief.stdout).toBe(
       "OH MY PM risks: 1\n- [high] Delivery Constraints — keyword:blocked\n",
     );
 
-    const markdown = runCli(["risks", "--markdown"], { runtime });
+    const markdown = await runCli(["risks", "--markdown"], { runtime });
     expect(markdown.stdout).toContain("# OH MY PM Project Risks");
     expect(markdown.stdout).toContain("- Total: 1");
     expect(markdown.stdout).toContain("- **high** — Delivery Constraints — `keyword:blocked`");
 
-    const json = runCli(["risks", "--json"], { runtime });
+    const json = await runCli(["risks", "--json"], { runtime });
     const parsed = JSON.parse(json.stdout);
     expect(parsed.id).toBe("cli-risks");
     expect(parsed.ok).toBe(true);
   });
 
-  it("returns exit 1 for a failed risks runtime response", () => {
-    const result = runCli(["risks"], { runtime: failingRuntime });
+  it("returns exit 1 for a failed risks runtime response", async () => {
+    const result = await runCli(["risks"], { runtime: failingRuntime });
     expect(result.ok).toBe(false);
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("error OMP-R-2001: request failed kernel validation\n");
   });
 
-  it("converts a thrown runtime into OMP-C-3003 for risks", () => {
-    const result = runCli(["risks"], { runtime: throwingRuntime });
+  it("converts a thrown runtime into OMP-C-3003 for risks", async () => {
+    const result = await runCli(["risks"], { runtime: throwingRuntime });
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toBe("error OMP-C-3003: runtime execution failed\n");
   });
 
-  it("dispatches next through the Runtime without the root in the payload", () => {
+  it("dispatches next through the Runtime without the root in the payload", async () => {
     const { runtime, requests } = respondingRuntime();
-    const result = runCli(["next", "./my-project"], { runtime });
+    const result = await runCli(["next", "./my-project"], { runtime });
     expect(result.exitCode).toBe(0);
     expect(requests).toEqual([createRuntimeRequest("next", "./my-project")]);
     expect(requests[0]?.id).toBe("cli-next");
@@ -286,9 +286,9 @@ describe("cli core execution", () => {
     expect(JSON.stringify(requests[0])).toContain("derive next project tasks");
   });
 
-  it("formats a next response in every output mode", () => {
+  it("formats a next response in every output mode", async () => {
     const runtime: Runtime = {
-      handle(request: RuntimeRequest): RuntimeResponse {
+      async handle(request: RuntimeRequest): Promise<RuntimeResponse> {
         return {
           id: request.id,
           ok: true,
@@ -306,38 +306,38 @@ describe("cli core execution", () => {
         };
       },
     };
-    const brief = runCli(["next"], { runtime });
+    const brief = await runCli(["next"], { runtime });
     expect(brief.exitCode).toBe(0);
     expect(brief.stdout).toBe(
       "OH MY PM next: 1\n- Confirm final paper stock with the supplier. — markdown_unchecked_task\n",
     );
 
-    const markdown = runCli(["next", "--markdown"], { runtime });
+    const markdown = await runCli(["next", "--markdown"], { runtime });
     expect(markdown.stdout).toContain("# OH MY PM Next Tasks");
     expect(markdown.stdout).toContain("- Total: 1");
 
-    const json = runCli(["next", "--json"], { runtime });
+    const json = await runCli(["next", "--json"], { runtime });
     const parsed = JSON.parse(json.stdout);
     expect(parsed.id).toBe("cli-next");
     expect(parsed.ok).toBe(true);
   });
 
-  it("returns exit 1 for a failed next runtime response", () => {
-    const result = runCli(["next"], { runtime: failingRuntime });
+  it("returns exit 1 for a failed next runtime response", async () => {
+    const result = await runCli(["next"], { runtime: failingRuntime });
     expect(result.ok).toBe(false);
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("error OMP-R-2001: request failed kernel validation\n");
   });
 
-  it("converts a thrown runtime into OMP-C-3003 for next", () => {
-    const result = runCli(["next"], { runtime: throwingRuntime });
+  it("converts a thrown runtime into OMP-C-3003 for next", async () => {
+    const result = await runCli(["next"], { runtime: throwingRuntime });
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toBe("error OMP-C-3003: runtime execution failed\n");
   });
 
-  it("dispatches handoff through the Runtime without the root in the payload", () => {
+  it("dispatches handoff through the Runtime without the root in the payload", async () => {
     const { runtime, requests } = respondingRuntime();
-    const result = runCli(["handoff", "./my-project"], { runtime });
+    const result = await runCli(["handoff", "./my-project"], { runtime });
     expect(result.exitCode).toBe(0);
     expect(requests).toEqual([createRuntimeRequest("handoff", "./my-project")]);
     expect(requests[0]?.id).toBe("cli-handoff");
@@ -354,9 +354,9 @@ describe("cli core execution", () => {
     });
   });
 
-  it("formats a handoff response in every output mode", () => {
+  it("formats a handoff response in every output mode", async () => {
     const runtime: Runtime = {
-      handle(request: RuntimeRequest): RuntimeResponse {
+      async handle(request: RuntimeRequest): Promise<RuntimeResponse> {
         return {
           id: request.id,
           ok: true,
@@ -375,7 +375,7 @@ describe("cli core execution", () => {
         };
       },
     };
-    const brief = runCli(["handoff"], { runtime });
+    const brief = await runCli(["handoff"], { runtime });
     expect(brief.exitCode).toBe(0);
     expect(brief.stdout).toBe(
       [
@@ -393,7 +393,7 @@ describe("cli core execution", () => {
       ].join("\n"),
     );
 
-    const markdown = runCli(["handoff", "--markdown"], { runtime });
+    const markdown = await runCli(["handoff", "--markdown"], { runtime });
     expect(markdown.stdout).toContain("# OH MY PM Project Handoff");
     expect(markdown.stdout).toContain("- Project: Riverline Field Guide");
     expect(markdown.stdout).toContain("## Summary");
@@ -401,40 +401,40 @@ describe("cli core execution", () => {
     expect(markdown.stdout).toContain("## Risks");
     expect(markdown.stdout).toContain("## Decisions");
 
-    const json = runCli(["handoff", "--json"], { runtime });
+    const json = await runCli(["handoff", "--json"], { runtime });
     const parsed = JSON.parse(json.stdout);
     expect(parsed.id).toBe("cli-handoff");
     expect(parsed.ok).toBe(true);
   });
 
-  it("returns exit 1 for a failed handoff runtime response", () => {
-    const result = runCli(["handoff"], { runtime: failingRuntime });
+  it("returns exit 1 for a failed handoff runtime response", async () => {
+    const result = await runCli(["handoff"], { runtime: failingRuntime });
     expect(result.ok).toBe(false);
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("error OMP-R-2001: request failed kernel validation\n");
   });
 
-  it("converts a thrown runtime into OMP-C-3003 for handoff", () => {
-    const result = runCli(["handoff"], { runtime: throwingRuntime });
+  it("converts a thrown runtime into OMP-C-3003 for handoff", async () => {
+    const result = await runCli(["handoff"], { runtime: throwingRuntime });
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toBe("error OMP-C-3003: runtime execution failed\n");
   });
 
-  it("runs install-preview locally without touching the Runtime", () => {
+  it("runs install-preview locally without touching the Runtime", async () => {
     const root = mkdtempSync(join(tmpdir(), "oh-my-pm-cli-preview-"));
     try {
       mkdirSync(join(root, "bin"));
       writeFileSync(join(root, "bin", "oh-my-pm"), "old binary", "utf8");
       const { runtime, requests } = respondingRuntime();
 
-      const result = runCli(["install-preview", root], { runtime });
+      const result = await runCli(["install-preview", root], { runtime });
       expect(result.ok).toBe(true);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("OH MY PM install-preview: ok");
       expect(result.stderr).toBe("");
       expect(requests).toEqual([]);
 
-      const jsonResult = runCli(["install-preview", root, "--json"], { runtime });
+      const jsonResult = await runCli(["install-preview", root, "--json"], { runtime });
       expect(jsonResult.exitCode).toBe(0);
       const parsed = JSON.parse(jsonResult.stdout);
       expect(parsed.ok).toBe(true);
@@ -445,26 +445,26 @@ describe("cli core execution", () => {
     }
   });
 
-  it("returns exit 2 for install-preview without a root", () => {
+  it("returns exit 2 for install-preview without a root", async () => {
     const { runtime } = respondingRuntime();
-    const result = runCli(["install-preview"], { runtime });
+    const result = await runCli(["install-preview"], { runtime });
     expect(result.exitCode).toBe(2);
     expect(result.stderr).toBe("error OMP-C-3002: missing install-preview root\n");
   });
 
-  it("returns exit 1 for a failing install-preview root", () => {
+  it("returns exit 1 for a failing install-preview root", async () => {
     const { runtime, requests } = respondingRuntime();
-    const result = runCli(["install-preview", " "], { runtime });
+    const result = await runCli(["install-preview", " "], { runtime });
     expect(result.ok).toBe(false);
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toContain("OH MY PM install-preview: failed");
     expect(requests).toEqual([]);
   });
 
-  it("passes command and input to a custom request factory", () => {
+  it("passes command and input to a custom request factory", async () => {
     const { runtime } = respondingRuntime();
     const seen: Array<{ command: string; input?: string }> = [];
-    runCli(["plan", "create", "handoff"], { runtime }, (command, input) => {
+    await runCli(["plan", "create", "handoff"], { runtime }, (command, input) => {
       seen.push(input === undefined ? { command } : { command, input });
       return {
         id: "custom-plan",

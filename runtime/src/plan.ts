@@ -40,11 +40,11 @@ function intentFromFinalNodePayload(payload: JsonValue): IntentCategory | null {
 }
 
 /** Deterministic plan execution shell: plan, validate, read, transform. */
-export function handlePlanRequest(
+export async function handlePlanRequest(
   request: RuntimeRequest,
   deps: RuntimeDeps,
   trace: ExecutionTraceEntry[],
-): RuntimeResponse {
+): Promise<RuntimeResponse> {
   const adapted = plannerInputFromRuntimeRequest(request);
   if (!adapted.ok) {
     trace.push({ step: "planner.input", status: "fail", message: adapted.reason });
@@ -134,7 +134,9 @@ export function handlePlanRequest(
         trace,
       });
     }
-    const result = deps.providers.execute(providerRequest, { requestId: request.id });
+    // Awaited sequentially in graph order: provider reads never run
+    // concurrently in this phase, keeping execution deterministic.
+    const result = await deps.providers.execute(providerRequest, { requestId: request.id });
     if (!result.ok) {
       trace.push({
         step: "provider.execute",

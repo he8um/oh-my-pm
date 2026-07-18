@@ -65,20 +65,20 @@ const providerBackedFactory: RuntimeRequestFactory = (command, input) => ({
 });
 
 describe("cli core with a wrapper-equivalent local runtime", () => {
-  it("runs status", () => {
-    const result = runCli(["status"], { runtime: localRuntime() });
+  it("runs status", async () => {
+    const result = await runCli(["status"], { runtime: localRuntime() });
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("OH MY PM status: healthy");
   });
 
-  it("runs doctor in markdown", () => {
-    const result = runCli(["doctor", "--markdown"], { runtime: localRuntime() });
+  it("runs doctor in markdown", async () => {
+    const result = await runCli(["doctor", "--markdown"], { runtime: localRuntime() });
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("# OH MY PM Doctor");
   });
 
-  it("runs a provider-backed plan end-to-end", () => {
-    const result = runCli(
+  it("runs a provider-backed plan end-to-end", async () => {
+    const result = await runCli(
       ["plan", "review", "risks", "--json"],
       { runtime: localRuntime() },
       providerBackedFactory,
@@ -92,7 +92,7 @@ describe("cli core with a wrapper-equivalent local runtime", () => {
     expect(steps).toContain("provider.execute");
   });
 
-  it("runs brief end-to-end over configured fixture documents", () => {
+  it("runs brief end-to-end over configured fixture documents", async () => {
     // The wrapper uses the configured loader, which applies the fixture's
     // oh-my-pm.config.json: exactly the four included documents, with the
     // archived and scratch documents excluded.
@@ -110,7 +110,7 @@ describe("cli core with a wrapper-equivalent local runtime", () => {
       version: "2.0.0-alpha.0-local",
       now: "2026-01-01T00:00:00.000Z",
     });
-    const result = runCli(["brief", fixtureRoot, "--json"], { runtime });
+    const result = await runCli(["brief", fixtureRoot, "--json"], { runtime });
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
     expect(parsed.ok).toBe(true);
@@ -120,7 +120,7 @@ describe("cli core with a wrapper-equivalent local runtime", () => {
 });
 
 describe("bin wrapper brief smoke", () => {
-  it("produces a fixture-grounded json brief through the full pipeline", () => {
+  it("produces a fixture-grounded json brief through the full pipeline", async () => {
     const loaded = loadMarkdownProjectDocuments(fixtureRoot);
     expect(loaded.ok).toBe(true);
 
@@ -161,7 +161,7 @@ describe("bin wrapper brief smoke", () => {
     expect(reloaded).toEqual(loaded);
   });
 
-  it("renders a markdown brief with fixture titles", () => {
+  it("renders a markdown brief with fixture titles", async () => {
     const result = runBin(["brief", "examples/fixtures/markdown-project", "--markdown"]);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("# OH MY PM Plan");
@@ -169,7 +169,7 @@ describe("bin wrapper brief smoke", () => {
     expect(result.stdout).toContain("Riverline Field Guide");
   });
 
-  it("exits with 2 for a missing root without executing the runtime", () => {
+  it("exits with 2 for a missing root without executing the runtime", async () => {
     const result = runBin(["brief", "examples/fixtures/does-not-exist"]);
     expect(result.status).toBe(2);
     expect(result.stdout).toBe("");
@@ -177,7 +177,7 @@ describe("bin wrapper brief smoke", () => {
     expect(result.stderr).toContain("examples/fixtures/does-not-exist");
   });
 
-  it("exits with 2 for a root without markdown documents", () => {
+  it("exits with 2 for a root without markdown documents", async () => {
     const emptyRoot = mkdtempSync(join(tmpdir(), "oh-my-pm-empty-"));
     try {
       const result = runBin(["brief", emptyRoot]);
@@ -191,7 +191,7 @@ describe("bin wrapper brief smoke", () => {
 });
 
 describe("bin wrapper risks smoke", () => {
-  it("detects body-grounded risks through the full pipeline in json mode", () => {
+  it("detects body-grounded risks through the full pipeline in json mode", async () => {
     const loaded = loadMarkdownProjectDocuments(fixtureRoot);
     expect(loaded.ok).toBe(true);
 
@@ -242,7 +242,7 @@ describe("bin wrapper risks smoke", () => {
     expect(reloaded).toEqual(loaded);
   });
 
-  it("renders a markdown risk report limited to keyword-bearing documents", () => {
+  it("renders a markdown risk report limited to keyword-bearing documents", async () => {
     const result = runBin(["risks", "examples/fixtures/markdown-project", "--markdown"]);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("# OH MY PM Project Risks");
@@ -258,7 +258,7 @@ describe("bin wrapper risks smoke", () => {
     expect(result.stdout).not.toContain("paper supplier");
   });
 
-  it("exits with 2 for a missing risks root without executing the runtime", () => {
+  it("exits with 2 for a missing risks root without executing the runtime", async () => {
     const result = runBin(["risks", "examples/fixtures/does-not-exist", "--json"]);
     expect(result.status).toBe(2);
     expect(result.stdout).toBe("");
@@ -267,7 +267,7 @@ describe("bin wrapper risks smoke", () => {
     );
   });
 
-  it("exits with 2 for a risks root without markdown documents", () => {
+  it("exits with 2 for a risks root without markdown documents", async () => {
     const emptyRoot = mkdtempSync(join(tmpdir(), "oh-my-pm-empty-"));
     try {
       const result = runBin(["risks", emptyRoot]);
@@ -281,7 +281,7 @@ describe("bin wrapper risks smoke", () => {
 });
 
 describe("bin wrapper next smoke", () => {
-  it("derives fixture checkbox tasks through the full pipeline in json mode", () => {
+  it("derives fixture checkbox tasks through the full pipeline in json mode", async () => {
     const loaded = loadMarkdownProjectDocuments(fixtureRoot);
     expect(loaded.ok).toBe(true);
 
@@ -326,7 +326,7 @@ describe("bin wrapper next smoke", () => {
     expect(reloaded).toEqual(loaded);
   });
 
-  it("renders a markdown next-task report with totals and reasons", () => {
+  it("renders a markdown next-task report with totals and reasons", async () => {
     const result = runBin(["next", "examples/fixtures/markdown-project", "--markdown"]);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("# OH MY PM Next Tasks");
@@ -347,7 +347,7 @@ describe("bin wrapper next smoke", () => {
     expect(result.stdout.endsWith("\n\n")).toBe(false);
   });
 
-  it("exits with 2 for a missing next root without executing the runtime", () => {
+  it("exits with 2 for a missing next root without executing the runtime", async () => {
     const result = runBin(["next", "examples/fixtures/does-not-exist", "--json"]);
     expect(result.status).toBe(2);
     expect(result.stdout).toBe("");
@@ -356,7 +356,7 @@ describe("bin wrapper next smoke", () => {
     );
   });
 
-  it("exits with 2 for a next root without markdown documents", () => {
+  it("exits with 2 for a next root without markdown documents", async () => {
     const emptyRoot = mkdtempSync(join(tmpdir(), "oh-my-pm-empty-"));
     try {
       const result = runBin(["next", emptyRoot]);
@@ -370,7 +370,7 @@ describe("bin wrapper next smoke", () => {
 });
 
 describe("bin wrapper handoff smoke", () => {
-  it("assembles a fixture-grounded json handoff through the full pipeline", () => {
+  it("assembles a fixture-grounded json handoff through the full pipeline", async () => {
     const loaded = loadMarkdownProjectDocuments(fixtureRoot);
     expect(loaded.ok).toBe(true);
 
@@ -442,7 +442,7 @@ describe("bin wrapper handoff smoke", () => {
     expect(reloaded).toEqual(loaded);
   });
 
-  it("renders a markdown handoff without dumping full document bodies", () => {
+  it("renders a markdown handoff without dumping full document bodies", async () => {
     const result = runBin(["handoff", "examples/fixtures/markdown-project", "--markdown"]);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("# OH MY PM Project Handoff");
@@ -461,14 +461,14 @@ describe("bin wrapper handoff smoke", () => {
     expect(result.stdout.endsWith("\n\n")).toBe(false);
   });
 
-  it("exits with 2 for a missing handoff root without executing the runtime", () => {
+  it("exits with 2 for a missing handoff root without executing the runtime", async () => {
     const result = runBin(["handoff", "examples/fixtures/does-not-exist", "--json"]);
     expect(result.status).toBe(2);
     expect(result.stdout).toBe("");
     expect(result.stderr).toBe("project root was not found: examples/fixtures/does-not-exist\n");
   });
 
-  it("exits with 2 for a handoff root without markdown documents", () => {
+  it("exits with 2 for a handoff root without markdown documents", async () => {
     const emptyRoot = mkdtempSync(join(tmpdir(), "oh-my-pm-empty-"));
     try {
       const result = runBin(["handoff", emptyRoot]);
@@ -484,7 +484,7 @@ describe("bin wrapper handoff smoke", () => {
 describe("bin wrapper configured document selection", () => {
   const commands = ["brief", "risks", "next", "handoff"] as const;
 
-  it("applies the fixture config so sentinels never reach any workflow", () => {
+  it("applies the fixture config so sentinels never reach any workflow", async () => {
     for (const command of commands) {
       const result = runBin([command, "examples/fixtures/markdown-project", "--json"]);
       expect(result.stderr, command).toBe("");
@@ -512,21 +512,21 @@ describe("bin wrapper configured document selection", () => {
     }
   });
 
-  it("keeps included content present across the workflows", () => {
+  it("keeps included content present across the workflows", async () => {
     const brief = runBin(["brief", "examples/fixtures/markdown-project", "--markdown"]);
     expect(brief.stdout).toContain("Riverline Field Guide");
     const handoff = runBin(["handoff", "examples/fixtures/markdown-project", "--markdown"]);
     expect(handoff.stdout).toContain("Ship the printable spring edition of the trail guide.");
   });
 
-  it("produces deterministic output across repeated runs", () => {
+  it("produces deterministic output across repeated runs", async () => {
     const first = runBin(["handoff", "examples/fixtures/markdown-project", "--json"]);
     const second = runBin(["handoff", "examples/fixtures/markdown-project", "--json"]);
     expect(first.status).toBe(0);
     expect(first.stdout).toBe(second.stdout);
   });
 
-  it("preserves current behavior when no config exists", () => {
+  it("preserves current behavior when no config exists", async () => {
     const root = mkdtempSync(join(tmpdir(), "oh-my-pm-noconfig-"));
     try {
       writeFileSync(join(root, "README.md"), "# Solo\n\n## Current objective\n\nShip it.\n", "utf8");
@@ -542,7 +542,7 @@ describe("bin wrapper configured document selection", () => {
     }
   });
 
-  it("exits with 2 and skips the runtime for an invalid config", () => {
+  it("exits with 2 and skips the runtime for an invalid config", async () => {
     const root = mkdtempSync(join(tmpdir(), "oh-my-pm-badconfig-"));
     try {
       writeFileSync(join(root, "README.md"), "# Solo\n", "utf8");
@@ -558,7 +558,7 @@ describe("bin wrapper configured document selection", () => {
     }
   });
 
-  it("exits with 2 when the config excludes every document", () => {
+  it("exits with 2 when the config excludes every document", async () => {
     const root = mkdtempSync(join(tmpdir(), "oh-my-pm-excludeall-"));
     try {
       writeFileSync(join(root, "README.md"), "# Solo\n", "utf8");
@@ -576,7 +576,7 @@ describe("bin wrapper configured document selection", () => {
     }
   });
 
-  it("applies a configured limit to reduce selected documents deterministically", () => {
+  it("applies a configured limit to reduce selected documents deterministically", async () => {
     const root = mkdtempSync(join(tmpdir(), "oh-my-pm-limit-"));
     try {
       writeFileSync(join(root, "a.md"), "# A\n\n## Current objective\n\nOne.\n", "utf8");

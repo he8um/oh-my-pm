@@ -5,11 +5,14 @@
 ### Added
 
 - Portable release bundles now contain a preview-first self-installer that creates a versioned, source-independent local installation under an explicit prefix.
+- A strictly read-only, explicitly opt-in GitHub provider for repository metadata, issues, and pull requests.
+- GitHub-backed brief, risks, next, and handoff workflows in CLI and MCP.
 
 ### Changed
 
 - Opened the `0.2.0-alpha.0` development line.
 - Generalized version, bundle, and archive verification around self-describing metadata.
+- Provider, Runtime, CLI, and MCP execution boundaries are asynchronous to support real read-only network providers.
 
 ## 0.1.0
 

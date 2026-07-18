@@ -22,6 +22,18 @@ export type ProviderExecutionContext = {
   requestId: string;
 };
 
+/** Stable provider failure codes. */
+export type ProviderFailureCode =
+  | "OMP-P-4001"
+  | "OMP-P-4002"
+  | "OMP-P-4003"
+  | "OMP-P-4004"
+  | "OMP-P-4005"
+  | "OMP-P-4006"
+  | "OMP-P-4007"
+  | "OMP-P-4008"
+  | "OMP-P-4009";
+
 export type ProviderResult =
   | {
       ok: true;
@@ -30,19 +42,25 @@ export type ProviderResult =
   | {
       ok: false;
       response: NormalizedProviderResponse;
-      code: "OMP-P-4001" | "OMP-P-4002" | "OMP-P-4003";
+      code: ProviderFailureCode;
       message: string;
     };
 
 export type Provider = {
   descriptor: ProviderDescriptor;
-  execute(request: ProviderRequest, context: ProviderExecutionContext): ProviderResult;
+  execute(
+    request: ProviderRequest,
+    context: ProviderExecutionContext,
+  ): Promise<ProviderResult>;
 };
 
 export type ProviderRegistry = {
   list(): readonly ProviderDescriptor[];
   get(id: ProviderId): Provider | undefined;
-  execute(request: ProviderRequest, context: ProviderExecutionContext): ProviderResult;
+  execute(
+    request: ProviderRequest,
+    context: ProviderExecutionContext,
+  ): Promise<ProviderResult>;
 };
 
 export type LocalProviderItemInput = {

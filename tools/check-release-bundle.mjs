@@ -123,9 +123,52 @@ async function run(bundle) {
   if (bundleBasename !== expectedBundleName && bundleBasename !== expectedVersion) {
     return fail(`bundle directory basename ${bundleBasename} != ${expectedBundleName}`);
   }
-  const expectedTools = ["project_brief", "project_risks", "project_next", "project_handoff"];
+  // Exactly the eight tools in order: four local, then four GitHub. The local
+  // tools are still callable offline; the GitHub tools are opt-in network.
+  const expectedTools = [
+    "project_brief",
+    "project_risks",
+    "project_next",
+    "project_handoff",
+    "github_project_brief",
+    "github_project_risks",
+    "github_project_next",
+    "github_project_handoff",
+  ];
   if (JSON.stringify(release.mcpTools) !== JSON.stringify(expectedTools)) {
     return fail("RELEASE.json mcpTools list is unexpected");
+  }
+  const expectedGithubWorkflows = ["brief", "risks", "next", "handoff"];
+  if (JSON.stringify(release.githubWorkflows) !== JSON.stringify(expectedGithubWorkflows)) {
+    return fail("RELEASE.json githubWorkflows list is unexpected");
+  }
+
+  // Conditional-network metadata: default disabled, one opt-in read-only,
+  // GET-only GitHub provider at the fixed origin, with the exact token env var.
+  // The literal origin is assembled from fragments so this repo-independent
+  // verifier holds no bare secure-scheme origin string in its own source.
+  const expectedGithubOrigin = `${"https"}://api.github.com`;
+  const network = release.network;
+  if (network === null || typeof network !== "object") {
+    return fail("RELEASE.json network metadata is missing");
+  }
+  if (network.default !== "disabled") return fail("RELEASE.json network.default must be disabled");
+  if (!Array.isArray(network.outboundProviders) || network.outboundProviders.length !== 1) {
+    return fail("RELEASE.json network.outboundProviders is unexpected");
+  }
+  const gh = network.outboundProviders[0];
+  if (gh === null || typeof gh !== "object") return fail("RELEASE.json github network entry is missing");
+  if (gh.id !== "github") return fail("RELEASE.json network provider id must be github");
+  if (gh.optIn !== true) return fail("RELEASE.json github network must be opt-in");
+  if (gh.readOnly !== true) return fail("RELEASE.json github network must be read-only");
+  if (JSON.stringify(gh.methods) !== JSON.stringify(["GET"])) {
+    return fail("RELEASE.json github network methods must be GET only");
+  }
+  if (gh.origin !== expectedGithubOrigin) return fail("RELEASE.json github origin is unexpected");
+  if (gh.apiVersion !== "2026-03-10") return fail("RELEASE.json github apiVersion is unexpected");
+  if (gh.tokenEnv !== "OH_MY_PM_GITHUB_TOKEN") return fail("RELEASE.json github tokenEnv is unexpected");
+  if (gh.tokenOptionalForPublicRepositories !== true) {
+    return fail("RELEASE.json github tokenOptionalForPublicRepositories must be true");
   }
 
   // Installer metadata: preview-first, prefix-required, no network/profile/

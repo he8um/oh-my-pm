@@ -15,7 +15,19 @@ import { pathToFileURL } from "node:url";
 
 const isWindows = process.platform === "win32";
 
-const EXPECTED_MCP_TOOLS = ["project_brief", "project_handoff", "project_next", "project_risks"];
+// The eight installed MCP tools (four local + four GitHub), compared sorted.
+// This verifier calls only the offline local project_brief; it never invokes a
+// GitHub tool and never touches the network or requires a token.
+const EXPECTED_MCP_TOOLS = [
+  "github_project_brief",
+  "github_project_handoff",
+  "github_project_next",
+  "github_project_risks",
+  "project_brief",
+  "project_handoff",
+  "project_next",
+  "project_risks",
+];
 
 function isCanonicalSemver(value) {
   if (typeof value !== "string" || value !== value.trim() || value === "") return false;

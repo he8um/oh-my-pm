@@ -64,6 +64,41 @@ node cli/bin/oh-my-pm.mjs handoff ./examples/fixtures/markdown-project --markdow
 
 The current risk workflow reports document-level risk signals. Finer line- or item-level extraction is planned for a later phase.
 
+## GitHub read-only workflows
+
+The same four workflows can run against a GitHub repository through the explicit
+`github` command. This is the one part of OH MY PM that reaches the network, and
+only when you invoke it:
+
+```bash
+# Public repository (no token needed):
+oh-my-pm github brief owner/repository --markdown
+
+# Private repository or higher rate limit:
+export OH_MY_PM_GITHUB_TOKEN="<fine-grained read-only token>"
+oh-my-pm github brief owner/private-repository --limit 50 --markdown
+```
+
+The GitHub provider is strictly read-only: `GET`-only requests to a fixed origin
+(`api.github.com`, REST API version `2026-03-10`) for repository metadata, issues,
+and pull requests. It never writes to GitHub, never uses a token CLI argument,
+and never prints or persists the optional `OH_MY_PM_GITHUB_TOKEN`. See
+[the GitHub provider guide](docs/providers/github.md).
+
+Scope at a glance:
+
+```text
+Local Markdown workflows:
+- offline
+- no network
+- no token
+
+GitHub workflows:
+- explicit `github` command/tool only
+- outbound read-only HTTPS to api.github.com
+- optional token
+```
+
 The current next-task workflow extracts explicit unchecked Markdown checklist items. It does not generate tasks from arbitrary prose.
 
 ## Getting started locally
@@ -191,16 +226,25 @@ include match → exclude check → safety limits → read-only analysis
 
 Supported glob operators are `*` (zero or more non-slash characters), `?` (exactly one non-slash character), and `**` (across path segments, including zero). Matching is case-sensitive; the Markdown extension gate itself remains case-insensitive.
 
-## Local MCP server
+## MCP server
 
-OH MY PM exposes its local Markdown project workflows over a read-only MCP stdio server.
+OH MY PM exposes its workflows over a read-only MCP stdio server with exactly
+eight tools — four local (filesystem-only) and four GitHub (read-only network):
 
-Available tools:
+Local project tools (offline, require a local `root`):
 
 - `project_brief`
 - `project_risks`
 - `project_next`
 - `project_handoff`
+
+GitHub tools (read-only outbound request to `api.github.com` only when called;
+require a `repository` in `owner/repo` form and an optional `limit`):
+
+- `github_project_brief`
+- `github_project_risks`
+- `github_project_next`
+- `github_project_handoff`
 
 After building the workspace, start the server with:
 
@@ -208,7 +252,13 @@ After building the workspace, start the server with:
 node mcp-server/bin/oh-my-pm-mcp.mjs
 ```
 
-Each tool accepts a local project `root`, respects `oh-my-pm.config.json`, and uses the same Runtime, Planner, Skills, provider, and Rust/WASM Kernel pipeline as the CLI. The server does not modify files, upload project context, use telemetry, or expose an HTTP endpoint.
+The local tools respect `oh-my-pm.config.json` and stay filesystem-local. The
+GitHub tools perform read-only outbound API requests only when invoked; server
+startup and `tools/list` make no network request. Supply the optional
+`OH_MY_PM_GITHUB_TOKEN` to the server process environment when needed — the MCP
+client-config generator never inserts secrets. The server never modifies files,
+never uploads local project context, uses no telemetry, and exposes no HTTP
+endpoint.
 
 A generic local MCP client configuration:
 

@@ -63,8 +63,8 @@ const steps = (response: { trace?: { step: string }[] }) =>
   (response.trace ?? []).map((entry) => entry.step);
 
 describe("runtime plan execution", () => {
-  it("plans and executes without provider requests", () => {
-    const response = runtimeWith().handle(planRequest({ request: "what is next" }));
+  it("plans and executes without provider requests", async () => {
+    const response = await runtimeWith().handle(planRequest({ request: "what is next" }));
     expect(response.ok).toBe(true);
     const data = response.data as Record<string, JsonValue>;
     expect((data["plannerResult"] as Record<string, JsonValue>)["status"]).toBe("ok");
@@ -81,8 +81,8 @@ describe("runtime plan execution", () => {
     ]);
   });
 
-  it("executes local provider reads and feeds items to the skill", () => {
-    const response = runtimeWith({ providers: localRegistry() }).handle(
+  it("executes local provider reads and feeds items to the skill", async () => {
+    const response = await runtimeWith({ providers: localRegistry() }).handle(
       planRequest({
         request: "what is next",
         context: { providerRequests: [{ providerId: "local", action: "list", query: "" }] },
@@ -98,7 +98,7 @@ describe("runtime plan execution", () => {
     expect(steps(response)).toContain("provider.execute");
   });
 
-  it("no longer declares keyword-free documents as explicit risks", () => {
+  it("no longer declares keyword-free documents as explicit risks", async () => {
     // Regression for the generic fan-out: provider items reach the risk
     // skill as items only, so a document without any risk keyword must not
     // surface as an "explicit" risk.
@@ -120,7 +120,7 @@ describe("runtime plan execution", () => {
         ],
       }),
     ]);
-    const response = runtimeWith({ providers }).handle(
+    const response = await runtimeWith({ providers }).handle(
       planRequest({
         request: "review project risks",
         context: { providerRequests: [{ providerId: "local", action: "list", query: "" }] },
@@ -136,7 +136,7 @@ describe("runtime plan execution", () => {
     ]);
   });
 
-  it("derives next tasks from unchecked markdown checkboxes in document content", () => {
+  it("derives next tasks from unchecked markdown checkboxes in document content", async () => {
     const documentItems = [
       {
         id: "docs/actions.md",
@@ -157,7 +157,7 @@ describe("runtime plan execution", () => {
     ];
     const snapshot = JSON.parse(JSON.stringify(documentItems));
     const providers = createProviderRegistry([createLocalProvider({ items: documentItems })]);
-    const response = runtimeWith({ providers }).handle(
+    const response = await runtimeWith({ providers }).handle(
       planRequest({
         request: "derive next project tasks",
         context: { providerRequests: [{ providerId: "local", action: "list", query: "" }] },
@@ -185,7 +185,7 @@ describe("runtime plan execution", () => {
     expect(documentItems).toEqual(snapshot);
   });
 
-  it("feeds document data.content into the risk skill as item body", () => {
+  it("feeds document data.content into the risk skill as item body", async () => {
     // Regression guard for the Markdown pipeline: the loader stores document
     // text in data.content, the title is neutral, and there is no status or
     // tag signal — detection must come from the body alone.
@@ -203,7 +203,7 @@ describe("runtime plan execution", () => {
     ];
     const snapshot = JSON.parse(JSON.stringify(documentItems));
     const providers = createProviderRegistry([createLocalProvider({ items: documentItems })]);
-    const response = runtimeWith({ providers }).handle(
+    const response = await runtimeWith({ providers }).handle(
       planRequest({
         request: "review project risks",
         context: { providerRequests: [{ providerId: "local", action: "list", query: "" }] },
@@ -227,7 +227,7 @@ describe("runtime plan execution", () => {
     expect(documentItems).toEqual(snapshot);
   });
 
-  it("derives handoff sections from generic Markdown items alone", () => {
+  it("derives handoff sections from generic Markdown items alone", async () => {
     // Neutral document titles: extraction must depend on Markdown section
     // headings and body content, not on accidental title matches. The Runtime
     // must not alias generic items into explicit tasks/risks/changes/decisions.
@@ -276,7 +276,7 @@ describe("runtime plan execution", () => {
     ];
     const snapshot = JSON.parse(JSON.stringify(documentItems));
     const providers = createProviderRegistry([createLocalProvider({ items: documentItems })]);
-    const response = runtimeWith({ providers }).handle(
+    const response = await runtimeWith({ providers }).handle(
       planRequest({
         request: "create project handoff",
         context: { providerRequests: [{ providerId: "local", action: "list", query: "" }] },
@@ -315,21 +315,21 @@ describe("runtime plan execution", () => {
     expect(documentItems).toEqual(snapshot);
   });
 
-  it("returns OMP-R-2004 when the payload cannot become planner input", () => {
-    const response = runtimeWith().handle(planRequest({ context: {} }));
+  it("returns OMP-R-2004 when the payload cannot become planner input", async () => {
+    const response = await runtimeWith().handle(planRequest({ context: {} }));
     expect(response.ok).toBe(false);
     expect(response.error?.code).toBe("OMP-R-2004");
   });
 
-  it("returns OMP-R-2004 when the planner reports missing context", () => {
-    const response = runtimeWith().handle(planRequest({ request: "   " }));
+  it("returns OMP-R-2004 when the planner reports missing context", async () => {
+    const response = await runtimeWith().handle(planRequest({ request: "   " }));
     expect(response.ok).toBe(false);
     expect(response.error?.code).toBe("OMP-R-2004");
     const data = response.data as Record<string, JsonValue>;
     expect(data["reason"]).toBe("request_missing");
   });
 
-  it("stops before providers and skills when graph validation fails", () => {
+  it("stops before providers and skills when graph validation fails", async () => {
     const kernel = fakeKernel({
       validateJson: (target) =>
         target === "taskGraph"
@@ -341,7 +341,7 @@ describe("runtime plan execution", () => {
             }
           : passingReport(target),
     });
-    const response = runtimeWith({ kernel, providers: localRegistry() }).handle(
+    const response = await runtimeWith({ kernel, providers: localRegistry() }).handle(
       planRequest({
         request: "what is next",
         context: { providerRequests: [{ providerId: "local", action: "list", query: "" }] },
@@ -352,8 +352,8 @@ describe("runtime plan execution", () => {
     expect(steps(response)).not.toContain("skill.execute");
   });
 
-  it("returns OMP-R-2005 when the provider registry is missing", () => {
-    const response = runtimeWith().handle(
+  it("returns OMP-R-2005 when the provider registry is missing", async () => {
+    const response = await runtimeWith().handle(
       planRequest({
         request: "what is next",
         context: { providerRequests: [{ providerId: "local", action: "list", query: "" }] },
@@ -363,7 +363,7 @@ describe("runtime plan execution", () => {
     expect(response.error?.message).toBe("provider registry is not configured");
   });
 
-  it("returns OMP-R-2005 when a provider execution fails", () => {
+  it("returns OMP-R-2005 when a provider execution fails", async () => {
     const failingGithub: Provider = {
       descriptor: {
         id: "github",
@@ -371,14 +371,14 @@ describe("runtime plan execution", () => {
         readOnly: true,
         capabilities: [{ action: "search", readOnly: true }],
       },
-      execute: () => ({
+      execute: async () => ({
         ok: false,
         code: "OMP-P-4003",
         message: "credentials missing",
         response: { providerId: "github", items: [] },
       }),
     };
-    const response = runtimeWith({ providers: createProviderRegistry([failingGithub]) }).handle(
+    const response = await runtimeWith({ providers: createProviderRegistry([failingGithub]) }).handle(
       planRequest({
         request: "what is next",
         context: { providerRequests: [{ providerId: "github", action: "search", query: "x" }] },
@@ -388,7 +388,7 @@ describe("runtime plan execution", () => {
     expect(response.error?.message).toContain("credentials missing");
   });
 
-  it("returns OMP-R-2006 when the skill fails", () => {
+  it("returns OMP-R-2006 when the skill fails", async () => {
     const failingSkills: SkillRegistry = {
       list: () => [],
       get: () => undefined,
@@ -399,14 +399,14 @@ describe("runtime plan execution", () => {
         warnings: [{ code: "OMP-S-5003", message: "skill exploded" }],
       }),
     };
-    const response = runtimeWith({ skills: failingSkills }).handle(
+    const response = await runtimeWith({ skills: failingSkills }).handle(
       planRequest({ request: "what is next" }),
     );
     expect(response.error?.code).toBe("OMP-R-2006");
   });
 
-  it("keeps executeSkill unsupported", () => {
-    const response = runtimeWith().handle({
+  it("keeps executeSkill unsupported", async () => {
+    const response = await runtimeWith().handle({
       id: "req-skill",
       kind: "executeSkill",
       locale: "en",
@@ -415,7 +415,7 @@ describe("runtime plan execution", () => {
     expect(response.error?.code).toBe("OMP-R-2002");
   });
 
-  it("produces JSON-serializable responses without stack traces", () => {
+  it("produces JSON-serializable responses without stack traces", async () => {
     const throwingSkills: SkillRegistry = {
       list: () => [],
       get: () => undefined,
@@ -423,11 +423,11 @@ describe("runtime plan execution", () => {
         throw new Error("secret skill stack");
       },
     };
-    const ok = runtimeWith({ providers: localRegistry() }).handle(
+    const ok = await runtimeWith({ providers: localRegistry() }).handle(
       planRequest({ request: "status report" }),
     );
     expect(JSON.parse(JSON.stringify(ok))).toEqual(ok);
-    const thrown = runtimeWith({ skills: throwingSkills }).handle(
+    const thrown = await runtimeWith({ skills: throwingSkills }).handle(
       planRequest({ request: "status report" }),
     );
     expect(thrown.error?.code).toBe("OMP-R-2003");

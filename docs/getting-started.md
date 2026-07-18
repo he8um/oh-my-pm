@@ -91,7 +91,23 @@ oh-my-pm next ./project --markdown
 oh-my-pm handoff ./project --markdown
 ```
 
-Each command reads an optional `oh-my-pm.config.json` at the project root to select which Markdown documents are analyzed. See [the CLI guide](../cli/README.md) for the full configuration and glob rules.
+Each command reads an optional `oh-my-pm.config.json` at the project root to select which Markdown documents are analyzed. See [the CLI guide](../cli/README.md) for the full configuration and glob rules. These local workflows are fully offline: no network request is made and no token is read.
+
+## GitHub workflows (opt-in network)
+
+The same four workflows can run against a GitHub repository through the explicit `github` command. This is the only part of OH MY PM that reaches the network, and only when invoked:
+
+```bash
+# Public repository — no token needed:
+oh-my-pm github brief owner/repository --markdown
+oh-my-pm github risks owner/repository --limit 25 --markdown
+
+# Private repository or higher rate limit:
+export OH_MY_PM_GITHUB_TOKEN="<fine-grained read-only token>"
+oh-my-pm github next owner/private-repository --markdown
+```
+
+The provider is strictly read-only (`GET`-only to `api.github.com`, REST API version `2026-03-10`). The token is optional, supplied only through `OH_MY_PM_GITHUB_TOKEN`, and never accepted as a CLI argument or printed. `--limit` accepts `1..100` (default 50). See [the GitHub provider guide](providers/github.md).
 
 ## MCP onboarding
 
@@ -106,17 +122,25 @@ Then:
 - copy the generated stdio server entry into your MCP client's configuration manually
 - reload or restart the client as that client requires
 - do not place a project path in the server configuration
-- pass the project `root` when invoking a tool
-- exactly four tools are available: `project_brief`, `project_risks`, `project_next`, `project_handoff`
+- pass the project `root` when invoking a local tool
+- exactly eight tools are available: `project_brief`, `project_risks`, `project_next`, `project_handoff`, `github_project_brief`, `github_project_risks`, `github_project_next`, `github_project_handoff`
+- the four local tools stay filesystem-local; the four GitHub tools perform read-only outbound API requests only when called
+- supply `OH_MY_PM_GITHUB_TOKEN` to the MCP server process environment only if you need it — the generator never inserts secrets
 
-The generator prints configuration only; it never writes to a client application.
+The generator prints configuration only; it never writes to a client application and never inserts a token.
 
 ## Example MCP calls
 
-Each tool takes a single input naming a local project root:
+A local tool takes a project root:
 
 ```json
 { "root": "./project" }
+```
+
+A GitHub tool takes a repository and an optional limit:
+
+```json
+{ "repository": "owner/repository", "limit": 50 }
 ```
 
 ## Installing the stable v0.1.0 release

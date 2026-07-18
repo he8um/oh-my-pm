@@ -1,0 +1,44 @@
+{
+  "total_count": 2,
+  "incomplete_results": false,
+  "items": [
+    {
+      "number": 42,
+      "node_id": "I_fixture_42",
+      "title": "Trail markers missing near the north fork",
+      "body": "Several markers between mile 3 and mile 5 are missing.",
+      "state": "open",
+      "html_url": "https://github.com/riverline/field-guide/issues/42",
+      "url": "https://api.github.com/repos/riverline/field-guide/issues/42",
+      "user": { "login": "ranger-mika", "id": 700010 },
+      "assignees": [{ "login": "ranger-mika", "id": 700010 }],
+      "labels": [{ "name": "safety", "color": "d73a4a" }],
+      "created_at": "2026-02-01T10:00:00Z",
+      "updated_at": "2026-02-09T14:20:00Z",
+      "closed_at": null,
+      "comments": 4,
+      "locked": false
+    },
+    {
+      "number": 47,
+      "node_id": "PR_fixture_47",
+      "title": "Add printable map legend",
+      "body": "Adds a printable legend to the guide appendix.",
+      "state": "open",
+      "html_url": "https://github.com/riverline/field-guide/pull/47",
+      "url": "https://api.github.com/repos/riverline/field-guide/issues/47",
+      "user": { "login": "cartographer-sol", "id": 700012 },
+      "assignees": [],
+      "labels": [{ "name": "documentation", "color": "0075ca" }],
+      "created_at": "2026-02-05T08:00:00Z",
+      "updated_at": "2026-02-08T09:00:00Z",
+      "closed_at": null,
+      "comments": 1,
+      "locked": false,
+      "draft": true,
+      "pull_request": {
+        "url": "https://api.github.com/repos/riverline/field-guide/pulls/47"
+      }
+    }
+  ]
+}

@@ -4,7 +4,12 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { afterEach, describe, expect, it } from "vitest";
 import { createOhMyPmMcpServer, executeMcpProjectTool } from "../src/index.js";
-import type { McpProjectToolExecution, McpProjectOperation } from "../src/index.js";
+import type {
+  McpGitHubOperation,
+  McpGitHubToolExecution,
+  McpProjectToolExecution,
+  McpProjectOperation,
+} from "../src/index.js";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const fixtureRoot = join(repoRoot, "examples", "fixtures", "markdown-project");
@@ -36,20 +41,41 @@ type ToolCallResult = {
 };
 
 describe("mcp server tool listing", () => {
-  it("lists exactly the four project tools with schemas", async () => {
+  it("lists exactly the eight tools in the required order", async () => {
     const client = await connectClient();
     const { tools } = await client.listTools();
-    const names = tools.map((tool) => tool.name).sort();
-    expect(names).toEqual(["project_brief", "project_handoff", "project_next", "project_risks"]);
+    const names = tools.map((tool) => tool.name);
+    // Required exact order: four local, then four GitHub.
+    expect(names).toEqual([
+      "project_brief",
+      "project_risks",
+      "project_next",
+      "project_handoff",
+      "github_project_brief",
+      "github_project_risks",
+      "github_project_next",
+      "github_project_handoff",
+    ]);
     for (const tool of tools) {
       expect(typeof tool.title === "string" || typeof tool.annotations?.title === "string").toBe(
         true,
       );
       expect(typeof tool.description).toBe("string");
       expect(tool.inputSchema).toBeDefined();
-      expect(tool.inputSchema.properties).toHaveProperty("root");
       expect(tool.outputSchema).toBeDefined();
     }
+  });
+
+  it("gives project tools a root input and github tools a repository input", async () => {
+    const client = await connectClient();
+    const { tools } = await client.listTools();
+    const byName = new Map(tools.map((t) => [t.name, t]));
+    expect(byName.get("project_brief")!.inputSchema.properties).toHaveProperty("root");
+    const gh = byName.get("github_project_brief")!;
+    expect(gh.inputSchema.properties).toHaveProperty("repository");
+    expect(gh.inputSchema.properties).toHaveProperty("limit");
+    expect(gh.inputSchema.properties).not.toHaveProperty("root");
+    expect(gh.inputSchema.properties).not.toHaveProperty("token");
   });
 });
 
@@ -100,8 +126,9 @@ describe("mcp server successful calls", () => {
       name: "project_handoff",
       arguments: { root: fixtureRel },
     })) as ToolCallResult;
-    const cliMarkdown = (executeMcpProjectTool("handoff", fixtureRel) as { markdown: string })
-      .markdown;
+    const cliMarkdown = ((await executeMcpProjectTool("handoff", fixtureRel)) as {
+      markdown: string;
+    }).markdown;
     expect(result.content[0]?.text).toBe(cliMarkdown);
     expect(result.content[0]?.text).toContain("# OH MY PM Project Handoff");
   });
@@ -139,7 +166,7 @@ describe("mcp server error handling", () => {
   });
 
   it("returns an MCP error for an invalid config without leaking absolute paths", async () => {
-    const executeProjectTool = (operation: McpProjectOperation, root: string) =>
+    const executeProjectTool = async (operation: McpProjectOperation, root: string) =>
       ({
         ok: false,
         operation,
@@ -170,7 +197,7 @@ describe("mcp server dependency injection", () => {
   });
 
   it("maps malformed success output to project_output_invalid", async () => {
-    const executeProjectTool = (operation: McpProjectOperation, root: string) =>
+    const executeProjectTool = async (operation: McpProjectOperation, root: string) =>
       ({
         ok: true,
         operation,
@@ -197,7 +224,7 @@ describe("mcp server dependency injection", () => {
   });
 
   it("maps an unexpected executor throw to a generic public-safe error", async () => {
-    const executeProjectTool = () => {
+    const executeProjectTool = async () => {
       throw new Error("secret internal detail");
     };
     const client = await connectClient(createOhMyPmMcpServer({ executeProjectTool }));
@@ -209,5 +236,130 @@ describe("mcp server dependency injection", () => {
     const text = result.content[0]?.text ?? "";
     expect(text).toBe("project_runtime_failed: unexpected local project tool failure");
     expect(text).not.toContain("secret internal detail");
+  });
+});
+
+describe("mcp github tools", () => {
+  // A deterministic, offline GitHub executor stub: it records calls and
+  // returns a fixed successful projection without any network access.
+  function stubGitHub(): {
+    executeGitHubTool: (
+      operation: McpGitHubOperation,
+      repository: string,
+      limit: number,
+    ) => Promise<McpGitHubToolExecution>;
+    calls: Array<{ operation: string; repository: string; limit: number }>;
+  } {
+    const calls: Array<{ operation: string; repository: string; limit: number }> = [];
+    const executeGitHubTool = async (
+      operation: McpGitHubOperation,
+      repository: string,
+      limit: number,
+    ): Promise<McpGitHubToolExecution> => {
+      calls.push({ operation, repository, limit });
+      return {
+        ok: true,
+        operation,
+        repository,
+        sourceSummary: { total: 2, repositories: 1, issues: 1, pullRequests: 0 },
+        sources: [{ type: "issue", number: 7, title: "#7 A", state: "open" }],
+        output: { title: "brief" },
+        markdown: "# GitHub brief\n",
+      };
+    };
+    return { executeGitHubTool, calls };
+  }
+
+  it("invokes the executor for all four github tools", async () => {
+    const { executeGitHubTool, calls } = stubGitHub();
+    const client = await connectClient(createOhMyPmMcpServer({ executeGitHubTool }));
+    for (const name of [
+      "github_project_brief",
+      "github_project_risks",
+      "github_project_next",
+      "github_project_handoff",
+    ]) {
+      const result = (await client.callTool({
+        name,
+        arguments: { repository: "octo/demo" },
+      })) as ToolCallResult;
+      expect(result.isError).not.toBe(true);
+    }
+    expect(calls.map((c) => c.operation)).toEqual(["brief", "risks", "next", "handoff"]);
+    // limit defaults to 50 through the schema.
+    expect(calls.every((c) => c.limit === 50)).toBe(true);
+  });
+
+  it("rejects an invalid repository before any executor call", async () => {
+    const { executeGitHubTool, calls } = stubGitHub();
+    const client = await connectClient(createOhMyPmMcpServer({ executeGitHubTool }));
+    const result = (await client.callTool({
+      name: "github_project_brief",
+      arguments: { repository: "" },
+    })) as ToolCallResult;
+    expect(result.isError).toBe(true);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("rejects an out-of-range limit before any executor call", async () => {
+    const { executeGitHubTool, calls } = stubGitHub();
+    const client = await connectClient(createOhMyPmMcpServer({ executeGitHubTool }));
+    const result = (await client.callTool({
+      name: "github_project_brief",
+      arguments: { repository: "octo/demo", limit: 500 },
+    })) as ToolCallResult;
+    expect(result.isError).toBe(true);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("projects a sanitized public result without provider internals or a token", async () => {
+    const { executeGitHubTool } = stubGitHub();
+    const client = await connectClient(createOhMyPmMcpServer({ executeGitHubTool }));
+    const result = (await client.callTool({
+      name: "github_project_brief",
+      arguments: { repository: "octo/demo", limit: 5 },
+    })) as ToolCallResult;
+    const serialized = JSON.stringify(result.structuredContent ?? {});
+    expect(serialized).toContain("sourceSummary");
+    expect(serialized).not.toContain("providerResponses");
+    expect(serialized).not.toContain("runtimeResponse");
+    expect(serialized).not.toContain("plannerInput");
+    expect(serialized).not.toContain("Authorization");
+    expect(serialized).not.toContain("Bearer");
+  });
+
+  it("maps a sanitized github failure to an MCP error", async () => {
+    const executeGitHubTool = async (
+      operation: McpGitHubOperation,
+      repository: string,
+    ): Promise<McpGitHubToolExecution> => ({
+      ok: false,
+      operation,
+      repository,
+      code: "OMP-P-4004",
+      message: "provider authentication failed",
+    });
+    const client = await connectClient(createOhMyPmMcpServer({ executeGitHubTool }));
+    const result = (await client.callTool({
+      name: "github_project_brief",
+      arguments: { repository: "octo/demo" },
+    })) as ToolCallResult;
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain("OMP-P-4004");
+  });
+
+  it("maps an unexpected github executor throw to a generic public-safe error", async () => {
+    const executeGitHubTool = async (): Promise<McpGitHubToolExecution> => {
+      throw new Error("secret github internal");
+    };
+    const client = await connectClient(createOhMyPmMcpServer({ executeGitHubTool }));
+    const result = (await client.callTool({
+      name: "github_project_risks",
+      arguments: { repository: "octo/demo" },
+    })) as ToolCallResult;
+    expect(result.isError).toBe(true);
+    const text = result.content[0]?.text ?? "";
+    expect(text).toContain("github_runtime_failed");
+    expect(text).not.toContain("secret github internal");
   });
 });

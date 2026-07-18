@@ -35,7 +35,7 @@ export function createLocalProvider(options: LocalProviderOptions): Provider {
         { action: "list", readOnly: true },
       ],
     },
-    execute(request: ProviderRequest): ReturnType<Provider["execute"]> {
+    async execute(request: ProviderRequest): ReturnType<Provider["execute"]> {
       if (request.providerId !== "local") {
         return providerFailure(
           "local",

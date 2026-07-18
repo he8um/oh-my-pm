@@ -1,9 +1,15 @@
 import { createNodeWasmKernelApi } from "@oh-my-pm/kernel";
-import { createLocalProvider, createProviderRegistry } from "@oh-my-pm/providers";
-import type { LocalProviderItemInput } from "@oh-my-pm/providers";
+import {
+  createGitHubProvider,
+  createLocalProvider,
+  createNodeGitHubHttpTransport,
+  createProviderRegistry,
+} from "@oh-my-pm/providers";
+import type { GitHubHttpTransport, LocalProviderItemInput, Provider } from "@oh-my-pm/providers";
 import { createRuntime } from "@oh-my-pm/runtime";
 import { createDefaultSkillRegistry } from "@oh-my-pm/skills";
 import { runCli } from "./cli.js";
+import { readGitHubTokenFromEnvironment } from "./github-token.js";
 import { loadConfiguredMarkdownProjectDocuments } from "./project-config.js";
 import { parseCliArgs } from "./parser.js";
 
@@ -16,6 +22,12 @@ export type LocalCliProcessResult = {
 export type LocalCliProcessOptions = {
   version?: string;
   now?: string;
+  /** Injected GitHub token; when omitted the adapter reads it from the env. */
+  githubToken?: string;
+  /** Injected GitHub transport; when set it takes precedence (offline tests). */
+  githubTransport?: GitHubHttpTransport;
+  /** Injected environment map for the token read (defaults to the ambient env). */
+  env?: Readonly<Record<string, string | undefined>>;
 };
 
 // Default local runtime identity. Deterministic: no real clock, no randomness.
@@ -47,24 +59,46 @@ const SEED_ITEMS: LocalProviderItemInput[] = [
 
 const PROJECT_COMMANDS: ReadonlySet<string> = new Set(["brief", "risks", "next", "handoff"]);
 
+// The environment is read ONLY on the explicit github command path, ONLY to
+// obtain the optional OH_MY_PM_GITHUB_TOKEN, and ONLY when no token/transport
+// is injected. All local-only commands never touch the environment. This is
+// the approved CLI process-adapter token boundary (see validate-boundaries).
+function ambientEnv(): Readonly<Record<string, string | undefined>> {
+  const proc = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
+  return proc?.env ?? {};
+}
+
 /**
- * Run the local OH MY PM CLI process against the real WASM Kernel and return a
- * structured result. Deterministic and side-effect-free: it does not write to
- * process streams, read environment variables, use the current time, or reach
- * the network. Project commands load documents through the config-aware loader;
- * other commands use the local seed items.
+ * Run the OH MY PM CLI process against the real WASM Kernel and return a
+ * structured result. Local commands (status/doctor/plan/brief/risks/next/
+ * handoff over Markdown) are deterministic, offline, and never read the
+ * environment. The github command builds a read-only GitHub provider whose
+ * transport is either injected (offline tests) or constructed for the live
+ * command with an optional token read from the environment.
  */
-export function runLocalCliProcess(
+export async function runLocalCliProcess(
   args: readonly string[],
   options?: LocalCliProcessOptions,
-): LocalCliProcessResult {
+): Promise<LocalCliProcessResult> {
   const version = options?.version ?? DEFAULT_VERSION;
   const now = options?.now ?? DEFAULT_NOW;
 
   const parsed = parseCliArgs([...args]);
   let providerItems: LocalProviderItemInput[] = [...SEED_ITEMS];
+  const providers: Provider[] = [];
 
-  if (parsed.ok && PROJECT_COMMANDS.has(parsed.command)) {
+  if (parsed.ok && parsed.command === "github") {
+    // Injected transport wins (tests stay offline); otherwise build the live
+    // transport with a token read only now, only for this explicit command.
+    let transport = options?.githubTransport;
+    if (transport === undefined) {
+      const token =
+        options?.githubToken ??
+        readGitHubTokenFromEnvironment(options?.env ?? ambientEnv());
+      transport = createNodeGitHubHttpTransport({ token, productVersion: version });
+    }
+    providers.push(createGitHubProvider({ transport, productVersion: version }));
+  } else if (parsed.ok && PROJECT_COMMANDS.has(parsed.command)) {
     // Errors report the root exactly as the user typed it, never a resolved
     // internal absolute path, and never any document content or config text.
     const root = parsed.input ?? ".";
@@ -93,14 +127,18 @@ export function runLocalCliProcess(
     providerItems = configured.documents.items;
   }
 
+  if (providers.length === 0) {
+    providers.push(createLocalProvider({ items: providerItems }));
+  }
+
   const runtime = createRuntime({
     kernel: createNodeWasmKernelApi(),
-    providers: createProviderRegistry([createLocalProvider({ items: providerItems })]),
+    providers: createProviderRegistry(providers),
     skills: createDefaultSkillRegistry(),
     version,
     now,
   });
 
-  const result = runCli([...args], { runtime });
+  const result = await runCli([...args], { runtime });
   return { exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr };
 }

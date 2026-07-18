@@ -2,17 +2,17 @@ import type { CliExecutionResult } from "@oh-my-pm/cli";
 import { runCli } from "@oh-my-pm/cli";
 import { createExampleRuntime } from "./runtime.js";
 
-export function runPlanBriefExample(): CliExecutionResult {
+export function runPlanBriefExample(): Promise<CliExecutionResult> {
   return runCli(["plan", "review", "risks"], { runtime: createExampleRuntime() });
 }
 
-export function runPlanMarkdownExample(): CliExecutionResult {
+export function runPlanMarkdownExample(): Promise<CliExecutionResult> {
   return runCli(["plan", "create", "handoff", "--markdown"], {
     runtime: createExampleRuntime(),
   });
 }
 
-export function runPlanJsonExample(): CliExecutionResult {
+export function runPlanJsonExample(): Promise<CliExecutionResult> {
   return runCli(["plan", "derive", "next", "tasks", "--json"], {
     runtime: createExampleRuntime(),
   });
@@ -22,7 +22,7 @@ export function runPlanJsonExample(): CliExecutionResult {
  * Provider-backed planning: the custom request factory adds providerRequests
  * so the Runtime reads from the injected local provider before the skill runs.
  */
-export function runProviderBackedPlanJsonExample(): CliExecutionResult {
+export function runProviderBackedPlanJsonExample(): Promise<CliExecutionResult> {
   return runCli(
     ["plan", "review", "risks", "--json"],
     { runtime: createExampleRuntime() },

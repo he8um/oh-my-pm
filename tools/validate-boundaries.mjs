@@ -158,7 +158,7 @@ for (const file of trackedFiles) {
     // MCP server package: no filesystem/network/child-process Node built-ins in
     // package source; document reads flow only through the CLI public loader.
     if (
-      file.startsWith("mcp-server/src/") &&
+      file.startsWith("mcp-server/src/") && !file.endsWith(".test.ts") &&
       (spec.startsWith("node:") ||
         ["fs", "path", "os", "http", "https", "net", "tls", "dgram", "crypto", "zlib", "stream", "child_process"].includes(spec))
     ) {
@@ -166,7 +166,7 @@ for (const file of trackedFiles) {
     }
     // The MCP SDK stdio transport may be imported only by the server module.
     if (
-      file.startsWith("mcp-server/src/") &&
+      file.startsWith("mcp-server/src/") && !file.endsWith(".test.ts") &&
       file !== "mcp-server/src/server.ts" &&
       spec.includes("@modelcontextprotocol/sdk")
     ) {
@@ -174,14 +174,14 @@ for (const file of trackedFiles) {
     }
     // Only the official stdio SDK transport is allowed; no HTTP/SSE variants.
     if (
-      file.startsWith("mcp-server/src/") &&
+      file.startsWith("mcp-server/src/") && !file.endsWith(".test.ts") &&
       /@modelcontextprotocol\/sdk\/(server|client)\/(streamableHttp|sse)/.test(spec)
     ) {
       err(`${file} imports a non-stdio MCP transport: "${spec}"`);
     }
     // No HTTP server frameworks or dotenv anywhere in the MCP package.
     if (
-      file.startsWith("mcp-server/src/") &&
+      file.startsWith("mcp-server/src/") && !file.endsWith(".test.ts") &&
       ["express", "hono", "fastify", "dotenv", "ws", "undici"].includes(spec)
     ) {
       err(`${file} imports a forbidden server/network/env module: "${spec}"`);
@@ -557,8 +557,13 @@ for (const file of NODE_CLI_BOUNDARY_FILES) {
 // ordinary stdout writing or startup banner is allowed (the SDK stdio
 // transport internally owns protocol stdout).
 const MCP_SOURCE_FILES = trackedFiles.filter(
-  (f) => f.startsWith("mcp-server/src/") && f.endsWith(".ts"),
+  (f) => f.startsWith("mcp-server/src/") && f.endsWith(".ts") && !f.endsWith(".test.ts"),
 );
+// The GitHub MCP tool runner is the approved GitHub MCP boundary: it may read
+// the OH_MY_PM_GITHUB_TOKEN at the tool-call boundary and construct the GitHub
+// transport. It still must not itself fetch, log, or write; those markers are
+// enforced below with the token-env allowance carved out.
+const MCP_GITHUB_BOUNDARY = "mcp-server/src/github-tool-runner.ts";
 const MCP_FORBIDDEN = [
   "writeFile",
   "appendFile",
@@ -963,6 +968,102 @@ if (trackedFiles.includes(INSTALL_ENTRYPOINT)) {
   const contents = readFileSync(INSTALL_ENTRYPOINT, "utf8");
   if (/\/Users\/|\/home\/|[A-Z]:\\/.test(contents)) {
     err(`${INSTALL_ENTRYPOINT} embeds a machine-local absolute path`);
+  }
+}
+
+// 4j. GitHub read-only provider network scoping. Only the GitHub transport and
+// its constants (plus the manual live-smoke tool) may reference fetch,
+// AbortController, the api.github.com host, or GitHub API headers. Every other
+// GitHub production surface stays free of direct network access. Across all
+// GitHub production code, non-GET verbs, GraphQL, mutations, package-manager
+// networking, and token-CLI-argument patterns are forbidden. The token env var
+// may appear only in the narrowly approved process-adapter boundary files.
+const GITHUB_NETWORK_BOUNDARY = new Set([
+  "providers/src/github/transport.ts",
+  "providers/src/github/constants.ts",
+  "tools/check-github-provider-live.mjs",
+]);
+// Files allowed to reference the token environment variable at the process
+// boundary (CLI adapter, CLI token helper, MCP runner, manual smoke).
+const GITHUB_TOKEN_ENV_ALLOWED = new Set([
+  "cli/src/local-process.ts",
+  "cli/src/github-token.ts",
+  "mcp-server/src/github-tool-runner.ts",
+  "tools/check-github-provider-live.mjs",
+  "tools/validate-boundaries.mjs",
+  // These carry the env var NAME in deterministic release metadata (tokenEnv)
+  // or validate it there; they never read the environment.
+  "distribution/libexec/release-install-core.mjs",
+  "tools/check-release-bundle.mjs",
+  "tools/release-bundle-utils.mjs",
+  "tools/check-release-install.mjs",
+]);
+// Every tracked GitHub production source (provider modules, the CLI adapter and
+// helpers, the MCP runner, and the manual smoke tool), excluding tests/docs.
+const GITHUB_PRODUCTION_FILES = trackedFiles.filter((f) => {
+  if (f.endsWith(".test.ts") || f.endsWith(".test.mjs")) return false;
+  if (f.startsWith("providers/src/github/")) return true;
+  return (
+    f === "cli/src/github-token.ts" ||
+    f === "mcp-server/src/github-tool-runner.ts" ||
+    f === "tools/check-github-provider-live.mjs"
+  );
+});
+// Non-GET / mutation / GraphQL / workaround markers forbidden everywhere in
+// GitHub production code. "method: \"POST\"" and friends never appear; the
+// transport is GET-only.
+const GITHUB_FORBIDDEN_EVERYWHERE = [
+  '"POST"',
+  '"PUT"',
+  '"PATCH"',
+  '"DELETE"',
+  "graphql",
+  "GraphQL",
+  "createIssue",
+  "updateIssue",
+  "createComment",
+  "mergePull",
+  "workflow_dispatch",
+  "gh api",
+  "curl ",
+  "wget ",
+  "child_process",
+  "execSync",
+  "spawnSync",
+  "--token",
+  "persistToken",
+];
+for (const file of GITHUB_PRODUCTION_FILES) {
+  const contents = readFileSync(file, "utf8");
+  // Direct network access only inside the approved boundary files.
+  if (!GITHUB_NETWORK_BOUNDARY.has(file)) {
+    for (const marker of ["fetch(", "AbortController", "api.github.com"]) {
+      if (contents.includes(marker)) {
+        err(`${file} references a network marker outside the GitHub transport boundary: "${marker}"`);
+      }
+    }
+  }
+  // Mutation / GraphQL / workaround markers forbidden everywhere.
+  for (const marker of GITHUB_FORBIDDEN_EVERYWHERE) {
+    if (contents.includes(marker)) {
+      err(`${file} contains a forbidden GitHub write/mutation/workaround marker: "${marker}"`);
+    }
+  }
+  // The provider core proper must not read environment variables at all.
+  if (file.startsWith("providers/src/github/") && contents.includes("process.env")) {
+    err(`${file} reads process.env; the GitHub provider core must stay environment-free`);
+  }
+}
+// The GitHub token environment variable name may appear only in approved files.
+const GITHUB_TOKEN_ENV_NAME = "OH_MY_PM_GITHUB_TOKEN";
+for (const file of trackedFiles) {
+  if (GITHUB_TOKEN_ENV_ALLOWED.has(file)) continue;
+  if (!/\.(mjs|ts|js)$/.test(file)) continue;
+  if (file.endsWith(".test.ts") || file.endsWith(".test.mjs")) continue;
+  if (file.startsWith("contracts/generated/")) continue;
+  const contents = readFileSync(file, "utf8");
+  if (contents.includes(GITHUB_TOKEN_ENV_NAME)) {
+    err(`${file} references the GitHub token env var outside an approved boundary file`);
   }
 }
 

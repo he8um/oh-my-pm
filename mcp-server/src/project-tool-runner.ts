@@ -61,10 +61,10 @@ function extractOutput(response: RuntimeResponse): JsonValue | undefined {
  * CLI request factory, and the real WASM Kernel. Never writes, logs, or reaches
  * the network, and never resolves or returns an absolute path.
  */
-export function executeMcpProjectTool(
+export async function executeMcpProjectTool(
   operation: McpProjectOperation,
   root: string,
-): McpProjectToolExecution {
+): Promise<McpProjectToolExecution> {
   if (root.trim() === "") {
     return {
       ok: false,
@@ -141,7 +141,7 @@ export function executeMcpProjectTool(
   // factory, keeping CLI and MCP intent routing aligned. The root never enters
   // the Runtime payload.
   const request = createRuntimeRequest(operation);
-  const response = runtime.handle(request);
+  const response = await runtime.handle(request);
 
   if (!response.ok) {
     const code = response.error?.code ?? "unknown";

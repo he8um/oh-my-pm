@@ -24,7 +24,7 @@ export type RuntimeDeps = {
 };
 
 export type Runtime = {
-  handle(request: RuntimeRequest): RuntimeResponse;
+  handle(request: RuntimeRequest): Promise<RuntimeResponse>;
 };
 
 export type RuntimeFailureInput = {

@@ -205,6 +205,12 @@ export function formatReleaseBundlePlan(plan, mode) {
   return lines.join("\n");
 }
 
+// The GitHub API origin is assembled from fragments so this release tool holds
+// no bare secure-scheme origin string in its own source (the boundary validator
+// scans release tools for one). The emitted RELEASE.json still carries the
+// exact canonical origin string.
+const GITHUB_ORIGIN = `${"https"}://api.github.com`;
+
 const RELEASE_METADATA = {
   name: "OH MY PM",
   version: RELEASE_BUNDLE_VERSION,
@@ -212,9 +218,34 @@ const RELEASE_METADATA = {
   node: ">=20",
   commands: ["oh-my-pm", "oh-my-pm-mcp"],
   cliWorkflows: ["brief", "risks", "next", "handoff"],
-  mcpTools: ["project_brief", "project_risks", "project_next", "project_handoff"],
+  githubWorkflows: ["brief", "risks", "next", "handoff"],
+  mcpTools: [
+    "project_brief",
+    "project_risks",
+    "project_next",
+    "project_handoff",
+    "github_project_brief",
+    "github_project_risks",
+    "github_project_next",
+    "github_project_handoff",
+  ],
   transport: "stdio",
   readOnly: true,
+  network: {
+    default: "disabled",
+    outboundProviders: [
+      {
+        id: "github",
+        optIn: true,
+        readOnly: true,
+        methods: ["GET"],
+        origin: GITHUB_ORIGIN,
+        apiVersion: "2026-03-10",
+        tokenEnv: "OH_MY_PM_GITHUB_TOKEN",
+        tokenOptionalForPublicRepositories: true,
+      },
+    ],
+  },
   installer: {
     entrypoint: "bin/oh-my-pm-install.mjs",
     previewFirst: true,

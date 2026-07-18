@@ -7,26 +7,26 @@ import {
 } from "../src/index.js";
 
 describe("plan examples", () => {
-  it("brief plan succeeds", () => {
-    const result = runPlanBriefExample();
+  it("brief plan succeeds", async () => {
+    const result = await runPlanBriefExample();
     expect(result.exitCode).toBe(0);
     // The example plans a risk review with no provider items, so the risk
     // formatter reports a deterministic empty result.
     expect(result.stdout).toBe("OH MY PM risks: 0\nno risks detected\n");
   });
 
-  it("markdown plan renders the handoff heading", () => {
+  it("markdown plan renders the handoff heading", async () => {
     // The example plans "create handoff", which routes to the createHandoff
     // skill and now renders as a strict project handoff.
-    const result = runPlanMarkdownExample();
+    const result = await runPlanMarkdownExample();
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("# OH MY PM Project Handoff");
     expect(result.stdout).toContain("## Summary");
     expect(result.stdout).toContain("## Decisions");
   });
 
-  it("json plan returns the full response", () => {
-    const result = runPlanJsonExample();
+  it("json plan returns the full response", async () => {
+    const result = await runPlanJsonExample();
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
     expect(parsed.ok).toBe(true);
@@ -34,8 +34,8 @@ describe("plan examples", () => {
     expect(parsed.data.output).toBeDefined();
   });
 
-  it("provider-backed plan reads the local provider end-to-end", () => {
-    const result = runProviderBackedPlanJsonExample();
+  it("provider-backed plan reads the local provider end-to-end", async () => {
+    const result = await runProviderBackedPlanJsonExample();
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
     expect(parsed.ok).toBe(true);

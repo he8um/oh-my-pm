@@ -21,7 +21,7 @@ export function createProviderRegistry(providers: readonly Provider[]): Provider
     get(id: ProviderId): Provider | undefined {
       return byId.get(id);
     },
-    execute(request: ProviderRequest, context: ProviderExecutionContext) {
+    async execute(request: ProviderRequest, context: ProviderExecutionContext) {
       const provider = byId.get(request.providerId);
       if (provider === undefined) {
         return providerFailure(

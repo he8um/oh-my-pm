@@ -16,7 +16,7 @@ const duplicateLocal: Provider = {
     readOnly: true,
     capabilities: [{ action: "list", readOnly: true }],
   },
-  execute() {
+  async execute() {
     throw new Error("duplicate provider must never be reached");
   },
 };
@@ -45,16 +45,16 @@ describe("provider registry", () => {
     expect(registry.list().map((d) => d.name)).toEqual(["Local"]);
   });
 
-  it("delegates execution to the matching provider", () => {
+  it("delegates execution to the matching provider", async () => {
     const registry = createProviderRegistry([localProvider]);
-    const result = registry.execute(listRequest, context);
+    const result = await registry.execute(listRequest, context);
     expect(result.ok).toBe(true);
     expect(result.response.items.map((i) => i.id)).toEqual(["task-1"]);
   });
 
-  it("fails closed for an unknown provider", () => {
+  it("fails closed for an unknown provider", async () => {
     const registry = createProviderRegistry([localProvider]);
-    const result = registry.execute({ ...listRequest, providerId: "github" }, context);
+    const result = await registry.execute({ ...listRequest, providerId: "github" }, context);
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.code).toBe("OMP-P-4001");

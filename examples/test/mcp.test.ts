@@ -7,8 +7,8 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const fixtureRoot = join(repoRoot, "examples", "fixtures", "markdown-project");
 
 describe("mcp project tool examples", () => {
-  it("runs all four tools over the configured fixture document set", () => {
-    const examples = runMcpProjectToolExamples(fixtureRoot);
+  it("runs all four tools over the configured fixture document set", async () => {
+    const examples = await runMcpProjectToolExamples(fixtureRoot);
     for (const execution of Object.values(examples)) {
       expect(execution.ok, execution.ok ? "" : execution.message).toBe(true);
       if (!execution.ok) continue;
@@ -23,8 +23,8 @@ describe("mcp project tool examples", () => {
     }
   });
 
-  it("produces identical document selection across tools", () => {
-    const examples = runMcpProjectToolExamples(fixtureRoot);
+  it("produces identical document selection across tools", async () => {
+    const examples = await runMcpProjectToolExamples(fixtureRoot);
     const docs = Object.values(examples).map((execution) =>
       execution.ok ? execution.documents.filesLoaded : -1,
     );

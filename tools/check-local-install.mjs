@@ -148,7 +148,19 @@ async function run(prefix) {
     await client.connect(transport);
     const { tools } = await client.listTools();
     const names = tools.map((tool) => tool.name).sort();
-    const expected = ["project_brief", "project_handoff", "project_next", "project_risks"];
+    // The eight-tool surface (four local + four GitHub), compared sorted. Only
+    // the offline local project_brief is exercised below; no GitHub tool is
+    // ever called, so this verifier stays network-free and needs no token.
+    const expected = [
+      "github_project_brief",
+      "github_project_handoff",
+      "github_project_next",
+      "github_project_risks",
+      "project_brief",
+      "project_handoff",
+      "project_next",
+      "project_risks",
+    ];
     if (JSON.stringify(names) !== JSON.stringify(expected)) {
       mcpOk = false;
       mcpMessage = `unexpected MCP tool list: ${names.join(", ")}`;

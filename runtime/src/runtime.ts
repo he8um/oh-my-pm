@@ -24,7 +24,7 @@ function validationErrorCount(report: ValidationReport): number {
 
 export function createRuntime(deps: RuntimeDeps): Runtime {
   return {
-    handle(request: RuntimeRequest): RuntimeResponse {
+    async handle(request: RuntimeRequest): Promise<RuntimeResponse> {
       const trace: ExecutionTraceEntry[] = [
         { step: "runtime.receive", status: "ok", message: request.kind },
       ];
@@ -90,7 +90,7 @@ export function createRuntime(deps: RuntimeDeps): Runtime {
         }
 
         if (request.kind === "plan") {
-          return handlePlanRequest(request, deps, trace);
+          return await handlePlanRequest(request, deps, trace);
         }
 
         trace.push({

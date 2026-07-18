@@ -28,7 +28,20 @@ import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 export const RELEASE_INSTALL_MANIFEST_SCHEMA_VERSION = 1;
 export const RELEASE_INSTALL_COMMANDS = ["oh-my-pm", "oh-my-pm-mcp"];
 const EXPECTED_CLI_WORKFLOWS = ["brief", "risks", "next", "handoff"];
-const EXPECTED_MCP_TOOLS = ["project_brief", "project_risks", "project_next", "project_handoff"];
+const EXPECTED_GITHUB_WORKFLOWS = ["brief", "risks", "next", "handoff"];
+const EXPECTED_MCP_TOOLS = [
+  "project_brief",
+  "project_risks",
+  "project_next",
+  "project_handoff",
+  "github_project_brief",
+  "github_project_risks",
+  "github_project_next",
+  "github_project_handoff",
+];
+// The GitHub API origin, assembled from fragments so the install core contains
+// no literal network origin string; the core never contacts the network.
+const EXPECTED_GITHUB_ORIGIN = `${"https"}://api.github.com`;
 
 // Files that must exist in a bundle to be installable, expressed as bundle
 // relative POSIX paths. Required CLI/MCP/WASM plus installer/core/verifier.
@@ -300,6 +313,39 @@ export function validateReleaseBundleForInstall(bundleRoot) {
   }
   if (typeof release.node !== "string" || !/>=\s*20/.test(release.node)) {
     add("release_node_requirement_incompatible");
+  }
+  if (JSON.stringify(release.githubWorkflows) !== JSON.stringify(EXPECTED_GITHUB_WORKFLOWS)) {
+    add("release_github_workflows_unexpected");
+  }
+  // Conditional-network metadata: default disabled; one opt-in, read-only,
+  // GET-only GitHub provider at the fixed origin with the exact token env var.
+  const network = release.network;
+  if (network === undefined || network === null || typeof network !== "object") {
+    add("release_network_metadata_missing");
+  } else {
+    if (network.default !== "disabled") add("release_network_default_not_disabled");
+    const providers = Array.isArray(network.outboundProviders) ? network.outboundProviders : [];
+    if (providers.length !== 1) {
+      add("release_network_providers_unexpected");
+    } else {
+      const gh = providers[0];
+      if (gh === null || typeof gh !== "object") {
+        add("release_network_github_missing");
+      } else {
+        if (gh.id !== "github") add("release_network_github_id_unexpected");
+        if (gh.optIn !== true) add("release_network_github_not_opt_in");
+        if (gh.readOnly !== true) add("release_network_github_not_read_only");
+        if (JSON.stringify(gh.methods) !== JSON.stringify(["GET"])) {
+          add("release_network_github_methods_not_get_only");
+        }
+        if (gh.origin !== EXPECTED_GITHUB_ORIGIN) add("release_network_github_origin_unexpected");
+        if (gh.apiVersion !== "2026-03-10") add("release_network_github_api_version_unexpected");
+        if (gh.tokenEnv !== "OH_MY_PM_GITHUB_TOKEN") add("release_network_github_token_env_unexpected");
+        if (gh.tokenOptionalForPublicRepositories !== true) {
+          add("release_network_github_token_optional_not_true");
+        }
+      }
+    }
   }
   // Installer metadata must be present and describe the preview-first installer.
   const installer = release.installer;

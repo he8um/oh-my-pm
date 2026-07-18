@@ -51,16 +51,16 @@ const traceSteps = (response: { trace?: { step: string }[] }) =>
   (response.trace ?? []).map((entry) => entry.step);
 
 describe("runtime foundation", () => {
-  it("validates the request through the kernel before dispatch", () => {
+  it("validates the request through the kernel before dispatch", async () => {
     const kernel = fakeKernel();
     const runtime = createRuntime({ kernel: kernel.api, version: "2.0.0-alpha.0" });
-    runtime.handle(request("status"));
+    await runtime.handle(request("status"));
     expect(kernel.validateCalls).toEqual(["systemRequest"]);
   });
 
-  it("answers status with version data and the full trace", () => {
+  it("answers status with version data and the full trace", async () => {
     const runtime = createRuntime({ kernel: fakeKernel().api, version: "2.0.0-alpha.0" });
-    const response = runtime.handle(request("status"));
+    const response = await runtime.handle(request("status"));
     expect(response.ok).toBe(true);
     expect(response.data).toEqual({
       version: "2.0.0-alpha.0",
@@ -75,9 +75,9 @@ describe("runtime foundation", () => {
     expect(() => JSON.stringify(response)).not.toThrow();
   });
 
-  it("answers doctor with a kernel validation check", () => {
+  it("answers doctor with a kernel validation check", async () => {
     const runtime = createRuntime({ kernel: fakeKernel().api, version: "2.0.0-alpha.0" });
-    const response = runtime.handle(request("doctor"));
+    const response = await runtime.handle(request("doctor"));
     expect(response.ok).toBe(true);
     expect(response.data).toEqual({
       checks: [
@@ -87,34 +87,34 @@ describe("runtime foundation", () => {
     expect(traceSteps(response)).toContain("runtime.doctor");
   });
 
-  it("fails closed when kernel validation rejects the request", () => {
+  it("fails closed when kernel validation rejects the request", async () => {
     const kernel = fakeKernel({
       validateJson: (target) => failingReport(target),
     });
     const runtime = createRuntime({ kernel: kernel.api, version: "2.0.0-alpha.0" });
-    const response = runtime.handle(request("status"));
+    const response = await runtime.handle(request("status"));
     expect(response.ok).toBe(false);
     expect(response.error?.code).toBe("OMP-R-2001");
     expect(traceSteps(response)).not.toContain("runtime.status");
     expect(traceSteps(response)).not.toContain("runtime.doctor");
   });
 
-  it("rejects the unimplemented executeSkill kind", () => {
+  it("rejects the unimplemented executeSkill kind", async () => {
     const runtime = createRuntime({ kernel: fakeKernel().api, version: "2.0.0-alpha.0" });
-    const response = runtime.handle(request("executeSkill"));
+    const response = await runtime.handle(request("executeSkill"));
     expect(response.ok).toBe(false);
     expect(response.error?.code).toBe("OMP-R-2002");
     expect(response.error?.message).toContain("executeSkill");
   });
 
-  it("converts thrown kernel errors into OMP-R-2003 without stack traces", () => {
+  it("converts thrown kernel errors into OMP-R-2003 without stack traces", async () => {
     const kernel = fakeKernel({
       validateJson: () => {
         throw new Error("secret internal stack detail");
       },
     });
     const runtime = createRuntime({ kernel: kernel.api, version: "2.0.0-alpha.0" });
-    const response = runtime.handle(request("status"));
+    const response = await runtime.handle(request("status"));
     expect(response.ok).toBe(false);
     expect(response.error?.code).toBe("OMP-R-2003");
     const serialized = JSON.stringify(response);
@@ -122,10 +122,10 @@ describe("runtime foundation", () => {
     expect(serialized).not.toContain("at ");
   });
 
-  it("returns JSON-serializable responses for every kind", () => {
+  it("returns JSON-serializable responses for every kind", async () => {
     const runtime = createRuntime({ kernel: fakeKernel().api, version: "2.0.0-alpha.0" });
     for (const kind of ["status", "doctor", "plan", "executeSkill"] as const) {
-      const response = runtime.handle(request(kind));
+      const response = await runtime.handle(request(kind));
       expect(JSON.parse(JSON.stringify(response))).toEqual(response);
     }
   });

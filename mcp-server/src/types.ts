@@ -46,3 +46,48 @@ export type McpProjectToolFailure = {
 };
 
 export type McpProjectToolExecution = McpProjectToolSuccess | McpProjectToolFailure;
+
+// --- GitHub tool surface ---------------------------------------------------
+
+export type McpGitHubOperation = "brief" | "risks" | "next" | "handoff";
+
+export type McpGitHubToolName =
+  | "github_project_brief"
+  | "github_project_risks"
+  | "github_project_next"
+  | "github_project_handoff";
+
+export type McpGitHubSourceSummary = {
+  total: number;
+  repositories: number;
+  issues: number;
+  pullRequests: number;
+};
+
+export type McpGitHubSource = {
+  type: "issue" | "pullRequest";
+  number: number;
+  title: string;
+  state: string;
+  url?: string;
+};
+
+export type McpGitHubToolSuccess = {
+  ok: true;
+  operation: McpGitHubOperation;
+  repository: string;
+  sourceSummary: McpGitHubSourceSummary;
+  sources: McpGitHubSource[];
+  output: JsonValue;
+  markdown: string;
+};
+
+export type McpGitHubToolFailure = {
+  ok: false;
+  operation: McpGitHubOperation;
+  repository: string;
+  code: string;
+  message: string;
+};
+
+export type McpGitHubToolExecution = McpGitHubToolSuccess | McpGitHubToolFailure;

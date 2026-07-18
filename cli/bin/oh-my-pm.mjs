@@ -6,7 +6,7 @@
 
 import { runLocalCliProcess } from "../dist/index.js";
 
-const result = runLocalCliProcess(process.argv.slice(2));
+const result = await runLocalCliProcess(process.argv.slice(2));
 
 if (result.stdout !== "") {
   process.stdout.write(result.stdout);

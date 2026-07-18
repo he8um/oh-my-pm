@@ -213,9 +213,34 @@ const PROVIDER_SOURCES = [
   "providers/test/local.test.ts",
   "providers/test/registry.test.ts",
   "providers/test/purity.test.ts",
+  "providers/test/errors.test.ts",
+  "providers/test/async-migration.test.ts",
 ];
 for (const file of PROVIDER_SOURCES) {
   if (!existsSync(file)) err(`provider framework file missing: ${file}`);
+}
+
+// 7d2. GitHub read-only provider modules, fixtures, and tests exist.
+const GITHUB_PROVIDER_SOURCES = [
+  "providers/src/github/constants.ts",
+  "providers/src/github/types.ts",
+  "providers/src/github/query.ts",
+  "providers/src/github/transport.ts",
+  "providers/src/github/normalize.ts",
+  "providers/src/github/provider.ts",
+  "providers/src/github/index.ts",
+  "providers/test/github-query.test.ts",
+  "providers/test/github-transport.test.ts",
+  "providers/test/github-normalize.test.ts",
+  "providers/test/github-provider.test.ts",
+  "providers/test/fixtures/github/repository.json",
+  "providers/test/fixtures/github/issues.json",
+  "providers/test/fixtures/github/issue.json",
+  "providers/test/fixtures/github/pull-request.json",
+  "providers/test/fixtures/github/search.json",
+];
+for (const file of GITHUB_PROVIDER_SOURCES) {
+  if (!existsSync(file)) err(`github provider file missing: ${file}`);
 }
 
 // 7e. Planner foundation files exist.
@@ -374,6 +399,24 @@ const RELEASE_ARCHIVE_SOURCES = [
 ];
 for (const file of RELEASE_ARCHIVE_SOURCES) {
   if (!existsSync(file)) err(`release archive file missing: ${file}`);
+}
+
+// 7g6b. GitHub read-only provider surface across CLI, MCP, docs, and the
+// manual live-smoke tool.
+const GITHUB_FEATURE_SOURCES = [
+  "cli/src/github-token.ts",
+  "cli/test/github-parser.test.ts",
+  "cli/test/github-request.test.ts",
+  "cli/test/github-process.test.ts",
+  "cli/test/github-token.test.ts",
+  "mcp-server/src/github-tool-runner.ts",
+  "mcp-server/src/github-tool-runner.test.ts",
+  "mcp-server/test/github-e2e.test.ts",
+  "tools/check-github-provider-live.mjs",
+  "docs/providers/github.md",
+];
+for (const file of GITHUB_FEATURE_SOURCES) {
+  if (!existsSync(file)) err(`github feature file missing: ${file}`);
 }
 
 // 7g7. Portable release-bundle installer surfaces, repository wrapper,

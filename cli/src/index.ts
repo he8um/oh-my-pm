@@ -3,10 +3,15 @@ export {
   runCli,
 } from "./cli.js";
 export {
+  GITHUB_CLI_DEFAULT_LIMIT,
   OMP_C_INVALID_COMMAND,
   OMP_C_INVALID_OPTION,
   parseCliArgs,
 } from "./parser.js";
+export {
+  GITHUB_TOKEN_ENV,
+  readGitHubTokenFromEnvironment,
+} from "./github-token.js";
 export {
   formatCliError,
   formatRuntimeResponse,
@@ -62,6 +67,7 @@ export type {
   LocalCliProcessResult,
 } from "./local-process.js";
 export {
+  createGitHubRuntimeRequest,
   createRuntimeRequest,
 } from "./request.js";
 export type {
@@ -69,6 +75,7 @@ export type {
   CliDeps,
   CliExecutionResult,
   CliParseResult,
+  GitHubCliOperation,
   RuntimeCliCommand,
   RuntimeRequestFactory,
 } from "./types.js";

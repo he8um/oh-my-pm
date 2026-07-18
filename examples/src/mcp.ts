@@ -13,11 +13,13 @@ export type McpProjectToolExamples = {
  * stdio process is involved: this calls the exported runner directly, so it is
  * safe to use in tests and documentation.
  */
-export function runMcpProjectToolExamples(root: string): McpProjectToolExamples {
+export async function runMcpProjectToolExamples(
+  root: string,
+): Promise<McpProjectToolExamples> {
   return {
-    brief: executeMcpProjectTool("brief", root),
-    risks: executeMcpProjectTool("risks", root),
-    next: executeMcpProjectTool("next", root),
-    handoff: executeMcpProjectTool("handoff", root),
+    brief: await executeMcpProjectTool("brief", root),
+    risks: await executeMcpProjectTool("risks", root),
+    next: await executeMcpProjectTool("next", root),
+    handoff: await executeMcpProjectTool("handoff", root),
   };
 }

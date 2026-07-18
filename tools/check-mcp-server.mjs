@@ -30,7 +30,19 @@ function fail(message) {
   process.exitCode = 1;
 }
 
-const EXPECTED_TOOLS = ["project_brief", "project_handoff", "project_next", "project_risks"];
+// The eight-tool surface (four local + four GitHub), compared as a sorted set.
+// The smoke calls only the offline local project_brief; no GitHub tool is
+// invoked, so this smoke never touches the network and needs no token.
+const EXPECTED_TOOLS = [
+  "github_project_brief",
+  "github_project_handoff",
+  "github_project_next",
+  "github_project_risks",
+  "project_brief",
+  "project_handoff",
+  "project_next",
+  "project_risks",
+];
 
 let capturedStderr = "";
 

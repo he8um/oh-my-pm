@@ -1,6 +1,47 @@
 import type { RuntimeRequest } from "@oh-my-pm/contracts";
 import { DEFAULT_PROJECT_DOCUMENT_MAX_FILES } from "./node-project-documents.js";
-import type { RuntimeCliCommand } from "./types.js";
+import type { GitHubCliOperation, RuntimeCliCommand } from "./types.js";
+
+/**
+ * Deterministic RuntimeRequest for a GitHub workflow. The repository is carried
+ * as the provider query; the request text routes the existing intent
+ * classification (status/riskReview/nextTask/handoff). No token, no headers,
+ * and no API URL ever enter the Runtime request.
+ */
+export function createGitHubRuntimeRequest(
+  operation: GitHubCliOperation,
+  repository: string,
+  limit: number,
+  source: "cli" | "mcp",
+): RuntimeRequest {
+  const requestText =
+    operation === "brief"
+      ? `status brief for GitHub repository ${repository}`
+      : operation === "risks"
+        ? `review risks for GitHub repository ${repository}`
+        : operation === "next"
+          ? `derive next tasks for GitHub repository ${repository}`
+          : `create handoff for GitHub repository ${repository}`;
+  return {
+    id: `${source}-github-${operation}`,
+    kind: "plan",
+    locale: "en",
+    payload: {
+      source,
+      request: requestText,
+      context: {
+        providerRequests: [
+          {
+            providerId: "github",
+            action: "list",
+            query: repository,
+            limit,
+          },
+        ],
+      },
+    },
+  };
+}
 
 /** Deterministic RuntimeRequest for a CLI command: no time, no randomness. */
 export function createRuntimeRequest(command: RuntimeCliCommand, input?: string): RuntimeRequest {

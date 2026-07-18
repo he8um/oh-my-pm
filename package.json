@@ -32,7 +32,8 @@
     "release:archives:check": "node tools/check-release-archives.mjs",
     "release:archives:repro": "node tools/check-release-archive-reproducibility.mjs",
     "release:install": "node tools/install-release-bundle.mjs",
-    "release:install:check": "node tools/check-release-install.mjs"
+    "release:install:check": "node tools/check-release-install.mjs",
+    "github:smoke": "node tools/check-github-provider-live.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

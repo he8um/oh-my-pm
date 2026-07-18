@@ -15,8 +15,8 @@ function request(overrides: Partial<ProviderRequest>): ProviderRequest {
   return { providerId: "local", action: "list", query: "", ...overrides };
 }
 
-describe("local provider", () => {
-  it("exposes a read-only descriptor with search/fetch/list", () => {
+describe("local provider", async () => {
+  it("exposes a read-only descriptor with search/fetch/list", async () => {
     const provider = createLocalProvider({ items: inputs });
     expect(provider.descriptor.id).toBe("local");
     expect(provider.descriptor.readOnly).toBe(true);
@@ -28,46 +28,46 @@ describe("local provider", () => {
     expect(provider.descriptor.capabilities.every((c) => c.readOnly)).toBe(true);
   });
 
-  it("lists all items in input order", () => {
-    const result = createLocalProvider({ items: inputs }).execute(request({}), context);
+  it("lists all items in input order", async () => {
+    const result = await createLocalProvider({ items: inputs }).execute(request({}), context);
     expect(result.ok).toBe(true);
     expect(result.response.items.map((i) => i.id)).toEqual(["task-1", "task-2", "task-3"]);
   });
 
-  it("respects the list limit", () => {
-    const result = createLocalProvider({ items: inputs }).execute(
+  it("respects the list limit", async () => {
+    const result = await createLocalProvider({ items: inputs }).execute(
       request({ limit: 2 }),
       context,
     );
     expect(result.response.items.map((i) => i.id)).toEqual(["task-1", "task-2"]);
   });
 
-  it("searches titles", () => {
-    const result = createLocalProvider({ items: inputs }).execute(
+  it("searches titles", async () => {
+    const result = await createLocalProvider({ items: inputs }).execute(
       request({ action: "search", query: "LOGIN" }),
       context,
     );
     expect(result.response.items.map((i) => i.id)).toEqual(["task-1", "task-3"]);
   });
 
-  it("searches ids", () => {
-    const result = createLocalProvider({ items: inputs }).execute(
+  it("searches ids", async () => {
+    const result = await createLocalProvider({ items: inputs }).execute(
       request({ action: "search", query: "task-2" }),
       context,
     );
     expect(result.response.items.map((i) => i.id)).toEqual(["task-2"]);
   });
 
-  it("returns everything for an empty search query", () => {
-    const result = createLocalProvider({ items: inputs }).execute(
+  it("returns everything for an empty search query", async () => {
+    const result = await createLocalProvider({ items: inputs }).execute(
       request({ action: "search", query: "" }),
       context,
     );
     expect(result.response.items).toHaveLength(3);
   });
 
-  it("fetches an exact id", () => {
-    const result = createLocalProvider({ items: inputs }).execute(
+  it("fetches an exact id", async () => {
+    const result = await createLocalProvider({ items: inputs }).execute(
       request({ action: "fetch", query: "task-2" }),
       context,
     );
@@ -75,8 +75,8 @@ describe("local provider", () => {
     expect(result.response.items.map((i) => i.id)).toEqual(["task-2"]);
   });
 
-  it("returns an empty response for a missing fetch id", () => {
-    const result = createLocalProvider({ items: inputs }).execute(
+  it("returns an empty response for a missing fetch id", async () => {
+    const result = await createLocalProvider({ items: inputs }).execute(
       request({ action: "fetch", query: "missing" }),
       context,
     );
@@ -84,16 +84,16 @@ describe("local provider", () => {
     expect(result.response.items).toEqual([]);
   });
 
-  it("returns no items when limit is zero", () => {
-    const result = createLocalProvider({ items: inputs }).execute(
+  it("returns no items when limit is zero", async () => {
+    const result = await createLocalProvider({ items: inputs }).execute(
       request({ limit: 0 }),
       context,
     );
     expect(result.response.items).toEqual([]);
   });
 
-  it("fails a request addressed to another provider", () => {
-    const result = createLocalProvider({ items: inputs }).execute(
+  it("fails a request addressed to another provider", async () => {
+    const result = await createLocalProvider({ items: inputs }).execute(
       request({ providerId: "github" }),
       context,
     );
@@ -103,11 +103,11 @@ describe("local provider", () => {
     }
   });
 
-  it("does not mutate input items", () => {
+  it("does not mutate input items", async () => {
     const frozen = inputs.map((item) => Object.freeze({ ...item }));
     const provider = createLocalProvider({ items: frozen });
-    provider.execute(request({ action: "search", query: "login" }), context);
-    provider.execute(request({}), context);
+    await provider.execute(request({ action: "search", query: "login" }), context);
+    await provider.execute(request({}), context);
     expect(frozen[0]).toEqual({ id: "task-1", title: "Fix login flow", type: "task" });
   });
 });
