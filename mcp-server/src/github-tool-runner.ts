@@ -11,11 +11,22 @@ import {
   createNodeGitHubHttpTransport,
   createProviderRegistry,
   resolveGitHubProviderSettings,
+  resolveGitHubSourceSelection,
 } from "@oh-my-pm/providers";
-import type { GitHubHttpTransport, ResolvedProviderConfig } from "@oh-my-pm/providers";
+import type {
+  GitHubHttpTransport,
+  GitHubSourceSelection,
+  ResolvedProviderConfig,
+} from "@oh-my-pm/providers";
 import { createRuntime } from "@oh-my-pm/runtime";
 import { createDefaultSkillRegistry } from "@oh-my-pm/skills";
-import type { McpGitHubOperation, McpGitHubToolExecution, McpGitHubToolName } from "./types.js";
+import type {
+  McpGitHubOperation,
+  McpGitHubSelectionSummary,
+  McpGitHubToolExecution,
+  McpGitHubToolInput,
+  McpGitHubToolName,
+} from "./types.js";
 
 // Deterministic runtime identity for the GitHub MCP surface. The live github
 // tools resolve the invocation timestamp once at the tool-call boundary; the
@@ -193,11 +204,10 @@ function projectSources(response: RuntimeResponse): {
  */
 export async function executeMcpGitHubTool(
   operation: McpGitHubOperation,
-  repository: string | undefined,
-  limit: number | undefined,
+  input: McpGitHubToolInput,
   options?: ExecuteMcpGitHubToolOptions,
 ): Promise<McpGitHubToolExecution> {
-  const requestedRepository = repository ?? "";
+  const requestedRepository = input.repository ?? "";
 
   // 1. Resolve provider configuration (agent cannot supply a config path). An
   // invalid present config fails before any transport construction.
@@ -212,13 +222,13 @@ export async function executeMcpGitHubTool(
     };
   }
 
-  // 2. Resolve effective repository/limit; a disabled provider or unresolved
-  // repository fails here, before any transport is built.
+  // 2. Resolve effective repository plus source/state/limit defaults; a disabled
+  // provider or unresolved repository fails here, before any transport is built.
   const settings = resolveGitHubProviderSettings({
     config: resolved.config,
     overrides: {
-      ...(repository !== undefined ? { repository } : {}),
-      ...(limit !== undefined ? { limit } : {}),
+      ...(input.repository !== undefined ? { repository: input.repository } : {}),
+      ...(input.limit !== undefined ? { limit: input.limit } : {}),
     },
   });
   if (!settings.ok) {
@@ -231,20 +241,30 @@ export async function executeMcpGitHubTool(
     return { ok: false, operation, repository: requestedRepository, code, message: settings.message };
   }
   const resolvedRepository = settings.repository;
-  const resolvedLimit = settings.limit;
-  if (
-    !Number.isInteger(resolvedLimit) ||
-    resolvedLimit < MCP_GITHUB_MIN_LIMIT ||
-    resolvedLimit > MCP_GITHUB_MAX_LIMIT
-  ) {
+
+  // 3. Resolve the source selection from configured defaults plus tool inputs.
+  // A controlled selection error fails here, before any transport is built.
+  const selectionResult = resolveGitHubSourceSelection({
+    defaults: { source: settings.defaultSource, state: settings.defaultState, limit: settings.limit },
+    overrides: {
+      ...(input.source !== undefined ? { source: input.source } : {}),
+      ...(input.state !== undefined ? { state: input.state } : {}),
+      ...(input.number !== undefined ? { number: input.number } : {}),
+      ...(input.query !== undefined ? { query: input.query } : {}),
+      ...(input.kind !== undefined ? { kind: input.kind } : {}),
+      ...(input.limit !== undefined ? { limit: input.limit } : {}),
+    },
+  });
+  if (!selectionResult.ok) {
     return {
       ok: false,
       operation,
       repository: resolvedRepository,
-      code: "github_invalid_limit",
-      message: "limit must be an integer in 1..100",
+      code: selectionResult.code,
+      message: selectionResult.message,
     };
   }
+  const selection = selectionResult.selection;
 
   let transport = options?.transport;
   if (transport === undefined) {
@@ -269,7 +289,12 @@ export async function executeMcpGitHubTool(
     now,
   });
 
-  const request = createGitHubRuntimeRequest(operation, resolvedRepository, resolvedLimit, "mcp");
+  const request = createGitHubRuntimeRequest({
+    operation,
+    repository: resolvedRepository,
+    selection,
+    caller: "mcp",
+  });
   const response = await runtime.handle(request);
 
   if (!response.ok) {
@@ -297,14 +322,40 @@ export async function executeMcpGitHubTool(
 
   const { summary, sources } = projectSources(response);
   const markdown = formatRuntimeResponse(response, "markdown");
+  // Bound the public source list by the selection's effective limit (item and
+  // repository selections are single-item; overview/issues/PR/search use limit).
+  const sourceCap = selection.mode === "item" || selection.mode === "repository" ? 1 : selection.limit;
 
   return {
     ok: true,
     operation,
     repository: resolvedRepository,
+    selection: publicSelection(selection),
     sourceSummary: summary,
-    sources: sources.slice(0, resolvedLimit),
+    sources: sources.slice(0, sourceCap),
     output,
     markdown,
   };
+}
+
+/** Project a resolved selection to the sanitized public summary. */
+export function publicSelection(selection: GitHubSourceSelection): McpGitHubSelectionSummary {
+  switch (selection.mode) {
+    case "overview":
+    case "issues":
+    case "pull-requests":
+      return { mode: selection.mode, state: selection.state, limit: selection.limit };
+    case "repository":
+      return { mode: "repository" };
+    case "item":
+      return { mode: "item", number: selection.number };
+    case "search":
+      return {
+        mode: "search",
+        state: selection.state,
+        kind: selection.kind,
+        query: selection.query,
+        limit: selection.limit,
+      };
+  }
 }

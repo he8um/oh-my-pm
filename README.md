@@ -85,6 +85,17 @@ and pull requests. It never writes to GitHub, never uses a token CLI argument,
 and never prints or persists the optional `OH_MY_PM_GITHUB_TOKEN`. See
 [the GitHub provider guide](docs/providers/github.md).
 
+`--source` selects exactly which context is analyzed — `overview` (default),
+`repository`, `issues`, `pull-requests`, one `item` by `--number`, or a
+repository-scoped `search` by `--query` — with `--state open|closed|all` and
+search `--kind`. See [GitHub source selection](docs/providers/github-source-selection.md):
+
+```bash
+oh-my-pm github risks owner/repository --source issues --state open --markdown
+oh-my-pm github brief owner/repository --source item --number 123 --markdown
+oh-my-pm github risks owner/repository --source search --query "release blocker" --markdown
+```
+
 Scope at a glance:
 
 ```text
@@ -240,8 +251,9 @@ Local project tools (offline, require a local `root`):
 - `project_handoff`
 
 GitHub tools (read-only outbound request to `api.github.com` only when called;
-the `repository` in `owner/repo` form and `limit` are optional and fall back to
-the configured `providers.json` defaults):
+`repository`, `limit`, and the source-selection fields — `source`, `state`,
+`number`, `query`, `kind` — are optional and fall back to the configured
+`providers.json` defaults):
 
 - `github_project_brief`
 - `github_project_risks`

@@ -506,6 +506,21 @@ for (const file of PROVIDER_CONFIG_SOURCES) {
   if (!existsSync(file)) err(`provider configuration/diagnostics file missing: ${file}`);
 }
 
+// 7g9. GitHub source-selection surface: the pure selection model, canonical
+// query builders/parsers, provider behavior, CLI parser/process, and docs.
+const GITHUB_SOURCE_SELECTION_SOURCES = [
+  "providers/src/github/selection.ts",
+  "providers/test/github-selection.test.ts",
+  "providers/test/github-source-provider.test.ts",
+  "cli/test/github-source-parser.test.ts",
+  "cli/test/github-source-process.test.ts",
+  "cli/test/github-source-e2e.test.ts",
+  "docs/providers/github-source-selection.md",
+];
+for (const file of GITHUB_SOURCE_SELECTION_SOURCES) {
+  if (!existsSync(file)) err(`github source-selection file missing: ${file}`);
+}
+
 // 7h. Installer foundation files exist.
 const INSTALLER_SOURCES = [
   "installer/README.md",

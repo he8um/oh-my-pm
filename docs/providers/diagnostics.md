@@ -30,9 +30,13 @@ oh-my-pm providers status --markdown
 ```
 
 It reports the configuration source/existence/validity, each provider's
-read-only network posture and state, the configured GitHub defaults, and GitHub
-token presence only. It never contacts the network. It exits `0` for valid
-configuration and `2` for an invalid or unreadable explicit/environment
+read-only network posture and state, the configured GitHub defaults (including
+`defaultSource` and `defaultState`), and GitHub token presence only. It also
+describes the GitHub source-selection capability offline: the supported source
+modes, states, and search kinds; that single-item fetch is supported; that only
+a single API page is read; and that comments, timelines, and pull-request
+file/diff data are never included. It never contacts the network. It exits `0`
+for valid configuration and `2` for an invalid or unreadable explicit/environment
 configuration.
 
 ## `providers doctor` (offline)

@@ -20,7 +20,9 @@ The provider configuration is a single UTF-8 JSON file named `providers.json`:
     "github": {
       "enabled": true,
       "defaultRepository": "owner/repository",
-      "defaultLimit": 50
+      "defaultLimit": 50,
+      "defaultSource": "overview",
+      "defaultState": "open"
     }
   }
 }
@@ -33,13 +35,18 @@ Schema rules:
 - `version` must equal the integer `1`.
 - `providers` may only contain `github`. The local provider is always enabled
   and is not user-configurable in this phase.
-- The `github` object may only contain `enabled`, `defaultRepository`, and
-  `defaultLimit`.
+- The `github` object may only contain `enabled`, `defaultRepository`,
+  `defaultLimit`, `defaultSource`, and `defaultState`.
   - `enabled` defaults to `true`.
   - `defaultRepository` is optional and must be a valid `owner/repository`
     identifier (the same strict parser the GitHub provider uses).
   - `defaultLimit` defaults to `50` and must be an integer from `1` through
     `100`.
+  - `defaultSource` defaults to `overview` and must be one of `overview`,
+    `repository`, `issues`, or `pull-requests`. The `item` and `search` sources
+    require per-invocation data and are **not** valid defaults.
+  - `defaultState` defaults to `open` and must be one of `open`, `closed`, or
+    `all`.
 - Unknown keys are rejected at every level.
 - Any key containing a case-insensitive secret marker — `token`, `secret`,
   `password`, `authorization`, `cookie`, or `apiKey` — is rejected. **No secret
@@ -107,7 +114,13 @@ override:
 ```text
 repository: explicit CLI/MCP value > providers.github.defaultRepository > error
 limit:      explicit CLI/MCP value > providers.github.defaultLimit      > 50
+source:     explicit CLI/MCP value > providers.github.defaultSource     > overview
+state:      explicit CLI/MCP value > providers.github.defaultState      > open
 ```
+
+The configured `defaultSource`/`defaultState` feed the GitHub source-selection
+model; `item` and `search` are always per-invocation and never stored. See
+[GitHub source selection](./github-source-selection.md).
 
 A disabled GitHub provider (`"enabled": false`) blocks a GitHub workflow before
 any transport is constructed. An invalid explicit repository or limit fails

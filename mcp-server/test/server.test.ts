@@ -7,6 +7,7 @@ import { createOhMyPmMcpServer, executeMcpProjectTool } from "../src/index.js";
 import type {
   McpGitHubOperation,
   McpGitHubToolExecution,
+  McpGitHubToolInput,
   McpProjectToolExecution,
   McpProjectOperation,
 } from "../src/index.js";
@@ -247,22 +248,21 @@ describe("mcp github tools", () => {
   function stubGitHub(): {
     executeGitHubTool: (
       operation: McpGitHubOperation,
-      repository: string | undefined,
-      limit: number | undefined,
+      input: McpGitHubToolInput,
     ) => Promise<McpGitHubToolExecution>;
-    calls: Array<{ operation: string; repository: string | undefined; limit: number | undefined }>;
+    calls: Array<{ operation: string; input: McpGitHubToolInput }>;
   } {
-    const calls: Array<{ operation: string; repository: string | undefined; limit: number | undefined }> = [];
+    const calls: Array<{ operation: string; input: McpGitHubToolInput }> = [];
     const executeGitHubTool = async (
       operation: McpGitHubOperation,
-      repository: string | undefined,
-      limit: number | undefined,
+      input: McpGitHubToolInput,
     ): Promise<McpGitHubToolExecution> => {
-      calls.push({ operation, repository, limit });
+      calls.push({ operation, input });
       return {
         ok: true,
         operation,
-        repository: repository ?? "configured/default",
+        repository: input.repository ?? "configured/default",
+        selection: { mode: input.source ?? "overview", state: input.state ?? "open", limit: input.limit ?? 50 },
         sourceSummary: { total: 2, repositories: 1, issues: 1, pullRequests: 0 },
         sources: [{ type: "issue", number: 7, title: "#7 A", state: "open" }],
         output: { title: "brief" },
@@ -288,10 +288,26 @@ describe("mcp github tools", () => {
       expect(result.isError).not.toBe(true);
     }
     expect(calls.map((c) => c.operation)).toEqual(["brief", "risks", "next", "handoff"]);
-    // Repository/limit are now optional at the schema layer; the executor
-    // resolves defaults from provider configuration, so an omitted limit is
-    // passed through as undefined rather than defaulted here.
-    expect(calls.every((c) => c.limit === undefined)).toBe(true);
+    // Limit is optional at the schema layer; an omitted limit is passed through
+    // as undefined so the executor resolves it from provider configuration.
+    expect(calls.every((c) => c.input.limit === undefined)).toBe(true);
+  });
+
+  it("forwards source selection fields to the executor", async () => {
+    const { executeGitHubTool, calls } = stubGitHub();
+    const client = await connectClient(createOhMyPmMcpServer({ executeGitHubTool }));
+    const result = (await client.callTool({
+      name: "github_project_risks",
+      arguments: { repository: "octo/demo", source: "search", query: "blocker", kind: "issues", state: "open" },
+    })) as ToolCallResult;
+    expect(result.isError).not.toBe(true);
+    expect(calls[0]!.input).toMatchObject({
+      repository: "octo/demo",
+      source: "search",
+      query: "blocker",
+      kind: "issues",
+      state: "open",
+    });
   });
 
   it("passes an omitted repository through so the executor can use config", async () => {
@@ -302,7 +318,7 @@ describe("mcp github tools", () => {
       arguments: {},
     })) as ToolCallResult;
     expect(result.isError).not.toBe(true);
-    expect(calls[0]!.repository).toBeUndefined();
+    expect(calls[0]!.input.repository).toBeUndefined();
   });
 
   it("rejects an empty-string repository at the schema before any executor call", async () => {

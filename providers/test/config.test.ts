@@ -13,7 +13,7 @@ describe("defaultProviderConfig", () => {
       version: 1,
       providers: {
         local: { enabled: true },
-        github: { enabled: true, defaultLimit: 50 },
+        github: { enabled: true, defaultLimit: 50, defaultSource: "overview", defaultState: "open" },
       },
     });
   });
@@ -29,7 +29,7 @@ describe("validateProviderConfig — valid", () => {
     const result = validateProviderConfig({ version: 1 });
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.config.providers.github).toStrictEqual({ enabled: true, defaultLimit: 50 });
+      expect(result.config.providers.github).toStrictEqual({ enabled: true, defaultLimit: 50, defaultSource: "overview", defaultState: "open" });
       expect(result.config.providers.local).toStrictEqual({ enabled: true });
     }
   });
@@ -41,7 +41,7 @@ describe("validateProviderConfig — valid", () => {
     });
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.config.providers.github).toStrictEqual({ enabled: true, defaultLimit: 50 });
+      expect(result.config.providers.github).toStrictEqual({ enabled: true, defaultLimit: 50, defaultSource: "overview", defaultState: "open" });
     }
   });
 
@@ -58,6 +58,8 @@ describe("validateProviderConfig — valid", () => {
         enabled: true,
         defaultRepository: "he8um/oh-my-pm",
         defaultLimit: 25,
+        defaultSource: "overview",
+        defaultState: "open",
       });
     }
   });
@@ -72,6 +74,63 @@ describe("validateProviderConfig — valid", () => {
     const result = validateProviderConfig({ version: 1, providers: { github: { defaultLimit: 10 } } });
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.config.providers.github.enabled).toBe(true);
+  });
+
+  it("defaults source to overview and state to open when omitted", () => {
+    const result = validateProviderConfig({ version: 1, providers: { github: {} } });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.providers.github.defaultSource).toBe("overview");
+      expect(result.config.providers.github.defaultState).toBe("open");
+    }
+  });
+
+  it("accepts each configurable default source", () => {
+    for (const source of ["overview", "repository", "issues", "pull-requests"] as const) {
+      const result = validateProviderConfig({
+        version: 1,
+        providers: { github: { defaultSource: source } },
+      });
+      expect(result.ok, source).toBe(true);
+      if (result.ok) expect(result.config.providers.github.defaultSource).toBe(source);
+    }
+  });
+
+  it("accepts each default state", () => {
+    for (const state of ["open", "closed", "all"] as const) {
+      const result = validateProviderConfig({
+        version: 1,
+        providers: { github: { defaultState: state } },
+      });
+      expect(result.ok, state).toBe(true);
+      if (result.ok) expect(result.config.providers.github.defaultState).toBe(state);
+    }
+  });
+});
+
+describe("validateProviderConfig — invalid source/state", () => {
+  it("rejects item as a default source", () => {
+    const result = validateProviderConfig({ version: 1, providers: { github: { defaultSource: "item" } } });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("provider_config_invalid_source");
+  });
+
+  it("rejects search as a default source", () => {
+    const result = validateProviderConfig({ version: 1, providers: { github: { defaultSource: "search" } } });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("provider_config_invalid_source");
+  });
+
+  it("rejects an unknown default source", () => {
+    const result = validateProviderConfig({ version: 1, providers: { github: { defaultSource: "pr" } } });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("provider_config_invalid_source");
+  });
+
+  it("rejects an invalid default state", () => {
+    const result = validateProviderConfig({ version: 1, providers: { github: { defaultState: "merged" } } });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("provider_config_invalid_state");
   });
 });
 

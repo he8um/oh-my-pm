@@ -35,6 +35,11 @@ follows these rules:
   the token is injected at the process boundary.
 - No network request is made at process startup or during MCP tool discovery.
 - Local Markdown project workflows remain fully offline and read no token.
+- Source selection (`overview`, `repository`, `issues`, `pull-requests`, `item`,
+  `search`) stays inside this boundary: `GET`-only, a single API page (max 100
+  items), no GraphQL, no comments/timelines/diffs/files, and no write-back.
+  Provider-owned repository/state/kind scope is injected into search queries and
+  can never be overridden by user search terms.
 
 ## Provider configuration and diagnostics
 

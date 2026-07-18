@@ -9,11 +9,18 @@
 import {
   GITHUB_API_ORIGIN,
   GITHUB_API_VERSION,
+  GITHUB_SEARCH_KINDS,
+  GITHUB_SOURCE_MODES,
+  GITHUB_SOURCE_STATES,
   createGitHubProvider,
   resolveGitHubProviderSettings,
 } from "@oh-my-pm/providers";
 import type {
+  GitHubConfigurableSource,
   GitHubHttpTransport,
+  GitHubSearchKind,
+  GitHubSourceMode,
+  GitHubSourceState,
   ResolvedProviderConfig,
 } from "@oh-my-pm/providers";
 import type { ProviderConfigSource } from "./provider-config.js";
@@ -44,8 +51,25 @@ export type ProviderStatusReport = {
     state: "ready" | "disabled" | "needs-repository";
     defaultRepository?: string;
     defaultLimit?: number;
+    defaultSource?: GitHubConfigurableSource;
+    defaultState?: GitHubSourceState;
     token: ProviderTokenState;
+    sourceSelection?: GitHubSourceSelectionCapability;
   }>;
+};
+
+/** Fixed, offline description of the GitHub source-selection capability. */
+export type GitHubSourceSelectionCapability = {
+  defaultSource: GitHubConfigurableSource;
+  defaultState: GitHubSourceState;
+  modes: readonly GitHubSourceMode[];
+  states: readonly GitHubSourceState[];
+  searchKinds: readonly GitHubSearchKind[];
+  singleItemFetch: true;
+  singlePage: true;
+  comments: false;
+  timelines: false;
+  pullRequestFiles: false;
 };
 
 export type ProviderDoctorReport = {
@@ -66,6 +90,25 @@ export type ProviderDoctorReport = {
 export const GITHUB_FIXED_ORIGIN = GITHUB_API_ORIGIN;
 export const GITHUB_FIXED_API_VERSION = GITHUB_API_VERSION;
 export const GITHUB_FIXED_METHOD = "GET";
+
+/** The fixed, offline GitHub source-selection capability description. */
+export function githubSourceSelectionCapability(
+  defaultSource: GitHubConfigurableSource,
+  defaultState: GitHubSourceState,
+): GitHubSourceSelectionCapability {
+  return {
+    defaultSource,
+    defaultState,
+    modes: GITHUB_SOURCE_MODES,
+    states: GITHUB_SOURCE_STATES,
+    searchKinds: GITHUB_SEARCH_KINDS,
+    singleItemFetch: true,
+    singlePage: true,
+    comments: false,
+    timelines: false,
+    pullRequestFiles: false,
+  };
+}
 
 /** A whitespace-only token is treated as absent. */
 export function tokenPresence(token: string | undefined): "present" | "absent" {
@@ -101,7 +144,10 @@ export function buildProviderStatusReport(input: ProviderStatusInput): ProviderS
     network: "explicit-opt-in",
     state: githubState,
     defaultLimit: github.defaultLimit,
+    defaultSource: github.defaultSource,
+    defaultState: github.defaultState,
     token: tokenPresence(input.token),
+    sourceSelection: githubSourceSelectionCapability(github.defaultSource, github.defaultState),
   };
   if (github.defaultRepository !== undefined) {
     githubEntry.defaultRepository = github.defaultRepository;

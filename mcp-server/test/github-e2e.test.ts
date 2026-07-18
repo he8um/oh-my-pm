@@ -72,7 +72,7 @@ describe("github offline e2e — MCP", () => {
   for (const op of ["brief", "risks", "next", "handoff"] as const) {
     it(`runs ${op} through the MCP runner`, async () => {
       const { transport, paths } = transportWithLog();
-      const result = await executeMcpGitHubTool(op, SLUG, 5, {
+      const result = await executeMcpGitHubTool(op, { repository: SLUG, limit: 5 }, {
         transport,
         providerConfig: OFFLINE_CONFIG,
       });

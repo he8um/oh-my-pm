@@ -138,14 +138,23 @@ token is needed; the generic MCP client-config generator never inserts secrets.
 Server startup and `tools/list` never make a GitHub request — a request happens
 only when one of these tools is called.
 
+## Source selection
+
+The four GitHub workflows choose which read-only context to analyze through a
+strict source-selection model: `overview` (default), `repository`, `issues`,
+`pull-requests`, a single `item` (issue/PR with type auto-detection), and
+repository-scoped `search`, each with `open`/`closed`/`all` state and a search
+`kind`. It stays `GET`-only, single page, and never fetches comments, timelines,
+or diffs. See [GitHub source selection](./github-source-selection.md).
+
 ## Provider configuration and diagnostics
 
-The GitHub repository and limit can be supplied per command/tool or as defaults
-in an optional, strictly read-only `providers.json`. The origin, API version,
-method, and token environment variable stay fixed and are never configurable,
-and no secret is ever permitted in the file. Offline `providers status` /
-`providers doctor` commands and an explicitly confirmed single-request GitHub
-access diagnostic are available. See
+The GitHub repository, limit, default source, and default state can be supplied
+per command/tool or as defaults in an optional, strictly read-only
+`providers.json`. The origin, API version, method, and token environment
+variable stay fixed and are never configurable, and no secret is ever permitted
+in the file. Offline `providers status` / `providers doctor` commands and an
+explicitly confirmed single-request GitHub access diagnostic are available. See
 [provider configuration](./configuration.md) and
 [provider diagnostics](./diagnostics.md).
 

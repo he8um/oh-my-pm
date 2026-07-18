@@ -6,8 +6,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runLocalCliProcess } from "@oh-my-pm/cli";
 import type { GitHubHttpRequest, GitHubHttpResponse, GitHubHttpTransport } from "@oh-my-pm/providers";
+import { defaultProviderConfig } from "@oh-my-pm/providers";
 import { describe, expect, it } from "vitest";
 import { executeMcpGitHubTool, executeMcpProjectTool } from "../src/index.js";
+
+const OFFLINE_CONFIG = defaultProviderConfig();
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const signalsRoot = join(repoRoot, "examples", "fixtures", "project-signals");
@@ -158,8 +161,8 @@ describe("MCP local extraction e2e", () => {
 
 describe("MCP GitHub extraction e2e (fake transport)", () => {
   it("excludes the repository record from next and carries public metadata", async () => {
-    const risks = await executeMcpGitHubTool("risks", SLUG, 10, { transport: githubTransport() });
-    const next = await executeMcpGitHubTool("next", SLUG, 10, { transport: githubTransport() });
+    const risks = await executeMcpGitHubTool("risks", { repository: SLUG, limit: 10 }, { transport: githubTransport(), providerConfig: OFFLINE_CONFIG });
+    const next = await executeMcpGitHubTool("next", { repository: SLUG, limit: 10 }, { transport: githubTransport(), providerConfig: OFFLINE_CONFIG });
     expect(risks.ok && next.ok).toBe(true);
     if (!risks.ok || !next.ok) return;
 
@@ -181,7 +184,7 @@ describe("MCP GitHub extraction e2e (fake transport)", () => {
     expect(serialized).not.toContain('"b1"');
 
     // Deterministic repeat.
-    const risks2 = await executeMcpGitHubTool("risks", SLUG, 10, { transport: githubTransport() });
+    const risks2 = await executeMcpGitHubTool("risks", { repository: SLUG, limit: 10 }, { transport: githubTransport(), providerConfig: OFFLINE_CONFIG });
     if (risks2.ok) expect(risks.output).toEqual(risks2.output);
   });
 });
@@ -203,7 +206,7 @@ describe("brief and handoff regression (unchanged public shape)", () => {
   });
 
   it("keeps the GitHub brief and handoff output shapes without new signal fields", async () => {
-    const brief = await executeMcpGitHubTool("brief", SLUG, 10, { transport: githubTransport() });
+    const brief = await executeMcpGitHubTool("brief", { repository: SLUG, limit: 10 }, { transport: githubTransport(), providerConfig: OFFLINE_CONFIG });
     expect(brief.ok).toBe(true);
     if (brief.ok) {
       // The brief output is the status summary; it gains no risk/next metadata.
@@ -212,7 +215,7 @@ describe("brief and handoff regression (unchanged public shape)", () => {
       expect(output).not.toHaveProperty("priority");
       expect(output).not.toHaveProperty("repository");
     }
-    const handoff = await executeMcpGitHubTool("handoff", SLUG, 10, { transport: githubTransport() });
+    const handoff = await executeMcpGitHubTool("handoff", { repository: SLUG, limit: 10 }, { transport: githubTransport(), providerConfig: OFFLINE_CONFIG });
     expect(handoff.ok).toBe(true);
     if (handoff.ok) {
       const output = handoff.output as Record<string, unknown>;

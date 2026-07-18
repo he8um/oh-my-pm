@@ -35,6 +35,12 @@ function statusBrief(report: ProviderStatusReport): string {
   }
   if (github !== undefined) {
     lines.push(`github token: ${github.token}`);
+    if (github.defaultSource !== undefined && github.defaultState !== undefined) {
+      lines.push(`github default source: ${github.defaultSource} (state ${github.defaultState})`);
+    }
+    if (github.sourceSelection !== undefined) {
+      lines.push(`github sources: ${github.sourceSelection.modes.join(", ")}`);
+    }
   }
   lines.push("");
   return lines.join("\n");
@@ -59,6 +65,23 @@ function statusMarkdown(report: ProviderStatusReport): string {
       }
       if (provider.defaultLimit !== undefined) {
         lines.push(`- Default limit: ${provider.defaultLimit}`);
+      }
+      if (provider.defaultSource !== undefined) {
+        lines.push(`- Default source: \`${provider.defaultSource}\``);
+      }
+      if (provider.defaultState !== undefined) {
+        lines.push(`- Default state: \`${provider.defaultState}\``);
+      }
+      const cap = provider.sourceSelection;
+      if (cap !== undefined) {
+        lines.push(`- Source modes: ${cap.modes.join(", ")}`);
+        lines.push(`- States: ${cap.states.join(", ")}`);
+        lines.push(`- Search kinds: ${cap.searchKinds.join(", ")}`);
+        lines.push(`- Single-item fetch: yes`);
+        lines.push(`- Single page only: yes`);
+        lines.push(`- Comments included: no`);
+        lines.push(`- Timeline included: no`);
+        lines.push(`- Pull-request file/diff data included: no`);
       }
     }
   }

@@ -346,6 +346,16 @@ export function validateReleaseBundleForInstall(bundleRoot) {
         if (gh.tokenOptionalForPublicRepositories !== true) {
           add("release_network_github_token_optional_not_true");
         }
+        const sel = gh.sourceSelection;
+        if (sel === null || typeof sel !== "object") {
+          add("release_network_github_source_selection_missing");
+        } else if (
+          JSON.stringify(sel.modes) !==
+            JSON.stringify(["overview", "repository", "issues", "pull-requests", "item", "search"]) ||
+          sel.pagination !== "single-page"
+        ) {
+          add("release_network_github_source_selection_unexpected");
+        }
       }
     }
   }

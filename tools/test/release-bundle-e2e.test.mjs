@@ -117,6 +117,7 @@ describe("portable release bundle e2e", () => {
         configurable: ["enabled", "defaultRepository", "defaultLimit"],
         fixed: ["origin", "apiVersion", "method", "tokenEnv"],
       },
+      githubFields: ["enabled", "defaultRepository", "defaultLimit", "defaultSource", "defaultState"],
     });
     expect(release.providerDiagnostics).toEqual({
       offlineByDefault: true,
@@ -124,6 +125,21 @@ describe("portable release bundle e2e", () => {
       networkRequestCount: 1,
       networkMethod: "GET",
       tokenValuesReported: false,
+    });
+    // The GitHub outbound provider declares the source-selection surface.
+    const gh = release.network.outboundProviders[0];
+    expect(gh.sourceSelection).toEqual({
+      defaultSource: "overview",
+      defaultState: "open",
+      modes: ["overview", "repository", "issues", "pull-requests", "item", "search"],
+      states: ["open", "closed", "all"],
+      searchKinds: ["all", "issues", "pull-requests"],
+      singleItemAutoDetect: true,
+      maxItems: 100,
+      pagination: "single-page",
+      comments: false,
+      timelines: false,
+      diffs: false,
     });
   });
 

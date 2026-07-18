@@ -55,10 +55,12 @@ export type {
 export type {
   McpDiagnosticsToolName,
   McpGitHubOperation,
+  McpGitHubSelectionSummary,
   McpGitHubSource,
   McpGitHubSourceSummary,
   McpGitHubToolExecution,
   McpGitHubToolFailure,
+  McpGitHubToolInput,
   McpGitHubToolName,
   McpGitHubToolSuccess,
   McpProjectDocumentSummary,

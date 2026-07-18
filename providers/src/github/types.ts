@@ -33,12 +33,25 @@ export type GitHubRepositoryRefResult =
   | { ok: true; ref: GitHubRepositoryRef }
   | { ok: false; reason: string };
 
+// Canonical source/state/kind values carried by parsed queries. These mirror
+// the public selection enums but are duplicated here to keep the query module
+// free of a dependency on the selection module (selection depends on query).
+export type GitHubListSource = "overview" | "repository" | "issues" | "pull-requests";
+export type GitHubQueryState = "open" | "closed" | "all";
+export type GitHubQueryKind = "all" | "issues" | "pull-requests";
+
 export type GitHubListQueryResult =
-  | { ok: true; ref: GitHubRepositoryRef }
+  | { ok: true; ref: GitHubRepositoryRef; source: GitHubListSource; state: GitHubQueryState }
   | { ok: false; reason: string };
 
 export type GitHubSearchQueryResult =
-  | { ok: true; ref: GitHubRepositoryRef; terms: string }
+  | {
+      ok: true;
+      ref: GitHubRepositoryRef;
+      terms: string;
+      state: GitHubQueryState;
+      kind: GitHubQueryKind;
+    }
   | { ok: false; reason: string };
 
 export type GitHubFetchQueryResult =

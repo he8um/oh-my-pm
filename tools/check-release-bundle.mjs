@@ -173,6 +173,32 @@ async function run(bundle) {
     return fail("RELEASE.json github tokenOptionalForPublicRepositories must be true");
   }
 
+  // Source-selection metadata: exact modes/states/kinds and read-only limits.
+  const sel = gh.sourceSelection;
+  if (sel === null || typeof sel !== "object") {
+    return fail("RELEASE.json github sourceSelection metadata is missing");
+  }
+  if (sel.defaultSource !== "overview") return fail("RELEASE.json sourceSelection.defaultSource must be overview");
+  if (sel.defaultState !== "open") return fail("RELEASE.json sourceSelection.defaultState must be open");
+  if (
+    JSON.stringify(sel.modes) !==
+    JSON.stringify(["overview", "repository", "issues", "pull-requests", "item", "search"])
+  ) {
+    return fail("RELEASE.json sourceSelection.modes is unexpected");
+  }
+  if (JSON.stringify(sel.states) !== JSON.stringify(["open", "closed", "all"])) {
+    return fail("RELEASE.json sourceSelection.states is unexpected");
+  }
+  if (JSON.stringify(sel.searchKinds) !== JSON.stringify(["all", "issues", "pull-requests"])) {
+    return fail("RELEASE.json sourceSelection.searchKinds is unexpected");
+  }
+  if (sel.singleItemAutoDetect !== true) return fail("RELEASE.json sourceSelection.singleItemAutoDetect must be true");
+  if (sel.maxItems !== 100) return fail("RELEASE.json sourceSelection.maxItems must be 100");
+  if (sel.pagination !== "single-page") return fail("RELEASE.json sourceSelection.pagination must be single-page");
+  if (sel.comments !== false || sel.timelines !== false || sel.diffs !== false) {
+    return fail("RELEASE.json sourceSelection must not enable comments/timelines/diffs");
+  }
+
   // Installer metadata: preview-first, prefix-required, no network/profile/
   // client/project writes. Validated structurally without applying anything.
   const installer = release.installer;
@@ -230,6 +256,12 @@ async function run(bundle) {
     JSON.stringify(["origin", "apiVersion", "method", "tokenEnv"])
   ) {
     return fail("RELEASE.json providerConfiguration.github.fixed is unexpected");
+  }
+  if (
+    JSON.stringify(providerConfig.githubFields) !==
+    JSON.stringify(["enabled", "defaultRepository", "defaultLimit", "defaultSource", "defaultState"])
+  ) {
+    return fail("RELEASE.json providerConfiguration.githubFields is unexpected");
   }
 
   // Provider diagnostics metadata: offline by default, one confirmed GET, no

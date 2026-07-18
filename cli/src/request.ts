@@ -1,43 +1,58 @@
-import type { RuntimeRequest } from "@oh-my-pm/contracts";
+import type { JsonValue, RuntimeRequest } from "@oh-my-pm/contracts";
+import { createGitHubProviderRequest } from "@oh-my-pm/providers";
+import type { GitHubSourceSelection } from "@oh-my-pm/providers";
 import { DEFAULT_PROJECT_DOCUMENT_MAX_FILES } from "./node-project-documents.js";
 import type { GitHubCliOperation, RuntimeCliCommand } from "./types.js";
 
+export type GitHubWorkflowRequestInput = {
+  operation: GitHubCliOperation;
+  repository: string;
+  selection: GitHubSourceSelection;
+  caller: "cli" | "mcp";
+};
+
+/** Short, bounded phrase describing the selected source for the request text. */
+function sourcePhrase(selection: GitHubSourceSelection): string {
+  return `using ${selection.mode} source`;
+}
+
 /**
- * Deterministic RuntimeRequest for a GitHub workflow. The repository is carried
- * as the provider query; the request text routes the existing intent
- * classification (status/riskReview/nextTask/handoff). No token, no headers,
- * and no API URL ever enter the Runtime request.
+ * Deterministic RuntimeRequest for a GitHub workflow. The provider request is
+ * built from the resolved source selection through the shared provider builder;
+ * the request text routes the existing intent classification and names only the
+ * bounded source mode (never the search query, token, headers, or API URL).
  */
-export function createGitHubRuntimeRequest(
-  operation: GitHubCliOperation,
-  repository: string,
-  limit: number,
-  source: "cli" | "mcp",
-): RuntimeRequest {
+export function createGitHubRuntimeRequest(input: GitHubWorkflowRequestInput): RuntimeRequest {
+  const { operation, repository, selection, caller } = input;
+  const phrase = sourcePhrase(selection);
   const requestText =
     operation === "brief"
-      ? `status brief for GitHub repository ${repository}`
+      ? `status brief for GitHub repository ${repository} ${phrase}`
       : operation === "risks"
-        ? `review risks for GitHub repository ${repository}`
+        ? `review risks for GitHub repository ${repository} ${phrase}`
         : operation === "next"
-          ? `derive next tasks for GitHub repository ${repository}`
-          : `create handoff for GitHub repository ${repository}`;
+          ? `derive next tasks for GitHub repository ${repository} ${phrase}`
+          : `create handoff for GitHub repository ${repository} ${phrase}`;
+  const providerRequest = createGitHubProviderRequest({ repository, selection });
+  // Re-materialize as a plain JSON record for the Runtime payload (the typed
+  // ProviderRequest lacks a JSON index signature).
+  const providerRequestJson: Record<string, JsonValue> = {
+    providerId: providerRequest.providerId,
+    action: providerRequest.action,
+    query: providerRequest.query,
+  };
+  if (providerRequest.limit !== undefined) {
+    providerRequestJson["limit"] = providerRequest.limit;
+  }
   return {
-    id: `${source}-github-${operation}`,
+    id: `${caller}-github-${operation}`,
     kind: "plan",
     locale: "en",
     payload: {
-      source,
+      source: caller,
       request: requestText,
       context: {
-        providerRequests: [
-          {
-            providerId: "github",
-            action: "list",
-            query: repository,
-            limit,
-          },
-        ],
+        providerRequests: [providerRequestJson],
       },
     },
   };

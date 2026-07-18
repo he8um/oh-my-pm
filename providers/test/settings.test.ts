@@ -130,3 +130,44 @@ describe("resolveGitHubProviderSettings — purity", () => {
     expect(JSON.stringify(a)).not.toContain("token");
   });
 });
+
+describe("resolveGitHubProviderSettings — source/state provenance", () => {
+  it("reports default source/state provenance when using schema defaults", () => {
+    const r = resolveGitHubProviderSettings({ config: configWith({ defaultRepository: "a/b" }), overrides: {} });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.defaultSource).toBe("overview");
+      expect(r.defaultState).toBe("open");
+      expect(r.sourceSource).toBe("default");
+      expect(r.stateSource).toBe("default");
+    }
+  });
+
+  it("reports config provenance when the file sets non-default source/state", () => {
+    const r = resolveGitHubProviderSettings({
+      config: configWith({ defaultRepository: "a/b", defaultSource: "issues", defaultState: "closed" }),
+      overrides: {},
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.defaultSource).toBe("issues");
+      expect(r.sourceSource).toBe("config");
+      expect(r.defaultState).toBe("closed");
+      expect(r.stateSource).toBe("config");
+    }
+  });
+
+  it("explicit source/state overrides win and report explicit provenance", () => {
+    const r = resolveGitHubProviderSettings({
+      config: configWith({ defaultRepository: "a/b", defaultSource: "issues", defaultState: "closed" }),
+      overrides: { source: "pull-requests", state: "all" },
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.defaultSource).toBe("pull-requests");
+      expect(r.sourceSource).toBe("explicit");
+      expect(r.defaultState).toBe("all");
+      expect(r.stateSource).toBe("explicit");
+    }
+  });
+});

@@ -4,9 +4,14 @@
 // access. Token state is never part of effective settings. Explicit invalid
 // overrides fail closed and never silently fall back to configuration.
 
-import { DEFAULT_GITHUB_PROVIDER_LIMIT } from "./config.js";
+import {
+  DEFAULT_GITHUB_PROVIDER_LIMIT,
+  DEFAULT_GITHUB_PROVIDER_SOURCE,
+  DEFAULT_GITHUB_PROVIDER_STATE,
+} from "./config.js";
 import type { ResolvedProviderConfig } from "./config.js";
 import { parseGitHubRepository } from "./github/query.js";
+import type { GitHubConfigurableSource, GitHubSourceState } from "./github/selection.js";
 
 const GITHUB_PROVIDER_MIN_LIMIT = 1;
 const GITHUB_PROVIDER_MAX_LIMIT = 100;
@@ -14,6 +19,8 @@ const GITHUB_PROVIDER_MAX_LIMIT = 100;
 export type GitHubProviderOverrides = {
   repository?: string;
   limit?: number;
+  source?: GitHubConfigurableSource;
+  state?: GitHubSourceState;
 };
 
 export type EffectiveGitHubProviderSettingsResult =
@@ -22,8 +29,12 @@ export type EffectiveGitHubProviderSettingsResult =
       enabled: true;
       repository: string;
       limit: number;
+      defaultSource: GitHubConfigurableSource;
+      defaultState: GitHubSourceState;
       repositorySource: "explicit" | "config";
       limitSource: "explicit" | "config" | "default";
+      sourceSource: "explicit" | "config" | "default";
+      stateSource: "explicit" | "config" | "default";
     }
   | {
       ok: false;
@@ -122,13 +133,39 @@ export function resolveGitHubProviderSettings(input: {
     limitSource = github.defaultLimit === DEFAULT_GITHUB_PROVIDER_LIMIT ? "default" : "config";
   }
 
+  // Source: explicit override wins; otherwise the configured default, reported
+  // as "config" when it differs from the schema default and "default" otherwise.
+  let defaultSource: GitHubConfigurableSource;
+  let sourceSource: "explicit" | "config" | "default";
+  if (input.overrides.source !== undefined) {
+    defaultSource = input.overrides.source;
+    sourceSource = "explicit";
+  } else {
+    defaultSource = github.defaultSource;
+    sourceSource = github.defaultSource === DEFAULT_GITHUB_PROVIDER_SOURCE ? "default" : "config";
+  }
+
+  let defaultState: GitHubSourceState;
+  let stateSource: "explicit" | "config" | "default";
+  if (input.overrides.state !== undefined) {
+    defaultState = input.overrides.state;
+    stateSource = "explicit";
+  } else {
+    defaultState = github.defaultState;
+    stateSource = github.defaultState === DEFAULT_GITHUB_PROVIDER_STATE ? "default" : "config";
+  }
+
   return {
     ok: true,
     enabled: true,
     repository,
     limit,
+    defaultSource,
+    defaultState,
     repositorySource,
     limitSource,
+    sourceSource,
+    stateSource,
   };
 }
 

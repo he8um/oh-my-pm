@@ -1,4 +1,10 @@
 import type { CliOutputMode, RuntimeRequest, RuntimeResponse } from "@oh-my-pm/contracts";
+import type {
+  GitHubSearchKind,
+  GitHubSourceMode,
+  GitHubSourceSelection,
+  GitHubSourceState,
+} from "@oh-my-pm/providers";
 import type { Runtime } from "@oh-my-pm/runtime";
 
 export type CliCommand =
@@ -36,9 +42,15 @@ export type CliParseResult =
       ok: true;
       command: "github";
       operation: GitHubCliOperation;
-      // Repository and limit are optional at parse time: provider configuration
-      // may supply defaults. Presence records whether the value was explicit.
+      // Repository, limit, and source options are optional at parse time:
+      // provider configuration may supply defaults. Presence records whether the
+      // value was explicit so config never overrides an explicit choice.
       repository?: string;
+      source?: GitHubSourceMode;
+      state?: GitHubSourceState;
+      number?: number;
+      query?: string;
+      kind?: GitHubSearchKind;
       limit?: number;
       providerConfigPath?: string;
       outputMode: CliOutputMode;
@@ -83,7 +95,7 @@ export type CliDeps = {
    */
   github?: {
     repository: string;
-    limit: number;
+    selection: GitHubSourceSelection;
   };
 };
 

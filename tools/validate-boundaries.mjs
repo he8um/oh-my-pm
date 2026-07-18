@@ -1127,14 +1127,31 @@ if (trackedFiles.includes(PROVIDER_CONFIG_LOADER)) {
 // name (the SECRET markers themselves are the detection list, so this scans for
 // declared object keys, not the detector). No other provider source may read a
 // provider-config file from disk.
-const PROVIDER_PURE_CONFIG = ["providers/src/config.ts", "providers/src/settings.ts"];
+const PROVIDER_PURE_CONFIG = [
+  "providers/src/config.ts",
+  "providers/src/settings.ts",
+  // The source-selection model is pure: it validates selections and builds
+  // provider requests with no I/O, environment, clock, or arbitrary URL.
+  "providers/src/github/selection.ts",
+];
 for (const file of PROVIDER_PURE_CONFIG) {
   if (!trackedFiles.includes(file)) {
     err(`pure provider config/settings file is not tracked: ${file}`);
     continue;
   }
   const contents = readFileSync(file, "utf8");
-  for (const marker of ["readFileSync", "writeFile", "node:fs", 'from "fs"', "fetch("]) {
+  for (const marker of [
+    "readFileSync",
+    "writeFile",
+    "node:fs",
+    'from "fs"',
+    "fetch(",
+    "process.env",
+    "Date.now",
+    "new Date",
+    "Math.random",
+    "api.github.com",
+  ]) {
     if (contents.includes(marker)) {
       err(`${file} must stay pure; it contains "${marker}"`);
     }

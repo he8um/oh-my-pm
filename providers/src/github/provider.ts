@@ -41,7 +41,13 @@ import {
 } from "./normalize.js";
 import { parseGitHubFetchQuery, parseGitHubListQuery, parseGitHubSearchQuery } from "./query.js";
 import { GitHubTransportError } from "./transport.js";
-import type { GitHubHttpResponse, GitHubHttpTransport } from "./types.js";
+import type {
+  GitHubHttpResponse,
+  GitHubHttpTransport,
+  GitHubListSource,
+  GitHubQueryKind,
+  GitHubQueryState,
+} from "./types.js";
 
 const RATE_LIMIT_WARN_THRESHOLD = 10;
 
@@ -176,58 +182,33 @@ export function createGitHubProvider(options: {
     return { ok: true, response };
   }
 
-  async function handleList(query: string, limit: number): Promise<ProviderResult> {
-    const parsed = parseGitHubListQuery(query);
-    if (!parsed.ok) {
-      return providerFailure("github", OMP_P_INVALID_REQUEST, "invalid repository identifier");
-    }
-    const { slug } = parsed.ref;
-    const repoResult = await get(`${GITHUB_API_ORIGIN}/repos/${slug}`);
-    if (!repoResult.ok) return repoResult.result;
-    const repoNorm = normalizeRepository(slug, repoResult.response.body);
-    if (repoNorm === null) {
-      return providerFailure("github", OMP_P_INVALID_RESPONSE);
-    }
-
-    const items: NormalizedProviderItem[] = [repoNorm.item];
-    const warnings: KernelWarning[] = [...repoNorm.warnings, ...lowRateLimitWarning(repoResult.response.headers)];
-
-    if (limit > 1) {
-      const perPage = limit - 1;
-      const listUrl = new URL(`${GITHUB_API_ORIGIN}/repos/${slug}/issues`);
-      listUrl.searchParams.set("state", "open");
-      listUrl.searchParams.set("sort", "updated");
-      listUrl.searchParams.set("direction", "desc");
-      listUrl.searchParams.set("per_page", String(perPage));
-      listUrl.searchParams.set("page", "1");
-      const issuesResult = await get(listUrl.toString());
-      if (!issuesResult.ok) return issuesResult.result;
-      const body = issuesResult.response.body;
-      if (!Array.isArray(body)) {
-        return providerFailure("github", OMP_P_INVALID_RESPONSE);
-      }
-      for (const raw of body.slice(0, perPage)) {
-        const norm = normalizeIssueOrPullRequest(slug, raw);
-        if (norm === null) {
-          return providerFailure("github", OMP_P_INVALID_RESPONSE);
-        }
-        items.push(norm.item);
-        warnings.push(...norm.warnings);
-      }
-    }
-
-    return success(items.slice(0, limit), dedupeWarnings(warnings));
+  /** The GitHub search `is:` state qualifier for a selected state (all omits). */
+  function stateQualifier(state: GitHubQueryState): string | null {
+    if (state === "open") return "is:open";
+    if (state === "closed") return "is:closed";
+    return null;
   }
 
-  async function handleSearch(query: string, limit: number): Promise<ProviderResult> {
-    const parsed = parseGitHubSearchQuery(query);
-    if (!parsed.ok) {
-      return providerFailure("github", OMP_P_INVALID_REQUEST, "invalid search query");
-    }
-    const slug = parsed.ref.slug;
-    const terms = parsed.terms;
+  /**
+   * Run one read-only `GET /search/issues` page with a provider-owned scope
+   * (repository + optional state + optional kind qualifier) followed by the
+   * user terms, normalize the results, and return them. Scope qualifiers are
+   * always emitted before the terms; the terms never override scope.
+   */
+  async function runIssueSearch(
+    slug: string,
+    scope: { state: GitHubQueryState; kind: GitHubQueryKind; terms: string },
+    limit: number,
+  ): Promise<ProviderResult> {
+    const parts = [`repo:${slug}`];
+    const stateQ = stateQualifier(scope.state);
+    if (stateQ !== null) parts.push(stateQ);
+    if (scope.kind === "issues") parts.push("is:issue");
+    else if (scope.kind === "pull-requests") parts.push("is:pr");
+    if (scope.terms !== "") parts.push(scope.terms);
+
     const searchUrl = new URL(`${GITHUB_API_ORIGIN}/search/issues`);
-    searchUrl.searchParams.set("q", `repo:${slug} is:open ${terms}`);
+    searchUrl.searchParams.set("q", parts.join(" "));
     searchUrl.searchParams.set("sort", "updated");
     searchUrl.searchParams.set("order", "desc");
     searchUrl.searchParams.set("per_page", String(limit));
@@ -259,6 +240,99 @@ export function createGitHubProvider(options: {
       );
     }
     return success(items.slice(0, limit), dedupeWarnings(warnings));
+  }
+
+  /** Fetch and normalize the repository metadata record item. */
+  async function fetchRepositoryRecord(
+    slug: string,
+  ): Promise<
+    | { ok: true; item: NormalizedProviderItem; warnings: KernelWarning[] }
+    | { ok: false; result: ProviderResult }
+  > {
+    const repoResult = await get(`${GITHUB_API_ORIGIN}/repos/${slug}`);
+    if (!repoResult.ok) return { ok: false, result: repoResult.result };
+    const repoNorm = normalizeRepository(slug, repoResult.response.body);
+    if (repoNorm === null) {
+      return { ok: false, result: providerFailure("github", OMP_P_INVALID_RESPONSE) };
+    }
+    return {
+      ok: true,
+      item: repoNorm.item,
+      warnings: [...repoNorm.warnings, ...lowRateLimitWarning(repoResult.response.headers)],
+    };
+  }
+
+  /** overview: repository metadata plus state-selected issues/PRs. */
+  async function handleOverview(
+    slug: string,
+    state: GitHubQueryState,
+    limit: number,
+  ): Promise<ProviderResult> {
+    const repo = await fetchRepositoryRecord(slug);
+    if (!repo.ok) return repo.result;
+    const items: NormalizedProviderItem[] = [repo.item];
+    const warnings: KernelWarning[] = [...repo.warnings];
+
+    if (limit > 1) {
+      const perPage = limit - 1;
+      const listUrl = new URL(`${GITHUB_API_ORIGIN}/repos/${slug}/issues`);
+      listUrl.searchParams.set("state", state);
+      listUrl.searchParams.set("sort", "updated");
+      listUrl.searchParams.set("direction", "desc");
+      listUrl.searchParams.set("per_page", String(perPage));
+      listUrl.searchParams.set("page", "1");
+      const issuesResult = await get(listUrl.toString());
+      if (!issuesResult.ok) return issuesResult.result;
+      const body = issuesResult.response.body;
+      if (!Array.isArray(body)) {
+        return providerFailure("github", OMP_P_INVALID_RESPONSE);
+      }
+      for (const raw of body.slice(0, perPage)) {
+        const norm = normalizeIssueOrPullRequest(slug, raw);
+        if (norm === null) {
+          return providerFailure("github", OMP_P_INVALID_RESPONSE);
+        }
+        items.push(norm.item);
+        warnings.push(...norm.warnings);
+      }
+    }
+    return success(items.slice(0, limit), dedupeWarnings(warnings));
+  }
+
+  async function handleList(query: string, limit: number): Promise<ProviderResult> {
+    const parsed = parseGitHubListQuery(query);
+    if (!parsed.ok) {
+      return providerFailure("github", OMP_P_INVALID_REQUEST, "invalid repository identifier");
+    }
+    const { slug } = parsed.ref;
+    const source: GitHubListSource = parsed.source;
+
+    if (source === "repository") {
+      // Exactly one request; repository metadata item only.
+      const repo = await fetchRepositoryRecord(slug);
+      if (!repo.ok) return repo.result;
+      return success([repo.item], dedupeWarnings(repo.warnings));
+    }
+    if (source === "issues") {
+      return runIssueSearch(slug, { state: parsed.state, kind: "issues", terms: "" }, limit);
+    }
+    if (source === "pull-requests") {
+      return runIssueSearch(slug, { state: parsed.state, kind: "pull-requests", terms: "" }, limit);
+    }
+    // overview
+    return handleOverview(slug, parsed.state, limit);
+  }
+
+  async function handleSearch(query: string, limit: number): Promise<ProviderResult> {
+    const parsed = parseGitHubSearchQuery(query);
+    if (!parsed.ok) {
+      return providerFailure("github", OMP_P_INVALID_REQUEST, "invalid search query");
+    }
+    return runIssueSearch(
+      parsed.ref.slug,
+      { state: parsed.state, kind: parsed.kind, terms: parsed.terms },
+      limit,
+    );
   }
 
   async function handleFetch(query: string): Promise<ProviderResult> {

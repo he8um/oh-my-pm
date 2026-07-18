@@ -1,4 +1,15 @@
 import type { CliOutputMode } from "@oh-my-pm/contracts";
+import {
+  GITHUB_SEARCH_KINDS,
+  GITHUB_SOURCE_MODES,
+  GITHUB_SOURCE_QUERY_MAX,
+  GITHUB_SOURCE_STATES,
+} from "@oh-my-pm/providers";
+import type {
+  GitHubSearchKind,
+  GitHubSourceMode,
+  GitHubSourceState,
+} from "@oh-my-pm/providers";
 import type {
   CliCommand,
   CliParseResult,
@@ -14,6 +25,27 @@ const GITHUB_CLI_MIN_LIMIT = 1;
 const GITHUB_CLI_MAX_LIMIT = 100;
 const GITHUB_OPERATIONS: readonly GitHubCliOperation[] = ["brief", "risks", "next", "handoff"];
 const PROVIDERS_SUBCOMMANDS: readonly ProvidersSubcommand[] = ["status", "doctor"];
+
+/**
+ * Take a single string value for the option at index `i`. Rejects a duplicate
+ * (when `current` is already set) and a missing value. The value may not start
+ * with `--`. Returns the value and the advanced index, or a parse error.
+ */
+function takeValue(
+  rest: readonly string[],
+  i: number,
+  current: unknown,
+  option: string,
+): { value: string; next: number } | { error: CliParseResult } {
+  if (current !== null && current !== undefined) {
+    return { error: { ok: false, code: OMP_C_INVALID_OPTION, message: `duplicate ${option}` } };
+  }
+  const value = rest[i + 1];
+  if (value === undefined || value.startsWith("--")) {
+    return { error: { ok: false, code: OMP_C_INVALID_OPTION, message: `${option} requires a value` } };
+  }
+  return { value, next: i + 1 };
+}
 
 const COMMANDS: readonly CliCommand[] = [
   "status",
@@ -60,6 +92,11 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
   let repository: string | null = null;
   let limit: number | null = null;
   let providerConfigPath: string | null = null;
+  let source: GitHubSourceMode | null = null;
+  let state: GitHubSourceState | null = null;
+  let kind: GitHubSearchKind | null = null;
+  let itemNumber: number | null = null;
+  let query: string | null = null;
   let outputMode: CliOutputMode = "brief";
 
   for (let i = 0; i < rest.length; i += 1) {
@@ -72,6 +109,74 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
       const taken = takeProviderConfig(rest, i, providerConfigPath);
       if ("error" in taken) return taken.error;
       providerConfigPath = taken.value;
+      i = taken.next;
+      continue;
+    }
+    if (arg === "--source") {
+      const taken = takeValue(rest, i, source, "--source");
+      if ("error" in taken) return taken.error;
+      if (!(GITHUB_SOURCE_MODES as readonly string[]).includes(taken.value)) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--source must be a supported source mode" };
+      }
+      source = taken.value as GitHubSourceMode;
+      i = taken.next;
+      continue;
+    }
+    if (arg === "--state") {
+      const taken = takeValue(rest, i, state, "--state");
+      if ("error" in taken) return taken.error;
+      if (!(GITHUB_SOURCE_STATES as readonly string[]).includes(taken.value)) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--state must be open, closed, or all" };
+      }
+      state = taken.value as GitHubSourceState;
+      i = taken.next;
+      continue;
+    }
+    if (arg === "--kind") {
+      const taken = takeValue(rest, i, kind, "--kind");
+      if ("error" in taken) return taken.error;
+      if (!(GITHUB_SEARCH_KINDS as readonly string[]).includes(taken.value)) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--kind must be all, issues, or pull-requests" };
+      }
+      kind = taken.value as GitHubSearchKind;
+      i = taken.next;
+      continue;
+    }
+    if (arg === "--number") {
+      const taken = takeValue(rest, i, itemNumber, "--number");
+      if ("error" in taken) return taken.error;
+      if (!/^[1-9][0-9]*$/.test(taken.value)) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--number must be a positive integer" };
+      }
+      const parsed = Number(taken.value);
+      if (!Number.isSafeInteger(parsed)) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--number is out of range" };
+      }
+      itemNumber = parsed;
+      i = taken.next;
+      continue;
+    }
+    if (arg === "--query") {
+      const taken = takeValue(rest, i, query, "--query");
+      if ("error" in taken) return taken.error;
+      // Exactly one shell argument; surrounding whitespace is rejected so the
+      // encoded query is deterministic.
+      if (taken.value !== taken.value.trim()) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--query must not have surrounding whitespace" };
+      }
+      if (taken.value === "") {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--query must not be empty" };
+      }
+      if (taken.value.length > GITHUB_SOURCE_QUERY_MAX) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--query is too long" };
+      }
+      for (let c = 0; c < taken.value.length; c += 1) {
+        const code = taken.value.charCodeAt(c);
+        if (code < 0x20 || code === 0x7f) {
+          return { ok: false, code: OMP_C_INVALID_OPTION, message: "--query contains control characters" };
+        }
+      }
+      query = taken.value;
       i = taken.next;
       continue;
     }
@@ -130,6 +235,11 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
   if (repository !== null) result.repository = repository;
   if (limit !== null) result.limit = limit;
   if (providerConfigPath !== null) result.providerConfigPath = providerConfigPath;
+  if (source !== null) result.source = source;
+  if (state !== null) result.state = state;
+  if (kind !== null) result.kind = kind;
+  if (itemNumber !== null) result.number = itemNumber;
+  if (query !== null) result.query = query;
   return result;
 }
 

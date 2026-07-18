@@ -26,7 +26,7 @@ Current commands:
 - `risks [root]`
 - `next [root]`
 - `handoff [root]`
-- `github <brief|risks|next|handoff> [owner/repo] [--limit <1..100>] [--provider-config <path>]`
+- `github <brief|risks|next|handoff> [owner/repo] [--source <mode>] [--state <open|closed|all>] [--number <n>] [--query <text>] [--kind <all|issues|pull-requests>] [--limit <1..100>] [--provider-config <path>]`
 - `providers status [--provider-config <path>]`
 - `providers doctor [github [owner/repo]] [--provider-config <path>] [--confirm-network]`
 - `install-preview <root>`
@@ -74,6 +74,29 @@ oh-my-pm github brief owner/repository --markdown
 oh-my-pm github risks owner/repository --limit 25 --json
 oh-my-pm github risks --markdown   # uses providers.json defaultRepository
 ```
+
+## GitHub source selection
+
+`--source` chooses which read-only GitHub context is analyzed; the default is `overview` (repository metadata plus open issues/PRs). Options that do not apply to the selected source are rejected before any network access.
+
+| source          | state | limit | number | query | kind |
+| --------------- | ----- | ----- | ------ | ----- | ---- |
+| overview        | yes   | yes   | no     | no    | no   |
+| repository      | no    | no    | no     | no    | no   |
+| issues          | yes   | yes   | no     | no    | no   |
+| pull-requests   | yes   | yes   | no     | no    | no   |
+| item            | no    | no    | yes    | no    | no   |
+| search          | yes   | yes   | no     | yes   | yes  |
+
+```bash
+oh-my-pm github brief owner/repository --source repository --markdown
+oh-my-pm github risks owner/repository --source issues --state open --limit 50 --markdown
+oh-my-pm github handoff owner/repository --source pull-requests --state closed --limit 25 --markdown
+oh-my-pm github brief owner/repository --source item --number 123 --markdown
+oh-my-pm github risks owner/repository --source search --query "release blocker" --kind all --state open --markdown
+```
+
+`item` auto-detects issue vs. pull request. Search terms cannot override the provider-injected repository/state/kind scope. Provider configuration may set `defaultSource` and `defaultState`; explicit CLI values always override them. See [GitHub source selection](../docs/providers/github-source-selection.md).
 
 ## Provider configuration and diagnostics
 

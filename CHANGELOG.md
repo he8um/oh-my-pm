@@ -13,10 +13,14 @@
 - Strict read-only provider configuration with optional GitHub defaults and enable/disable control.
 - Offline provider status/doctor commands and explicitly confirmed GitHub access diagnostics.
 - MCP provider status and GitHub diagnostic tools.
+- Explicit GitHub source selection for repository overview, repository-only, issues, pull requests, one specific item, and repository-scoped search.
+- GitHub workflow state selection for open, closed, or all items.
+- Configurable default GitHub source and state.
 
 ### Changed
 
 - Opened the `0.2.0-alpha.0` development line.
+- GitHub CLI and MCP workflows now route through a single strict source-selection model while preserving the existing overview/open behavior by default.
 - Generalized version, bundle, and archive verification around self-describing metadata.
 - Provider, Runtime, CLI, and MCP execution boundaries are asynchronous to support real read-only network providers.
 - Runtime preserves selected provider provenance for Skill execution without passing raw provider data.

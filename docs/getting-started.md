@@ -111,6 +111,18 @@ oh-my-pm github next owner/private-repository --markdown
 
 The provider is strictly read-only (`GET`-only to `api.github.com`, REST API version `2026-03-10`). The token is optional, supplied only through `OH_MY_PM_GITHUB_TOKEN`, and never accepted as a CLI argument or printed. `--limit` accepts `1..100` (default 50). See [the GitHub provider guide](providers/github.md).
 
+`--source` selects exactly which context to analyze (default `overview`):
+
+```bash
+oh-my-pm github brief owner/repository --source repository --markdown
+oh-my-pm github risks owner/repository --source issues --state open --markdown
+oh-my-pm github handoff owner/repository --source pull-requests --state closed --markdown
+oh-my-pm github brief owner/repository --source item --number 123 --markdown
+oh-my-pm github risks owner/repository --source search --query "release blocker" --kind all --markdown
+```
+
+`item` auto-detects issue vs. pull request; `search` terms never override the injected repository/state/kind scope. Provider configuration may set `defaultSource`/`defaultState`. See [GitHub source selection](providers/github-source-selection.md).
+
 ## Provider configuration and diagnostics
 
 Provider configuration is optional and strictly read-only. Create the file yourself (OH MY PM never writes it) to set GitHub defaults so you can omit the repository and limit:

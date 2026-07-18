@@ -11,6 +11,7 @@ import {
 import type {
   McpGitHubOperation,
   McpGitHubToolExecution,
+  McpGitHubToolInput,
   McpGitHubToolName,
   McpGitHubToolSuccess,
   McpProjectOperation,
@@ -418,8 +419,7 @@ export type McpProjectToolExecutor = (
 
 export type McpGitHubToolExecutor = (
   operation: McpGitHubOperation,
-  repository: string | undefined,
-  limit: number | undefined,
+  input: McpGitHubToolInput,
 ) => Promise<McpGitHubToolExecution>;
 
 export type McpProviderStatusExecutor = () => ProviderStatusReport;
@@ -457,6 +457,31 @@ const githubInputShape = {
     .max(100)
     .optional()
     .describe("Maximum number of repository/issue/pull-request items (1..100)"),
+  source: z
+    .enum(["overview", "repository", "issues", "pull-requests", "item", "search"])
+    .optional()
+    .describe("Which context to analyze; falls back to the configured default source"),
+  state: z
+    .enum(["open", "closed", "all"])
+    .optional()
+    .describe("Item state selection for overview/issues/pull-requests/search"),
+  number: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe("Issue or pull-request number; required by the item source"),
+  query: z
+    .string()
+    .trim()
+    .min(1)
+    .max(256)
+    .optional()
+    .describe("Repository-scoped search text; required by the search source"),
+  kind: z
+    .enum(["all", "issues", "pull-requests"])
+    .optional()
+    .describe("Search result kind filter for the search source"),
 } as const;
 
 const githubSourceSchema = z
@@ -469,11 +494,23 @@ const githubSourceSchema = z
   })
   .strict();
 
+const githubSelectionSchema = z
+  .object({
+    mode: z.enum(["overview", "repository", "issues", "pull-requests", "item", "search"]),
+    state: z.enum(["open", "closed", "all"]).optional(),
+    kind: z.enum(["all", "issues", "pull-requests"]).optional(),
+    number: z.number().int().optional(),
+    query: z.string().optional(),
+    limit: z.number().int().optional(),
+  })
+  .strict();
+
 function githubOutputShape(operation: McpGitHubOperation) {
   return {
     ok: z.literal(true),
     operation: z.literal(operation),
     repository: z.string(),
+    selection: githubSelectionSchema,
     sourceSummary: z
       .object({
         total: z.number().int(),
@@ -493,6 +530,7 @@ function githubPublicResult(execution: McpGitHubToolSuccess): Record<string, unk
     ok: true,
     operation: execution.operation,
     repository: execution.repository,
+    selection: execution.selection,
     sourceSummary: execution.sourceSummary,
     sources: execution.sources,
     output: execution.output,
@@ -533,7 +571,24 @@ const providerStatusOutputShape = {
         state: z.enum(["ready", "disabled", "needs-repository"]),
         defaultRepository: z.string().optional(),
         defaultLimit: z.number().int().optional(),
+        defaultSource: z.enum(["overview", "repository", "issues", "pull-requests"]).optional(),
+        defaultState: z.enum(["open", "closed", "all"]).optional(),
         token: z.enum(["not-applicable", "present", "absent"]),
+        sourceSelection: z
+          .object({
+            defaultSource: z.enum(["overview", "repository", "issues", "pull-requests"]),
+            defaultState: z.enum(["open", "closed", "all"]),
+            modes: z.array(z.enum(["overview", "repository", "issues", "pull-requests", "item", "search"])),
+            states: z.array(z.enum(["open", "closed", "all"])),
+            searchKinds: z.array(z.enum(["all", "issues", "pull-requests"])),
+            singleItemFetch: z.literal(true),
+            singlePage: z.literal(true),
+            comments: z.literal(false),
+            timelines: z.literal(false),
+            pullRequestFiles: z.literal(false),
+          })
+          .strict()
+          .optional(),
       })
       .strict(),
   ),
@@ -622,13 +677,12 @@ async function handleProjectTool(
 async function handleGitHubTool(
   execute: McpGitHubToolExecutor,
   toolName: McpGitHubToolName,
-  repository: string | undefined,
-  limit: number | undefined,
+  input: McpGitHubToolInput,
 ): Promise<ToolResult> {
   const operation = githubOperationForToolName(toolName);
   let execution: McpGitHubToolExecution;
   try {
-    execution = await execute(operation, repository, limit);
+    execution = await execute(operation, input);
   } catch {
     // Never leak stack traces or raw exception text (which could contain a URL
     // or token). A generic, stable public-safe message only.
@@ -753,8 +807,16 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
         inputSchema: githubInputShape,
         outputSchema: githubOutputShape(tool.operation),
       },
-      ({ repository, limit }) =>
-        handleGitHubTool(executeGitHub, tool.name, repository, limit),
+      ({ repository, limit, source, state, number, query, kind }) =>
+        handleGitHubTool(executeGitHub, tool.name, {
+          ...(repository !== undefined ? { repository } : {}),
+          ...(limit !== undefined ? { limit } : {}),
+          ...(source !== undefined ? { source } : {}),
+          ...(state !== undefined ? { state } : {}),
+          ...(number !== undefined ? { number } : {}),
+          ...(query !== undefined ? { query } : {}),
+          ...(kind !== undefined ? { kind } : {}),
+        }),
     );
   }
 

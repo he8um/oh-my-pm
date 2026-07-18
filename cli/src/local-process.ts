@@ -1,13 +1,17 @@
 import { createNodeWasmKernelApi, describeKernelBinding } from "@oh-my-pm/kernel";
 import {
   createGitHubProvider,
+  createGitHubProviderRequest,
   createLocalProvider,
   createNodeGitHubHttpTransport,
   createProviderRegistry,
+  defaultProviderConfig,
   resolveGitHubProviderSettings,
+  resolveGitHubSourceSelection,
 } from "@oh-my-pm/providers";
 import type {
   GitHubHttpTransport,
+  GitHubSourceSelection,
   LocalProviderItemInput,
   Provider,
   ResolvedProviderConfig,
@@ -145,10 +149,7 @@ function resolveProviderConfig(
 // A load failure still needs a config object for downstream reporting; the
 // defaults are safe because a failed load never proceeds to the network.
 function defaultConfigForFailure(): ResolvedProviderConfig {
-  return {
-    version: 1,
-    providers: { local: { enabled: true }, github: { enabled: true, defaultLimit: 50 } },
-  };
+  return defaultProviderConfig();
 }
 
 type ParsedProviders = Extract<ReturnType<typeof parseCliArgs>, { command: "providers" }>;
@@ -334,7 +335,7 @@ export async function runLocalCliProcess(
   // parsed, from the explicitly injected `now` or the injected real `clock`;
   // this module never reads the clock itself (see validate-boundaries).
   let now = LOCAL_FIXED_NOW;
-  let githubOverride: { repository: string; limit: number } | undefined;
+  let githubOverride: { repository: string; selection: GitHubSourceSelection } | undefined;
 
   if (parsed.ok && parsed.command === "github") {
     now = options?.now ?? options?.clock?.() ?? LOCAL_FIXED_NOW;
@@ -356,7 +357,29 @@ export async function runLocalCliProcess(
     if (!settings.ok) {
       return { exitCode: 2, stdout: "", stderr: `github provider: ${settings.message}\n` };
     }
-    githubOverride = { repository: settings.repository, limit: settings.limit };
+
+    // Resolve the source selection from configured defaults plus explicit CLI
+    // overrides. A controlled selection error fails closed (exit 2) before any
+    // token read or transport construction.
+    const selectionResult = resolveGitHubSourceSelection({
+      defaults: {
+        source: settings.defaultSource,
+        state: settings.defaultState,
+        limit: settings.limit,
+      },
+      overrides: {
+        ...(parsed.source !== undefined ? { source: parsed.source } : {}),
+        ...(parsed.state !== undefined ? { state: parsed.state } : {}),
+        ...(parsed.number !== undefined ? { number: parsed.number } : {}),
+        ...(parsed.query !== undefined ? { query: parsed.query } : {}),
+        ...(parsed.kind !== undefined ? { kind: parsed.kind } : {}),
+        ...(parsed.limit !== undefined ? { limit: parsed.limit } : {}),
+      },
+    });
+    if (!selectionResult.ok) {
+      return { exitCode: 2, stdout: "", stderr: `github source: ${selectionResult.message}\n` };
+    }
+    githubOverride = { repository: settings.repository, selection: selectionResult.selection };
 
     // 4-5. Only now read the optional token and construct the transport.
     // Injected transport wins so tests stay offline.

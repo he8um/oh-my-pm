@@ -1,4 +1,9 @@
 import type { JsonValue, RuntimeResponse } from "@oh-my-pm/contracts";
+import type {
+  GitHubSearchKind,
+  GitHubSourceMode,
+  GitHubSourceState,
+} from "@oh-my-pm/providers";
 
 export type McpProjectOperation = "brief" | "risks" | "next" | "handoff";
 
@@ -72,10 +77,32 @@ export type McpGitHubSource = {
   url?: string;
 };
 
+/** Tool input carrying repository plus the source-selection fields. */
+export type McpGitHubToolInput = {
+  repository?: string;
+  limit?: number;
+  source?: GitHubSourceMode;
+  state?: GitHubSourceState;
+  number?: number;
+  query?: string;
+  kind?: GitHubSearchKind;
+};
+
+/** Sanitized public projection of the resolved source selection. */
+export type McpGitHubSelectionSummary = {
+  mode: GitHubSourceMode;
+  state?: string;
+  kind?: string;
+  number?: number;
+  query?: string;
+  limit?: number;
+};
+
 export type McpGitHubToolSuccess = {
   ok: true;
   operation: McpGitHubOperation;
   repository: string;
+  selection: McpGitHubSelectionSummary;
   sourceSummary: McpGitHubSourceSummary;
   sources: McpGitHubSource[];
   output: JsonValue;

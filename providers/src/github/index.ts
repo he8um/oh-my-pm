@@ -12,11 +12,34 @@ export {
   GITHUB_REQUEST_TIMEOUT_MS,
 } from "./constants.js";
 export {
+  buildGitHubFetchQuery,
+  buildGitHubListQuery,
+  buildGitHubSearchQuery,
   parseGitHubFetchQuery,
   parseGitHubListQuery,
   parseGitHubRepository,
   parseGitHubSearchQuery,
 } from "./query.js";
+export {
+  GITHUB_CONFIGURABLE_SOURCES,
+  GITHUB_SEARCH_KINDS,
+  GITHUB_SOURCE_MODES,
+  GITHUB_SOURCE_QUERY_MAX,
+  GITHUB_SOURCE_STATES,
+  createGitHubProviderRequest,
+  resolveGitHubSourceSelection,
+} from "./selection.js";
+export type {
+  GitHubConfigurableSource,
+  GitHubSearchKind,
+  GitHubSourceMode,
+  GitHubSourceSelection,
+  GitHubSourceSelectionDefaults,
+  GitHubSourceSelectionErrorCode,
+  GitHubSourceSelectionOverrides,
+  GitHubSourceSelectionResult,
+  GitHubSourceState,
+} from "./selection.js";
 export {
   normalizeIssue,
   normalizeIssueOrPullRequest,
@@ -33,6 +56,9 @@ export type {
   GitHubHttpResponse,
   GitHubHttpTransport,
   GitHubListQueryResult,
+  GitHubListSource,
+  GitHubQueryKind,
+  GitHubQueryState,
   GitHubRepositoryRef,
   GitHubRepositoryRefResult,
   GitHubSearchQueryResult,

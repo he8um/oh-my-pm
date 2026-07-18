@@ -7,9 +7,16 @@
 // there is exactly one owner/repository definition.
 
 import { parseGitHubRepository } from "./github/query.js";
+import {
+  GITHUB_CONFIGURABLE_SOURCES,
+  GITHUB_SOURCE_STATES,
+} from "./github/selection.js";
+import type { GitHubConfigurableSource, GitHubSourceState } from "./github/selection.js";
 
 export const PROVIDER_CONFIG_VERSION = 1;
 export const DEFAULT_GITHUB_PROVIDER_LIMIT = 50;
+export const DEFAULT_GITHUB_PROVIDER_SOURCE: GitHubConfigurableSource = "overview";
+export const DEFAULT_GITHUB_PROVIDER_STATE: GitHubSourceState = "open";
 const GITHUB_PROVIDER_MIN_LIMIT = 1;
 const GITHUB_PROVIDER_MAX_LIMIT = 100;
 
@@ -17,6 +24,8 @@ export type GitHubProviderConfig = {
   enabled: boolean;
   defaultRepository?: string;
   defaultLimit: number;
+  defaultSource: GitHubConfigurableSource;
+  defaultState: GitHubSourceState;
 };
 
 export type ResolvedProviderConfig = {
@@ -40,7 +49,9 @@ export type ProviderConfigErrorCode =
   | "provider_config_unknown_github_key"
   | "provider_config_invalid_enabled"
   | "provider_config_invalid_repository"
-  | "provider_config_invalid_limit";
+  | "provider_config_invalid_limit"
+  | "provider_config_invalid_source"
+  | "provider_config_invalid_state";
 
 export type ProviderConfigValidationResult =
   | { ok: true; config: ResolvedProviderConfig }
@@ -76,6 +87,8 @@ export function defaultProviderConfig(): ResolvedProviderConfig {
       github: {
         enabled: true,
         defaultLimit: DEFAULT_GITHUB_PROVIDER_LIMIT,
+        defaultSource: DEFAULT_GITHUB_PROVIDER_SOURCE,
+        defaultState: DEFAULT_GITHUB_PROVIDER_STATE,
       },
     },
   };
@@ -110,7 +123,13 @@ function validateGitHub(value: unknown): GitHubProviderConfig | { error: Provide
   const secret = rejectSecretKeys(value);
   if (secret !== null) return { error: secret };
 
-  const allowedKeys = new Set(["enabled", "defaultRepository", "defaultLimit"]);
+  const allowedKeys = new Set([
+    "enabled",
+    "defaultRepository",
+    "defaultLimit",
+    "defaultSource",
+    "defaultState",
+  ]);
   for (const key of Object.keys(value)) {
     if (!allowedKeys.has(key)) {
       return {
@@ -174,7 +193,38 @@ function validateGitHub(value: unknown): GitHubProviderConfig | { error: Provide
     defaultLimit = raw;
   }
 
-  const config: GitHubProviderConfig = { enabled, defaultLimit };
+  let defaultSource: GitHubConfigurableSource = DEFAULT_GITHUB_PROVIDER_SOURCE;
+  if ("defaultSource" in value && value["defaultSource"] !== undefined) {
+    const raw = value["defaultSource"];
+    if (
+      typeof raw !== "string" ||
+      !(GITHUB_CONFIGURABLE_SOURCES as readonly string[]).includes(raw)
+    ) {
+      return {
+        error: fail(
+          "provider_config_invalid_source",
+          "providers.github.defaultSource must be overview, repository, issues, or pull-requests",
+        ),
+      };
+    }
+    defaultSource = raw as GitHubConfigurableSource;
+  }
+
+  let defaultState: GitHubSourceState = DEFAULT_GITHUB_PROVIDER_STATE;
+  if ("defaultState" in value && value["defaultState"] !== undefined) {
+    const raw = value["defaultState"];
+    if (typeof raw !== "string" || !(GITHUB_SOURCE_STATES as readonly string[]).includes(raw)) {
+      return {
+        error: fail(
+          "provider_config_invalid_state",
+          "providers.github.defaultState must be open, closed, or all",
+        ),
+      };
+    }
+    defaultState = raw as GitHubSourceState;
+  }
+
+  const config: GitHubProviderConfig = { enabled, defaultLimit, defaultSource, defaultState };
   if (defaultRepository !== undefined) {
     config.defaultRepository = defaultRepository;
   }
@@ -209,6 +259,8 @@ export function validateProviderConfig(value: unknown): ProviderConfigValidation
   const github: GitHubProviderConfig = {
     enabled: true,
     defaultLimit: DEFAULT_GITHUB_PROVIDER_LIMIT,
+    defaultSource: DEFAULT_GITHUB_PROVIDER_SOURCE,
+    defaultState: DEFAULT_GITHUB_PROVIDER_STATE,
   };
 
   if ("providers" in value && value["providers"] !== undefined) {
@@ -234,6 +286,8 @@ export function validateProviderConfig(value: unknown): ProviderConfigValidation
       if ("error" in result) return result.error;
       github.enabled = result.enabled;
       github.defaultLimit = result.defaultLimit;
+      github.defaultSource = result.defaultSource;
+      github.defaultState = result.defaultState;
       if (result.defaultRepository !== undefined) {
         github.defaultRepository = result.defaultRepository;
       }

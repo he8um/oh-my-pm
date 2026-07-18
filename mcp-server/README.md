@@ -61,13 +61,21 @@ The four local tools accept a project root:
 
 `root` defaults to `.`. Each local tool is filesystem-local, read-only, and Markdown-based, respects `oh-my-pm.config.json`, and never modifies files.
 
-The four GitHub tools accept an optional repository and an optional limit:
+The four GitHub tools accept an optional repository, limit, and source-selection fields:
 
 ```json
-{ "repository": "owner/repository", "limit": 50 }
+{
+  "repository": "owner/repository",
+  "limit": 50,
+  "source": "overview",
+  "state": "open",
+  "number": 123,
+  "query": "release blocker",
+  "kind": "all"
+}
 ```
 
-`repository` and `limit` are optional: when omitted, the configured `providers.json` defaults are used (`defaultRepository`, `defaultLimit`), and explicit values override them. `repository` must be a bare `owner/repository`; `limit` is `1..100` (default 50). There is no token, API-URL, config-path, arbitrary-query, or local-root input. Each GitHub tool is read-only. Server startup and `tools/list` make **no** GitHub request — a request happens only when a GitHub tool is called, over `GET`-only HTTPS to `api.github.com`. Supply the optional `OH_MY_PM_GITHUB_TOKEN` to the server process environment when needed; it is never accepted as a tool input and never included in output. See [the GitHub provider guide](../docs/providers/github.md).
+`repository`, `limit`, `source`, and `state` are optional: when omitted, the configured `providers.json` defaults are used (`defaultRepository`, `defaultLimit`, `defaultSource`, `defaultState`), and explicit values override them. `source` is one of `overview` (default), `repository`, `issues`, `pull-requests`, `item`, or `search`; `state` is `open`/`closed`/`all`; `number` is required by `item`; `query`/`kind` apply to `search`. `repository` must be a bare `owner/repository`; `limit` is `1..100` (default 50). There is no token, API-URL, config-path, or local-root input, and user search terms can never override the injected repository/state/kind scope. The successful result adds a sanitized `selection` summary and never includes the internal provider query or REST query string. Each GitHub tool is read-only. Server startup and `tools/list` make **no** GitHub request — a request happens only when a GitHub tool is called, over `GET`-only HTTPS to `api.github.com`, single page, no comments/timelines/diffs. Supply the optional `OH_MY_PM_GITHUB_TOKEN` to the server process environment when needed; it is never accepted as a tool input and never included in output. See [the GitHub provider guide](../docs/providers/github.md) and [GitHub source selection](../docs/providers/github-source-selection.md).
 
 The two provider diagnostics tools:
 

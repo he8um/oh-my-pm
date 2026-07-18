@@ -86,22 +86,29 @@ export async function runCli(
   // repository/limit are resolved by the process layer (explicit CLI value or
   // provider configuration) and injected via deps.github.
   if (parsed.command === "github") {
-    const repository = deps.github?.repository ?? parsed.repository;
-    const limit = deps.github?.limit ?? parsed.limit ?? 50;
-    if (repository === undefined) {
+    // The process layer resolves provider configuration and the source
+    // selection, then injects the effective repository + selection via
+    // deps.github. runCli never resolves configuration itself.
+    if (deps.github === undefined) {
       return {
         ok: false,
         exitCode: 2,
         stdout: "",
         stderr: formatCliError(
-          "github_repository_required",
-          "a repository is required; supply one or set providers.github.defaultRepository",
+          "github_selection_unresolved",
+          "github workflow requires a resolved repository and source selection",
           parsed.outputMode,
         ),
       };
     }
+    const { repository, selection } = deps.github;
     try {
-      const request = createGitHubRuntimeRequest(parsed.operation, repository, limit, "cli");
+      const request = createGitHubRuntimeRequest({
+        operation: parsed.operation,
+        repository,
+        selection,
+        caller: "cli",
+      });
       const response = await deps.runtime.handle(request);
       return {
         ok: response.ok,
