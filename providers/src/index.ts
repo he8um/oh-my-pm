@@ -1,4 +1,23 @@
 export {
+  DEFAULT_GITHUB_PROVIDER_LIMIT,
+  PROVIDER_CONFIG_VERSION,
+  defaultProviderConfig,
+  validateProviderConfig,
+} from "./config.js";
+export type {
+  GitHubProviderConfig,
+  ProviderConfigErrorCode,
+  ProviderConfigValidationResult,
+  ResolvedProviderConfig,
+} from "./config.js";
+export {
+  resolveGitHubProviderSettings,
+} from "./settings.js";
+export type {
+  EffectiveGitHubProviderSettingsResult,
+  GitHubProviderOverrides,
+} from "./settings.js";
+export {
   OMP_P_ACCESS_FORBIDDEN,
   OMP_P_AUTHENTICATION_FAILED,
   OMP_P_INVALID_REQUEST,

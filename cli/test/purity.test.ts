@@ -14,7 +14,11 @@ const srcDir = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
 // import node:fs and node:path to read, but they must never write, spawn, or
 // reach the network. The pure document-rule module has no Node imports.
 const NODE_BOUNDARY_FILE = "node-project-documents.ts";
-const NODE_BOUNDARY_FILES = new Set([NODE_BOUNDARY_FILE, "project-config.ts"]);
+const NODE_BOUNDARY_FILES = new Set([
+  NODE_BOUNDARY_FILE,
+  "project-config.ts",
+  "provider-config.ts",
+]);
 
 // The CLI process adapter is the approved GitHub boundary: only it may read the
 // ambient environment (for the optional OH_MY_PM_GITHUB_TOKEN) and construct the

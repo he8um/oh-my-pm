@@ -131,6 +131,7 @@ for (const file of trackedFiles) {
     const CLI_NODE_BOUNDARY_SRC = new Set([
       "cli/src/node-project-documents.ts",
       "cli/src/project-config.ts",
+      "cli/src/provider-config.ts",
     ]);
     if (
       file.startsWith("cli/src/") &&
@@ -506,6 +507,7 @@ for (const file of trackedFiles) {
 const NODE_CLI_BOUNDARY_FILES = [
   "cli/src/node-project-documents.ts",
   "cli/src/project-config.ts",
+  "cli/src/provider-config.ts",
   "cli/bin/oh-my-pm.mjs",
 ];
 const BOUNDARY_WRITE_APIS = [
@@ -997,6 +999,22 @@ const GITHUB_TOKEN_ENV_ALLOWED = new Set([
   "tools/check-release-bundle.mjs",
   "tools/release-bundle-utils.mjs",
   "tools/check-release-install.mjs",
+  // The MCP client-config generator names the optional env var in docs prose
+  // only; it never reads it and never writes it into the emitted config.
+  "tools/print-mcp-client-config.mjs",
+]);
+// The provider-config path env var may appear only in the read-only loader, the
+// process adapters that resolve it, release metadata, the client-config docs
+// prose, and this validator. It is never read for local-only commands.
+const PROVIDER_CONFIG_ENV_NAME = "OH_MY_PM_PROVIDER_CONFIG";
+const PROVIDER_CONFIG_ENV_ALLOWED = new Set([
+  "cli/src/provider-config.ts",
+  // Barrel re-export of the loader's public constant.
+  "cli/src/index.ts",
+  "tools/validate-boundaries.mjs",
+  "tools/release-bundle-utils.mjs",
+  "tools/check-release-bundle.mjs",
+  "tools/print-mcp-client-config.mjs",
 ]);
 // Every tracked GitHub production source (provider modules, the CLI adapter and
 // helpers, the MCP runner, and the manual smoke tool), excluding tests/docs.
@@ -1064,6 +1082,77 @@ for (const file of trackedFiles) {
   const contents = readFileSync(file, "utf8");
   if (contents.includes(GITHUB_TOKEN_ENV_NAME)) {
     err(`${file} references the GitHub token env var outside an approved boundary file`);
+  }
+}
+// The provider-config path env var name may appear only in approved files.
+for (const file of trackedFiles) {
+  if (PROVIDER_CONFIG_ENV_ALLOWED.has(file)) continue;
+  if (!/\.(mjs|ts|js)$/.test(file)) continue;
+  if (file.endsWith(".test.ts") || file.endsWith(".test.mjs")) continue;
+  if (file.startsWith("contracts/generated/")) continue;
+  const contents = readFileSync(file, "utf8");
+  if (contents.includes(PROVIDER_CONFIG_ENV_NAME)) {
+    err(`${file} references the provider-config env var outside an approved boundary file`);
+  }
+}
+
+// 4l. Provider configuration is strictly read-only. The pure schema/settings
+// modules must reach no Node built-in (covered by the pure-package rule above)
+// and must carry no secret-bearing field name; the CLI provider-config loader
+// is the ONLY approved provider-config filesystem reader and must never write;
+// and no config-initialization command may exist.
+const PROVIDER_CONFIG_LOADER = "cli/src/provider-config.ts";
+const PROVIDER_CONFIG_WRITE_APIS = [
+  "writeFile",
+  "appendFile",
+  "createWriteStream",
+  "mkdir",
+  "rmSync",
+  "rmdir",
+  "unlink",
+  "rename",
+  "copyFile",
+  "chmod",
+  "chown",
+];
+if (trackedFiles.includes(PROVIDER_CONFIG_LOADER)) {
+  const contents = readFileSync(PROVIDER_CONFIG_LOADER, "utf8");
+  for (const api of [...PROVIDER_CONFIG_WRITE_APIS, "fetch(", "child_process", "execSync"]) {
+    if (contents.includes(api)) {
+      err(`${PROVIDER_CONFIG_LOADER} contains a forbidden write/network/exec API "${api}"`);
+    }
+  }
+}
+// The pure provider schema and settings modules carry no secret-bearing field
+// name (the SECRET markers themselves are the detection list, so this scans for
+// declared object keys, not the detector). No other provider source may read a
+// provider-config file from disk.
+const PROVIDER_PURE_CONFIG = ["providers/src/config.ts", "providers/src/settings.ts"];
+for (const file of PROVIDER_PURE_CONFIG) {
+  if (!trackedFiles.includes(file)) {
+    err(`pure provider config/settings file is not tracked: ${file}`);
+    continue;
+  }
+  const contents = readFileSync(file, "utf8");
+  for (const marker of ["readFileSync", "writeFile", "node:fs", 'from "fs"', "fetch("]) {
+    if (contents.includes(marker)) {
+      err(`${file} must stay pure; it contains "${marker}"`);
+    }
+  }
+}
+// No config-initialization / config-writing command may be introduced. This
+// validator itself names the forbidden markers as its detection list, so it is
+// excluded from the scan.
+const CONFIG_INIT_MARKERS = ['"config init"', '"config set"', "writeProviderConfig", "initProviderConfig"];
+for (const file of trackedFiles) {
+  if (!/\.(mjs|ts)$/.test(file)) continue;
+  if (file.endsWith(".test.ts") || file.endsWith(".test.mjs")) continue;
+  if (file === "tools/validate-boundaries.mjs") continue;
+  const contents = readFileSync(file, "utf8");
+  for (const marker of CONFIG_INIT_MARKERS) {
+    if (contents.includes(marker)) {
+      err(`${file} introduces a forbidden provider-config write/init command "${marker}"`);
+    }
   }
 }
 

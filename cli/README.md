@@ -26,7 +26,9 @@ Current commands:
 - `risks [root]`
 - `next [root]`
 - `handoff [root]`
-- `github <brief|risks|next|handoff> <owner/repo> [--limit <1..100>]`
+- `github <brief|risks|next|handoff> [owner/repo] [--limit <1..100>] [--provider-config <path>]`
+- `providers status [--provider-config <path>]`
+- `providers doctor [github [owner/repo]] [--provider-config <path>] [--confirm-network]`
 - `install-preview <root>`
 
 `brief [root]` reads Markdown project documents from a local directory and produces a project status brief through the Runtime, Planner, Skills, and the real WASM Kernel binding. The root defaults to `.` when omitted. Files ending in `.md` or `.markdown` (case-insensitive) are loaded recursively; `.git`, `.hg`, `.svn`, `node_modules`, `dist`, `build`, `coverage`, `target`, `.next`, `.turbo`, and `.cache` directories are ignored anywhere in the tree; symbolic links are never followed and nothing outside the requested root is read. Deterministic limits apply: at most 200 files, 256 KiB per file, and 2 MiB in total. The command is read-only — it never modifies project files, never persists or transmits document content, and requires no external integration. Examples:
@@ -65,11 +67,28 @@ node cli/bin/oh-my-pm.mjs handoff examples/fixtures/markdown-project --json
 node cli/bin/oh-my-pm.mjs handoff examples/fixtures/markdown-project --markdown
 ```
 
-`github <brief|risks|next|handoff> <owner/repo> [--limit <1..100>] [--json|--markdown]` runs the same four workflows against a GitHub repository through the strictly read-only GitHub provider. Unlike the local workflows, this command reaches the network — and only when invoked: it issues `GET`-only requests to `api.github.com` (REST API version `2026-03-10`) for repository metadata, open issues, and pull requests, normalizes them, and feeds them through the same Runtime, Planner, Skills, and WASM Kernel pipeline. The repository must be a bare `owner/repository` (URLs, `.git` suffixes, and path traversal are rejected). `--limit` accepts `1..100` and defaults to `50`. Authentication is optional: public repositories work without a token, and a token is supplied only through the `OH_MY_PM_GITHUB_TOKEN` environment variable — there is no `--token` argument, and the token is never printed or persisted. The provider never writes to GitHub. See [the GitHub provider guide](../docs/providers/github.md). Examples:
+`github <brief|risks|next|handoff> [owner/repo] [--limit <1..100>] [--provider-config <path>] [--json|--markdown]` runs the same four workflows against a GitHub repository through the strictly read-only GitHub provider. Unlike the local workflows, this command reaches the network — and only when invoked: it issues `GET`-only requests to `api.github.com` (REST API version `2026-03-10`) for repository metadata, open issues, and pull requests, normalizes them, and feeds them through the same Runtime, Planner, Skills, and WASM Kernel pipeline. The repository must be a bare `owner/repository` (URLs, `.git` suffixes, and path traversal are rejected). The repository and `--limit` are optional at parse time because provider configuration may supply a `defaultRepository` and `defaultLimit`; explicit values always override configuration, and `--limit` accepts `1..100` and defaults to `50`. Authentication is optional: public repositories work without a token, and a token is supplied only through the `OH_MY_PM_GITHUB_TOKEN` environment variable — there is no `--token` argument, and the token is never printed or persisted. The provider never writes to GitHub. See [the GitHub provider guide](../docs/providers/github.md). Examples:
 
 ```bash
 oh-my-pm github brief owner/repository --markdown
 oh-my-pm github risks owner/repository --limit 25 --json
+oh-my-pm github risks --markdown   # uses providers.json defaultRepository
+```
+
+## Provider configuration and diagnostics
+
+The `github` and `providers` commands read an optional, strictly read-only provider configuration file (`providers.json`). OH MY PM never writes it. It supplies GitHub `enabled`/`defaultRepository`/`defaultLimit` defaults only; no secret is ever permitted, and the origin, API version, method, and token environment variable stay fixed. The location resolves in precedence order: `--provider-config <path>`, `OH_MY_PM_PROVIDER_CONFIG`, `$XDG_CONFIG_HOME/oh-my-pm/providers.json`, `~/.config/oh-my-pm/providers.json`, `%APPDATA%\oh-my-pm\providers.json`, then built-in defaults. Local commands never read provider configuration and reject `--provider-config`.
+
+- `providers status` inspects the resolved provider state offline (no network) and reports token presence only.
+- `providers doctor` runs all offline provider checks (no network).
+- `providers doctor github [owner/repo] --confirm-network` runs the offline checks first, then performs exactly one read-only `GET` repository-metadata request. The network is touched only with the explicit `--confirm-network` flag.
+
+Diagnostics never print a token value, a raw provider response, an absolute config path, or raw configuration text. See [provider configuration](../docs/providers/configuration.md) and [provider diagnostics](../docs/providers/diagnostics.md). Examples:
+
+```bash
+oh-my-pm providers status --markdown
+oh-my-pm providers doctor --markdown
+oh-my-pm providers doctor github he8um/oh-my-pm --confirm-network --markdown
 ```
 
 ## Local project configuration

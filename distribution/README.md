@@ -3,7 +3,7 @@
 Private portable distribution package for OH MY PM. It provides the portable command entrypoints used by the versioned release bundle:
 
 - `oh-my-pm` — the read-only CLI (`brief`, `risks`, `next`, `handoff`, `github`, `status`, `doctor`, `plan`)
-- `oh-my-pm-mcp` — the read-only MCP stdio server (four local + four GitHub tools)
+- `oh-my-pm-mcp` — the read-only MCP stdio server (four local + four GitHub + two provider-diagnostics tools)
 - `oh-my-pm-install` — the preview-first release-bundle installer
 
 All three entrypoints are thin process adapters. The CLI and MCP commands run over the compiled workspace packages and the real Rust/WASM Kernel. The installer entrypoint (`bin/oh-my-pm-install.mjs`) infers its own bundle root and delegates to the shared install core at `libexec/release-install-core.mjs`; that core holds all installation planning, validation, rendering, and controlled prefix writes. This package is private and is not published; it exists to define the production dependency surface that the release bundler deploys.

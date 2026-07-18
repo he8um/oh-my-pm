@@ -64,17 +64,44 @@ export async function runCli(
     };
   }
 
+  // The providers command is handled entirely at the process boundary (config
+  // resolution, diagnostics, and formatting); it never reaches runCli. If it
+  // somehow does, fail closed rather than routing it to the Runtime.
+  if (parsed.command === "providers") {
+    return {
+      ok: false,
+      exitCode: 1,
+      stdout: "",
+      stderr: formatCliError(
+        OMP_C_RUNTIME_FAILED,
+        "providers command must be handled at the process boundary",
+        parsed.outputMode,
+      ),
+    };
+  }
+
   // github routes through the same Runtime with a provider-backed request. The
   // runtime supplied by the process adapter carries the GitHub provider; the
-  // request itself never contains a token, headers, or an API URL.
+  // request itself never contains a token, headers, or an API URL. The
+  // repository/limit are resolved by the process layer (explicit CLI value or
+  // provider configuration) and injected via deps.github.
   if (parsed.command === "github") {
+    const repository = deps.github?.repository ?? parsed.repository;
+    const limit = deps.github?.limit ?? parsed.limit ?? 50;
+    if (repository === undefined) {
+      return {
+        ok: false,
+        exitCode: 2,
+        stdout: "",
+        stderr: formatCliError(
+          "github_repository_required",
+          "a repository is required; supply one or set providers.github.defaultRepository",
+          parsed.outputMode,
+        ),
+      };
+    }
     try {
-      const request = createGitHubRuntimeRequest(
-        parsed.operation,
-        parsed.repository,
-        parsed.limit,
-        "cli",
-      );
+      const request = createGitHubRuntimeRequest(parsed.operation, repository, limit, "cli");
       const response = await deps.runtime.handle(request);
       return {
         ok: response.ok,

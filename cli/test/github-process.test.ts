@@ -147,4 +147,30 @@ describe("github CLI process (fake transport)", () => {
     const second = await runGitHub("brief", ["--json"]);
     expect(first.result.stdout).toBe(second.result.stdout);
   });
+
+  it("reads the injected clock for the github command exactly once", async () => {
+    const { transport } = recordingTransport();
+    let clockCalls = 0;
+    const clock = () => {
+      clockCalls += 1;
+      return NOW;
+    };
+    const result = await runLocalCliProcess(["github", "brief", SLUG, "--json"], {
+      githubTransport: transport,
+      clock,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(clockCalls).toBe(1);
+  });
+
+  it("never reads the injected clock for local commands", async () => {
+    let clockCalls = 0;
+    const clock = () => {
+      clockCalls += 1;
+      return NOW;
+    };
+    const result = await runLocalCliProcess(["status"], { clock });
+    expect(result.exitCode).toBe(0);
+    expect(clockCalls).toBe(0);
+  });
 });

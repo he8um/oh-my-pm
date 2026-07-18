@@ -41,11 +41,11 @@ type ToolCallResult = {
 };
 
 describe("mcp server tool listing", () => {
-  it("lists exactly the eight tools in the required order", async () => {
+  it("lists exactly the ten tools in the required order", async () => {
     const client = await connectClient();
     const { tools } = await client.listTools();
     const names = tools.map((tool) => tool.name);
-    // Required exact order: four local, then four GitHub.
+    // Required exact order: four local, four GitHub, then two diagnostics.
     expect(names).toEqual([
       "project_brief",
       "project_risks",
@@ -55,6 +55,8 @@ describe("mcp server tool listing", () => {
       "github_project_risks",
       "github_project_next",
       "github_project_handoff",
+      "provider_status",
+      "github_provider_diagnostics",
     ]);
     for (const tool of tools) {
       expect(typeof tool.title === "string" || typeof tool.annotations?.title === "string").toBe(
@@ -245,22 +247,22 @@ describe("mcp github tools", () => {
   function stubGitHub(): {
     executeGitHubTool: (
       operation: McpGitHubOperation,
-      repository: string,
-      limit: number,
+      repository: string | undefined,
+      limit: number | undefined,
     ) => Promise<McpGitHubToolExecution>;
-    calls: Array<{ operation: string; repository: string; limit: number }>;
+    calls: Array<{ operation: string; repository: string | undefined; limit: number | undefined }>;
   } {
-    const calls: Array<{ operation: string; repository: string; limit: number }> = [];
+    const calls: Array<{ operation: string; repository: string | undefined; limit: number | undefined }> = [];
     const executeGitHubTool = async (
       operation: McpGitHubOperation,
-      repository: string,
-      limit: number,
+      repository: string | undefined,
+      limit: number | undefined,
     ): Promise<McpGitHubToolExecution> => {
       calls.push({ operation, repository, limit });
       return {
         ok: true,
         operation,
-        repository,
+        repository: repository ?? "configured/default",
         sourceSummary: { total: 2, repositories: 1, issues: 1, pullRequests: 0 },
         sources: [{ type: "issue", number: 7, title: "#7 A", state: "open" }],
         output: { title: "brief" },
@@ -286,11 +288,24 @@ describe("mcp github tools", () => {
       expect(result.isError).not.toBe(true);
     }
     expect(calls.map((c) => c.operation)).toEqual(["brief", "risks", "next", "handoff"]);
-    // limit defaults to 50 through the schema.
-    expect(calls.every((c) => c.limit === 50)).toBe(true);
+    // Repository/limit are now optional at the schema layer; the executor
+    // resolves defaults from provider configuration, so an omitted limit is
+    // passed through as undefined rather than defaulted here.
+    expect(calls.every((c) => c.limit === undefined)).toBe(true);
   });
 
-  it("rejects an invalid repository before any executor call", async () => {
+  it("passes an omitted repository through so the executor can use config", async () => {
+    const { executeGitHubTool, calls } = stubGitHub();
+    const client = await connectClient(createOhMyPmMcpServer({ executeGitHubTool }));
+    const result = (await client.callTool({
+      name: "github_project_brief",
+      arguments: {},
+    })) as ToolCallResult;
+    expect(result.isError).not.toBe(true);
+    expect(calls[0]!.repository).toBeUndefined();
+  });
+
+  it("rejects an empty-string repository at the schema before any executor call", async () => {
     const { executeGitHubTool, calls } = stubGitHub();
     const client = await connectClient(createOhMyPmMcpServer({ executeGitHubTool }));
     const result = (await client.callTool({
@@ -361,5 +376,75 @@ describe("mcp github tools", () => {
     const text = result.content[0]?.text ?? "";
     expect(text).toContain("github_runtime_failed");
     expect(text).not.toContain("secret github internal");
+  });
+});
+
+describe("mcp provider diagnostics tools", () => {
+  it("provider_status takes an empty input schema and returns a status report", async () => {
+    const client = await connectClient();
+    const { tools } = await client.listTools();
+    const status = tools.find((t) => t.name === "provider_status")!;
+    expect(Object.keys(status.inputSchema.properties ?? {})).toHaveLength(0);
+    expect(status.inputSchema.properties).not.toHaveProperty("token");
+    expect(status.inputSchema.properties).not.toHaveProperty("providerConfig");
+
+    const executeProviderStatus = () => ({
+      schemaVersion: 1 as const,
+      config: { source: "defaults" as const, exists: false, displayPath: "defaults", valid: true },
+      providers: [
+        {
+          id: "local" as const,
+          enabled: true,
+          readOnly: true as const,
+          network: "none" as const,
+          state: "ready" as const,
+          token: "not-applicable" as const,
+        },
+        {
+          id: "github" as const,
+          enabled: true,
+          readOnly: true as const,
+          network: "explicit-opt-in" as const,
+          state: "needs-repository" as const,
+          defaultLimit: 50,
+          token: "absent" as const,
+        },
+      ],
+    });
+    const c2 = await connectClient(createOhMyPmMcpServer({ executeProviderStatus }));
+    const result = (await c2.callTool({ name: "provider_status", arguments: {} })) as ToolCallResult;
+    expect(result.isError).not.toBe(true);
+    expect(result.structuredContent?.schemaVersion).toBe(1);
+  });
+
+  it("github_provider_diagnostics has repository and confirmNetwork but no token/config path", async () => {
+    const client = await connectClient();
+    const { tools } = await client.listTools();
+    const diag = tools.find((t) => t.name === "github_provider_diagnostics")!;
+    expect(diag.inputSchema.properties).toHaveProperty("repository");
+    expect(diag.inputSchema.properties).toHaveProperty("confirmNetwork");
+    expect(diag.inputSchema.properties).not.toHaveProperty("token");
+    expect(diag.inputSchema.properties).not.toHaveProperty("limit");
+    expect(diag.inputSchema.properties).not.toHaveProperty("providerConfig");
+  });
+
+  it("routes confirmNetwork through to the diagnostics executor", async () => {
+    const calls: Array<{ repository?: string; confirmNetwork?: boolean }> = [];
+    const executeGitHubProviderDiagnostics = async (input: { repository?: string; confirmNetwork?: boolean }) => {
+      calls.push(input);
+      return {
+        schemaVersion: 1 as const,
+        ok: true,
+        networkAttempted: input.confirmNetwork === true,
+        checks: [],
+      };
+    };
+    const client = await connectClient(createOhMyPmMcpServer({ executeGitHubProviderDiagnostics }));
+    const result = (await client.callTool({
+      name: "github_provider_diagnostics",
+      arguments: { repository: "octo/demo", confirmNetwork: true },
+    })) as ToolCallResult;
+    expect(result.isError).not.toBe(true);
+    expect(calls[0]).toEqual({ repository: "octo/demo", confirmNetwork: true });
   });
 });

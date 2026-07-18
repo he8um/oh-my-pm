@@ -22,17 +22,34 @@ describe("github command parsing", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("requires a repository", () => {
+  it("allows an omitted repository (configuration may supply it)", () => {
     const result = parse(["github", "brief"]);
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBe(true);
+    if (result.ok && result.command === "github") {
+      expect(result.repository).toBeUndefined();
+    }
   });
 
-  it("defaults the limit to 50", () => {
+  it("leaves the limit unset when omitted (configuration may supply it)", () => {
     const result = parse(["github", "brief", "owner/repo"]);
     expect(result.ok).toBe(true);
     if (result.ok && result.command === "github") {
-      expect(result.limit).toBe(50);
+      expect(result.limit).toBeUndefined();
     }
+  });
+
+  it("accepts a --provider-config path", () => {
+    const result = parse(["github", "brief", "owner/repo", "--provider-config", "./p.json"]);
+    expect(result.ok).toBe(true);
+    if (result.ok && result.command === "github") {
+      expect(result.providerConfigPath).toBe("./p.json");
+    }
+  });
+
+  it("rejects a duplicate --provider-config", () => {
+    expect(
+      parse(["github", "brief", "owner/repo", "--provider-config", "a", "--provider-config", "b"]).ok,
+    ).toBe(false);
   });
 
   it("accepts a valid limit", () => {

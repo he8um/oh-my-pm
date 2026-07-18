@@ -117,8 +117,8 @@
 
 Next priorities:
 
-1. provider configuration and diagnostics
-2. richer GitHub fetch/source selection
+1. richer GitHub fetch modes and source selection
+2. provider aliases/profiles only if justified by real usage
 3. controlled write-back only in a separately approved later phase
 
 Preview-first installation from an extracted verified release bundle, the
@@ -133,6 +133,7 @@ in place (see Phase 5B).
 - GitHub read-only provider (in place)
 - asynchronous provider/Runtime/CLI/MCP execution boundary (in place)
 - finer deterministic risk/task extraction for GitHub and Markdown context (complete)
+- provider configuration and diagnostics (complete)
 
 ## Phase 6 — Release lifecycle
 

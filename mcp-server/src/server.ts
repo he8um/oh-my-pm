@@ -1,8 +1,13 @@
+import type { ProviderDoctorReport, ProviderStatusReport } from "@oh-my-pm/cli";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { executeMcpGitHubTool, githubOperationForToolName } from "./github-tool-runner.js";
 import { executeMcpProjectTool, projectOperationForToolName } from "./project-tool-runner.js";
+import {
+  executeMcpGitHubProviderDiagnostics,
+  executeMcpProviderStatus,
+} from "./provider-diagnostics-runner.js";
 import type {
   McpGitHubOperation,
   McpGitHubToolExecution,
@@ -413,31 +418,44 @@ export type McpProjectToolExecutor = (
 
 export type McpGitHubToolExecutor = (
   operation: McpGitHubOperation,
-  repository: string,
-  limit: number,
+  repository: string | undefined,
+  limit: number | undefined,
 ) => Promise<McpGitHubToolExecution>;
+
+export type McpProviderStatusExecutor = () => ProviderStatusReport;
+
+export type McpGitHubProviderDiagnosticsExecutor = (
+  input: { repository?: string; confirmNetwork?: boolean },
+) => Promise<ProviderDoctorReport>;
 
 export type CreateOhMyPmMcpServerOptions = {
   executeProjectTool?: McpProjectToolExecutor;
   executeGitHubTool?: McpGitHubToolExecutor;
+  executeProviderStatus?: McpProviderStatusExecutor;
+  executeGitHubProviderDiagnostics?: McpGitHubProviderDiagnosticsExecutor;
 };
 
 // GitHub tool input/output schemas. Input is a strict owner/repo plus an
 // optional 1..100 limit; there is no token, API-URL, arbitrary-query, or local
 // root field. Output carries a sanitized source list only — never raw bodies,
 // provider responses, planner input, task graph, or Runtime trace.
+// Repository and limit are optional: provider configuration may supply the
+// defaults. There is no token, API-URL, config-path, or header input.
 const githubInputShape = {
   repository: z
     .string()
     .trim()
     .min(1)
-    .describe("Target GitHub repository in owner/repository form"),
+    .optional()
+    .describe(
+      "Target GitHub repository in owner/repository form; falls back to the configured default when omitted",
+    ),
   limit: z
     .number()
     .int()
     .min(1)
     .max(100)
-    .default(50)
+    .optional()
     .describe("Maximum number of repository/issue/pull-request items (1..100)"),
 } as const;
 
@@ -481,6 +499,78 @@ function githubPublicResult(execution: McpGitHubToolSuccess): Record<string, unk
     markdown: execution.markdown,
   };
 }
+
+// --- Provider diagnostics tool schemas -------------------------------------
+
+const providerDiagnosticCheckSchema = z
+  .object({
+    id: z.string(),
+    status: z.enum(["ok", "info", "warning", "fail"]),
+    message: z.string(),
+  })
+  .strict();
+
+// provider_status takes no input. Its output is the structured status report:
+// resolved config source/existence/validity, per-provider read-only network
+// posture and state, and token presence only — never a token value.
+const providerStatusOutputShape = {
+  schemaVersion: z.literal(1),
+  config: z
+    .object({
+      source: z.enum(["explicit", "environment", "xdg", "home", "appdata", "defaults"]),
+      exists: z.boolean(),
+      displayPath: z.string(),
+      valid: z.boolean(),
+    })
+    .strict(),
+  providers: z.array(
+    z
+      .object({
+        id: z.enum(["local", "github"]),
+        enabled: z.boolean(),
+        readOnly: z.literal(true),
+        network: z.enum(["none", "explicit-opt-in"]),
+        state: z.enum(["ready", "disabled", "needs-repository"]),
+        defaultRepository: z.string().optional(),
+        defaultLimit: z.number().int().optional(),
+        token: z.enum(["not-applicable", "present", "absent"]),
+      })
+      .strict(),
+  ),
+} as const;
+
+// github_provider_diagnostics: optional repository (configured default may be
+// used) and optional confirmNetwork (defaults false). No limit, token, config
+// path, API URL, or header input.
+const githubDiagnosticsInputShape = {
+  repository: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("Target GitHub repository in owner/repository form; falls back to the configured default"),
+  confirmNetwork: z
+    .boolean()
+    .default(false)
+    .describe("When true, perform exactly one read-only GET repository-metadata request"),
+} as const;
+
+const githubDiagnosticsOutputShape = {
+  schemaVersion: z.literal(1),
+  ok: z.boolean(),
+  networkAttempted: z.boolean(),
+  checks: z.array(providerDiagnosticCheckSchema),
+  github: z
+    .object({
+      repository: z.string().optional(),
+      limit: z.number().int().optional(),
+      authentication: z.enum(["token-present", "unauthenticated"]),
+      access: z.enum(["ok", "failed", "not-checked"]).optional(),
+      providerCode: z.string().optional(),
+    })
+    .strict()
+    .optional(),
+} as const;
 
 const PROJECT_OUTPUT_INVALID_TEXT =
   "project_output_invalid: runtime output did not match the expected tool shape";
@@ -532,8 +622,8 @@ async function handleProjectTool(
 async function handleGitHubTool(
   execute: McpGitHubToolExecutor,
   toolName: McpGitHubToolName,
-  repository: string,
-  limit: number,
+  repository: string | undefined,
+  limit: number | undefined,
 ): Promise<ToolResult> {
   const operation = githubOperationForToolName(toolName);
   let execution: McpGitHubToolExecution;
@@ -553,6 +643,9 @@ async function handleGitHubTool(
 export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): McpServer {
   const execute = options?.executeProjectTool ?? executeMcpProjectTool;
   const executeGitHub = options?.executeGitHubTool ?? executeMcpGitHubTool;
+  const executeProviderStatus = options?.executeProviderStatus ?? executeMcpProviderStatus;
+  const executeGitHubProviderDiagnostics =
+    options?.executeGitHubProviderDiagnostics ?? executeMcpGitHubProviderDiagnostics;
 
   const server = new McpServer(
     {
@@ -661,9 +754,62 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
         outputSchema: githubOutputShape(tool.operation),
       },
       ({ repository, limit }) =>
-        handleGitHubTool(executeGitHub, tool.name, repository, limit ?? 50),
+        handleGitHubTool(executeGitHub, tool.name, repository, limit),
     );
   }
+
+  // Provider diagnostics tools follow the eight workflow tools, in this exact
+  // order: provider_status then github_provider_diagnostics. Registration
+  // performs no network request. The agent cannot supply a config path, token,
+  // API URL, or custom headers.
+  server.registerTool(
+    "provider_status",
+    {
+      title: "Provider Status",
+      description:
+        "Report resolved provider configuration and token presence offline. Never accesses the network. Resolves configuration from the process environment or standard OS location; the agent cannot supply a config path.",
+      inputSchema: {},
+      outputSchema: providerStatusOutputShape,
+    },
+    () => {
+      let report: ProviderStatusReport;
+      try {
+        report = executeProviderStatus();
+      } catch {
+        return errorResult("provider_status_failed: unexpected provider status failure");
+      }
+      return successResult(
+        `provider status: ${report.config.valid ? "ready" : "invalid"}`,
+        report as unknown as Record<string, unknown>,
+      );
+    },
+  );
+
+  server.registerTool(
+    "github_provider_diagnostics",
+    {
+      title: "GitHub Provider Diagnostics",
+      description:
+        "Run offline GitHub provider diagnostics; with confirmNetwork it performs exactly one read-only GET repository-metadata request. No token, config path, API URL, or header input; the repository falls back to the configured default when omitted.",
+      inputSchema: githubDiagnosticsInputShape,
+      outputSchema: githubDiagnosticsOutputShape,
+    },
+    async ({ repository, confirmNetwork }) => {
+      let report: ProviderDoctorReport;
+      try {
+        report = await executeGitHubProviderDiagnostics({
+          ...(repository !== undefined ? { repository } : {}),
+          confirmNetwork: confirmNetwork ?? false,
+        });
+      } catch {
+        return errorResult("github_provider_diagnostics_failed: unexpected diagnostics failure");
+      }
+      return successResult(
+        `github provider diagnostics: ${report.ok ? "ok" : "attention"}`,
+        report as unknown as Record<string, unknown>,
+      );
+    },
+  );
 
   return server;
 }

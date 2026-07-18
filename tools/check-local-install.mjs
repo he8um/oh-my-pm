@@ -148,18 +148,21 @@ async function run(prefix) {
     await client.connect(transport);
     const { tools } = await client.listTools();
     const names = tools.map((tool) => tool.name).sort();
-    // The eight-tool surface (four local + four GitHub), compared sorted. Only
-    // the offline local project_brief is exercised below; no GitHub tool is
-    // ever called, so this verifier stays network-free and needs no token.
+    // The ten-tool surface (four local + four GitHub + two diagnostics),
+    // compared sorted. Only the offline local project_brief is exercised below;
+    // no GitHub workflow tool and no network diagnostic is ever called, so this
+    // verifier stays network-free and needs no token.
     const expected = [
       "github_project_brief",
       "github_project_handoff",
       "github_project_next",
       "github_project_risks",
+      "github_provider_diagnostics",
       "project_brief",
       "project_handoff",
       "project_next",
       "project_risks",
+      "provider_status",
     ];
     if (JSON.stringify(names) !== JSON.stringify(expected)) {
       mcpOk = false;

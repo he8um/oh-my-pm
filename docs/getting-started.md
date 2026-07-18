@@ -111,6 +111,51 @@ oh-my-pm github next owner/private-repository --markdown
 
 The provider is strictly read-only (`GET`-only to `api.github.com`, REST API version `2026-03-10`). The token is optional, supplied only through `OH_MY_PM_GITHUB_TOKEN`, and never accepted as a CLI argument or printed. `--limit` accepts `1..100` (default 50). See [the GitHub provider guide](providers/github.md).
 
+## Provider configuration and diagnostics
+
+Provider configuration is optional and strictly read-only. Create the file yourself (OH MY PM never writes it) to set GitHub defaults so you can omit the repository and limit:
+
+```json
+{
+  "version": 1,
+  "providers": {
+    "github": {
+      "enabled": true,
+      "defaultRepository": "he8um/oh-my-pm",
+      "defaultLimit": 50
+    }
+  }
+}
+```
+
+Place it at `~/.config/oh-my-pm/providers.json` (POSIX) or `%APPDATA%\oh-my-pm\providers.json` (Windows), or point at it explicitly:
+
+```bash
+oh-my-pm providers status \
+  --provider-config ./providers.json \
+  --markdown
+
+# With a configured default repository:
+oh-my-pm github risks --markdown
+```
+
+Inspect and validate resolved provider state without touching the network:
+
+```bash
+oh-my-pm providers status --markdown
+oh-my-pm providers doctor --markdown
+```
+
+To verify GitHub connectivity, opt in explicitly — this performs exactly one read-only repository-metadata request:
+
+```bash
+oh-my-pm providers doctor github \
+  --confirm-network \
+  --markdown
+```
+
+No secret is ever allowed in the file; the token stays in `OH_MY_PM_GITHUB_TOKEN`. Local commands never read provider configuration. See [provider configuration](providers/configuration.md) and [provider diagnostics](providers/diagnostics.md).
+
 ## MCP onboarding
 
 Generate a generic stdio MCP client configuration:
@@ -125,9 +170,9 @@ Then:
 - reload or restart the client as that client requires
 - do not place a project path in the server configuration
 - pass the project `root` when invoking a local tool
-- exactly eight tools are available: `project_brief`, `project_risks`, `project_next`, `project_handoff`, `github_project_brief`, `github_project_risks`, `github_project_next`, `github_project_handoff`
-- the four local tools stay filesystem-local; the four GitHub tools perform read-only outbound API requests only when called
-- supply `OH_MY_PM_GITHUB_TOKEN` to the MCP server process environment only if you need it — the generator never inserts secrets
+- exactly ten tools are available: `project_brief`, `project_risks`, `project_next`, `project_handoff`, `github_project_brief`, `github_project_risks`, `github_project_next`, `github_project_handoff`, `provider_status`, `github_provider_diagnostics`
+- the four local tools stay filesystem-local; the four GitHub tools perform read-only outbound API requests only when called; `provider_status` is offline and `github_provider_diagnostics` reaches the network only with `confirmNetwork: true`
+- supply `OH_MY_PM_GITHUB_TOKEN` and (optionally) `OH_MY_PM_PROVIDER_CONFIG` to the MCP server process environment only if you need them — the generator never inserts secrets or a config path
 
 The generator prints configuration only; it never writes to a client application and never inserts a token.
 

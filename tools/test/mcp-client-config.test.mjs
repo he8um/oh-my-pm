@@ -76,6 +76,29 @@ describe("print-mcp-client-config command", () => {
     expect(result.stdout.endsWith("\n\n")).toBe(false);
   });
 
+  it("emits no GitHub token or provider-config environment variable in the JSON config", () => {
+    const prefix = makeInstalledPrefix();
+    const result = run(["--prefix", prefix]);
+    // The generated config object is secret-free and env-free by design.
+    expect(result.stdout).not.toContain("OH_MY_PM_GITHUB_TOKEN");
+    expect(result.stdout).not.toContain("OH_MY_PM_PROVIDER_CONFIG");
+    const entry = JSON.parse(result.stdout).mcpServers["oh-my-pm"];
+    expect(entry).not.toHaveProperty("env");
+  });
+
+  it("documents the optional env vars in Markdown without placing them in the config", () => {
+    const prefix = makeInstalledPrefix();
+    const result = run(["--prefix", prefix, "--markdown"]);
+    // The prose names the optional variables so operators can add them
+    // manually, but the emitted JSON config block carries neither.
+    expect(result.stdout).toContain("OH_MY_PM_GITHUB_TOKEN");
+    expect(result.stdout).toContain("OH_MY_PM_PROVIDER_CONFIG");
+    const jsonBlock = result.stdout.split("```json")[1]?.split("```")[0] ?? "";
+    expect(jsonBlock).not.toContain("OH_MY_PM_GITHUB_TOKEN");
+    expect(jsonBlock).not.toContain("OH_MY_PM_PROVIDER_CONFIG");
+    expect(jsonBlock).not.toContain("env");
+  });
+
   it("requires --prefix and fails when the command is not installed", () => {
     expect(run([]).status).toBe(2);
     const emptyPrefix = join(mkdtempSync(join(tmpdir(), "oh-my-pm-mcp-config-empty-")), "prefix");

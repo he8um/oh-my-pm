@@ -134,6 +134,8 @@ async function run(bundle) {
     "github_project_risks",
     "github_project_next",
     "github_project_handoff",
+    "provider_status",
+    "github_provider_diagnostics",
   ];
   if (JSON.stringify(release.mcpTools) !== JSON.stringify(expectedTools)) {
     return fail("RELEASE.json mcpTools list is unexpected");
@@ -192,6 +194,65 @@ async function run(bundle) {
     return fail("RELEASE.json installer.clientConfigWrites must be false");
   }
   if (installer.projectWrites !== false) return fail("RELEASE.json installer.projectWrites must be false");
+
+  // Provider configuration metadata: read-only, no secret values, schema v1,
+  // the exact configurable/fixed GitHub key partition.
+  const providerConfig = release.providerConfiguration;
+  if (providerConfig === null || typeof providerConfig !== "object") {
+    return fail("RELEASE.json providerConfiguration metadata is missing");
+  }
+  if (providerConfig.schemaVersion !== 1) {
+    return fail("RELEASE.json providerConfiguration.schemaVersion must be 1");
+  }
+  if (providerConfig.fileName !== "providers.json") {
+    return fail("RELEASE.json providerConfiguration.fileName must be providers.json");
+  }
+  if (providerConfig.pathEnv !== "OH_MY_PM_PROVIDER_CONFIG") {
+    return fail("RELEASE.json providerConfiguration.pathEnv is unexpected");
+  }
+  if (providerConfig.secretValuesAllowed !== false) {
+    return fail("RELEASE.json providerConfiguration.secretValuesAllowed must be false");
+  }
+  if (providerConfig.writes !== false) {
+    return fail("RELEASE.json providerConfiguration.writes must be false");
+  }
+  if (providerConfig.github === null || typeof providerConfig.github !== "object") {
+    return fail("RELEASE.json providerConfiguration.github metadata is missing");
+  }
+  if (
+    JSON.stringify(providerConfig.github.configurable) !==
+    JSON.stringify(["enabled", "defaultRepository", "defaultLimit"])
+  ) {
+    return fail("RELEASE.json providerConfiguration.github.configurable is unexpected");
+  }
+  if (
+    JSON.stringify(providerConfig.github.fixed) !==
+    JSON.stringify(["origin", "apiVersion", "method", "tokenEnv"])
+  ) {
+    return fail("RELEASE.json providerConfiguration.github.fixed is unexpected");
+  }
+
+  // Provider diagnostics metadata: offline by default, one confirmed GET, no
+  // token values reported.
+  const diagnostics = release.providerDiagnostics;
+  if (diagnostics === null || typeof diagnostics !== "object") {
+    return fail("RELEASE.json providerDiagnostics metadata is missing");
+  }
+  if (diagnostics.offlineByDefault !== true) {
+    return fail("RELEASE.json providerDiagnostics.offlineByDefault must be true");
+  }
+  if (diagnostics.networkConfirmationFlag !== "--confirm-network") {
+    return fail("RELEASE.json providerDiagnostics.networkConfirmationFlag is unexpected");
+  }
+  if (diagnostics.networkRequestCount !== 1) {
+    return fail("RELEASE.json providerDiagnostics.networkRequestCount must be 1");
+  }
+  if (diagnostics.networkMethod !== "GET") {
+    return fail("RELEASE.json providerDiagnostics.networkMethod must be GET");
+  }
+  if (diagnostics.tokenValuesReported !== false) {
+    return fail("RELEASE.json providerDiagnostics.tokenValuesReported must be false");
+  }
 
   // SHA256SUMS: every listed file matches; every regular file is listed.
   const sumsPath = join(bundle, "SHA256SUMS");

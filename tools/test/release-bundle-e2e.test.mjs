@@ -93,6 +93,56 @@ describe("portable release bundle e2e", () => {
     expect(existsSync(join(movedBundle, "libexec", "release-install-core.test.mjs"))).toBe(false);
   });
 
+  it("declares the ten MCP tools and provider config/diagnostics metadata", () => {
+    const release = JSON.parse(readFileSync(join(movedBundle, "RELEASE.json"), "utf8"));
+    expect(release.mcpTools).toEqual([
+      "project_brief",
+      "project_risks",
+      "project_next",
+      "project_handoff",
+      "github_project_brief",
+      "github_project_risks",
+      "github_project_next",
+      "github_project_handoff",
+      "provider_status",
+      "github_provider_diagnostics",
+    ]);
+    expect(release.providerConfiguration).toEqual({
+      schemaVersion: 1,
+      fileName: "providers.json",
+      pathEnv: "OH_MY_PM_PROVIDER_CONFIG",
+      secretValuesAllowed: false,
+      writes: false,
+      github: {
+        configurable: ["enabled", "defaultRepository", "defaultLimit"],
+        fixed: ["origin", "apiVersion", "method", "tokenEnv"],
+      },
+    });
+    expect(release.providerDiagnostics).toEqual({
+      offlineByDefault: true,
+      networkConfirmationFlag: "--confirm-network",
+      networkRequestCount: 1,
+      networkMethod: "GET",
+      tokenValuesReported: false,
+    });
+  });
+
+  it("runs providers status and offline doctor from the moved bundle (no network, no providers.json)", () => {
+    const cliBin = join(movedBundle, "bin", "oh-my-pm.mjs");
+    const status = spawnSync(process.execPath, [cliBin, "providers", "status", "--json"], {
+      encoding: "utf8",
+    });
+    expect(status.status).toBe(0);
+    expect(JSON.parse(status.stdout).schemaVersion).toBe(1);
+    const doctor = spawnSync(process.execPath, [cliBin, "providers", "doctor", "--json"], {
+      encoding: "utf8",
+    });
+    expect(doctor.status).toBe(0);
+    expect(JSON.parse(doctor.stdout).networkAttempted).toBe(false);
+    // The installer never creates a providers.json in the bundle.
+    expect(existsSync(join(movedBundle, "providers.json"))).toBe(false);
+  });
+
   it("runs every CLI workflow from the moved bundle", () => {
     const cliBin = join(movedBundle, "bin", "oh-my-pm.mjs");
     const fixture = join(movedBundle, "examples", "markdown-project");

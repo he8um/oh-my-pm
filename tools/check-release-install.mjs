@@ -23,10 +23,12 @@ const EXPECTED_MCP_TOOLS = [
   "github_project_handoff",
   "github_project_next",
   "github_project_risks",
+  "github_provider_diagnostics",
   "project_brief",
   "project_handoff",
   "project_next",
   "project_risks",
+  "provider_status",
 ];
 
 function isCanonicalSemver(value) {
@@ -321,6 +323,22 @@ async function run(prefix, expectedVersion) {
       ) {
         mcpOk = false;
         mcpMessage = "installed MCP project_brief leaked a forbidden field";
+      } else {
+        // provider_status is offline and safe to call; github_provider_diagnostics
+        // is never called with network confirmation from the verifier.
+        const statusResult = await client.callTool({ name: "provider_status", arguments: {} });
+        const statusSerialized = JSON.stringify(statusResult.structuredContent ?? {});
+        if (statusResult.isError || statusResult.structuredContent?.schemaVersion !== 1) {
+          mcpOk = false;
+          mcpMessage = "installed MCP provider_status did not return a valid status report";
+        } else if (
+          statusSerialized.includes("Authorization") ||
+          statusSerialized.includes("Bearer ") ||
+          statusSerialized.includes("runtimeResponse")
+        ) {
+          mcpOk = false;
+          mcpMessage = "installed MCP provider_status leaked a forbidden field";
+        }
       }
     }
   } catch {

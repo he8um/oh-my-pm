@@ -228,6 +228,8 @@ const RELEASE_METADATA = {
     "github_project_risks",
     "github_project_next",
     "github_project_handoff",
+    "provider_status",
+    "github_provider_diagnostics",
   ],
   transport: "stdio",
   readOnly: true,
@@ -245,6 +247,24 @@ const RELEASE_METADATA = {
         tokenOptionalForPublicRepositories: true,
       },
     ],
+  },
+  providerConfiguration: {
+    schemaVersion: 1,
+    fileName: "providers.json",
+    pathEnv: "OH_MY_PM_PROVIDER_CONFIG",
+    secretValuesAllowed: false,
+    writes: false,
+    github: {
+      configurable: ["enabled", "defaultRepository", "defaultLimit"],
+      fixed: ["origin", "apiVersion", "method", "tokenEnv"],
+    },
+  },
+  providerDiagnostics: {
+    offlineByDefault: true,
+    networkConfirmationFlag: "--confirm-network",
+    networkRequestCount: 1,
+    networkMethod: "GET",
+    tokenValuesReported: false,
   },
   installer: {
     entrypoint: "bin/oh-my-pm-install.mjs",

@@ -129,12 +129,25 @@ github_project_next
 github_project_handoff
 ```
 
-Each accepts an explicit `repository` in `owner/repo` form and an optional
-`limit` (1..100, default 50). There is no token, API-URL, arbitrary-query, or
-local-root input. The operator supplies `OH_MY_PM_GITHUB_TOKEN` to the MCP server
-process environment when a token is needed; the generic MCP client-config
-generator never inserts secrets. Server startup and `tools/list` never make a
-GitHub request — a request happens only when one of these tools is called.
+Each accepts an optional `repository` in `owner/repo` form and an optional
+`limit` (1..100, default 50); when omitted, the configured `providers.json`
+defaults are used, and explicit values override them. There is no token,
+API-URL, config-path, arbitrary-query, or local-root input. The operator
+supplies `OH_MY_PM_GITHUB_TOKEN` to the MCP server process environment when a
+token is needed; the generic MCP client-config generator never inserts secrets.
+Server startup and `tools/list` never make a GitHub request — a request happens
+only when one of these tools is called.
+
+## Provider configuration and diagnostics
+
+The GitHub repository and limit can be supplied per command/tool or as defaults
+in an optional, strictly read-only `providers.json`. The origin, API version,
+method, and token environment variable stay fixed and are never configurable,
+and no secret is ever permitted in the file. Offline `providers status` /
+`providers doctor` commands and an explicitly confirmed single-request GitHub
+access diagnostic are available. See
+[provider configuration](./configuration.md) and
+[provider diagnostics](./diagnostics.md).
 
 ## Local workflows remain offline
 

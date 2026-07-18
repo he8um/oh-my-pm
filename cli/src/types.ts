@@ -10,18 +10,25 @@ export type CliCommand =
   | "next"
   | "handoff"
   | "install-preview"
-  | "github";
+  | "github"
+  | "providers";
 
-/** Commands dispatched to the Runtime; only install-preview runs locally. */
-export type RuntimeCliCommand = Exclude<CliCommand, "install-preview" | "github">;
+/** Commands dispatched to the Runtime; local/github/providers run separately. */
+export type RuntimeCliCommand = Exclude<
+  CliCommand,
+  "install-preview" | "github" | "providers"
+>;
 
 /** GitHub-backed workflow operations. */
 export type GitHubCliOperation = "brief" | "risks" | "next" | "handoff";
 
+/** Provider inspection subcommands. */
+export type ProvidersSubcommand = "status" | "doctor";
+
 export type CliParseResult =
   | {
       ok: true;
-      command: Exclude<CliCommand, "github">;
+      command: Exclude<CliCommand, "github" | "providers">;
       outputMode: CliOutputMode;
       input?: string;
     }
@@ -29,8 +36,28 @@ export type CliParseResult =
       ok: true;
       command: "github";
       operation: GitHubCliOperation;
-      repository: string;
-      limit: number;
+      // Repository and limit are optional at parse time: provider configuration
+      // may supply defaults. Presence records whether the value was explicit.
+      repository?: string;
+      limit?: number;
+      providerConfigPath?: string;
+      outputMode: CliOutputMode;
+    }
+  | {
+      ok: true;
+      command: "providers";
+      subcommand: "status";
+      providerConfigPath?: string;
+      outputMode: CliOutputMode;
+    }
+  | {
+      ok: true;
+      command: "providers";
+      subcommand: "doctor";
+      provider?: "github";
+      repository?: string;
+      providerConfigPath?: string;
+      confirmNetwork: boolean;
       outputMode: CliOutputMode;
     }
   | {
@@ -49,6 +76,15 @@ export type CliExecutionResult = {
 
 export type CliDeps = {
   runtime: Runtime;
+  /**
+   * Resolved GitHub repository/limit for the github command. The process layer
+   * resolves these from explicit CLI values and provider configuration before
+   * constructing the runtime, so runCli never resolves configuration itself.
+   */
+  github?: {
+    repository: string;
+    limit: number;
+  };
 };
 
 export type RuntimeRequestFactory = (

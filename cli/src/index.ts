@@ -60,6 +60,44 @@ export type {
   LocalProjectConfigLoadResult,
 } from "./project-config.js";
 export {
+  formatProviderDoctorReport,
+  formatProviderStatusReport,
+} from "./provider-format.js";
+export {
+  GITHUB_FIXED_API_VERSION,
+  GITHUB_FIXED_METHOD,
+  GITHUB_FIXED_ORIGIN,
+  buildOfflineDoctorReport,
+  buildProviderStatusReport,
+  resolveGitHubDiagnosticSettings,
+  runGitHubProviderNetworkDiagnostic,
+  tokenPresence,
+} from "./provider-diagnostics.js";
+export type {
+  GitHubProviderNetworkDiagnosticResult,
+  OfflineDoctorInput,
+  ProviderDiagnosticCheck,
+  ProviderDiagnosticStatus,
+  ProviderDoctorReport,
+  ProviderStatusInput,
+  ProviderStatusReport,
+  ProviderTokenState,
+} from "./provider-diagnostics.js";
+export {
+  MAX_PROVIDER_CONFIG_BYTES,
+  OH_MY_PM_PROVIDER_CONFIG_ENV,
+  OH_MY_PM_PROVIDER_CONFIG_FILENAME,
+  loadProviderConfig,
+  resolveProviderConfigLocation,
+} from "./provider-config.js";
+export type {
+  ProviderConfigLoadErrorCode,
+  ProviderConfigLoadResult,
+  ProviderConfigLocation,
+  ProviderConfigResolutionInput,
+  ProviderConfigSource,
+} from "./provider-config.js";
+export {
   runLocalCliProcess,
 } from "./local-process.js";
 export type {

@@ -38,6 +38,8 @@ const EXPECTED_MCP_TOOLS = [
   "github_project_risks",
   "github_project_next",
   "github_project_handoff",
+  "provider_status",
+  "github_provider_diagnostics",
 ];
 // The GitHub API origin, assembled from fragments so the install core contains
 // no literal network origin string; the core never contacts the network.

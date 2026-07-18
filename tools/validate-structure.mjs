@@ -481,6 +481,31 @@ for (const pkg of FILES_SURFACE_PACKAGES) {
   }
 }
 
+// 7g8. Provider configuration and diagnostics surface: pure schema/settings,
+// the read-only config loader, diagnostics contracts, formatting, the MCP
+// diagnostics runner, and their tests and docs.
+const PROVIDER_CONFIG_SOURCES = [
+  "providers/src/config.ts",
+  "providers/src/settings.ts",
+  "providers/test/config.test.ts",
+  "providers/test/settings.test.ts",
+  "cli/src/provider-config.ts",
+  "cli/src/provider-diagnostics.ts",
+  "cli/src/provider-format.ts",
+  "cli/test/provider-config.test.ts",
+  "cli/test/provider-diagnostics.test.ts",
+  "cli/test/provider-format.test.ts",
+  "cli/test/provider-command.test.ts",
+  "cli/test/provider-config-e2e.test.ts",
+  "mcp-server/src/provider-diagnostics-runner.ts",
+  "mcp-server/src/provider-diagnostics-runner.test.ts",
+  "docs/providers/configuration.md",
+  "docs/providers/diagnostics.md",
+];
+for (const file of PROVIDER_CONFIG_SOURCES) {
+  if (!existsSync(file)) err(`provider configuration/diagnostics file missing: ${file}`);
+}
+
 // 7h. Installer foundation files exist.
 const INSTALLER_SOURCES = [
   "installer/README.md",

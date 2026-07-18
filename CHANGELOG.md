@@ -10,6 +10,9 @@
 - Source-aware, line-level deterministic risk extraction for Markdown and GitHub context.
 - Deterministic next-task extraction from Markdown action structures and actionable GitHub issues/pull requests.
 - English and Persian project-signal headings and markers.
+- Strict read-only provider configuration with optional GitHub defaults and enable/disable control.
+- Offline provider status/doctor commands and explicitly confirmed GitHub access diagnostics.
+- MCP provider status and GitHub diagnostic tools.
 
 ### Changed
 
@@ -18,6 +21,8 @@
 - Provider, Runtime, CLI, and MCP execution boundaries are asynchronous to support real read-only network providers.
 - Runtime preserves selected provider provenance for Skill execution without passing raw provider data.
 - Risk and next-task output includes optional public provenance, ownership, due-date, and priority metadata.
+- GitHub CLI and MCP workflows may resolve repository and limit defaults from provider configuration.
+- Live GitHub CLI and MCP workflows read the current time once at the process/tool-call boundary so overdue classification stays correct; local workflows keep a fixed deterministic clock.
 
 ## 0.1.0
 

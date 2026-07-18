@@ -6,8 +6,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runLocalCliProcess } from "@oh-my-pm/cli";
 import type { GitHubHttpRequest, GitHubHttpResponse, GitHubHttpTransport } from "@oh-my-pm/providers";
+import { defaultProviderConfig } from "@oh-my-pm/providers";
 import { describe, expect, it } from "vitest";
 import { executeMcpGitHubTool } from "../src/index.js";
+
+// Injected so these offline e2e runs never read the developer's real config.
+const OFFLINE_CONFIG = defaultProviderConfig();
 
 const fixtureDir = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -47,6 +51,7 @@ describe("github offline e2e — CLI", () => {
       const result = await runLocalCliProcess(["github", op, SLUG, "--json", "--limit", "5"], {
         githubTransport: transport,
         now: NOW,
+        providerConfig: OFFLINE_CONFIG,
       });
       expect(result.exitCode, result.stderr).toBe(0);
       const parsed = JSON.parse(result.stdout);
@@ -67,7 +72,10 @@ describe("github offline e2e — MCP", () => {
   for (const op of ["brief", "risks", "next", "handoff"] as const) {
     it(`runs ${op} through the MCP runner`, async () => {
       const { transport, paths } = transportWithLog();
-      const result = await executeMcpGitHubTool(op, SLUG, 5, { transport });
+      const result = await executeMcpGitHubTool(op, SLUG, 5, {
+        transport,
+        providerConfig: OFFLINE_CONFIG,
+      });
       expect(result.ok, result.ok ? "" : result.message).toBe(true);
       if (!result.ok) return;
       expect(paths).toEqual([`/repos/${SLUG}`, `/repos/${SLUG}/issues`]);

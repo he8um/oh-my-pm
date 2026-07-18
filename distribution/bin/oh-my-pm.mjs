@@ -5,7 +5,12 @@
 
 import { runLocalCliProcess } from "@oh-my-pm/cli";
 
-const result = await runLocalCliProcess(process.argv.slice(2));
+// The real clock is read only here, at the process boundary, and is consumed by
+// the runner only for the explicit live github command; local/offline commands
+// ignore it and use their fixed deterministic clock.
+const result = await runLocalCliProcess(process.argv.slice(2), {
+  clock: () => new Date().toISOString(),
+});
 
 if (result.stdout !== "") {
   process.stdout.write(result.stdout);

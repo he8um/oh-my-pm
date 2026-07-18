@@ -229,7 +229,8 @@ Supported glob operators are `*` (zero or more non-slash characters), `?` (exact
 ## MCP server
 
 OH MY PM exposes its workflows over a read-only MCP stdio server with exactly
-eight tools — four local (filesystem-only) and four GitHub (read-only network):
+ten tools — four local (filesystem-only), four GitHub (read-only network), and
+two provider diagnostics:
 
 Local project tools (offline, require a local `root`):
 
@@ -239,12 +240,22 @@ Local project tools (offline, require a local `root`):
 - `project_handoff`
 
 GitHub tools (read-only outbound request to `api.github.com` only when called;
-require a `repository` in `owner/repo` form and an optional `limit`):
+the `repository` in `owner/repo` form and `limit` are optional and fall back to
+the configured `providers.json` defaults):
 
 - `github_project_brief`
 - `github_project_risks`
 - `github_project_next`
 - `github_project_handoff`
+
+Provider diagnostics tools:
+
+- `provider_status` — offline resolved provider state; reports token presence only
+- `github_provider_diagnostics` — offline GitHub diagnostics; one read-only `GET` only when `confirmNetwork` is set
+
+Provider configuration (`providers.json`) is optional, strictly read-only, and
+never stores a secret; see [provider configuration](docs/providers/configuration.md)
+and [provider diagnostics](docs/providers/diagnostics.md).
 
 After building the workspace, start the server with:
 

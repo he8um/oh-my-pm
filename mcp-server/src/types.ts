@@ -91,3 +91,7 @@ export type McpGitHubToolFailure = {
 };
 
 export type McpGitHubToolExecution = McpGitHubToolSuccess | McpGitHubToolFailure;
+
+// --- Provider diagnostics tool surface -------------------------------------
+
+export type McpDiagnosticsToolName = "provider_status" | "github_provider_diagnostics";

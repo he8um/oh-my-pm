@@ -35,3 +35,32 @@ follows these rules:
   the token is injected at the process boundary.
 - No network request is made at process startup or during MCP tool discovery.
 - Local Markdown project workflows remain fully offline and read no token.
+
+## Provider configuration and diagnostics
+
+Provider configuration (`providers.json`, see
+[docs/providers/configuration.md](docs/providers/configuration.md)) and
+diagnostics (see [docs/providers/diagnostics.md](docs/providers/diagnostics.md))
+follow these rules:
+
+- Provider configuration is strictly read-only. OH MY PM never creates or edits
+  it; there is no `config init`, `config set`, or interactive wizard, and no
+  command writes it.
+- No secret value is ever permitted in configuration. Any key containing a
+  case-insensitive secret marker (`token`, `secret`, `password`,
+  `authorization`, `cookie`, `apiKey`) is rejected. The token stays in
+  `OH_MY_PM_GITHUB_TOKEN`.
+- The API origin, API version, HTTP method, and token environment-variable name
+  are fixed and are not configurable; only GitHub `enabled`, `defaultRepository`,
+  and `defaultLimit` are user-configurable.
+- The configuration loader never writes, never reaches the network, never reads
+  a token, never follows a symlinked config, never searches parent directories,
+  and never returns raw file text or a resolved absolute path.
+- `providers status` and offline `providers doctor` make no network request.
+  The GitHub network diagnostic runs only with the explicit `--confirm-network`
+  flag (`confirmNetwork: true` in MCP) and performs exactly one read-only `GET`
+  repository-metadata request.
+- Diagnostics never reveal a token value, a raw provider response, response
+  headers, an absolute config path, or raw configuration text. MCP agents cannot
+  supply an arbitrary config path.
+- Local commands never read provider configuration or the token.

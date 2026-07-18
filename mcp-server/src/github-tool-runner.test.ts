@@ -2,12 +2,18 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { GitHubHttpRequest, GitHubHttpResponse, GitHubHttpTransport } from "@oh-my-pm/providers";
+import { defaultProviderConfig } from "@oh-my-pm/providers";
 import { describe, expect, it } from "vitest";
 import {
+  MCP_GITHUB_TEST_NOW,
   executeMcpGitHubTool,
   githubOperationForToolName,
   toolNameForGitHubOperation,
 } from "./github-tool-runner.js";
+
+// Every runner test injects a resolved provider config so it stays fully
+// offline and never reads the developer's real ~/.config provider file.
+const OFFLINE = { providerConfig: defaultProviderConfig() } as const;
 
 const fixtureDir = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -47,7 +53,7 @@ describe("github tool/operation mapping", () => {
 describe("executeMcpGitHubTool", () => {
   it("rejects an invalid repository before any network call", async () => {
     const { transport, calls } = recordingTransport();
-    const result = await executeMcpGitHubTool("brief", "not a repo", 50, { transport });
+    const result = await executeMcpGitHubTool("brief", "not a repo", 50, { transport, ...OFFLINE });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("github_invalid_repository");
     expect(calls).toHaveLength(0);
@@ -55,7 +61,7 @@ describe("executeMcpGitHubTool", () => {
 
   it("rejects an invalid limit before any network call", async () => {
     const { transport, calls } = recordingTransport();
-    const result = await executeMcpGitHubTool("brief", SLUG, 0, { transport });
+    const result = await executeMcpGitHubTool("brief", SLUG, 0, { transport, ...OFFLINE });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("github_invalid_limit");
     expect(calls).toHaveLength(0);
@@ -64,7 +70,7 @@ describe("executeMcpGitHubTool", () => {
   it("runs all four operations and projects a sanitized source list", async () => {
     for (const op of ["brief", "risks", "next", "handoff"] as const) {
       const { transport } = recordingTransport();
-      const result = await executeMcpGitHubTool(op, SLUG, 10, { transport });
+      const result = await executeMcpGitHubTool(op, SLUG, 10, { transport, ...OFFLINE });
       expect(result.ok, op).toBe(true);
       if (!result.ok) continue;
       expect(result.repository).toBe(SLUG);
@@ -84,7 +90,7 @@ describe("executeMcpGitHubTool", () => {
 
   it("bounds the source list by the requested limit", async () => {
     const { transport } = recordingTransport();
-    const result = await executeMcpGitHubTool("brief", SLUG, 2, { transport });
+    const result = await executeMcpGitHubTool("brief", SLUG, 2, { transport, ...OFFLINE });
     if (!result.ok) throw new Error("expected ok");
     // limit 2 -> repo + 1 source item.
     expect(result.sources.length).toBeLessThanOrEqual(1);
@@ -95,8 +101,30 @@ describe("executeMcpGitHubTool", () => {
     const result = await executeMcpGitHubTool("brief", SLUG, 10, {
       transport,
       token: "secret-mcp-token",
+      ...OFFLINE,
     });
     expect(JSON.stringify(result)).not.toContain("secret-mcp-token");
+  });
+
+  it("reads the clock at most once per call and stays deterministic when injected", async () => {
+    const { transport: t1 } = recordingTransport();
+    const { transport: t2 } = recordingTransport();
+    let clockCalls = 0;
+    const clock = () => {
+      clockCalls += 1;
+      return MCP_GITHUB_TEST_NOW;
+    };
+    const first = await executeMcpGitHubTool("brief", SLUG, 10, { transport: t1, clock, ...OFFLINE });
+    expect(clockCalls).toBe(1);
+    const second = await executeMcpGitHubTool("brief", SLUG, 10, {
+      transport: t2,
+      now: MCP_GITHUB_TEST_NOW,
+      ...OFFLINE,
+    });
+    if (!first.ok || !second.ok) throw new Error("expected ok");
+    // The injected `now` takes precedence over `clock`; repeated structured
+    // output with the same injected time is deep-equal.
+    expect(first.output).toStrictEqual(second.output);
   });
 
   it("maps a sanitized provider failure", async () => {
@@ -105,7 +133,7 @@ describe("executeMcpGitHubTool", () => {
         return { status: 404, headers: {}, body: { message: "not found detail" } };
       },
     };
-    const result = await executeMcpGitHubTool("brief", SLUG, 10, { transport });
+    const result = await executeMcpGitHubTool("brief", SLUG, 10, { transport, ...OFFLINE });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.code).toBe("OMP-P-4006");
@@ -159,7 +187,7 @@ describe("executeMcpGitHubTool risk/next public metadata", () => {
 
   it("carries url/repository/number on risks and excludes raw body", async () => {
     const transport = scenarioTransport();
-    const result = await executeMcpGitHubTool("risks", SLUG, 10, { transport });
+    const result = await executeMcpGitHubTool("risks", SLUG, 10, { transport, ...OFFLINE });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const risks = (result.output as { risks: Array<Record<string, unknown>> }).risks;
@@ -179,7 +207,7 @@ describe("executeMcpGitHubTool risk/next public metadata", () => {
 
   it("includes only the actionable open issue in next with public metadata", async () => {
     const transport = scenarioTransport();
-    const result = await executeMcpGitHubTool("next", SLUG, 10, { transport });
+    const result = await executeMcpGitHubTool("next", SLUG, 10, { transport, ...OFFLINE });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const tasks = (result.output as { tasks: Array<Record<string, unknown>> }).tasks;

@@ -435,4 +435,86 @@ describe("cli parser", () => {
       message: "unsupported command: install",
     });
   });
+
+  it("rejects --provider-config on local commands", () => {
+    const result = parseCliArgs(["status", "--provider-config", "./p.json"]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("OMP-C-3002");
+  });
+});
+
+describe("cli parser — providers command", () => {
+  it("parses providers status", () => {
+    const result = parseCliArgs(["providers", "status", "--json"]);
+    expect(result).toStrictEqual({
+      ok: true,
+      command: "providers",
+      subcommand: "status",
+      outputMode: "json",
+    });
+  });
+
+  it("parses providers status with a config path", () => {
+    const result = parseCliArgs(["providers", "status", "--provider-config", "./p.json"]);
+    if (result.ok && result.command === "providers" && result.subcommand === "status") {
+      expect(result.providerConfigPath).toBe("./p.json");
+    } else {
+      throw new Error("expected providers status");
+    }
+  });
+
+  it("parses providers doctor (offline)", () => {
+    const result = parseCliArgs(["providers", "doctor", "--markdown"]);
+    if (result.ok && result.command === "providers" && result.subcommand === "doctor") {
+      expect(result.confirmNetwork).toBe(false);
+      expect(result.provider).toBeUndefined();
+    } else {
+      throw new Error("expected providers doctor");
+    }
+  });
+
+  it("parses providers doctor github with repository and --confirm-network", () => {
+    const result = parseCliArgs([
+      "providers",
+      "doctor",
+      "github",
+      "owner/repo",
+      "--confirm-network",
+      "--markdown",
+    ]);
+    if (result.ok && result.command === "providers" && result.subcommand === "doctor") {
+      expect(result.provider).toBe("github");
+      expect(result.repository).toBe("owner/repo");
+      expect(result.confirmNetwork).toBe(true);
+    } else {
+      throw new Error("expected providers doctor github");
+    }
+  });
+
+  it("requires a subcommand", () => {
+    expect(parseCliArgs(["providers"]).ok).toBe(false);
+    expect(parseCliArgs(["providers", "bogus"]).ok).toBe(false);
+  });
+
+  it("rejects --confirm-network for providers status", () => {
+    expect(parseCliArgs(["providers", "status", "--confirm-network"]).ok).toBe(false);
+  });
+
+  it("rejects --confirm-network for offline providers doctor (no github target)", () => {
+    expect(parseCliArgs(["providers", "doctor", "--confirm-network"]).ok).toBe(false);
+  });
+
+  it("rejects a doctor target other than github", () => {
+    expect(parseCliArgs(["providers", "doctor", "gitlab"]).ok).toBe(false);
+  });
+
+  it("rejects a repository on providers status", () => {
+    expect(parseCliArgs(["providers", "status", "owner/repo"]).ok).toBe(false);
+  });
+
+  it("rejects a duplicate --provider-config", () => {
+    expect(
+      parseCliArgs(["providers", "status", "--provider-config", "a", "--provider-config", "b"]).ok,
+    ).toBe(false);
+  });
 });

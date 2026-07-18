@@ -38,10 +38,12 @@ const EXPECTED_TOOLS = [
   "github_project_handoff",
   "github_project_next",
   "github_project_risks",
+  "github_provider_diagnostics",
   "project_brief",
   "project_handoff",
   "project_next",
   "project_risks",
+  "provider_status",
 ];
 
 let capturedStderr = "";
@@ -95,6 +97,26 @@ try {
     if (JSON.stringify(structured).includes(forbidden)) {
       ok = false;
       fail(`structured content leaked forbidden field: ${forbidden}`);
+    }
+  }
+
+  // provider_status is offline and safe to call from the smoke check. It must
+  // return a valid structured status report and never leak forbidden fields.
+  const statusResult = await client.callTool({ name: "provider_status", arguments: {} });
+  if (statusResult.isError) {
+    ok = false;
+    fail(`provider_status returned an error: ${statusResult.content?.[0]?.text ?? "unknown"}`);
+  }
+  const statusStructured = statusResult.structuredContent;
+  if (!statusStructured || statusStructured.schemaVersion !== 1) {
+    ok = false;
+    fail("provider_status structured content missing schemaVersion 1");
+  }
+  const statusSerialized = JSON.stringify(statusStructured);
+  for (const forbidden of ["runtimeResponse", "providerResponses", "trace", "Authorization", "Bearer "]) {
+    if (statusSerialized.includes(forbidden)) {
+      ok = false;
+      fail(`provider_status leaked forbidden field: ${forbidden}`);
     }
   }
 } catch (error) {

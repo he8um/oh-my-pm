@@ -31,19 +31,27 @@ describe("bin wrapper source", () => {
     expect(binSource).toContain("process.exitCode");
   });
 
-  it("avoids forbidden side effects beyond stdio and exit code", () => {
+  it("avoids forbidden side effects beyond stdio, exit code, and the boundary clock", () => {
+    // The bin wrapper is the approved CLI process boundary for the real clock:
+    // it may read `new Date().toISOString()` and inject it as the `clock`
+    // accessor consumed only by the live github command. Every other
+    // nondeterministic/side-effecting API remains forbidden.
     for (const forbidden of [
       "console.",
       "process.exit(",
       "process.env",
       "fetch(",
       "Date.now",
-      "new Date",
       "Math.random",
       "crypto.randomUUID",
     ]) {
       expect(binSource, `bin must not contain "${forbidden}"`).not.toContain(forbidden);
     }
+  });
+
+  it("injects the boundary clock into the runner", () => {
+    expect(binSource).toContain("new Date().toISOString()");
+    expect(binSource).toContain("clock:");
   });
 });
 
