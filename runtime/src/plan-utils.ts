@@ -45,6 +45,13 @@ export type RuntimeTextItem = {
   closedAt?: string;
   mergedAt?: string;
   requestedReviewers?: string[];
+  // GitHub item-comment provenance (only present on comment notes). Carries the
+  // bounded parent linkage and the author's repository association; never any
+  // node id, avatar, reaction, raw API url, or nested user object.
+  parentNumber?: number;
+  parentType?: string;
+  parentStatus?: string;
+  authorAssociation?: string;
 };
 
 const INTENT_TO_SKILL: Readonly<Record<IntentCategory, SkillId>> = {
@@ -201,6 +208,16 @@ export function providerItemsToTextItems(
       if (mergedAt !== undefined) text.mergedAt = mergedAt;
       const requestedReviewers = trimmedStringArrayOf(data["requestedReviewers"]);
       if (requestedReviewers !== undefined) text.requestedReviewers = requestedReviewers;
+
+      // GitHub item-comment provenance (only present on comment notes).
+      const parentNumber = positiveIntegerOf(data["parentNumber"]);
+      if (parentNumber !== undefined) text.parentNumber = parentNumber;
+      const parentType = trimmedStringOf(data["parentType"]);
+      if (parentType !== undefined) text.parentType = parentType;
+      const parentStatus = trimmedStringOf(data["parentStatus"]);
+      if (parentStatus !== undefined) text.parentStatus = parentStatus;
+      const authorAssociation = trimmedStringOf(data["authorAssociation"]);
+      if (authorAssociation !== undefined) text.authorAssociation = authorAssociation;
     }
     return text;
   });

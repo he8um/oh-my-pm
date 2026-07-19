@@ -5,7 +5,12 @@
 // omitted. Node IDs, API URLs, clone URLs, and nested raw objects never leak.
 
 import type { KernelWarning, NormalizedProviderItem } from "@oh-my-pm/contracts";
-import { GITHUB_MAX_BODY_CHARS } from "./constants.js";
+import {
+  GITHUB_MAX_BODY_CHARS,
+  GITHUB_MAX_COMBINED_COMMENT_CHARS,
+  GITHUB_MAX_COMMENT_BODY_CHARS,
+  GITHUB_MAX_COMMENTS,
+} from "./constants.js";
 
 // --- Small validated readers (never trust arbitrary JSON) -----------------
 
@@ -413,4 +418,125 @@ export function normalizeIssueOrPullRequest(
     return normalizePullRequest(slug, raw);
   }
   return normalizeIssue(slug, raw);
+}
+
+// --- Item conversation comments ---------------------------------------------
+
+export type GitHubCommentParent = {
+  slug: string;
+  number: number;
+  parentType: "issue" | "pullRequest";
+  parentStatus: string;
+};
+
+/** Bound a comment body to the per-comment ceiling; report truncation. */
+function boundCommentBody(value: string): { body: string; truncated: boolean } {
+  if (value.length <= GITHUB_MAX_COMMENT_BODY_CHARS) {
+    return { body: value, truncated: false };
+  }
+  return { body: value.slice(0, GITHUB_MAX_COMMENT_BODY_CHARS), truncated: true };
+}
+
+/**
+ * Normalize the ordinary issue/PR conversation comments for one parent item
+ * into `note` items, in API order, preserving the earliest comments first.
+ * Applies the comment-count, per-comment-body, and combined-body ceilings, and
+ * drops records missing an integer id. Raw API objects are never retained.
+ * Returns the notes plus stable warnings for any truncation or invalid record.
+ */
+export function normalizeIssueComments(
+  parent: GitHubCommentParent,
+  raw: unknown,
+): { items: NormalizedProviderItem[]; warnings: KernelWarning[] } {
+  const items: NormalizedProviderItem[] = [];
+  const warnings: KernelWarning[] = [];
+  if (!Array.isArray(raw)) {
+    return { items, warnings };
+  }
+
+  let invalidSeen = false;
+  let perCommentTruncated = false;
+  let combinedTruncated = false;
+  let countDropped = false;
+  let combined = 0;
+
+  for (const entry of raw) {
+    if (items.length >= GITHUB_MAX_COMMENTS) {
+      // More comments than the ceiling: preserve the earliest, drop the rest.
+      if (Array.isArray(raw) && raw.length > GITHUB_MAX_COMMENTS) countDropped = true;
+      break;
+    }
+    if (!isRecord(entry)) {
+      invalidSeen = true;
+      continue;
+    }
+    const commentId = readInteger(entry["id"]);
+    if (commentId === undefined) {
+      invalidSeen = true;
+      continue;
+    }
+    const authorRaw = isRecord(entry["user"]) ? readString(entry["user"]["login"]) : undefined;
+    const author = authorRaw === undefined ? "" : sanitizeLine(authorRaw);
+    const associationRaw = readString(entry["author_association"]);
+    const association = associationRaw === undefined ? undefined : sanitizeLine(associationRaw);
+    const url = validGitHubUrl(entry["html_url"]);
+    const createdAt = readString(entry["created_at"]);
+    const updatedAt = readString(entry["updated_at"]);
+
+    let { body, truncated } = boundCommentBody(readString(entry["body"]) ?? "");
+    if (truncated) perCommentTruncated = true;
+    // Enforce the combined-body ceiling, preserving earlier comments in full.
+    if (combined + body.length > GITHUB_MAX_COMBINED_COMMENT_CHARS) {
+      const remaining = Math.max(0, GITHUB_MAX_COMBINED_COMMENT_CHARS - combined);
+      body = body.slice(0, remaining);
+      combinedTruncated = true;
+    }
+    combined += body.length;
+
+    const data: Record<string, unknown> = {
+      kind: "issueComment",
+      repository: parent.slug,
+      parentNumber: parent.number,
+      parentType: parent.parentType,
+      parentStatus: parent.parentStatus,
+      author,
+      body,
+    };
+    if (association !== undefined) data["authorAssociation"] = association;
+    if (createdAt !== undefined) data["createdAt"] = createdAt;
+    if (updatedAt !== undefined) data["updatedAt"] = updatedAt;
+
+    const item: NormalizedProviderItem = {
+      id: `github:${parent.slug}:item:${parent.number}:comment:${commentId}`,
+      type: "note",
+      title: `Comment by @${author}`,
+      source: "github",
+      data: data as NormalizedProviderItem["data"],
+    };
+    if (url !== undefined) item.url = url;
+    items.push(item);
+  }
+
+  if (invalidSeen) {
+    warnings.push({
+      code: "github_comment_invalid",
+      message: "a comment record was invalid and was skipped",
+    });
+  }
+  if (perCommentTruncated) {
+    warnings.push({ code: "github_comment_body_truncated", message: "a comment body was truncated" });
+  }
+  if (combinedTruncated) {
+    warnings.push({
+      code: "github_comments_combined_truncated",
+      message: "combined comment bodies were truncated",
+    });
+  }
+  if (countDropped) {
+    warnings.push({
+      code: "github_comments_count_truncated",
+      message: "some comments were dropped beyond the comment limit",
+    });
+  }
+  return { items, warnings };
 }

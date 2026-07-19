@@ -11,6 +11,14 @@ export const GITHUB_REQUEST_TIMEOUT_MS = 15_000;
 export const GITHUB_MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
 export const GITHUB_MAX_BODY_CHARS = 32_000;
 
+// Bounds for optional item conversation comments. At most 50 comments are ever
+// normalized; each comment body is bounded to 8,000 characters and the combined
+// comment bodies to 64,000 characters. Excess comments/characters are dropped
+// with a stable warning; earlier comments are always preserved first.
+export const GITHUB_MAX_COMMENTS = 50;
+export const GITHUB_MAX_COMMENT_BODY_CHARS = 8_000;
+export const GITHUB_MAX_COMBINED_COMMENT_CHARS = 64_000;
+
 /** Canonical Accept media type for the REST API. */
 export const GITHUB_ACCEPT = "application/vnd.github+json";
 

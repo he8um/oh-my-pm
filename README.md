@@ -88,11 +88,16 @@ and never prints or persists the optional `OH_MY_PM_GITHUB_TOKEN`. See
 `--source` selects exactly which context is analyzed — `overview` (default),
 `repository`, `issues`, `pull-requests`, one `item` by `--number`, or a
 repository-scoped `search` by `--query` — with `--state open|closed|all` and
-search `--kind`. See [GitHub source selection](docs/providers/github-source-selection.md):
+search `--kind`. The `item` source can optionally include a single issue/PR's
+ordinary conversation comments with `--include-comments` (opt-in, disabled by
+default) and `--comment-limit`; see
+[GitHub item comments](docs/providers/github-item-comments.md). See also
+[GitHub source selection](docs/providers/github-source-selection.md):
 
 ```bash
 oh-my-pm github risks owner/repository --source issues --state open --markdown
 oh-my-pm github brief owner/repository --source item --number 123 --markdown
+oh-my-pm github risks owner/repository --source item --number 123 --include-comments --comment-limit 20 --markdown
 oh-my-pm github risks owner/repository --source search --query "release blocker" --markdown
 ```
 

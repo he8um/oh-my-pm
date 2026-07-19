@@ -8,7 +8,18 @@ import {
   okSkillOutput,
   skillInputObject,
 } from "./helpers.js";
-import type { Skill, StatusSummary } from "./types.js";
+import type { Skill, StatusSummary, TextItem } from "./types.js";
+
+// A GitHub item-comment is exactly source=github, type=note, kind=issueComment.
+// Comment notes are conversation context: they never change status counts and
+// their titles never become highlights.
+function isGitHubCommentItem(item: TextItem): boolean {
+  return (
+    item.source === "github" &&
+    item.type === "note" &&
+    (item.kind ?? "").trim().toLowerCase() === "issuecomment"
+  );
+}
 
 export function createSummarizeStatusSkill(): Skill {
   return {
@@ -35,8 +46,9 @@ export function createSummarizeStatusSkill(): Skill {
         );
       }
 
-      const items = parsed.items ?? [];
       const notes = parsed.notes ?? [];
+      // Comment notes are excluded from every count and from highlights.
+      const items = (parsed.items ?? []).filter((item) => !isGitHubCommentItem(item));
 
       let done = 0;
       let blocked = 0;

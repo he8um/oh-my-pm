@@ -87,3 +87,101 @@ describe("github offline e2e — MCP", () => {
     });
   }
 });
+
+// --- Item comments E2E -----------------------------------------------------
+
+function commentTransport(): { transport: GitHubHttpTransport; paths: string[] } {
+  const paths: string[] = [];
+  const transport: GitHubHttpTransport = {
+    async request(request: GitHubHttpRequest): Promise<GitHubHttpResponse> {
+      const url = new URL(request.url);
+      paths.push(url.pathname);
+      if (url.pathname === `/repos/${SLUG}/issues/42`) {
+        return { status: 200, headers: {}, body: load("issue.json") };
+      }
+      if (url.pathname === `/repos/${SLUG}/issues/42/comments`) {
+        return {
+          status: 200,
+          headers: {},
+          body: [
+            {
+              id: 501,
+              body: "SECRET-COMMENT-BODY should never appear in the projection",
+              user: { login: "alice" },
+              author_association: "MEMBER",
+              html_url: `https://github.com/${SLUG}/issues/42#issuecomment-501`,
+              created_at: "2026-02-01T00:00:00Z",
+              updated_at: "2026-02-02T00:00:00Z",
+            },
+          ],
+        };
+      }
+      return { status: 404, headers: {}, body: {} };
+    },
+  };
+  return { transport, paths };
+}
+
+describe("github offline e2e — MCP item comments", () => {
+  it("fetches the comments page and echoes the comment selection", async () => {
+    const { transport, paths } = commentTransport();
+    const result = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, source: "item", number: 42, includeComments: true, commentLimit: 20 },
+      { transport, providerConfig: OFFLINE_CONFIG, now: NOW },
+    );
+    expect(result.ok, result.ok ? "" : result.message).toBe(true);
+    if (!result.ok) return;
+    expect(paths).toEqual([`/repos/${SLUG}/issues/42`, `/repos/${SLUG}/issues/42/comments`]);
+    expect(result.selection).toMatchObject({ mode: "item", number: 42, includeComments: true, commentLimit: 20 });
+    expect(result.sourceSummary.comments).toBe(1);
+  });
+
+  it("attaches comment metadata to the parent source WITHOUT the body", async () => {
+    const { transport } = commentTransport();
+    const result = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, source: "item", number: 42, includeComments: true },
+      { transport, providerConfig: OFFLINE_CONFIG, now: NOW },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const parent = result.sources.find((s) => s.number === 42);
+    expect(parent?.comments).toBeDefined();
+    expect(parent!.comments!).toHaveLength(1);
+    const c = parent!.comments![0]!;
+    expect(c.id).toBe(`github:${SLUG}:item:42:comment:501`);
+    expect(c.author).toBe("alice");
+    expect(c.createdAt).toBe("2026-02-01T00:00:00Z");
+    // The comment body must never be exposed in the public projection.
+    expect(c).not.toHaveProperty("body");
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("SECRET-COMMENT-BODY");
+    expect(serialized).not.toContain("providerResponses");
+  });
+
+  it("does not fetch comments when includeComments is not set", async () => {
+    const { transport, paths } = commentTransport();
+    const result = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, source: "item", number: 42 },
+      { transport, providerConfig: OFFLINE_CONFIG, now: NOW },
+    );
+    expect(result.ok).toBe(true);
+    expect(paths).toEqual([`/repos/${SLUG}/issues/42`]);
+  });
+
+  it("produces a deterministic projection across repeated runs", async () => {
+    const run = async () => {
+      const { transport } = commentTransport();
+      return executeMcpGitHubTool(
+        "risks",
+        { repository: SLUG, source: "item", number: 42, includeComments: true },
+        { transport, providerConfig: OFFLINE_CONFIG, now: NOW },
+      );
+    };
+    const a = await run();
+    const b = await run();
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+});

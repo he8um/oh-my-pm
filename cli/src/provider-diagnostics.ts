@@ -67,7 +67,18 @@ export type GitHubSourceSelectionCapability = {
   searchKinds: readonly GitHubSearchKind[];
   singleItemFetch: true;
   singlePage: true;
-  comments: false;
+  // Ordinary item conversation comments: an explicit, bounded opt-in for the
+  // item source only. Review comments, reviews, and timeline events are not
+  // included in this phase.
+  comments: {
+    supported: true;
+    defaultEnabled: false;
+    defaultLimit: 20;
+    maxLimit: 50;
+    pagination: "single-page";
+  };
+  reviewComments: false;
+  reviews: false;
   timelines: false;
   pullRequestFiles: false;
 };
@@ -104,7 +115,15 @@ export function githubSourceSelectionCapability(
     searchKinds: GITHUB_SEARCH_KINDS,
     singleItemFetch: true,
     singlePage: true,
-    comments: false,
+    comments: {
+      supported: true,
+      defaultEnabled: false,
+      defaultLimit: 20,
+      maxLimit: 50,
+      pagination: "single-page",
+    },
+    reviewComments: false,
+    reviews: false,
     timelines: false,
     pullRequestFiles: false,
   };

@@ -338,11 +338,9 @@ export async function runLocalCliProcess(
   let githubOverride: { repository: string; selection: GitHubSourceSelection } | undefined;
 
   if (parsed.ok && parsed.command === "github") {
-    now = options?.now ?? options?.clock?.() ?? LOCAL_FIXED_NOW;
-
     // 1-3. Resolve provider config and effective repository/limit BEFORE any
-    // token read or transport construction. A config/provider failure fails
-    // closed here with exit 2 and never contacts the network.
+    // token read, clock read, or transport construction. A config/provider
+    // failure fails closed here with exit 2 and never contacts the network.
     const { config, load } = resolveProviderConfig(parsed.providerConfigPath, options);
     if (load !== null && !load.ok) {
       return { exitCode: 2, stdout: "", stderr: `invalid provider config: ${load.message}\n` };
@@ -374,6 +372,8 @@ export async function runLocalCliProcess(
         ...(parsed.query !== undefined ? { query: parsed.query } : {}),
         ...(parsed.kind !== undefined ? { kind: parsed.kind } : {}),
         ...(parsed.limit !== undefined ? { limit: parsed.limit } : {}),
+        ...(parsed.includeComments !== undefined ? { includeComments: parsed.includeComments } : {}),
+        ...(parsed.commentLimit !== undefined ? { commentLimit: parsed.commentLimit } : {}),
       },
     });
     if (!selectionResult.ok) {
@@ -381,8 +381,9 @@ export async function runLocalCliProcess(
     }
     githubOverride = { repository: settings.repository, selection: selectionResult.selection };
 
-    // 4-5. Only now read the optional token and construct the transport.
-    // Injected transport wins so tests stay offline.
+    // Only after a valid selection: read the clock, then the optional token,
+    // then construct the transport. Injected transport wins so tests stay offline.
+    now = options?.now ?? options?.clock?.() ?? LOCAL_FIXED_NOW;
     let transport = options?.githubTransport;
     if (transport === undefined) {
       const token =

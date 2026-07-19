@@ -118,10 +118,11 @@ oh-my-pm github brief owner/repository --source repository --markdown
 oh-my-pm github risks owner/repository --source issues --state open --markdown
 oh-my-pm github handoff owner/repository --source pull-requests --state closed --markdown
 oh-my-pm github brief owner/repository --source item --number 123 --markdown
+oh-my-pm github risks owner/repository --source item --number 123 --include-comments --comment-limit 20 --markdown
 oh-my-pm github risks owner/repository --source search --query "release blocker" --kind all --markdown
 ```
 
-`item` auto-detects issue vs. pull request; `search` terms never override the injected repository/state/kind scope. Provider configuration may set `defaultSource`/`defaultState`. See [GitHub source selection](providers/github-source-selection.md).
+`item` auto-detects issue vs. pull request; `search` terms never override the injected repository/state/kind scope. The `item` source can optionally include ordinary conversation comments with `--include-comments` (disabled by default) and `--comment-limit` (`1..50`, default `20`) — see [GitHub item comments](providers/github-item-comments.md). Provider configuration may set `defaultSource`/`defaultState`. See [GitHub source selection](providers/github-source-selection.md).
 
 ## Provider configuration and diagnostics
 

@@ -248,3 +248,45 @@ describe("createHandoff fallbacks", () => {
     expect(output.ok).toBe(false);
   });
 });
+
+describe("createHandoff with GitHub item comments", () => {
+  const comment = (over: Record<string, unknown>) => ({
+    id: "github:owner/repo:item:7:comment:1",
+    title: "Comment by @alice",
+    source: "github",
+    type: "note",
+    kind: "issueComment",
+    repository: "owner/repo",
+    parentNumber: 7,
+    parentType: "issue",
+    parentStatus: "open",
+    author: "alice",
+    ...over,
+  });
+
+  it("adds author-prefixed comment action items to Open Tasks", () => {
+    const result = handoffOf({ items: [comment({ body: "- [ ] rotate the signing key" })] });
+    const openTasks = result.sections.find((s) => s.heading === "Open Tasks")!;
+    expect(openTasks.items.some((i) => i === "@alice: rotate the signing key")).toBe(true);
+  });
+
+  it("adds author-prefixed comment risks to Risks", () => {
+    const result = handoffOf({ items: [comment({ body: "Blocker: staging is unreachable" })] });
+    const riskSection = result.sections.find((s) => s.heading === "Risks")!;
+    expect(riskSection.items.some((i) => i === "@alice: staging is unreachable")).toBe(true);
+  });
+
+  it("adds author-prefixed comment decisions to Decisions", () => {
+    const body = ["## Decisions", "- ship behind a feature flag"].join("\n");
+    const result = handoffOf({ items: [comment({ body })] });
+    const decisions = result.sections.find((s) => s.heading === "Decisions")!;
+    expect(decisions.items.some((i) => i === "@alice: ship behind a feature flag")).toBe(true);
+  });
+
+  it("comments do not change the project title or Summary", () => {
+    const withComment = handoffOf({ items: [comment({ body: "Blocker: x" })], title: "My Project" });
+    expect(withComment.title).toBe("My Project");
+    const summary = withComment.sections.find((s) => s.heading === "Summary")!;
+    expect(summary.items).toEqual(["No project summary found."]);
+  });
+});

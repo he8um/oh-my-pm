@@ -33,7 +33,9 @@ import {
   GITHUB_REQUEST_TIMEOUT_MS,
 } from "./constants.js";
 import {
+  type GitHubCommentParent,
   normalizeIssue,
+  normalizeIssueComments,
   normalizeIssueOrPullRequest,
   normalizePullRequest,
   normalizeRepository,
@@ -335,6 +337,46 @@ export function createGitHubProvider(options: {
     );
   }
 
+  /**
+   * Fetch the ordinary conversation comments for one issue/PR: exactly one
+   * read-only page of GET /repos/{slug}/issues/{number}/comments with
+   * per_page=<limit>&page=1. No pagination, retry, or concurrency. On failure
+   * the caller propagates the sanitized provider error (no silent fallback).
+   */
+  /** Read the normalized item's status string defensively (JsonValue data). */
+  function statusOf(item: NormalizedProviderItem): string {
+    const data = item.data;
+    if (typeof data === "object" && data !== null && !Array.isArray(data)) {
+      const status = (data as Record<string, unknown>)["status"];
+      if (typeof status === "string") return status;
+    }
+    return "open";
+  }
+
+  async function fetchIssueComments(
+    parent: GitHubCommentParent,
+    limit: number,
+  ): Promise<
+    | { ok: true; items: NormalizedProviderItem[]; warnings: KernelWarning[] }
+    | { ok: false; result: ProviderResult }
+  > {
+    const url = new URL(`${GITHUB_API_ORIGIN}/repos/${parent.slug}/issues/${parent.number}/comments`);
+    url.searchParams.set("per_page", String(limit));
+    url.searchParams.set("page", "1");
+    const result = await get(url.toString());
+    if (!result.ok) return { ok: false, result: result.result };
+    const body = result.response.body;
+    if (!Array.isArray(body)) {
+      return { ok: false, result: providerFailure("github", OMP_P_INVALID_RESPONSE) };
+    }
+    const normalized = normalizeIssueComments(parent, body.slice(0, limit));
+    return {
+      ok: true,
+      items: normalized.items,
+      warnings: [...normalized.warnings, ...lowRateLimitWarning(result.response.headers)],
+    };
+  }
+
   async function handleFetch(query: string): Promise<ProviderResult> {
     const parsed = parseGitHubFetchQuery(query);
     if (!parsed.ok) {
@@ -342,6 +384,9 @@ export function createGitHubProvider(options: {
     }
     const { slug } = parsed.ref;
     const number = parsed.number;
+    const includeComments = parsed.includeComments;
+    const commentLimit = parsed.commentLimit;
+    // 1. GET issue.
     const issueResult = await get(`${GITHUB_API_ORIGIN}/repos/${slug}/issues/${number}`);
     if (!issueResult.ok) return issueResult.result;
     const issueBody = issueResult.response.body;
@@ -354,6 +399,7 @@ export function createGitHubProvider(options: {
       (issueBody as Record<string, unknown>)["pull_request"] !== undefined;
 
     if (isPr) {
+      // 2. GET PR detail.
       const prResult = await get(`${GITHUB_API_ORIGIN}/repos/${slug}/pulls/${number}`);
       if (!prResult.ok) return prResult.result;
       const detail = readPullRequestDetail(prResult.response.body);
@@ -362,7 +408,19 @@ export function createGitHubProvider(options: {
         return providerFailure("github", OMP_P_INVALID_RESPONSE);
       }
       warnings.push(...norm.warnings, ...lowRateLimitWarning(prResult.response.headers));
-      return success([norm.item], dedupeWarnings(warnings));
+      const items: NormalizedProviderItem[] = [norm.item];
+      if (includeComments) {
+        // 3. GET issue comments (ordinary PR conversation comments).
+        const parentStatus = statusOf(norm.item);
+        const comments = await fetchIssueComments(
+          { slug, number, parentType: "pullRequest", parentStatus },
+          commentLimit,
+        );
+        if (!comments.ok) return comments.result;
+        items.push(...comments.items);
+        warnings.push(...comments.warnings);
+      }
+      return success(items, dedupeWarnings(warnings));
     }
 
     const norm = normalizeIssue(slug, issueBody);
@@ -370,7 +428,19 @@ export function createGitHubProvider(options: {
       return providerFailure("github", OMP_P_INVALID_RESPONSE);
     }
     warnings.push(...norm.warnings);
-    return success([norm.item], dedupeWarnings(warnings));
+    const items: NormalizedProviderItem[] = [norm.item];
+    if (includeComments) {
+      // 2. GET issue comments.
+      const parentStatus = statusOf(norm.item);
+      const comments = await fetchIssueComments(
+        { slug, number, parentType: "issue", parentStatus },
+        commentLimit,
+      );
+      if (!comments.ok) return comments.result;
+      items.push(...comments.items);
+      warnings.push(...comments.warnings);
+    }
+    return success(items, dedupeWarnings(warnings));
   }
 
   return {

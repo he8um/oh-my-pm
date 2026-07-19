@@ -144,8 +144,11 @@ The four GitHub workflows choose which read-only context to analyze through a
 strict source-selection model: `overview` (default), `repository`, `issues`,
 `pull-requests`, a single `item` (issue/PR with type auto-detection), and
 repository-scoped `search`, each with `open`/`closed`/`all` state and a search
-`kind`. It stays `GET`-only, single page, and never fetches comments, timelines,
-or diffs. See [GitHub source selection](./github-source-selection.md).
+`kind`. It stays `GET`-only and single page. The `item` source may optionally
+include ordinary issue/PR conversation comments (opt-in, disabled by default —
+see [GitHub item comments](./github-item-comments.md)); review comments,
+reviews, timelines, and diffs are never fetched. See
+[GitHub source selection](./github-source-selection.md).
 
 ## Provider configuration and diagnostics
 

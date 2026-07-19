@@ -122,3 +122,111 @@ describe("GitHub source E2E — item composition entering Runtime", () => {
     expect(a.stdout).toBe(b.stdout);
   });
 });
+
+// --- Item comments E2E -----------------------------------------------------
+
+function commentTransport(recorded: string[]): GitHubHttpTransport {
+  return {
+    async request(request: GitHubHttpRequest): Promise<GitHubHttpResponse> {
+      const url = new URL(request.url);
+      recorded.push(url.pathname);
+      if (url.pathname === `/repos/${SLUG}/issues/7`) {
+        return { status: 200, headers: {}, body: ghItem(7, "issue") };
+      }
+      if (url.pathname === `/repos/${SLUG}/issues/7/comments`) {
+        return {
+          status: 200,
+          headers: {},
+          body: [
+            {
+              id: 101,
+              body: "Blocker: staging credentials expired",
+              user: { login: "alice" },
+              author_association: "MEMBER",
+              html_url: `https://github.com/${SLUG}/issues/7#issuecomment-101`,
+              created_at: "2026-02-01T00:00:00Z",
+            },
+          ],
+        };
+      }
+      return { status: 404, headers: {}, body: {} };
+    },
+  };
+}
+
+describe("GitHub item comments E2E", () => {
+  it("item + --include-comments brings the primary item and comment notes into the Runtime", async () => {
+    const recorded: string[] = [];
+    const result = await runLocalCliProcess(
+      ["github", "brief", SLUG, "--source", "item", "--number", "7", "--include-comments", "--comment-limit", "20", "--json"],
+      { githubTransport: commentTransport(recorded), now: NOW, providerConfig: defaultProviderConfig() },
+    );
+    expect(result.exitCode, result.stderr).toBe(0);
+    const items = JSON.parse(result.stdout).data.providerResponses[0].items as Array<{ type: string; data: Record<string, unknown> }>;
+    expect(items[0]!.type).toBe("issue");
+    const notes = items.filter((i) => i.type === "note");
+    expect(notes).toHaveLength(1);
+    expect(notes[0]!.data.kind).toBe("issueComment");
+    // Exactly the issue then its comments page, one page only.
+    expect(recorded).toEqual([`/repos/${SLUG}/issues/7`, `/repos/${SLUG}/issues/7/comments`]);
+  });
+
+  it("without --include-comments no comment request is made", async () => {
+    const recorded: string[] = [];
+    const result = await runLocalCliProcess(
+      ["github", "brief", SLUG, "--source", "item", "--number", "7", "--json"],
+      { githubTransport: commentTransport(recorded), now: NOW, providerConfig: defaultProviderConfig() },
+    );
+    expect(result.exitCode).toBe(0);
+    expect(recorded).toEqual([`/repos/${SLUG}/issues/7`]);
+  });
+
+  it("risks surfaces a comment blocker with the author in the formatted output", async () => {
+    const result = await runLocalCliProcess(
+      ["github", "risks", SLUG, "--source", "item", "--number", "7", "--include-comments"],
+      { githubTransport: commentTransport([]), now: NOW, providerConfig: defaultProviderConfig() },
+    );
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(result.stdout).toContain("author: alice");
+    expect(result.stdout).toContain("staging credentials expired");
+  });
+
+  it("rejects --include-comments for a non-item source before any network call", async () => {
+    const recorded: string[] = [];
+    const result = await runLocalCliProcess(
+      ["github", "brief", SLUG, "--source", "issues", "--include-comments"],
+      { githubTransport: commentTransport(recorded), now: NOW, providerConfig: defaultProviderConfig() },
+    );
+    expect(result.exitCode).toBe(2);
+    expect(recorded).toHaveLength(0);
+  });
+
+  it("rejects --comment-limit without --include-comments before any network call", async () => {
+    const recorded: string[] = [];
+    const result = await runLocalCliProcess(
+      ["github", "brief", SLUG, "--source", "item", "--number", "7", "--comment-limit", "10"],
+      { githubTransport: commentTransport(recorded), now: NOW, providerConfig: defaultProviderConfig() },
+    );
+    expect(result.exitCode).toBe(2);
+    expect(recorded).toHaveLength(0);
+  });
+
+  it("rejects an out-of-range --comment-limit at the parser", async () => {
+    const result = await runLocalCliProcess(
+      ["github", "brief", SLUG, "--source", "item", "--number", "7", "--include-comments", "--comment-limit", "51"],
+      { githubTransport: commentTransport([]), now: NOW, providerConfig: defaultProviderConfig() },
+    );
+    expect(result.exitCode).toBe(2);
+  });
+
+  it("produces byte-identical output on repeated runs (determinism)", async () => {
+    const run = () =>
+      runLocalCliProcess(
+        ["github", "risks", SLUG, "--source", "item", "--number", "7", "--include-comments", "--json"],
+        { githubTransport: commentTransport([]), now: NOW, providerConfig: defaultProviderConfig() },
+      );
+    const a = await run();
+    const b = await run();
+    expect(a.stdout).toBe(b.stdout);
+  });
+});

@@ -117,9 +117,10 @@
 
 Next priorities:
 
-1. provider aliases/profiles only if justified by real usage
-2. evaluate richer read-only GitHub context such as comments/timelines as a separate bounded phase
-3. controlled write-back only in a separately approved later phase
+1. pull-request reviews and review comments as a separate bounded phase
+2. timeline events as a separate bounded phase
+3. provider aliases/profiles only with demonstrated usage
+4. controlled write-back only with separate approval
 
 Preview-first installation from an extracted verified release bundle, the
 read-only GitHub provider, and finer deterministic risk/task extraction are now
@@ -135,6 +136,7 @@ in place (see Phase 5B).
 - finer deterministic risk/task extraction for GitHub and Markdown context (complete)
 - provider configuration and diagnostics (complete)
 - richer GitHub fetch modes and source selection (complete)
+- bounded GitHub item comments for the item source, opt-in and single-page (complete)
 
 ## Phase 6 — Release lifecycle
 

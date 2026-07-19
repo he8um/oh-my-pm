@@ -17,6 +17,13 @@ import type {
 const MAX_SEGMENT_LENGTH = 100;
 const MAX_SEARCH_TERMS_LENGTH = 256;
 
+// Bounds for the optional item-comment count. Comments are disabled by default;
+// when enabled the limit defaults to 20 and must be an integer in 1..50. A
+// single page of at most 50 comments is ever requested — no pagination.
+export const DEFAULT_GITHUB_COMMENT_LIMIT = 20;
+export const MIN_GITHUB_COMMENT_LIMIT = 1;
+export const MAX_GITHUB_COMMENT_LIMIT = 50;
+
 // Conservative GitHub-compatible segment: letters, numbers, "_", "-", ".".
 // Path traversal (".", "..") and empty segments are rejected separately.
 const SEGMENT_PATTERN = /^[A-Za-z0-9._-]+$/;
@@ -134,8 +141,24 @@ export function buildGitHubSearchQuery(input: {
   return `${input.repository}::${params.toString()}`;
 }
 
-/** Build the fetch query: owner/repository#number */
-export function buildGitHubFetchQuery(input: { repository: string; number: number }): string {
+/**
+ * Build the fetch query. Two shapes:
+ *   - short legacy form when comments are disabled: `owner/repository#number`
+ *   - explicit form when comments are enabled:
+ *       `owner/repository#number::comments=<limit>`
+ * The short form is always emitted when comments are disabled so the legacy
+ * grammar round-trips unchanged.
+ */
+export function buildGitHubFetchQuery(input: {
+  repository: string;
+  number: number;
+  includeComments?: boolean;
+  commentLimit?: number;
+}): string {
+  if (input.includeComments === true) {
+    const limit = input.commentLimit ?? DEFAULT_GITHUB_COMMENT_LIMIT;
+    return `${input.repository}#${input.number}::comments=${limit}`;
+  }
   return `${input.repository}#${input.number}`;
 }
 
@@ -295,17 +318,28 @@ export function parseGitHubSearchQuery(query: string): GitHubSearchQueryResult {
   return { ok: true, ref: repoResult.ref, terms: termsResult.terms, state: "open", kind: "all" };
 }
 
-/** fetch query grammar: owner/repository#number */
+/**
+ * fetch query grammar. Two accepted forms:
+ *   - legacy: `owner/repository#number` (comments disabled, limit defaults to 20)
+ *   - explicit: `owner/repository#number::comments=<limit>` where limit is an
+ *     integer in 1..50 (comments enabled)
+ * Only the single parameter `comments` is recognized; unknown, duplicate, empty,
+ * malformed, repeated-separator, or out-of-range forms are rejected.
+ */
 export function parseGitHubFetchQuery(query: string): GitHubFetchQueryResult {
   if (typeof query !== "string" || query === "") {
     return { ok: false, reason: "fetch query is required" };
   }
-  const hashIndex = query.indexOf("#");
+  const separatorIndex = query.indexOf("::");
+  const fetchPart = separatorIndex === -1 ? query : query.slice(0, separatorIndex);
+  const paramsPart = separatorIndex === -1 ? undefined : query.slice(separatorIndex + 2);
+
+  const hashIndex = fetchPart.indexOf("#");
   if (hashIndex === -1) {
     return { ok: false, reason: "fetch query must be owner/repository#number" };
   }
-  const repositoryPart = query.slice(0, hashIndex);
-  const numberPart = query.slice(hashIndex + 1);
+  const repositoryPart = fetchPart.slice(0, hashIndex);
+  const numberPart = fetchPart.slice(hashIndex + 1);
   const repoResult = parseGitHubRepository(repositoryPart);
   if (!repoResult.ok) {
     return { ok: false, reason: repoResult.reason };
@@ -318,5 +352,43 @@ export function parseGitHubFetchQuery(query: string): GitHubFetchQueryResult {
   if (!Number.isSafeInteger(parsed) || parsed <= 0) {
     return { ok: false, reason: "fetch number is out of range" };
   }
-  return { ok: true, ref: repoResult.ref, number: parsed };
+
+  // Legacy bare form: comments disabled, limit defaults to 20.
+  if (paramsPart === undefined) {
+    return {
+      ok: true,
+      ref: repoResult.ref,
+      number: parsed,
+      includeComments: false,
+      commentLimit: DEFAULT_GITHUB_COMMENT_LIMIT,
+    };
+  }
+
+  if (paramsPart.includes("::")) {
+    return { ok: false, reason: "fetch query contains a repeated separator" };
+  }
+  const parsedParams = parseParams(paramsPart, ["comments"]);
+  if (!parsedParams.ok) return { ok: false, reason: parsedParams.reason };
+  const commentsRaw = parsedParams.values.get("comments");
+  if (commentsRaw === undefined) {
+    return { ok: false, reason: "fetch query parameters must include comments" };
+  }
+  if (!/^[1-9][0-9]*$/.test(commentsRaw)) {
+    return { ok: false, reason: "comments limit must be a positive integer" };
+  }
+  const commentLimit = Number(commentsRaw);
+  if (
+    !Number.isSafeInteger(commentLimit) ||
+    commentLimit < MIN_GITHUB_COMMENT_LIMIT ||
+    commentLimit > MAX_GITHUB_COMMENT_LIMIT
+  ) {
+    return { ok: false, reason: "comments limit is out of range" };
+  }
+  return {
+    ok: true,
+    ref: repoResult.ref,
+    number: parsed,
+    includeComments: true,
+    commentLimit,
+  };
 }

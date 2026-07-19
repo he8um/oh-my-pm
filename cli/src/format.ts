@@ -46,6 +46,7 @@ type RiskEntry = {
   reason: string;
   url?: string;
   owner?: string;
+  author?: string;
   due?: string;
   repository?: string;
   number?: number;
@@ -78,6 +79,8 @@ function asRiskEntries(value: unknown): RiskEntry[] | null {
     if (url !== undefined) entry.url = url;
     const owner = optionalStringField(raw, "owner");
     if (owner !== undefined) entry.owner = owner;
+    const author = optionalStringField(raw, "author");
+    if (author !== undefined) entry.author = author;
     const due = optionalStringField(raw, "due");
     if (due !== undefined) entry.due = due;
     const repository = optionalStringField(raw, "repository");
@@ -89,10 +92,12 @@ function asRiskEntries(value: unknown): RiskEntry[] | null {
   return entries;
 }
 
-/** Append present metadata to a brief line in the canonical order. */
+/** Append present metadata to a brief line in the canonical order:
+ * owner, author, due, source, URL. */
 function riskBriefMetadata(entry: RiskEntry): string {
   let line = `- [${entry.severity}] ${entry.title} — ${entry.reason}`;
   if (entry.owner !== undefined) line += ` — owner: ${entry.owner}`;
+  if (entry.author !== undefined) line += ` — author: ${entry.author}`;
   if (entry.due !== undefined) line += ` — due: ${entry.due}`;
   if (entry.repository !== undefined && entry.number !== undefined) {
     line += ` — source: ${entry.repository}#${entry.number}`;
@@ -119,6 +124,7 @@ function markdownTitleCell(title: string, url: string | undefined): string {
 function riskMarkdownMetadata(entry: RiskEntry): string {
   let line = `- **${entry.severity}** — ${markdownTitleCell(entry.title, entry.url)} — \`${entry.reason}\``;
   if (entry.owner !== undefined) line += ` — owner: \`${entry.owner}\``;
+  if (entry.author !== undefined) line += ` — author: \`${entry.author}\``;
   if (entry.due !== undefined) line += ` — due: \`${entry.due}\``;
   return line;
 }
@@ -151,6 +157,7 @@ type NextTaskEntry = {
   priority?: "low" | "medium" | "high";
   url?: string;
   owner?: string;
+  author?: string;
   due?: string;
   repository?: string;
   number?: number;
@@ -174,6 +181,8 @@ function asNextTaskEntries(value: unknown): NextTaskEntry[] | null {
     if (url !== undefined) entry.url = url;
     const owner = optionalStringField(raw, "owner");
     if (owner !== undefined) entry.owner = owner;
+    const author = optionalStringField(raw, "author");
+    if (author !== undefined) entry.author = author;
     const due = optionalStringField(raw, "due");
     if (due !== undefined) entry.due = due;
     const repository = optionalStringField(raw, "repository");
@@ -185,10 +194,12 @@ function asNextTaskEntries(value: unknown): NextTaskEntry[] | null {
   return entries;
 }
 
+/** Append present metadata in the canonical order: owner, author, due, source, URL. */
 function nextTaskBriefLine(entry: NextTaskEntry): string {
   const prefix = entry.priority !== undefined ? `- [${entry.priority}] ` : "- ";
   let line = `${prefix}${entry.title} — ${entry.reason}`;
   if (entry.owner !== undefined) line += ` — owner: ${entry.owner}`;
+  if (entry.author !== undefined) line += ` — author: ${entry.author}`;
   if (entry.due !== undefined) line += ` — due: ${entry.due}`;
   if (entry.repository !== undefined && entry.number !== undefined) {
     line += ` — source: ${entry.repository}#${entry.number}`;
@@ -208,6 +219,7 @@ function nextTaskMarkdownLine(entry: NextTaskEntry): string {
   const severity = entry.priority !== undefined ? `**${entry.priority}** — ` : "";
   let line = `- ${severity}${markdownTitleCell(entry.title, entry.url)} — \`${entry.reason}\``;
   if (entry.owner !== undefined) line += ` — owner: \`${entry.owner}\``;
+  if (entry.author !== undefined) line += ` — author: \`${entry.author}\``;
   if (entry.due !== undefined) line += ` — due: \`${entry.due}\``;
   return line;
 }

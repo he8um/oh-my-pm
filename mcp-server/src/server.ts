@@ -482,7 +482,30 @@ const githubInputShape = {
     .enum(["all", "issues", "pull-requests"])
     .optional()
     .describe("Search result kind filter for the search source"),
+  includeComments: z
+    .boolean()
+    .optional()
+    .describe("Include ordinary conversation comments for the item source (disabled by default)"),
+  commentLimit: z
+    .number()
+    .int()
+    .min(1)
+    .max(50)
+    .optional()
+    .describe("Maximum item comments when includeComments is set (1..50, default 20)"),
 } as const;
+
+// A public comment metadata entry: identity and provenance only, never the
+// comment body or any raw provider object.
+const githubCommentSchema = z
+  .object({
+    id: z.string(),
+    author: z.string(),
+    createdAt: z.string().optional(),
+    updatedAt: z.string().optional(),
+    url: z.string().optional(),
+  })
+  .strict();
 
 const githubSourceSchema = z
   .object({
@@ -491,6 +514,7 @@ const githubSourceSchema = z
     title: z.string(),
     state: z.string(),
     url: z.string().optional(),
+    comments: z.array(githubCommentSchema).max(50).optional(),
   })
   .strict();
 
@@ -502,6 +526,8 @@ const githubSelectionSchema = z
     number: z.number().int().optional(),
     query: z.string().optional(),
     limit: z.number().int().optional(),
+    includeComments: z.boolean().optional(),
+    commentLimit: z.number().int().optional(),
   })
   .strict();
 
@@ -517,6 +543,7 @@ function githubOutputShape(operation: McpGitHubOperation) {
         repositories: z.number().int(),
         issues: z.number().int(),
         pullRequests: z.number().int(),
+        comments: z.number().int(),
       })
       .strict(),
     sources: z.array(githubSourceSchema),
@@ -583,7 +610,17 @@ const providerStatusOutputShape = {
             searchKinds: z.array(z.enum(["all", "issues", "pull-requests"])),
             singleItemFetch: z.literal(true),
             singlePage: z.literal(true),
-            comments: z.literal(false),
+            comments: z
+              .object({
+                supported: z.literal(true),
+                defaultEnabled: z.literal(false),
+                defaultLimit: z.literal(20),
+                maxLimit: z.literal(50),
+                pagination: z.literal("single-page"),
+              })
+              .strict(),
+            reviewComments: z.literal(false),
+            reviews: z.literal(false),
             timelines: z.literal(false),
             pullRequestFiles: z.literal(false),
           })
@@ -807,7 +844,7 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
         inputSchema: githubInputShape,
         outputSchema: githubOutputShape(tool.operation),
       },
-      ({ repository, limit, source, state, number, query, kind }) =>
+      ({ repository, limit, source, state, number, query, kind, includeComments, commentLimit }) =>
         handleGitHubTool(executeGitHub, tool.name, {
           ...(repository !== undefined ? { repository } : {}),
           ...(limit !== undefined ? { limit } : {}),
@@ -816,6 +853,8 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
           ...(number !== undefined ? { number } : {}),
           ...(query !== undefined ? { query } : {}),
           ...(kind !== undefined ? { kind } : {}),
+          ...(includeComments !== undefined ? { includeComments } : {}),
+          ...(commentLimit !== undefined ? { commentLimit } : {}),
         }),
     );
   }

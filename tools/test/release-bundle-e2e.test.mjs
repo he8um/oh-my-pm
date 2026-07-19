@@ -156,8 +156,19 @@ describe("portable release bundle e2e", () => {
       singleItemAutoDetect: true,
       maxItems: 100,
       pagination: "single-page",
-      comments: false,
-      timelines: false,
+      itemDiscussion: {
+        issueComments: {
+          supported: true,
+          defaultEnabled: false,
+          defaultLimit: 20,
+          maxLimit: 50,
+          pagination: "single-page",
+        },
+        pullRequestReviewComments: false,
+        pullRequestReviews: false,
+        timelineEvents: false,
+        writes: false,
+      },
       diffs: false,
     });
   });

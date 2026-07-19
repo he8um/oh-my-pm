@@ -195,8 +195,35 @@ async function run(bundle) {
   if (sel.singleItemAutoDetect !== true) return fail("RELEASE.json sourceSelection.singleItemAutoDetect must be true");
   if (sel.maxItems !== 100) return fail("RELEASE.json sourceSelection.maxItems must be 100");
   if (sel.pagination !== "single-page") return fail("RELEASE.json sourceSelection.pagination must be single-page");
-  if (sel.comments !== false || sel.timelines !== false || sel.diffs !== false) {
-    return fail("RELEASE.json sourceSelection must not enable comments/timelines/diffs");
+  if (sel.diffs !== false) {
+    return fail("RELEASE.json sourceSelection must not enable diffs");
+  }
+  // Item discussion: bounded, opt-in issue comments only. Review comments,
+  // reviews, timeline events, and writes must all stay disabled.
+  const disc = sel.itemDiscussion;
+  if (disc === null || typeof disc !== "object") {
+    return fail("RELEASE.json sourceSelection.itemDiscussion metadata is missing");
+  }
+  const ic = disc.issueComments;
+  if (ic === null || typeof ic !== "object") {
+    return fail("RELEASE.json itemDiscussion.issueComments metadata is missing");
+  }
+  if (
+    ic.supported !== true ||
+    ic.defaultEnabled !== false ||
+    ic.defaultLimit !== 20 ||
+    ic.maxLimit !== 50 ||
+    ic.pagination !== "single-page"
+  ) {
+    return fail("RELEASE.json itemDiscussion.issueComments bounds are unexpected");
+  }
+  if (
+    disc.pullRequestReviewComments !== false ||
+    disc.pullRequestReviews !== false ||
+    disc.timelineEvents !== false ||
+    disc.writes !== false
+  ) {
+    return fail("RELEASE.json itemDiscussion must not enable reviews/timeline/writes");
   }
 
   // Installer metadata: preview-first, prefix-required, no network/profile/

@@ -428,6 +428,7 @@ const GITHUB_FEATURE_SOURCES = [
   "mcp-server/test/github-e2e.test.ts",
   "tools/check-github-provider-live.mjs",
   "docs/providers/github.md",
+  "docs/providers/github-item-comments.md",
 ];
 for (const file of GITHUB_FEATURE_SOURCES) {
   if (!existsSync(file)) err(`github feature file missing: ${file}`);

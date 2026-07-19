@@ -22,6 +22,7 @@ function toTaskEntry(candidate: NextTaskCandidate): NextTasksResult["tasks"][num
   if (candidate.sourceType !== undefined) entry.sourceType = candidate.sourceType;
   if (candidate.url !== undefined) entry.url = candidate.url;
   if (candidate.owner !== undefined) entry.owner = candidate.owner;
+  if (candidate.author !== undefined) entry.author = candidate.author;
   if (candidate.due !== undefined) entry.due = candidate.due;
   if (candidate.repository !== undefined) entry.repository = candidate.repository;
   if (candidate.number !== undefined) entry.number = candidate.number;

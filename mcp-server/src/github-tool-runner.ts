@@ -133,6 +133,15 @@ function resolveMcpProviderConfig(
   return { config: load.config };
 }
 
+/** Public comment metadata: identity and provenance only, never the body. */
+export type McpGitHubComment = {
+  id: string;
+  author: string;
+  createdAt?: string;
+  updatedAt?: string;
+  url?: string;
+};
+
 /** Sanitized public source list from the normalized provider responses. */
 export type McpGitHubSource = {
   type: "issue" | "pullRequest";
@@ -140,6 +149,7 @@ export type McpGitHubSource = {
   title: string;
   state: string;
   url?: string;
+  comments?: McpGitHubComment[];
 };
 
 export type McpGitHubSourceSummary = {
@@ -147,6 +157,7 @@ export type McpGitHubSourceSummary = {
   repositories: number;
   issues: number;
   pullRequests: number;
+  comments: number;
 };
 
 function projectSources(response: RuntimeResponse): {
@@ -158,8 +169,12 @@ function projectSources(response: RuntimeResponse): {
     repositories: 0,
     issues: 0,
     pullRequests: 0,
+    comments: 0,
   };
   const sources: McpGitHubSource[] = [];
+  // Comment metadata is attached to its parent issue/PR source, matched by the
+  // parent number. Only identity/provenance is projected — never the body.
+  const commentsByParent = new Map<number, McpGitHubComment[]>();
   if (!isRecord(response.data)) return { summary, sources };
   const providerResponses = response.data["providerResponses"];
   if (!Array.isArray(providerResponses)) return { summary, sources };
@@ -167,9 +182,32 @@ function projectSources(response: RuntimeResponse): {
     if (!isRecord(providerResponse) || !Array.isArray(providerResponse["items"])) continue;
     for (const item of providerResponse["items"]) {
       if (!isRecord(item)) continue;
-      summary.total += 1;
       const type = item["type"];
       const data = isRecord(item["data"]) ? item["data"] : {};
+      // Item conversation comment: counted separately and attached to a parent;
+      // never counted as a top-level source and never exposing its body.
+      if (type === "note" && data["kind"] === "issueComment") {
+        summary.comments += 1;
+        const parentNumber = data["parentNumber"];
+        if (typeof parentNumber !== "number") continue;
+        const idValue = item["id"];
+        const authorValue = data["author"];
+        const comment: McpGitHubComment = {
+          id: typeof idValue === "string" ? idValue : "",
+          author: typeof authorValue === "string" ? authorValue : "",
+        };
+        const createdAt = data["createdAt"];
+        if (typeof createdAt === "string") comment.createdAt = createdAt;
+        const updatedAt = data["updatedAt"];
+        if (typeof updatedAt === "string") comment.updatedAt = updatedAt;
+        const urlValue = item["url"];
+        if (typeof urlValue === "string") comment.url = urlValue;
+        const bucket = commentsByParent.get(parentNumber) ?? [];
+        bucket.push(comment);
+        commentsByParent.set(parentNumber, bucket);
+        continue;
+      }
+      summary.total += 1;
       if (type === "record") {
         summary.repositories += 1;
         continue;
@@ -189,6 +227,13 @@ function projectSources(response: RuntimeResponse): {
       };
       if (typeof urlValue === "string") source.url = urlValue;
       sources.push(source);
+    }
+  }
+  // Attach bounded comment metadata to matching parent sources (max 50).
+  for (const source of sources) {
+    const comments = commentsByParent.get(source.number);
+    if (comments !== undefined && comments.length > 0) {
+      source.comments = comments.slice(0, 50);
     }
   }
   return { summary, sources };
@@ -253,6 +298,8 @@ export async function executeMcpGitHubTool(
       ...(input.query !== undefined ? { query: input.query } : {}),
       ...(input.kind !== undefined ? { kind: input.kind } : {}),
       ...(input.limit !== undefined ? { limit: input.limit } : {}),
+      ...(input.includeComments !== undefined ? { includeComments: input.includeComments } : {}),
+      ...(input.commentLimit !== undefined ? { commentLimit: input.commentLimit } : {}),
     },
   });
   if (!selectionResult.ok) {
@@ -347,8 +394,15 @@ export function publicSelection(selection: GitHubSourceSelection): McpGitHubSele
       return { mode: selection.mode, state: selection.state, limit: selection.limit };
     case "repository":
       return { mode: "repository" };
-    case "item":
-      return { mode: "item", number: selection.number };
+    case "item": {
+      const summary: McpGitHubSelectionSummary = {
+        mode: "item",
+        number: selection.number,
+        includeComments: selection.includeComments,
+      };
+      if (selection.includeComments) summary.commentLimit = selection.commentLimit;
+      return summary;
+    }
     case "search":
       return {
         mode: "search",

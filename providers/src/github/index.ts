@@ -7,6 +7,9 @@ export {
   GITHUB_API_VERSION,
   GITHUB_DEFAULT_LIMIT,
   GITHUB_MAX_BODY_CHARS,
+  GITHUB_MAX_COMBINED_COMMENT_CHARS,
+  GITHUB_MAX_COMMENT_BODY_CHARS,
+  GITHUB_MAX_COMMENTS,
   GITHUB_MAX_LIMIT,
   GITHUB_MAX_RESPONSE_BYTES,
   GITHUB_REQUEST_TIMEOUT_MS,
@@ -21,11 +24,14 @@ export {
   parseGitHubSearchQuery,
 } from "./query.js";
 export {
+  DEFAULT_GITHUB_COMMENT_LIMIT,
   GITHUB_CONFIGURABLE_SOURCES,
   GITHUB_SEARCH_KINDS,
   GITHUB_SOURCE_MODES,
   GITHUB_SOURCE_QUERY_MAX,
   GITHUB_SOURCE_STATES,
+  MAX_GITHUB_COMMENT_LIMIT,
+  MIN_GITHUB_COMMENT_LIMIT,
   createGitHubProviderRequest,
   resolveGitHubSourceSelection,
 } from "./selection.js";
@@ -42,12 +48,17 @@ export type {
 } from "./selection.js";
 export {
   normalizeIssue,
+  normalizeIssueComments,
   normalizeIssueOrPullRequest,
   normalizePullRequest,
   normalizeRepository,
   readPullRequestDetail,
 } from "./normalize.js";
-export type { GitHubNormalizedResult, PullRequestDetail } from "./normalize.js";
+export type {
+  GitHubCommentParent,
+  GitHubNormalizedResult,
+  PullRequestDetail,
+} from "./normalize.js";
 export { createNodeGitHubHttpTransport, GitHubTransportError } from "./transport.js";
 export { createGitHubProvider } from "./provider.js";
 export type {

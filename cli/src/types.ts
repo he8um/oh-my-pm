@@ -52,6 +52,8 @@ export type CliParseResult =
       query?: string;
       kind?: GitHubSearchKind;
       limit?: number;
+      includeComments?: boolean;
+      commentLimit?: number;
       providerConfigPath?: string;
       outputMode: CliOutputMode;
     }

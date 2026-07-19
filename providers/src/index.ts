@@ -61,6 +61,7 @@ export {
   createGitHubProviderRequest,
   createNodeGitHubHttpTransport,
   normalizeIssue,
+  normalizeIssueComments,
   normalizeIssueOrPullRequest,
   normalizePullRequest,
   normalizeRepository,
@@ -70,6 +71,12 @@ export {
   parseGitHubSearchQuery,
   readPullRequestDetail,
   resolveGitHubSourceSelection,
+  DEFAULT_GITHUB_COMMENT_LIMIT,
+  MAX_GITHUB_COMMENT_LIMIT,
+  MIN_GITHUB_COMMENT_LIMIT,
+  GITHUB_MAX_COMBINED_COMMENT_CHARS,
+  GITHUB_MAX_COMMENT_BODY_CHARS,
+  GITHUB_MAX_COMMENTS,
 } from "./github/index.js";
 export type {
   GitHubConfigurableSource,

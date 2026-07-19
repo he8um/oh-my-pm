@@ -57,3 +57,30 @@ describe("summarizeStatus", () => {
     expect(result.warnings?.[0]?.code).toBe("OMP-S-5003");
   });
 });
+
+describe("summarizeStatus excludes GitHub item comments", () => {
+  const comment = {
+    id: "github:owner/repo:item:7:comment:1",
+    title: "Comment by @alice",
+    source: "github",
+    type: "note",
+    kind: "issueComment",
+    body: "This looks blocked and done to me",
+    status: "open",
+  };
+
+  it("comment notes never change total/open/done/blocked counts", () => {
+    const withComment = skill.execute(envelope({ items: [...items, comment] }));
+    const withoutComment = skill.execute(envelope({ items }));
+    const a = (withComment.output as StatusSummary).counts;
+    const b = (withoutComment.output as StatusSummary).counts;
+    expect(a).toEqual(b);
+  });
+
+  it("comment titles never become highlights", () => {
+    const result = skill.execute(envelope({ items: [comment] }));
+    const output = result.output as StatusSummary;
+    expect(output.highlights).not.toContain("Comment by @alice");
+    expect(output.counts.total).toBe(0);
+  });
+});

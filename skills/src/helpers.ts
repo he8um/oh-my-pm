@@ -108,6 +108,16 @@ function textItemFrom(value: JsonValue): TextItem | null {
   if (Array.isArray(value["requestedReviewers"])) {
     item.requestedReviewers = stringArrayFrom(value["requestedReviewers"]);
   }
+
+  // GitHub item-comment provenance (validated; only present on comment notes).
+  const parentNumber = positiveIntegerFrom(value["parentNumber"]);
+  if (parentNumber !== undefined) item.parentNumber = parentNumber;
+  const parentType = textFrom(value["parentType"]);
+  if (parentType !== undefined) item.parentType = parentType;
+  const parentStatus = textFrom(value["parentStatus"]);
+  if (parentStatus !== undefined) item.parentStatus = parentStatus;
+  const authorAssociation = textFrom(value["authorAssociation"]);
+  if (authorAssociation !== undefined) item.authorAssociation = authorAssociation;
   return item;
 }
 

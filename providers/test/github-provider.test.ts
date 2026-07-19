@@ -209,3 +209,109 @@ describe("error mapping", () => {
     if (!result.ok) expect(result.code).toBe("OMP-P-4008");
   });
 });
+
+describe("fetch — item comments", () => {
+  const issueComment = (id: number, body: string, login = "alice") => ({
+    id,
+    body,
+    user: { login },
+    author_association: "MEMBER",
+    html_url: `https://github.com/${SLUG}/issues/42#issuecomment-${id}`,
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-02T00:00:00Z",
+  });
+
+  it("issue+comments issues exactly two requests in order: issue then comments", async () => {
+    const { provider: p, calls } = provider([
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/42`, body: load("issue.json") },
+      {
+        match: (u) => u.pathname === `/repos/${SLUG}/issues/42/comments`,
+        body: [issueComment(1, "First"), issueComment(2, "Second")],
+      },
+    ]);
+    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#42::comments=20`, limit: 21 }), context);
+    if (!result.ok) throw new Error("expected ok");
+    // Primary item first, then comment notes in API order.
+    expect(result.response.items[0]!.type).toBe("issue");
+    const notes = result.response.items.slice(1);
+    expect(notes).toHaveLength(2);
+    expect(notes.every((n) => n.type === "note")).toBe(true);
+    const paths = calls.map((c) => new URL(c.url).pathname);
+    expect(paths).toEqual([`/repos/${SLUG}/issues/42`, `/repos/${SLUG}/issues/42/comments`]);
+    // Exactly one comments page: per_page=<limit>&page=1, no other pages.
+    const commentsCall = calls.find((c) => new URL(c.url).pathname.endsWith("/comments"))!;
+    const cu = new URL(commentsCall.url);
+    expect(cu.searchParams.get("per_page")).toBe("20");
+    expect(cu.searchParams.get("page")).toBe("1");
+    expect(paths.filter((p2) => p2.endsWith("/comments"))).toHaveLength(1);
+  });
+
+  it("PR+comments issues exactly three requests in order: issue, pull detail, comments", async () => {
+    const prIssue = (load("issues.json") as unknown[])[1];
+    const { provider: p, calls } = provider([
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/47`, body: prIssue },
+      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47`, body: load("pull-request.json") },
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/47/comments`, body: [issueComment(9, "PR note")] },
+    ]);
+    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#47::comments=5`, limit: 6 }), context);
+    if (!result.ok) throw new Error("expected ok");
+    expect(result.response.items[0]!.type).toBe("pullRequest");
+    expect(calls.map((c) => new URL(c.url).pathname)).toEqual([
+      `/repos/${SLUG}/issues/47`,
+      `/repos/${SLUG}/pulls/47`,
+      `/repos/${SLUG}/issues/47/comments`,
+    ]);
+  });
+
+  it("never requests review comments, reviews, or timeline endpoints", async () => {
+    const { provider: p, calls } = provider([
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/42`, body: load("issue.json") },
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/42/comments`, body: [issueComment(1, "x")] },
+    ]);
+    await p.execute(req({ action: "fetch", query: `${SLUG}#42::comments=20`, limit: 21 }), context);
+    const paths = calls.map((c) => new URL(c.url).pathname);
+    expect(paths.some((p2) => p2.includes("/pulls/") && p2.endsWith("/comments"))).toBe(false);
+    expect(paths.some((p2) => p2.endsWith("/reviews"))).toBe(false);
+    expect(paths.some((p2) => p2.includes("/timeline"))).toBe(false);
+  });
+
+  it("does not request comments when they are disabled (single request)", async () => {
+    const { provider: p, calls } = provider([
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/42`, body: load("issue.json") },
+    ]);
+    await p.execute(req({ action: "fetch", query: `${SLUG}#42`, limit: 1 }), context);
+    expect(calls.map((c) => new URL(c.url).pathname)).toEqual([`/repos/${SLUG}/issues/42`]);
+  });
+
+  it("propagates a comments-endpoint failure without a silent fallback", async () => {
+    const { provider: p } = provider([
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/42`, body: load("issue.json") },
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/42/comments`, status: 500, body: {} },
+    ]);
+    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#42::comments=20`, limit: 21 }), context);
+    expect(result.ok).toBe(false);
+  });
+
+  it("comment notes carry only bounded provenance, never the body's raw API object", async () => {
+    const { provider: p } = provider([
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/42`, body: load("issue.json") },
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/42/comments`, body: [issueComment(1, "hello")] },
+    ]);
+    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#42::comments=20`, limit: 21 }), context);
+    if (!result.ok) throw new Error("expected ok");
+    const note = result.response.items[1]!;
+    expect(note.id).toBe(`github:${SLUG}:item:42:comment:1`);
+    expect(note.title).toBe("Comment by @alice");
+    const data = note.data as Record<string, unknown>;
+    expect(data.kind).toBe("issueComment");
+    expect(data.parentNumber).toBe(42);
+    expect(data.parentType).toBe("issue");
+    expect(data.author).toBe("alice");
+    expect(data.authorAssociation).toBe("MEMBER");
+    expect(data.body).toBe("hello");
+    // No raw API leakage.
+    expect(data.node_id).toBeUndefined();
+    expect(data.user).toBeUndefined();
+    expect(data.reactions).toBeUndefined();
+  });
+});

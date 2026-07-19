@@ -67,6 +67,16 @@ export type McpGitHubSourceSummary = {
   repositories: number;
   issues: number;
   pullRequests: number;
+  comments: number;
+};
+
+/** Public comment metadata: identity and provenance only, never the body. */
+export type McpGitHubComment = {
+  id: string;
+  author: string;
+  createdAt?: string;
+  updatedAt?: string;
+  url?: string;
 };
 
 export type McpGitHubSource = {
@@ -75,6 +85,7 @@ export type McpGitHubSource = {
   title: string;
   state: string;
   url?: string;
+  comments?: McpGitHubComment[];
 };
 
 /** Tool input carrying repository plus the source-selection fields. */
@@ -86,6 +97,8 @@ export type McpGitHubToolInput = {
   number?: number;
   query?: string;
   kind?: GitHubSearchKind;
+  includeComments?: boolean;
+  commentLimit?: number;
 };
 
 /** Sanitized public projection of the resolved source selection. */
@@ -96,6 +109,8 @@ export type McpGitHubSelectionSummary = {
   number?: number;
   query?: string;
   limit?: number;
+  includeComments?: boolean;
+  commentLimit?: number;
 };
 
 export type McpGitHubToolSuccess = {

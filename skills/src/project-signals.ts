@@ -26,6 +26,7 @@ export type RiskCandidate = {
   sourceType?: NormalizedItemType;
   url?: string;
   owner?: string;
+  author?: string;
   due?: string;
   repository?: string;
   number?: number;
@@ -41,6 +42,7 @@ export type NextTaskCandidate = {
   priority?: "low" | "medium" | "high";
   url?: string;
   owner?: string;
+  author?: string;
   due?: string;
   repository?: string;
   number?: number;
@@ -306,6 +308,7 @@ function riskMetadata(item: TextItem): Partial<RiskCandidate> {
   const meta: Partial<RiskCandidate> = {};
   if (item.url !== undefined) meta.url = item.url;
   if (item.owner !== undefined) meta.owner = item.owner;
+  if (item.author !== undefined) meta.author = item.author;
   if (item.due !== undefined) meta.due = item.due;
   if (item.repository !== undefined) meta.repository = item.repository;
   if (item.number !== undefined) meta.number = item.number;
@@ -317,11 +320,227 @@ function taskMetadata(item: TextItem): Partial<NextTaskCandidate> {
   const meta: Partial<NextTaskCandidate> = {};
   if (item.url !== undefined) meta.url = item.url;
   if (item.owner !== undefined) meta.owner = item.owner;
+  if (item.author !== undefined) meta.author = item.author;
   if (item.due !== undefined) meta.due = item.due;
   if (item.repository !== undefined) meta.repository = item.repository;
   if (item.number !== undefined) meta.number = item.number;
   if (item.type !== undefined) meta.sourceType = item.type;
   return meta;
+}
+
+// --- GitHub item-comment classification (bounded) --------------------------
+//
+// A GitHub comment is exactly source=github, type=note, kind=issueComment. It
+// contributes risks/tasks ONLY from the same recognized Markdown risk/action
+// structures used elsewhere (headings and explicit markers) — never from
+// arbitrary prose or title keywords. A comment is never treated as a top-level
+// issue/PR/repository, is never overdue, and is never a label-based signal.
+
+function isGitHubComment(item: TextItem): boolean {
+  return (
+    item.source === "github" &&
+    item.type === "note" &&
+    normalizeSignalText(item.kind ?? "") === "issuecomment"
+  );
+}
+
+/** Whether a comment's parent is open enough to accept action items. */
+function commentParentAcceptsTasks(item: TextItem): boolean {
+  const status = normalizeSignalText(item.parentStatus ?? "");
+  return status === "open" || status === "draft";
+}
+
+function commentMetadata(item: TextItem): Partial<RiskCandidate> & Partial<NextTaskCandidate> {
+  const meta: Partial<RiskCandidate> & Partial<NextTaskCandidate> = { sourceType: "note" };
+  if (item.url !== undefined) meta.url = item.url;
+  if (item.author !== undefined) meta.author = item.author;
+  if (item.repository !== undefined) meta.repository = item.repository;
+  if (item.parentNumber !== undefined) meta.number = item.parentNumber;
+  return meta;
+}
+
+/** Map a comment risk-section heading to a bounded github_comment reason. */
+function commentHeadingRisk(normalizedHeading: string): { severity: Severity; reason: string } | null {
+  if (RISK_HEADING_HIGH.has(normalizedHeading)) {
+    return { severity: "high", reason: "github_comment:heading:blockers" };
+  }
+  if (RISK_HEADING_MEDIUM.has(normalizedHeading)) {
+    const isDependency =
+      normalizedHeading === normalizeSignalText("dependencies") ||
+      normalizedHeading === normalizeSignalText("dependency");
+    return {
+      severity: "medium",
+      reason: isDependency ? "github_comment:heading:dependencies" : "github_comment:heading:risks",
+    };
+  }
+  return null;
+}
+
+/** Map a comment risk marker prefix to a bounded github_comment reason. */
+function commentMarkerRisk(prefix: string): { severity: Severity; reason: string } {
+  const p = normalizeSignalText(prefix);
+  if (p === "blocker" || p === "blocked by" || p === "مانع" || p === "مسدودکننده") {
+    return { severity: "high", reason: "github_comment:marker:blocker" };
+  }
+  if (p === "dependency" || p === "وابستگی") {
+    return { severity: "medium", reason: "github_comment:marker:dependency" };
+  }
+  if (p === "risk" || p === "ریسک") {
+    return { severity: "medium", reason: "github_comment:marker:risk" };
+  }
+  return { severity: "low", reason: "github_comment:marker:concern" };
+}
+
+/**
+ * Extract bounded risk candidates from one comment. Recognized signals are
+ * exactly: explicit risk/blocker/dependency/concern markers, and list/paragraph
+ * lines under a recognized risk heading. Arbitrary prose never counts.
+ */
+export function classifyGitHubCommentRisks(item: TextItem): RiskCandidate[] {
+  if (!isGitHubComment(item)) return [];
+  const entries = parseMarkdownSignalEntries(commentDocument(item));
+  const bySection = groupBySection(entries, (h) => ({ risk: commentHeadingRisk(h) }));
+  const out: RiskCandidate[] = [];
+  for (const section of bySection) {
+    const hasListItems = section.entries.some(
+      (e) =>
+        e.kind === "list-item" ||
+        e.kind === "numbered-item" ||
+        e.kind === "unchecked-task" ||
+        e.kind === "checked-task",
+    );
+    for (const entry of section.entries) {
+      if (entry.kind === "marker") {
+        const marker = matchRiskMarker(entry.text);
+        if (marker !== null) {
+          const mapped = commentMarkerRisk(marker.prefix);
+          out.push(makeCommentRisk(item, entry, mapped.severity, mapped.reason, marker.body));
+        }
+        continue;
+      }
+      if (section.meta.risk === null) continue;
+      if (entry.kind === "checked-task") continue;
+      if (entry.kind === "list-item" || entry.kind === "numbered-item" || entry.kind === "unchecked-task") {
+        out.push(makeCommentRisk(item, entry, section.meta.risk.severity, section.meta.risk.reason));
+      } else if (entry.kind === "paragraph" && !hasListItems) {
+        out.push(makeCommentRisk(item, entry, section.meta.risk.severity, section.meta.risk.reason));
+      }
+    }
+  }
+  return out;
+}
+
+function makeCommentRisk(
+  item: TextItem,
+  entry: MarkdownSignalEntry,
+  severity: Severity,
+  reason: string,
+  overrideTitle?: string,
+): RiskCandidate {
+  const title = (overrideTitle ?? entry.text).trim();
+  const id = `${item.id}#risk-${entry.sequence}`;
+  return {
+    id,
+    title,
+    severity,
+    reason,
+    source: "github-comment",
+    sourceId: id,
+    ...commentMetadata(item),
+  };
+}
+
+/** github_comment action-heading reason (mirrors markdown_heading:* mapping). */
+function commentActionHeadingReason(normalizedHeading: string): string {
+  return actionHeadingReason(normalizedHeading).replace("markdown_heading:", "github_comment:heading:");
+}
+
+/** github_comment action-marker reason (mirrors markdown_marker:* mapping). */
+function commentActionMarkerReason(prefix: string): string {
+  return actionMarkerReason(prefix).replace("markdown_marker:", "github_comment:marker:");
+}
+
+/**
+ * Extract bounded task candidates from one comment. Recognized signals are
+ * exactly: unchecked checkboxes, recognized action headings, and explicit
+ * action/next/task markers. Allowed only when the parent issue is open or the
+ * parent PR is open/draft. Arbitrary prose never counts.
+ */
+export function classifyGitHubCommentTasks(item: TextItem): NextTaskCandidate[] {
+  if (!isGitHubComment(item)) return [];
+  if (!commentParentAcceptsTasks(item)) return [];
+  const entries = parseMarkdownSignalEntries(commentDocument(item));
+  const bySection = groupBySection(entries, (h) => ({
+    action: MD_ACTION_HEADINGS.has(h),
+    risk: commentHeadingRisk(h) !== null,
+  }));
+  const out: NextTaskCandidate[] = [];
+  for (const section of bySection) {
+    for (const entry of section.entries) {
+      if (entry.kind === "marker") {
+        const marker = matchActionMarker(entry.text);
+        if (marker !== null) {
+          out.push(
+            makeCommentTask(item, entry, commentActionMarkerReason(marker.prefix), marker.body, "action"),
+          );
+        }
+        continue;
+      }
+      if (entry.kind === "unchecked-task" && !section.meta.risk) {
+        out.push(makeCommentTask(item, entry, "github_comment:marker:task", entry.text, "task"));
+        continue;
+      }
+      if (entry.kind === "checked-task") continue;
+      if ((entry.kind === "list-item" || entry.kind === "numbered-item") && section.meta.action) {
+        out.push(
+          makeCommentTask(item, entry, commentActionHeadingReason(entry.normalizedHeading), entry.text, "action"),
+        );
+      }
+    }
+  }
+  return out;
+}
+
+function makeCommentTask(
+  item: TextItem,
+  entry: MarkdownSignalEntry,
+  reason: string,
+  rawTitle: string,
+  idKind: "task" | "action",
+): NextTaskCandidate {
+  const stripped = stripPriorityMarker(rawTitle);
+  const id = `${item.id}#${idKind}-${entry.sequence}`;
+  const candidate: NextTaskCandidate = {
+    id,
+    title: stripped.title.trim(),
+    reason,
+    source: "github-comment",
+    sourceId: id,
+    ...commentMetadata(item),
+  };
+  if (stripped.priority !== undefined) candidate.priority = stripped.priority;
+  return candidate;
+}
+
+/** A comment's TextItem viewed as a parseable Markdown document (its body). */
+function commentDocument(item: TextItem): TextItem {
+  return { id: item.id, title: item.title, body: item.body ?? "" };
+}
+
+/** Group signal entries into contiguous sections, deriving per-section meta. */
+function groupBySection<M>(
+  entries: readonly MarkdownSignalEntry[],
+  metaFor: (normalizedHeading: string) => M,
+): Array<{ heading: string; meta: M; entries: MarkdownSignalEntry[] }> {
+  const sections: Array<{ heading: string; meta: M; entries: MarkdownSignalEntry[] }> = [];
+  for (const entry of entries) {
+    const last = sections[sections.length - 1];
+    if (last === undefined || last.heading !== entry.heading) {
+      sections.push({ heading: entry.heading, meta: metaFor(entry.normalizedHeading), entries: [] });
+    }
+    sections[sections.length - 1]!.entries.push(entry);
+  }
+  return sections;
 }
 
 /**
@@ -891,9 +1110,14 @@ export function extractRiskCandidates(input: {
     }
   }
 
-  // 3. GitHub candidates in provider order.
+  // 3. GitHub candidates in provider order. A comment is never a top-level
+  // issue/PR/repository risk; it contributes only its own bounded comment risks.
   for (const item of input.items) {
     if (!isGitHubItem(item)) continue;
+    if (isGitHubComment(item)) {
+      for (const candidate of classifyGitHubCommentRisks(item)) risks.add(candidate);
+      continue;
+    }
     if (isRepositoryRecord(item)) {
       const repoRisk = classifyGitHubRepositoryRisk(item);
       if (repoRisk !== null) risks.add(repoRisk);
@@ -958,10 +1182,17 @@ export function extractNextTaskCandidates(input: {
     }
   }
 
-  // 3. GitHub high/medium/low buckets in provider order.
+  // 3. GitHub high/medium/low buckets in provider order. Comments contribute
+  // only their own bounded comment tasks (never treated as a top-level issue/PR)
+  // and are appended after the issue/PR buckets, in provider then line order.
   const gh: NextTaskCandidate[] = [];
+  const commentTasks: NextTaskCandidate[] = [];
   for (const item of input.items) {
     if (!isGitHubItem(item)) continue;
+    if (isGitHubComment(item)) {
+      commentTasks.push(...classifyGitHubCommentTasks(item));
+      continue;
+    }
     const task = classifyGitHubNextTask(item, input.now);
     if (task !== null) gh.push(task);
   }
@@ -970,6 +1201,7 @@ export function extractNextTaskCandidates(input: {
       if (task.priority === bucket) tasks.add(task);
     }
   }
+  for (const task of commentTasks) tasks.add(task);
 
   // 4. generic fallback (non-GitHub, non-Markdown items only).
   for (const item of input.items) {

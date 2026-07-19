@@ -23,6 +23,8 @@ export const OMP_C_INVALID_OPTION = "OMP-C-3002";
 export const GITHUB_CLI_DEFAULT_LIMIT = 50;
 const GITHUB_CLI_MIN_LIMIT = 1;
 const GITHUB_CLI_MAX_LIMIT = 100;
+const GITHUB_CLI_MIN_COMMENT_LIMIT = 1;
+const GITHUB_CLI_MAX_COMMENT_LIMIT = 50;
 const GITHUB_OPERATIONS: readonly GitHubCliOperation[] = ["brief", "risks", "next", "handoff"];
 const PROVIDERS_SUBCOMMANDS: readonly ProvidersSubcommand[] = ["status", "doctor"];
 
@@ -97,6 +99,8 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
   let kind: GitHubSearchKind | null = null;
   let itemNumber: number | null = null;
   let query: string | null = null;
+  let includeComments: boolean | null = null;
+  let commentLimit: number | null = null;
   let outputMode: CliOutputMode = "brief";
 
   for (let i = 0; i < rest.length; i += 1) {
@@ -180,6 +184,32 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
       i = taken.next;
       continue;
     }
+    if (arg === "--include-comments") {
+      if (includeComments !== null) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "duplicate --include-comments" };
+      }
+      includeComments = true;
+      continue;
+    }
+    if (arg === "--comment-limit") {
+      if (commentLimit !== null) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "duplicate --comment-limit" };
+      }
+      const value = rest[i + 1];
+      if (value === undefined || value.startsWith("--")) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--comment-limit requires a value" };
+      }
+      if (!/^[0-9]+$/.test(value)) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--comment-limit must be an integer" };
+      }
+      const parsed = Number(value);
+      if (parsed < GITHUB_CLI_MIN_COMMENT_LIMIT || parsed > GITHUB_CLI_MAX_COMMENT_LIMIT) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--comment-limit must be in 1..50" };
+      }
+      commentLimit = parsed;
+      i += 1;
+      continue;
+    }
     if (arg === "--limit") {
       if (limit !== null) {
         return { ok: false, code: OMP_C_INVALID_OPTION, message: "duplicate --limit" };
@@ -240,6 +270,8 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
   if (kind !== null) result.kind = kind;
   if (itemNumber !== null) result.number = itemNumber;
   if (query !== null) result.query = query;
+  if (includeComments !== null) result.includeComments = includeComments;
+  if (commentLimit !== null) result.commentLimit = commentLimit;
   return result;
 }
 

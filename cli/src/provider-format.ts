@@ -39,7 +39,14 @@ function statusBrief(report: ProviderStatusReport): string {
       lines.push(`github default source: ${github.defaultSource} (state ${github.defaultState})`);
     }
     if (github.sourceSelection !== undefined) {
-      lines.push(`github sources: ${github.sourceSelection.modes.join(", ")}`);
+      const cap = github.sourceSelection;
+      lines.push(`github sources: ${cap.modes.join(", ")}`);
+      lines.push(`github item comments: explicit opt-in`);
+      lines.push(`github item comments default enabled: no`);
+      lines.push(`github item comments default limit: ${cap.comments.defaultLimit}`);
+      lines.push(`github item comments maximum limit: ${cap.comments.maxLimit}`);
+      lines.push(`github item comments pagination: one page`);
+      lines.push(`github review comments/reviews/timeline: not included`);
     }
   }
   lines.push("");
@@ -79,8 +86,12 @@ function statusMarkdown(report: ProviderStatusReport): string {
         lines.push(`- Search kinds: ${cap.searchKinds.join(", ")}`);
         lines.push(`- Single-item fetch: yes`);
         lines.push(`- Single page only: yes`);
-        lines.push(`- Comments included: no`);
-        lines.push(`- Timeline included: no`);
+        lines.push(`- Item comments: explicit opt-in`);
+        lines.push(`- Item comments default enabled: no`);
+        lines.push(`- Item comments default limit: ${cap.comments.defaultLimit}`);
+        lines.push(`- Item comments maximum limit: ${cap.comments.maxLimit}`);
+        lines.push(`- Item comments pagination: one page`);
+        lines.push(`- Review comments / reviews / timeline included: no`);
         lines.push(`- Pull-request file/diff data included: no`);
       }
     }

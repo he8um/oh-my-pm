@@ -53,6 +53,11 @@ export type TextItem = {
   closedAt?: string;
   mergedAt?: string;
   requestedReviewers?: string[];
+  // GitHub item-comment provenance (only present on comment notes).
+  parentNumber?: number;
+  parentType?: string;
+  parentStatus?: string;
+  authorAssociation?: string;
 };
 
 export type ProjectSignalSource =
@@ -61,6 +66,7 @@ export type ProjectSignalSource =
   | "github-repository"
   | "github-issue"
   | "github-pull-request"
+  | "github-comment"
   | "generic";
 
 export type SkillInputObject = {
@@ -98,6 +104,7 @@ export type RiskSummary = {
     sourceType?: NormalizedItemType;
     url?: string;
     owner?: string;
+    author?: string;
     due?: string;
     repository?: string;
     number?: number;
@@ -114,6 +121,7 @@ export type NextTasksResult = {
     priority?: "low" | "medium" | "high";
     url?: string;
     owner?: string;
+    author?: string;
     due?: string;
     repository?: string;
     number?: number;

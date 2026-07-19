@@ -9,9 +9,18 @@
 
 import type { ProviderRequest } from "@oh-my-pm/contracts";
 import {
+  DEFAULT_GITHUB_COMMENT_LIMIT,
+  MAX_GITHUB_COMMENT_LIMIT,
+  MIN_GITHUB_COMMENT_LIMIT,
   buildGitHubFetchQuery,
   buildGitHubListQuery,
   buildGitHubSearchQuery,
+} from "./query.js";
+
+export {
+  DEFAULT_GITHUB_COMMENT_LIMIT,
+  MAX_GITHUB_COMMENT_LIMIT,
+  MIN_GITHUB_COMMENT_LIMIT,
 } from "./query.js";
 
 export const GITHUB_SOURCE_MODES = [
@@ -51,7 +60,7 @@ export type GitHubSourceSelection =
   | { mode: "repository" }
   | { mode: "issues"; state: GitHubSourceState; limit: number }
   | { mode: "pull-requests"; state: GitHubSourceState; limit: number }
-  | { mode: "item"; number: number }
+  | { mode: "item"; number: number; includeComments: boolean; commentLimit: number }
   | {
       mode: "search";
       query: string;
@@ -67,6 +76,8 @@ export type GitHubSourceSelectionOverrides = {
   query?: string;
   kind?: GitHubSearchKind;
   limit?: number;
+  includeComments?: boolean;
+  commentLimit?: number;
 };
 
 export type GitHubSourceSelectionErrorCode =
@@ -77,7 +88,10 @@ export type GitHubSourceSelectionErrorCode =
   | "github_query_required"
   | "github_query_invalid"
   | "github_kind_invalid"
-  | "github_option_not_applicable";
+  | "github_option_not_applicable"
+  | "github_comments_not_applicable"
+  | "github_comment_limit_not_applicable"
+  | "github_comment_limit_invalid";
 
 export type GitHubSourceSelectionResult =
   | { ok: true; selection: GitHubSourceSelection }
@@ -168,9 +182,41 @@ export function resolveGitHubSourceSelection(input: {
     }
   }
 
+  // Validate an explicit comment limit's shape before applicability rules so a
+  // malformed value reports its specific error regardless of source. Presence,
+  // not value, marks explicitness: an inherited default never reaches here.
+  if (
+    overrides.commentLimit !== undefined &&
+    (!Number.isInteger(overrides.commentLimit) ||
+      overrides.commentLimit < MIN_GITHUB_COMMENT_LIMIT ||
+      overrides.commentLimit > MAX_GITHUB_COMMENT_LIMIT)
+  ) {
+    return fail(
+      "github_comment_limit_invalid",
+      `--comment-limit must be an integer in ${MIN_GITHUB_COMMENT_LIMIT}..${MAX_GITHUB_COMMENT_LIMIT}`,
+    );
+  }
+
   const mode: GitHubSourceMode = overrides.source ?? defaults.source;
   const state: GitHubSourceState = overrides.state ?? defaults.state;
   const limit: number = overrides.limit ?? defaults.limit;
+
+  // Comment options apply only to the item source. Reject them everywhere else
+  // with a stable, path/token-free code; the item branch handles the valid case.
+  if (mode !== "item") {
+    if (overrides.includeComments !== undefined) {
+      return fail(
+        "github_comments_not_applicable",
+        `--include-comments is not valid with --source ${mode}`,
+      );
+    }
+    if (overrides.commentLimit !== undefined) {
+      return fail(
+        "github_comment_limit_not_applicable",
+        `--comment-limit is not valid with --source ${mode}`,
+      );
+    }
+  }
 
   switch (mode) {
     case "overview":
@@ -221,7 +267,23 @@ export function resolveGitHubSourceSelection(input: {
       if (overrides.number === undefined) {
         return fail("github_number_required", "github item source requires --number");
       }
-      return { ok: true, selection: { mode: "item", number: overrides.number } };
+      // Comments are disabled by default. --comment-limit is only meaningful
+      // alongside --include-comments; supplying it alone is invalid. When
+      // comments are enabled the limit defaults to 20.
+      const includeComments = overrides.includeComments === true;
+      if (!includeComments && overrides.commentLimit !== undefined) {
+        return fail(
+          "github_comment_limit_invalid",
+          "--comment-limit requires --include-comments",
+        );
+      }
+      const commentLimit = includeComments
+        ? (overrides.commentLimit ?? DEFAULT_GITHUB_COMMENT_LIMIT)
+        : DEFAULT_GITHUB_COMMENT_LIMIT;
+      return {
+        ok: true,
+        selection: { mode: "item", number: overrides.number, includeComments, commentLimit },
+      };
     }
     case "search": {
       if (overrides.number !== undefined) {
@@ -285,8 +347,15 @@ export function createGitHubProviderRequest(input: {
       return {
         providerId: "github",
         action: "fetch",
-        query: buildGitHubFetchQuery({ repository, number: selection.number }),
-        limit: 1,
+        query: buildGitHubFetchQuery({
+          repository,
+          number: selection.number,
+          includeComments: selection.includeComments,
+          commentLimit: selection.commentLimit,
+        }),
+        // The primary item plus, when comments are enabled, up to commentLimit
+        // comment notes. A single comments page is ever requested.
+        limit: selection.includeComments ? 1 + selection.commentLimit : 1,
       };
     case "search":
       return {

@@ -55,5 +55,11 @@ export type GitHubSearchQueryResult =
   | { ok: false; reason: string };
 
 export type GitHubFetchQueryResult =
-  | { ok: true; ref: GitHubRepositoryRef; number: number }
+  | {
+      ok: true;
+      ref: GitHubRepositoryRef;
+      number: number;
+      includeComments: boolean;
+      commentLimit: number;
+    }
   | { ok: false; reason: string };

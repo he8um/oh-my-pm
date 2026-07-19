@@ -60,6 +60,10 @@ oh-my-pm github handoff owner/repository --source pull-requests --state closed -
 # One specific issue or pull request (type auto-detected):
 oh-my-pm github brief owner/repository --source item --number 123 --markdown
 
+# One item, optionally including its ordinary conversation comments (opt-in):
+oh-my-pm github risks owner/repository --source item --number 123 \
+  --include-comments --comment-limit 20 --markdown
+
 # Repository-scoped search:
 oh-my-pm github risks owner/repository \
   --source search --query "release blocker" --kind all --state open --limit 25 --markdown
@@ -70,12 +74,19 @@ message before any network access — for example `--number` is only valid with
 `--source item`, `--query`/`--kind` only with `--source search`, and `--state`/
 `--limit` are not valid with `--source repository` or `--source item`.
 
+`--include-comments` and `--comment-limit` (`1..50`, default `20`) are only
+valid with `--source item`; `--comment-limit` requires `--include-comments`.
+Comments are disabled by default and add a single extra read-only request. See
+[GitHub item comments](github-item-comments.md).
+
 ## MCP
 
 The same model is available on the four existing GitHub workflow tools
 (`github_project_brief`, `github_project_risks`, `github_project_next`,
 `github_project_handoff`) — no new tools are added. Their input accepts optional
-`repository`, `limit`, `source`, `state`, `number`, `query`, and `kind`:
+`repository`, `limit`, `source`, `state`, `number`, `query`, `kind`,
+`includeComments`, and `commentLimit` (the last two apply only to the item
+source):
 
 ```json
 {

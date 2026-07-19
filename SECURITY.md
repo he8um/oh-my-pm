@@ -37,9 +37,14 @@ follows these rules:
 - Local Markdown project workflows remain fully offline and read no token.
 - Source selection (`overview`, `repository`, `issues`, `pull-requests`, `item`,
   `search`) stays inside this boundary: `GET`-only, a single API page (max 100
-  items), no GraphQL, no comments/timelines/diffs/files, and no write-back.
-  Provider-owned repository/state/kind scope is injected into search queries and
-  can never be overridden by user search terms.
+  items), no GraphQL, no write-back. Provider-owned repository/state/kind scope
+  is injected into search queries and can never be overridden by user search
+  terms.
+- The `item` source may optionally include ordinary issue/PR conversation
+  comments (`--include-comments` / `includeComments`), disabled by default. This
+  adds a single extra `GET .../issues/{number}/comments` (one page, at most 50).
+  Review comments, reviews, timeline events, diffs, and files are never fetched;
+  comment bodies are bounded and never exposed through the MCP projection.
 
 ## Provider configuration and diagnostics
 

@@ -274,7 +274,8 @@ describe("executeMcpGitHubTool — source selection", () => {
 
     const ok = await executeMcpGitHubTool("brief", { repository: SLUG, source: "item", number: 7 }, { transport, ...OFFLINE });
     expect(ok.ok).toBe(true);
-    if (ok.ok) expect(ok.selection).toStrictEqual({ mode: "item", number: 7 });
+    if (ok.ok)
+      expect(ok.selection).toStrictEqual({ mode: "item", number: 7, includeComments: false });
   });
 
   it("search source requires a query and projects it back", async () => {

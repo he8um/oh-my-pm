@@ -4,6 +4,7 @@
 
 ### Added
 
+- Optional, bounded GitHub item comments: the `item` source can now include an issue or pull request's ordinary conversation comments (`--include-comments` / `--comment-limit`, and `includeComments` / `commentLimit` for the MCP GitHub tools). Comments are disabled by default, limited to one page of at most 50, and only ordinary issue/PR comments are fetched — never review comments, reviews, timeline events, or diffs. See [docs/providers/github-item-comments.md](docs/providers/github-item-comments.md).
 - Portable release bundles now contain a preview-first self-installer that creates a versioned, source-independent local installation under an explicit prefix.
 - A strictly read-only, explicitly opt-in GitHub provider for repository metadata, issues, and pull requests.
 - GitHub-backed brief, risks, next, and handoff workflows in CLI and MCP.

@@ -94,7 +94,13 @@ describe("resolveGitHubSourceSelection — issues and pull-requests", () => {
 describe("resolveGitHubSourceSelection — item", () => {
   it("accepts item with a valid number", () => {
     const r = resolve({ source: "item", number: 123 });
-    if (r.ok) expect(r.selection).toStrictEqual({ mode: "item", number: 123 });
+    if (r.ok)
+      expect(r.selection).toStrictEqual({
+        mode: "item",
+        number: 123,
+        includeComments: false,
+        commentLimit: 20,
+      });
     else throw new Error("expected ok");
   });
 
@@ -250,13 +256,29 @@ describe("createGitHubProviderRequest", () => {
     expect(prs.query).toBe("owner/repo::source=pull-requests&state=open");
   });
 
-  it("maps item to a fetch request with limit 1", () => {
-    const req = createGitHubProviderRequest({ repository: repo, selection: { mode: "item", number: 42 } });
+  it("maps item to a fetch request with limit 1 when comments are disabled", () => {
+    const req = createGitHubProviderRequest({
+      repository: repo,
+      selection: { mode: "item", number: 42, includeComments: false, commentLimit: 20 },
+    });
     expect(req).toStrictEqual({
       providerId: "github",
       action: "fetch",
       query: "owner/repo#42",
       limit: 1,
+    });
+  });
+
+  it("maps item with comments to a fetch request with the comment query and limit 1+N", () => {
+    const req = createGitHubProviderRequest({
+      repository: repo,
+      selection: { mode: "item", number: 42, includeComments: true, commentLimit: 20 },
+    });
+    expect(req).toStrictEqual({
+      providerId: "github",
+      action: "fetch",
+      query: "owner/repo#42::comments=20",
+      limit: 21,
     });
   });
 
@@ -276,5 +298,75 @@ describe("createGitHubProviderRequest", () => {
     for (const forbidden of ["token", "Authorization", "api.github.com", "headers", "http"]) {
       expect(serialized).not.toContain(forbidden);
     }
+  });
+});
+
+describe("resolveGitHubSourceSelection — item comments", () => {
+  it("item defaults to comments disabled with the default limit", () => {
+    const r = resolve({ source: "item", number: 5 });
+    expect(r.ok).toBe(true);
+    if (r.ok && r.selection.mode === "item") {
+      expect(r.selection.includeComments).toBe(false);
+      expect(r.selection.commentLimit).toBe(20);
+    }
+  });
+
+  it("--include-comments enables comments and defaults the limit to 20", () => {
+    const r = resolve({ source: "item", number: 5, includeComments: true });
+    expect(r.ok).toBe(true);
+    if (r.ok && r.selection.mode === "item") {
+      expect(r.selection.includeComments).toBe(true);
+      expect(r.selection.commentLimit).toBe(20);
+    }
+  });
+
+  it("accepts an explicit comment limit alongside --include-comments (1 and 50)", () => {
+    for (const limit of [1, 50]) {
+      const r = resolve({ source: "item", number: 5, includeComments: true, commentLimit: limit });
+      expect(r.ok, `limit ${limit}`).toBe(true);
+      if (r.ok && r.selection.mode === "item") expect(r.selection.commentLimit).toBe(limit);
+    }
+  });
+
+  it("rejects a comment limit without --include-comments", () => {
+    const r = resolve({ source: "item", number: 5, commentLimit: 10 });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("github_comment_limit_invalid");
+  });
+
+  it("rejects an out-of-range comment limit", () => {
+    for (const limit of [0, 51, -1, 1.5]) {
+      const r = resolve({ source: "item", number: 5, includeComments: true, commentLimit: limit });
+      expect(r.ok, `limit ${limit}`).toBe(false);
+      if (!r.ok) expect(r.code).toBe("github_comment_limit_invalid");
+    }
+  });
+
+  it("rejects --include-comments for every non-item source", () => {
+    for (const source of ["overview", "repository", "issues", "pull-requests", "search"] as const) {
+      const overrides =
+        source === "search"
+          ? { source, query: "x", includeComments: true }
+          : { source, includeComments: true };
+      const r = resolve(overrides);
+      expect(r.ok, source).toBe(false);
+      if (!r.ok) expect(r.code).toBe("github_comments_not_applicable");
+    }
+  });
+
+  it("rejects --comment-limit for every non-item source", () => {
+    for (const source of ["overview", "repository", "issues", "pull-requests", "search"] as const) {
+      const overrides =
+        source === "search" ? { source, query: "x", commentLimit: 10 } : { source, commentLimit: 10 };
+      const r = resolve(overrides);
+      expect(r.ok, source).toBe(false);
+      if (!r.ok) expect(r.code).toBe("github_comment_limit_not_applicable");
+    }
+  });
+
+  it("does not treat an inherited default as an explicit comment option", () => {
+    // Defaults never carry comment options; overview stays valid with no comments.
+    const r = resolve({ source: "overview" });
+    expect(r.ok).toBe(true);
   });
 });
