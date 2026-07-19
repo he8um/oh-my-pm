@@ -1010,19 +1010,34 @@ if (trackedFiles.includes(RELEASE_INSTALL_CORE)) {
   }
 }
 
-// The standalone installed-state verifier launches the installed CLI through
-// the platform shim. On Windows that shim is a .cmd, which Node refuses to
-// launch via execFile/spawn without a shell (CVE-2024-27980). The verifier must
-// therefore pass `shell: isWindows`; a bare execFileSync on the .cmd would fail
-// only on Windows, where the vitest suite never runs. Enforce it structurally.
+// The standalone installed-state verifier launches the installed CLI and MCP
+// server. On Windows the shims are .cmd files that Node cannot spawn without a
+// shell (CVE-2024-27980); rather than introduce a shell, the verifier launches
+// the installed .mjs entrypoints directly with the Node executable via
+// createInstalledCommandInvocation. No shell, no constructed command string.
 const RELEASE_INSTALL_VERIFIER = "tools/check-release-install.mjs";
 if (trackedFiles.includes(RELEASE_INSTALL_VERIFIER)) {
   const verifier = readFileSync(RELEASE_INSTALL_VERIFIER, "utf8");
-  if (!/execFileSync\(\s*cliCommand[\s\S]*?shell:\s*isWindows/.test(verifier)) {
-    err(`${RELEASE_INSTALL_VERIFIER} must launch the installed CLI shim with shell: isWindows (.cmd needs a shell on Windows)`);
+  // The launch-policy helper must exist and drive both CLI and MCP launches.
+  if (!verifier.includes("export function createInstalledCommandInvocation")) {
+    err(`${RELEASE_INSTALL_VERIFIER} must define createInstalledCommandInvocation for platform-safe launching`);
   }
-  if (/execFileSync\(\s*cliCommand,[^)]*\{\s*encoding:\s*["']utf8["']\s*\}\s*\)/.test(verifier)) {
-    err(`${RELEASE_INSTALL_VERIFIER} launches the .cmd shim via execFileSync without a shell; this fails on Windows`);
+  // No shell-based execution anywhere in the verifier.
+  if (/\bshell:\s*(true|isWindows)\b/.test(verifier)) {
+    err(`${RELEASE_INSTALL_VERIFIER} must not spawn with a shell; launch the installed .mjs via process.execPath on Windows`);
+  }
+  for (const marker of ["cmd.exe", "/c ", "powershell", "child_process.exec("]) {
+    if (verifier.includes(marker)) {
+      err(`${RELEASE_INSTALL_VERIFIER} constructs a shell invocation ("${marker}"); use an argument vector`);
+    }
+  }
+  // The installed .mjs entrypoints (not node_modules/.bin, not source repo)
+  // must be the Windows launch target.
+  if (!verifier.includes('join(versionDir, "bin", "oh-my-pm.mjs")')) {
+    err(`${RELEASE_INSTALL_VERIFIER} must launch the installed CLI .mjs entrypoint from the version directory`);
+  }
+  if (verifier.includes("node_modules/.bin")) {
+    err(`${RELEASE_INSTALL_VERIFIER} must not execute node_modules/.bin`);
   }
 }
 

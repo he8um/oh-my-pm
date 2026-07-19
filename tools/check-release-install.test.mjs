@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { createInstalledCommandInvocation } from "./check-release-install.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const buildBundle = join(repoRoot, "tools", "build-release-bundle.mjs");
@@ -85,22 +86,90 @@ describe("check-release-install behavior", () => {
   }, 60_000);
 });
 
-// The installed CLI is invoked through the platform shim. On Windows that shim
-// is a .cmd, which Node refuses to launch via execFile/spawn without a shell
-// (CVE-2024-27980), so the verifier must pass `shell: isWindows`. This defect
-// only manifests on Windows (where the smoke job runs), so a cross-platform
-// structural assertion guards against a regression to a bare execFileSync.
-describe("check-release-install spawns the .cmd shim correctly on Windows", () => {
+// The installed CLI and MCP server are launched as argument vectors, never
+// through a shell. On Windows the shim is a .cmd, which Node refuses to spawn
+// without a shell (CVE-2024-27980); rather than introduce a shell, the verifier
+// launches the installed .mjs entrypoints directly with the Node executable.
+// This behavior only manifests on Windows (where the smoke job runs but vitest
+// does not), so the launch policy is unit-tested directly with injected inputs.
+describe("createInstalledCommandInvocation", () => {
+  const nodeExecutable = "/usr/bin/node";
+  const cliShim = "/opt/app/bin/oh-my-pm.cmd";
+  const cliEntry = "/opt/app/lib/oh-my-pm/versions/1.2.3/bin/oh-my-pm.mjs";
+  const mcpShim = "/opt/app/bin/oh-my-pm-mcp.cmd";
+  const mcpEntry = "/opt/app/lib/oh-my-pm/versions/1.2.3/bin/oh-my-pm-mcp.mjs";
+
+  it("launches Node with the installed CLI .mjs on Windows, preserving args", () => {
+    const inv = createInstalledCommandInvocation({
+      platform: "win32",
+      nodeExecutable,
+      shimPath: cliShim,
+      entrypoint: cliEntry,
+      args: ["brief", "/some/project", "--json"],
+    });
+    expect(inv.command).toBe(nodeExecutable);
+    expect(inv.args[0]).toBe(cliEntry);
+    expect(inv.args.slice(1)).toEqual(["brief", "/some/project", "--json"]);
+  });
+
+  it("launches Node with the installed MCP .mjs on Windows", () => {
+    const inv = createInstalledCommandInvocation({
+      platform: "win32",
+      nodeExecutable,
+      shimPath: mcpShim,
+      entrypoint: mcpEntry,
+      args: [],
+    });
+    expect(inv.command).toBe(nodeExecutable);
+    expect(inv.args).toEqual([mcpEntry]);
+  });
+
+  it("launches the installed POSIX shim directly on linux and darwin", () => {
+    for (const platform of ["linux", "darwin"]) {
+      const inv = createInstalledCommandInvocation({
+        platform,
+        nodeExecutable,
+        shimPath: "/opt/app/bin/oh-my-pm",
+        entrypoint: cliEntry,
+        args: ["status"],
+      });
+      expect(inv.command, platform).toBe("/opt/app/bin/oh-my-pm");
+      expect(inv.args, platform).toEqual(["status"]);
+    }
+  });
+
+  it("passes paths with spaces as argument-array values, not a command string", () => {
+    const inv = createInstalledCommandInvocation({
+      platform: "win32",
+      nodeExecutable: "C:\\Program Files\\nodejs\\node.exe",
+      shimPath: cliShim,
+      entrypoint: "C:\\Program Files\\oh my pm\\bin\\oh-my-pm.mjs",
+      args: ["brief", "C:\\my projects\\demo", "--json"],
+    });
+    // Every element is a discrete array value; no element is a joined command.
+    expect(inv.command).toBe("C:\\Program Files\\nodejs\\node.exe");
+    expect(inv.args).toEqual([
+      "C:\\Program Files\\oh my pm\\bin\\oh-my-pm.mjs",
+      "brief",
+      "C:\\my projects\\demo",
+      "--json",
+    ]);
+    expect(inv.args.every((a) => typeof a === "string" && !a.includes(" node "))).toBe(true);
+  });
+});
+
+describe("check-release-install launches without a shell", () => {
   const source = readFileSync(checker, "utf8");
-  it("targets the .cmd shim on Windows and the bare shim on POSIX", () => {
-    expect(source).toContain('isWindows ? "oh-my-pm.cmd" : "oh-my-pm"');
+  it("never spawns with a shell option", () => {
+    expect(source).not.toMatch(/shell:\s*(true|isWindows)/);
   });
-  it("passes shell: isWindows when launching the installed CLI shim", () => {
-    expect(source).toMatch(/execFileSync\(\s*cliCommand[\s\S]*?shell:\s*isWindows/);
+  it("never constructs a shell command string", () => {
+    for (const marker of ["cmd.exe", "powershell", "/c "]) {
+      expect(source, marker).not.toContain(marker);
+    }
   });
-  it("never launches the .cmd shim through execFileSync without a shell", () => {
-    // A bare execFileSync(cliCommand, args, { encoding }) with no shell option
-    // would throw EINVAL on Windows for the .cmd shim.
-    expect(source).not.toMatch(/execFileSync\(\s*cliCommand,[^)]*\{\s*encoding:\s*["']utf8["']\s*\}\s*\)/);
+  it("launches the installed CLI .mjs entrypoint from the version directory", () => {
+    expect(source).toContain('join(versionDir, "bin", "oh-my-pm.mjs")');
+    expect(source).toContain('join(versionDir, "bin", "oh-my-pm-mcp.mjs")');
   });
 });

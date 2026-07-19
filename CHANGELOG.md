@@ -33,7 +33,7 @@
 - Portable release bundle assembly now stages the complete generated Kernel binding consistently across Windows and POSIX environments.
 - Windows release installation no longer fails because the generated Node WASM glue file is omitted by deployment packaging.
 - Release installation verification is now platform-aware: because the installer intentionally does not set POSIX executable-mode bits on Windows, exact-state detection and post-install verification no longer require those bits on Windows, while still requiring them on Linux and macOS. Bundle-content and checksum verification, the exact four-shim content check, the transactional apply, and rollback are all unchanged. Windows installs no longer fail with `post_install_verification_failed`.
-- The read-only installed-state verifier now launches the installed CLI through the platform shim correctly on Windows, where the shim is a `.cmd` that Node will not spawn without a shell; installed-state verification no longer fails on Windows.
+- The read-only installed-state verifier now launches the installed runtime safely on Windows. Because the Windows shims are `.cmd` files that Node cannot spawn without a shell, the verifier launches the installed CLI and MCP `.mjs` entrypoints directly with the Node executable as an argument vector (no shell, no constructed command string), while POSIX continues to use the installed executable shims. The four shims remain validated byte-for-byte and the direct `.cmd` status smoke is retained. Installed-state verification no longer fails on Windows.
 
 ## 0.1.0
 

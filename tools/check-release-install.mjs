@@ -119,15 +119,33 @@ function windowsShimContent(relativeTarget) {
   return ["@echo off", `node "%~dp0${backslashed}" %*`, ""].join("\r\n");
 }
 
-const parsed = parseArgs(process.argv.slice(2));
-if (!parsed.ok) {
-  process.stderr.write(`release install check error: ${parsed.message}\n`);
-  process.exitCode = 2;
-} else {
-  const prefix = isAbsolute(parsed.prefix) ? parsed.prefix : resolve(parsed.prefix);
-  const version = await run(prefix, parsed.expectedVersion);
-  if (version !== false) {
-    process.stdout.write(`OH MY PM release installation check: OK (${version})\n`);
+/**
+ * How to launch an installed command as an argument vector (never a shell
+ * command string). On Windows the installed shim is a `.cmd`, which Node refuses
+ * to spawn through execFile/spawn without a shell (CVE-2024-27980); rather than
+ * introduce a shell, launch the installed `.mjs` entrypoint directly with the
+ * Node executable. On POSIX the executable `#!/bin/sh` shim is launched as-is.
+ * Either way the resulting command and args are passed to execFileSync with no
+ * shell, so paths containing spaces are safe argument-array values.
+ */
+export function createInstalledCommandInvocation({ platform, nodeExecutable, shimPath, entrypoint, args }) {
+  if (platform === "win32") {
+    return { command: nodeExecutable, args: [entrypoint, ...args] };
+  }
+  return { command: shimPath, args: [...args] };
+}
+
+if (process.argv[1] && process.argv[1].endsWith("check-release-install.mjs")) {
+  const parsed = parseArgs(process.argv.slice(2));
+  if (!parsed.ok) {
+    process.stderr.write(`release install check error: ${parsed.message}\n`);
+    process.exitCode = 2;
+  } else {
+    const prefix = isAbsolute(parsed.prefix) ? parsed.prefix : resolve(parsed.prefix);
+    const version = await run(prefix, parsed.expectedVersion);
+    if (version !== false) {
+      process.stdout.write(`OH MY PM release installation check: OK (${version})\n`);
+    }
   }
 }
 
@@ -248,17 +266,32 @@ async function run(prefix, expectedVersion) {
     }
   }
 
-  const cliCommand = join(binDir, isWindows ? "oh-my-pm.cmd" : "oh-my-pm");
-  const mcpCommand = join(binDir, isWindows ? "oh-my-pm-mcp.cmd" : "oh-my-pm-mcp");
+  const cliShim = join(binDir, isWindows ? "oh-my-pm.cmd" : "oh-my-pm");
+  const mcpShim = join(binDir, isWindows ? "oh-my-pm-mcp.cmd" : "oh-my-pm-mcp");
   const fixtureRoot = join(versionDir, "examples", "markdown-project");
 
-  // Invoke the installed command exactly as a user would: through the shim that
-  // matches the platform. On Windows the shim is a .cmd, which Node refuses to
-  // launch via execFile/spawn without a shell (the CVE-2024-27980 mitigation),
-  // so run it through the shell there. The command is an absolute path under the
-  // controlled prefix and every argument is a fixed literal — never user input.
-  const runInstalledCli = (args) =>
-    execFileSync(cliCommand, args, { encoding: "utf8", shell: isWindows });
+  // The installed JavaScript entrypoints under the versioned prefix. On Windows
+  // these are launched directly with Node (the .cmd shim cannot be spawned
+  // without a shell); on POSIX the executable shim is launched instead. All
+  // executed code comes from the installed version directory — never the source
+  // repository and never a package-manager bin directory.
+  const cliEntrypoint = join(versionDir, "bin", "oh-my-pm.mjs");
+  const mcpEntrypoint = join(versionDir, "bin", "oh-my-pm-mcp.mjs");
+  if (!isRegularFile(cliEntrypoint)) return fail(`installed CLI entrypoint missing: ${cliEntrypoint}`);
+  if (!isRegularFile(mcpEntrypoint)) return fail(`installed MCP entrypoint missing: ${mcpEntrypoint}`);
+
+  // Launch the installed CLI as an argument vector with no shell. On Windows
+  // that is `node <installed cli .mjs> ...`; on POSIX it is the executable shim.
+  const runInstalledCli = (args) => {
+    const invocation = createInstalledCommandInvocation({
+      platform: process.platform,
+      nodeExecutable: process.execPath,
+      shimPath: cliShim,
+      entrypoint: cliEntrypoint,
+      args,
+    });
+    return execFileSync(invocation.command, invocation.args, { encoding: "utf8" });
+  };
 
   // Installed CLI status reports the manifest version and matching kernel.
   let statusOut;
@@ -309,9 +342,19 @@ async function run(prefix, expectedVersion) {
     return fail("could not resolve the MCP SDK from the installed bundle");
   }
 
-  const transport = new StdioClientTransport({
-    command: mcpCommand,
+  // Launch the installed MCP server the same way: `node <installed mcp .mjs>`
+  // on Windows, the executable shim on POSIX. Never hand the .cmd shim to the
+  // MCP SDK, whose spawn would fail on Windows without a shell.
+  const mcpInvocation = createInstalledCommandInvocation({
+    platform: process.platform,
+    nodeExecutable: process.execPath,
+    shimPath: mcpShim,
+    entrypoint: mcpEntrypoint,
     args: [],
+  });
+  const transport = new StdioClientTransport({
+    command: mcpInvocation.command,
+    args: mcpInvocation.args,
     cwd: versionDir,
     stderr: "pipe",
   });

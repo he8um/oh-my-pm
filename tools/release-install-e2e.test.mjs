@@ -20,6 +20,7 @@ import {
   requiresPosixShimExecutableMode,
   resolveReleaseInstallPlan,
 } from "../distribution/libexec/release-install-core.mjs";
+import { createInstalledCommandInvocation } from "./check-release-install.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const buildBundle = join(repoRoot, "tools", "build-release-bundle.mjs");
@@ -301,5 +302,73 @@ describe("platform-aware installed-state (post_install regression)", () => {
     expect(post.ok).toBe(false);
     expect(post.reasons).toContain("post_shim_content_mismatch");
     expect(post.reasons).not.toContain("post_posix_shim_mode_mismatch");
+  });
+});
+
+// Prove the installed-runtime launch policy against a real installed prefix on
+// every host: Windows-mode launches must use the Node executable plus the
+// installed .mjs entrypoints (never the .cmd shim, never a shell), POSIX-mode
+// launches must use the installed shims, and the four exact shims plus the two
+// .mjs entrypoints must all be present regular files.
+describe("installed-runtime launch policy (Windows-safe invocation)", () => {
+  it("Windows-mode uses Node + installed .mjs; POSIX-mode uses installed shims", () => {
+    const prefix = join(tempDir("omp-e2e-launch-"), "prefix");
+    expect(run(wrapper, ["--bundle", bundle.dir, "--prefix", prefix, "--apply"]).status).toBe(0);
+    const binDir = join(prefix, "bin");
+    const versionDir = join(prefix, "lib", "oh-my-pm", "versions", CANONICAL_VERSION);
+    const cliEntry = join(versionDir, "bin", "oh-my-pm.mjs");
+    const mcpEntry = join(versionDir, "bin", "oh-my-pm-mcp.mjs");
+
+    // Mandatory exact four-shim presence plus the two installed .mjs targets.
+    for (const shim of ["oh-my-pm", "oh-my-pm.cmd", "oh-my-pm-mcp", "oh-my-pm-mcp.cmd"]) {
+      expect(lstatSync(join(binDir, shim)).isFile(), shim).toBe(true);
+    }
+    expect(lstatSync(cliEntry).isFile()).toBe(true);
+    expect(lstatSync(mcpEntry).isFile()).toBe(true);
+
+    const node = process.execPath;
+    // Windows CLI: node <installed cli .mjs> <args...>
+    const winCli = createInstalledCommandInvocation({
+      platform: "win32",
+      nodeExecutable: node,
+      shimPath: join(binDir, "oh-my-pm.cmd"),
+      entrypoint: cliEntry,
+      args: ["status"],
+    });
+    expect(winCli.command).toBe(node);
+    expect(winCli.args).toEqual([cliEntry, "status"]);
+    expect(existsSync(winCli.args[0])).toBe(true);
+    expect(winCli.command.endsWith(".cmd")).toBe(false);
+
+    // Windows MCP: node <installed mcp .mjs>
+    const winMcp = createInstalledCommandInvocation({
+      platform: "win32",
+      nodeExecutable: node,
+      shimPath: join(binDir, "oh-my-pm-mcp.cmd"),
+      entrypoint: mcpEntry,
+      args: [],
+    });
+    expect(winMcp.command).toBe(node);
+    expect(winMcp.args).toEqual([mcpEntry]);
+    expect(existsSync(winMcp.args[0])).toBe(true);
+
+    // POSIX CLI/MCP: the installed shim itself, no Node prefix.
+    for (const [shimName, entry] of [["oh-my-pm", cliEntry], ["oh-my-pm-mcp", mcpEntry]]) {
+      const posix = createInstalledCommandInvocation({
+        platform: "linux",
+        nodeExecutable: node,
+        shimPath: join(binDir, shimName),
+        entrypoint: entry,
+        args: ["status"],
+      });
+      expect(posix.command).toBe(join(binDir, shimName));
+      expect(posix.args).toEqual(["status"]);
+    }
+
+    // Every launched entrypoint lives under the installed version directory,
+    // never the source repository and never node_modules/.bin.
+    expect(cliEntry.startsWith(versionDir)).toBe(true);
+    expect(mcpEntry.startsWith(versionDir)).toBe(true);
+    expect(cliEntry).not.toContain("node_modules");
   });
 });
