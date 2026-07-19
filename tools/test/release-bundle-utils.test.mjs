@@ -129,17 +129,30 @@ describe("formatReleaseBundlePlan", () => {
 });
 
 describe("createPnpmDeployInvocation", () => {
-  it("uses a shell on Windows and no shell on POSIX, with static args", () => {
+  const expectedArgs = (out) => [
+    "--filter",
+    "@oh-my-pm/distribution",
+    "--prod",
+    "--config.node-linker=hoisted",
+    "deploy",
+    out,
+  ];
+  it("uses a shell on Windows and no shell on POSIX, with static hoisted args", () => {
     const win = createPnpmDeployInvocation("win32", "C:/tmp/out");
     expect(win.command).toBe("pnpm");
     expect(win.shell).toBe(true);
-    expect(win.args).toEqual(["--filter", "@oh-my-pm/distribution", "--prod", "deploy", "C:/tmp/out"]);
+    expect(win.args).toEqual(expectedArgs("C:/tmp/out"));
     for (const platform of ["linux", "darwin"]) {
       const posix = createPnpmDeployInvocation(platform, "/tmp/out");
       expect(posix.command).toBe("pnpm");
       expect(posix.shell).toBe(false);
-      expect(posix.args).toEqual(["--filter", "@oh-my-pm/distribution", "--prod", "deploy", "/tmp/out"]);
+      expect(posix.args).toEqual(expectedArgs("/tmp/out"));
     }
+  });
+
+  it("forces a flat, symlink-free deployed tree via the hoisted node-linker", () => {
+    const inv = createPnpmDeployInvocation("linux", "/tmp/out");
+    expect(inv.args).toContain("--config.node-linker=hoisted");
   });
 });
 

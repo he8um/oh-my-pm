@@ -140,15 +140,32 @@ function isSymbolicLink(path) {
 }
 
 /**
- * Build the platform-specific pnpm deploy invocation. On Windows the launcher
- * is a .cmd shim that modern Node refuses to spawn without a shell, so run
- * through a shell there; POSIX uses a direct, no-shell spawn. Arguments are all
- * static, tool-controlled values — no user-controlled shell string.
+ * Build the platform-specific pnpm deploy invocation.
+ *
+ * `--config.node-linker=hoisted` forces a flat, symlink-free deployed
+ * node_modules: every @oh-my-pm/* package is a real directory and there is no
+ * .pnpm virtual store. The default (isolated) linker instead produces symlinks
+ * — relative on POSIX (which survive the atomic temp→final rename), but
+ * absolute junctions on Windows (which dangle after the rename, leaving the
+ * generated Kernel binding unreadable through the broken junction). A hoisted
+ * tree is inherently rename-safe on every platform.
+ *
+ * On Windows the launcher is a .cmd shim that modern Node refuses to spawn
+ * without a shell, so run through a shell there; POSIX uses a direct, no-shell
+ * spawn. Arguments are all static, tool-controlled values — no user-controlled
+ * shell string.
  */
 export function createPnpmDeployInvocation(platform, outputDirectory) {
   return {
     command: "pnpm",
-    args: ["--filter", "@oh-my-pm/distribution", "--prod", "deploy", outputDirectory],
+    args: [
+      "--filter",
+      "@oh-my-pm/distribution",
+      "--prod",
+      "--config.node-linker=hoisted",
+      "deploy",
+      outputDirectory,
+    ],
     shell: platform === "win32",
   };
 }
@@ -320,6 +337,28 @@ export function stageKernelGeneratedNodeAssets(options) {
   }
 
   return { ok: true, assets };
+}
+
+/**
+ * Remove compiled test artifacts (.test.js/.test.d.ts and their source maps)
+ * from a deployed first-party scope directory. Recurses through real
+ * directories only; never follows a symlink out of the scope. Deterministic and
+ * bounded to the given scope root.
+ */
+function pruneCompiledTestArtifacts(scopeDir) {
+  if (!existsSync(scopeDir)) return;
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isSymbolicLink()) continue;
+      const abs = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(abs);
+      } else if (entry.isFile() && /\.test\.(js|d\.ts)$|\.test\.js\.map$/.test(entry.name)) {
+        rmSync(abs, { force: true });
+      }
+    }
+  };
+  walk(scopeDir);
 }
 
 /** Build a deterministic bundle plan. Performs no writes. */
@@ -558,14 +597,24 @@ function inspectBundleSafety(bundleRoot) {
         errors.push(`forbidden path segment "${segment}": ${file.rel}`);
       }
     }
-    // First-party workspace packages must not ship src or tests.
+    // First-party workspace packages must not ship raw TypeScript source, tests,
+    // or coverage. A `src` segment is only allowed as compiled output nested
+    // under a package's `dist/` (some packages, e.g. contracts, emit to
+    // `dist/src/`); a top-of-package `src/` remains forbidden. Compiled test
+    // artifacts (.test.js/.test.d.ts and their maps) are pruned during assembly,
+    // so any that remain here are a genuine leak.
     if (file.rel.startsWith(FIRST_PARTY_PREFIX)) {
-      if (parts.includes("src") || parts.includes("test") || parts.includes("coverage")) {
+      const pkgRelParts = parts.slice(2); // drop "node_modules"/"@oh-my-pm"
+      const scopedParts = pkgRelParts.slice(1); // drop the package name
+      const srcIndex = scopedParts.indexOf("src");
+      const srcIsCompiledOutput = srcIndex > 0 && scopedParts[0] === "dist";
+      if ((srcIndex !== -1 && !srcIsCompiledOutput) || scopedParts.includes("test") || scopedParts.includes("coverage")) {
         errors.push(`first-party source/test leaked into bundle: ${file.rel}`);
       }
       if (
         (file.rel.endsWith(".ts") && !file.rel.endsWith(".d.ts")) ||
-        file.rel.endsWith(".test.js")
+        /\.test\.(js|d\.ts)$/.test(file.rel) ||
+        file.rel.endsWith(".test.js.map")
       ) {
         errors.push(`unexpected source/test file in first-party package: ${file.rel}`);
       }
@@ -803,6 +852,12 @@ export function applyReleaseBundlePlan(plan) {
         }
       }
     }
+
+    // Prune compiled test artifacts from first-party packages. Some packages
+    // compile their tests into dist/ (e.g. mcp-server dist/*.test.js); those are
+    // never needed at runtime and must not ship. The hoisted deploy materializes
+    // these as real files, so remove them deterministically here.
+    pruneCompiledTestArtifacts(join(tempDir, "node_modules", "@oh-my-pm"));
 
     // Ship the repository-independent bundle verifier inside the bundle's
     // libexec/ so the installed copy can re-verify itself with no repository
