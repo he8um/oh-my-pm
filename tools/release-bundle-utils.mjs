@@ -172,8 +172,12 @@ function stageFailure(code, reasons) {
 export function stageKernelGeneratedNodeAssets(options) {
   const { sourceGeneratedNodeDirectory, deployedKernelPackageDirectory, bundleRoot } = options;
 
-  // 1-2. Resolve the bundle root and require the deployed Kernel package.
-  const resolvedBundleRoot = realpathSync(resolve(bundleRoot));
+  // 1-2. Resolve the bundle root (both plain and realpath forms) and require
+  // the deployed Kernel package. The two forms can differ when the temp root
+  // itself is symlinked (e.g. macOS /var -> /private/var), so a plain path is
+  // confined against the plain root and a realpath against the real root.
+  const plainBundleRoot = resolve(bundleRoot);
+  const resolvedBundleRoot = realpathSync(plainBundleRoot);
   if (!existsSync(deployedKernelPackageDirectory)) {
     return stageFailure("kernel_binding_package_missing", ["kernel_binding_package_missing"]);
   }
@@ -198,15 +202,23 @@ export function stageKernelGeneratedNodeAssets(options) {
     return stageFailure("kernel_binding_package_invalid", ["kernel_binding_package_invalid"]);
   }
 
-  // 4-6. Resolve the real deployed package path and require it to stay inside
-  // the temporary bundle (internal symlink/junction is fine; escape is not).
+  // 4-6. Confine the deployed package to the temporary bundle. The real
+  // (symlink/junction-resolved) path must stay inside the bundle root — an
+  // internal pnpm junction into .pnpm is fine, an external escape is not. The
+  // staging destination, however, is the PLAIN deployed package path (not the
+  // realpath): that is the exact path the bundle verifier and the runtime
+  // loader read through, so writing to the resolved store path instead would
+  // desynchronize what is staged from what is verified/loaded (the Windows
+  // junction/store divergence that left the JS glue unseen).
+  const plainPackage = resolve(deployedKernelPackageDirectory);
   let realPackage;
   try {
     realPackage = realpathSync(deployedKernelPackageDirectory);
   } catch {
     return stageFailure("kernel_binding_destination_unsafe", ["kernel_binding_destination_unsafe"]);
   }
-  if (realPackage !== resolvedBundleRoot && !realPackage.startsWith(resolvedBundleRoot + sep)) {
+  const isInside = (p, root) => p === root || p.startsWith(root + sep);
+  if (!isInside(plainPackage, plainBundleRoot) || !isInside(realPackage, resolvedBundleRoot)) {
     return stageFailure("kernel_binding_destination_unsafe", ["kernel_binding_destination_unsafe"]);
   }
 
@@ -229,11 +241,11 @@ export function stageKernelGeneratedNodeAssets(options) {
     sourceHashes.set(name, sha256(sourcePath));
   }
 
-  // 8-11. Target only <deployed-kernel-package>/generated-node. Remove only that
-  // exact directory if present, recreate it, and copy the three approved files.
-  const targetDir = join(realPackage, "generated-node");
-  const resolvedTargetParent = realPackage;
-  if (dirname(targetDir) !== resolvedTargetParent) {
+  // 8-11. Target only <deployed-kernel-package>/generated-node at the PLAIN
+  // path. Remove only that exact directory if present, recreate it, and copy
+  // the three approved files.
+  const targetDir = join(plainPackage, "generated-node");
+  if (dirname(targetDir) !== plainPackage) {
     return stageFailure("kernel_binding_destination_unsafe", ["kernel_binding_destination_unsafe"]);
   }
   if (existsSync(targetDir) || isSymbolicLink(targetDir)) {
@@ -737,6 +749,18 @@ export function applyReleaseBundlePlan(plan) {
     if (!staged.ok) {
       rmSync(tempDir, { recursive: true, force: true });
       return { ok: false, code: staged.code, reasons: staged.reasons };
+    }
+
+    // Require all three generated assets at the exact path the verifier and the
+    // runtime loader read through (the plain deployed package path). This is the
+    // final authority on completeness and catches any platform-specific
+    // junction/store divergence before the bundle is finalized.
+    const stagedGeneratedDir = join(deployedKernelPackage, "generated-node");
+    for (const asset of KERNEL_GENERATED_NODE_ASSETS) {
+      if (!isRegularFile(join(stagedGeneratedDir, asset))) {
+        rmSync(tempDir, { recursive: true, force: true });
+        return { ok: false, code: "kernel_binding_incomplete", reasons: ["kernel_binding_incomplete"] };
+      }
     }
 
     // pnpm deploy leaves a self-referential symlink for the deployed package
