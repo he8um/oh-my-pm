@@ -517,14 +517,17 @@ export function applyReleaseBundlePlan(plan) {
     // pnpm deploy can exit non-zero during teardown in non-interactive shells
     // even after producing a correct deployment, so success is judged by the
     // presence of the expected deployed structure rather than the exit code.
-    // On Windows the launcher is pnpm.cmd; spawnSync will not resolve a bare
-    // "pnpm" to the .cmd shim without a shell, so select the concrete
-    // executable name per platform (deploy silently produced nothing otherwise).
-    const pnpmExecutable = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+    //
+    // On Windows the pnpm launcher is a .cmd shim, and modern Node refuses to
+    // spawn a .cmd/.bat directly without a shell (CVE-2024-27980 hardening), so
+    // the deploy silently produced nothing there. Run through a shell on
+    // Windows so the shim resolves; POSIX keeps the direct, no-shell spawn. The
+    // arguments are all static, tool-controlled values (no user input).
+    const isWindows = process.platform === "win32";
     spawnSync(
-      pnpmExecutable,
+      "pnpm",
       ["--filter", "@oh-my-pm/distribution", "--prod", "deploy", tempDir],
-      { cwd: REPO_ROOT, stdio: ["ignore", "ignore", "ignore"], encoding: "utf8" },
+      { cwd: REPO_ROOT, stdio: ["ignore", "ignore", "ignore"], encoding: "utf8", shell: isWindows },
     );
     const deployedBin = join(tempDir, "bin", "oh-my-pm.mjs");
     const deployedKernelWasm = join(
