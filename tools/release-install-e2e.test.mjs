@@ -10,10 +10,16 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  evaluatePostInstallState,
+  requiresPosixShimExecutableMode,
+  resolveReleaseInstallPlan,
+} from "../distribution/libexec/release-install-core.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const buildBundle = join(repoRoot, "tools", "build-release-bundle.mjs");
@@ -194,4 +200,106 @@ describe("release install e2e", () => {
     const top = readdirSync(prefix).sort();
     expect(top).toEqual(["bin", "lib"]);
   }, 120_000);
+});
+
+// The Windows-only post_install_verification_failed regression: the installer
+// intentionally does not chmod POSIX shims on Windows, so exact-state detection
+// and post-install verification must not require the POSIX executable bit there,
+// while still enforcing it on Linux/macOS. This test runs on every platform by
+// injecting the target platform, so it protects the fix regardless of the host.
+describe("platform-aware installed-state (post_install regression)", () => {
+  const posixShims = ["oh-my-pm", "oh-my-pm-mcp"];
+
+  it("exposes the platform executable-mode policy", () => {
+    expect(requiresPosixShimExecutableMode("win32")).toBe(false);
+    expect(requiresPosixShimExecutableMode("linux")).toBe(true);
+    expect(requiresPosixShimExecutableMode("darwin")).toBe(true);
+  });
+
+  it("classifies a valid install as already-installed on Windows without POSIX exec bits", () => {
+    const prefix = join(tempDir("omp-e2e-plat-"), "prefix");
+    expect(run(wrapper, ["--bundle", bundle.dir, "--prefix", prefix, "--apply"]).status).toBe(0);
+
+    const winPlan = resolveReleaseInstallPlan({
+      bundleRoot: bundle.dir,
+      prefix,
+      apply: false,
+      force: false,
+      platform: "win32",
+    });
+    expect(winPlan.ok, JSON.stringify(winPlan.reasons)).toBe(true);
+    expect(winPlan.action).toBe("already-installed");
+    // Platform must never leak into public plan output.
+    expect(Object.keys(winPlan)).not.toContain("platform");
+  });
+
+  it("blocks on Linux when POSIX shims lack executable bits, then passes once restored", () => {
+    const prefix = join(tempDir("omp-e2e-plat2-"), "prefix");
+    expect(run(wrapper, ["--bundle", bundle.dir, "--prefix", prefix, "--apply"]).status).toBe(0);
+
+    // Baseline: a freshly applied prefix (exec bits set by apply on this POSIX
+    // host) is already-installed under every platform.
+    for (const platform of ["win32", "linux", "darwin"]) {
+      const plan = resolveReleaseInstallPlan({ bundleRoot: bundle.dir, prefix, apply: false, force: false, platform });
+      expect(plan.action, platform).toBe("already-installed");
+    }
+
+    // Strip the POSIX executable bits (simulating a Windows-applied prefix).
+    for (const shim of posixShims) chmodSync(join(prefix, "bin", shim), 0o644);
+
+    // Windows: still already-installed (mode not required).
+    const winPlan = resolveReleaseInstallPlan({ bundleRoot: bundle.dir, prefix, apply: false, force: false, platform: "win32" });
+    expect(winPlan.action).toBe("already-installed");
+
+    // Linux: blocked, with the precise mode reason (not a content mismatch).
+    const linuxPlan = resolveReleaseInstallPlan({ bundleRoot: bundle.dir, prefix, apply: false, force: false, platform: "linux" });
+    expect(linuxPlan.ok).toBe(false);
+    expect(linuxPlan.action).toBe("blocked");
+    expect(linuxPlan.reasons).toContain("posix_shim_not_executable");
+    expect(linuxPlan.reasons).not.toContain("shim_content_mismatch");
+
+    // Restore exec bits: Linux is already-installed again.
+    for (const shim of posixShims) chmodSync(join(prefix, "bin", shim), 0o755);
+    const restored = resolveReleaseInstallPlan({ bundleRoot: bundle.dir, prefix, apply: false, force: false, platform: "linux" });
+    expect(restored.action).toBe("already-installed");
+  });
+
+  it("evaluatePostInstallState passes on Windows for a valid prefix and reports safe reasons on drift", () => {
+    const prefix = join(tempDir("omp-e2e-plat3-"), "prefix");
+    expect(run(wrapper, ["--bundle", bundle.dir, "--prefix", prefix, "--apply"]).status).toBe(0);
+    const versionDirectory = join(prefix, "lib", "oh-my-pm", "versions", CANONICAL_VERSION);
+
+    // Valid prefix passes on every platform.
+    for (const platform of ["win32", "linux", "darwin"]) {
+      const post = evaluatePostInstallState({ bundleRoot: bundle.dir, prefix, versionDirectory, platform });
+      expect(post.ok, `${platform}:${JSON.stringify(post.reasons)}`).toBe(true);
+      expect(post.bundleVerifier.ok).toBe(true);
+      expect(post.installedState.action).toBe("already-installed");
+    }
+
+    // Strip exec bits: Windows still ok; Linux fails with the bounded mode reason.
+    for (const shim of posixShims) chmodSync(join(prefix, "bin", shim), 0o644);
+    const winPost = evaluatePostInstallState({ bundleRoot: bundle.dir, prefix, versionDirectory, platform: "win32" });
+    expect(winPost.ok).toBe(true);
+    const linuxPost = evaluatePostInstallState({ bundleRoot: bundle.dir, prefix, versionDirectory, platform: "linux" });
+    expect(linuxPost.ok).toBe(false);
+    expect(linuxPost.reasons).toContain("post_installed_state_not_exact");
+    expect(linuxPost.reasons).toContain("post_posix_shim_mode_mismatch");
+    // No path, file content, or subprocess output leaks in the reasons.
+    const serialized = JSON.stringify(linuxPost.reasons);
+    expect(serialized).not.toContain(prefix);
+    expect(serialized).not.toMatch(/\/Users\/|\/home\/|[A-Za-z]:\\/);
+  });
+
+  it("post-check reports a shim content mismatch distinctly from a mode mismatch", () => {
+    const prefix = join(tempDir("omp-e2e-plat4-"), "prefix");
+    expect(run(wrapper, ["--bundle", bundle.dir, "--prefix", prefix, "--apply"]).status).toBe(0);
+    const versionDirectory = join(prefix, "lib", "oh-my-pm", "versions", CANONICAL_VERSION);
+    // Corrupt a shim's content.
+    writeFileSync(join(prefix, "bin", "oh-my-pm"), "corrupted\n");
+    const post = evaluatePostInstallState({ bundleRoot: bundle.dir, prefix, versionDirectory, platform: "win32" });
+    expect(post.ok).toBe(false);
+    expect(post.reasons).toContain("post_shim_content_mismatch");
+    expect(post.reasons).not.toContain("post_posix_shim_mode_mismatch");
+  });
 });

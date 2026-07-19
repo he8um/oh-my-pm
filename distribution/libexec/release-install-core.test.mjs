@@ -12,6 +12,7 @@ import {
   isCanonicalSemver,
   parseReleaseInstallArgs,
   readReleaseBundleIdentity,
+  requiresPosixShimExecutableMode,
   resolveReleaseInstallPlan,
   serializeInstalledManifest,
   validateReleaseBundleForInstall,
@@ -327,6 +328,22 @@ describe("validateReleaseBundleForInstall (shape checks)", () => {
     mkdirSync(join(bundle, "_dev"));
     writeFileSync(join(bundle, "_dev", "secret.txt"), "x");
     expect(validateReleaseBundleForInstall(bundle).reasons).toContain("bundle_forbidden_path");
+  });
+});
+
+describe("requiresPosixShimExecutableMode", () => {
+  // POSIX executable-mode bits are meaningful only on platforms that model them.
+  // Apply skips chmod on Windows, so the exact-state check must not require it
+  // there. Comparison is the exact string "win32" — never inferred from the
+  // prefix syntax or environment.
+  it("is false only for win32 and true for POSIX platforms", () => {
+    expect(requiresPosixShimExecutableMode("win32")).toBe(false);
+    expect(requiresPosixShimExecutableMode("linux")).toBe(true);
+    expect(requiresPosixShimExecutableMode("darwin")).toBe(true);
+    expect(requiresPosixShimExecutableMode("freebsd")).toBe(true);
+    // Anything that is not exactly "win32" requires the bit.
+    expect(requiresPosixShimExecutableMode("Win32")).toBe(true);
+    expect(requiresPosixShimExecutableMode("windows")).toBe(true);
   });
 });
 

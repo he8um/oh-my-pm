@@ -973,6 +973,59 @@ if (trackedFiles.includes(INSTALL_ENTRYPOINT)) {
   }
 }
 
+// 4i-bis. Platform-aware release-install verification invariants. The installer
+// deliberately skips POSIX executable-mode bits on Windows, so the exact-state
+// and post-install checks must be platform-aware there — but the POSIX
+// executable check must never be removed globally, the exact four-shim content
+// check must stay mandatory on every platform, and platform detection must use
+// the exact literal comparison to "win32" (never inferred from prefix syntax or
+// environment). These assertions fail closed if the fix is regressed.
+if (trackedFiles.includes(RELEASE_INSTALL_CORE)) {
+  const core = readFileSync(RELEASE_INSTALL_CORE, "utf8");
+  const requireInCore = [
+    // The single platform-mode policy helper and the separated post-install
+    // evaluator must both exist and be exported.
+    ["export function requiresPosixShimExecutableMode", "the platform executable-mode policy helper"],
+    ["export function evaluatePostInstallState", "the separated post-install state evaluator"],
+    // Platform detection is the exact literal comparison, not inference.
+    ['platform !== "win32"', 'the exact `platform !== "win32"` mode policy'],
+    // The POSIX executable check must still exist (not globally removed).
+    ["isExecutable", "the POSIX executable-mode check"],
+    // The exact four-shim content check must stay mandatory (not gated on OS).
+    ["shimsContentMatch", "the mandatory exact shim-content check"],
+    // Content and mode are distinct reasons so the blocked/post path is precise.
+    ["shim_content_mismatch", "the distinct shim content-mismatch reason"],
+    ["posix_shim_not_executable", "the distinct POSIX executable-mode reason"],
+  ];
+  for (const [needle, label] of requireInCore) {
+    if (!core.includes(needle)) {
+      err(`${RELEASE_INSTALL_CORE} is missing ${label} ("${needle}")`);
+    }
+  }
+  // The POSIX executable-mode requirement must be gated only through the
+  // platform policy helper — never behind a bare process.platform OS check that
+  // would silently disable the check on every non-Windows deployment too.
+  if (/isExecutable[\s\S]{0,40}process\.platform\s*===\s*["']win32["']/.test(core)) {
+    err(`${RELEASE_INSTALL_CORE} gates the executable check on a raw OS test; use requiresPosixShimExecutableMode`);
+  }
+}
+
+// The standalone installed-state verifier launches the installed CLI through
+// the platform shim. On Windows that shim is a .cmd, which Node refuses to
+// launch via execFile/spawn without a shell (CVE-2024-27980). The verifier must
+// therefore pass `shell: isWindows`; a bare execFileSync on the .cmd would fail
+// only on Windows, where the vitest suite never runs. Enforce it structurally.
+const RELEASE_INSTALL_VERIFIER = "tools/check-release-install.mjs";
+if (trackedFiles.includes(RELEASE_INSTALL_VERIFIER)) {
+  const verifier = readFileSync(RELEASE_INSTALL_VERIFIER, "utf8");
+  if (!/execFileSync\(\s*cliCommand[\s\S]*?shell:\s*isWindows/.test(verifier)) {
+    err(`${RELEASE_INSTALL_VERIFIER} must launch the installed CLI shim with shell: isWindows (.cmd needs a shell on Windows)`);
+  }
+  if (/execFileSync\(\s*cliCommand,[^)]*\{\s*encoding:\s*["']utf8["']\s*\}\s*\)/.test(verifier)) {
+    err(`${RELEASE_INSTALL_VERIFIER} launches the .cmd shim via execFileSync without a shell; this fails on Windows`);
+  }
+}
+
 // 4j. GitHub read-only provider network scoping. Only the GitHub transport and
 // its constants (plus the manual live-smoke tool) may reference fetch,
 // AbortController, the api.github.com host, or GitHub API headers. Every other

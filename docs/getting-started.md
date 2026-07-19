@@ -80,7 +80,7 @@ Make the change permanent through your own shell configuration if you want it to
 pnpm local:check -- --prefix "$HOME/.local"
 ```
 
-The verifier is read-only. It confirms the four shims exist and are executable, runs the installed CLI (`status` and a fixture `brief`), and drives the installed MCP command over stdio (lists the four tools and calls `project_brief`).
+The verifier is read-only. It confirms the four shims exist with the exact expected content (and, on POSIX platforms, that the two POSIX shims are executable — Windows uses `.cmd` shims and has no executable bit), runs the installed CLI (`status` and a fixture `brief`), and drives the installed MCP command over stdio (lists the four tools and calls `project_brief`).
 
 ## CLI workflows
 
@@ -306,6 +306,8 @@ The shims use paths relative to `<prefix>/bin`, so the whole prefix is movable a
 - **`--force`** (only with `--apply`) replaces the exact managed targets — the version directory, the four shims, and `install.json` — and nothing else. Unrelated files under `<prefix>/bin` and `<prefix>/lib`, and other version directories, are left untouched. `--force` is the explicit replacement gate; it is **not** a version-policy engine and performs no update, downgrade, rollback, or uninstall.
 - A second apply from the same bundle is a no-op that reports **already installed**.
 - Any managed target that exists but does not exactly match the expected installation **blocks** without `--force`.
+
+Apply is transactional: it copies, verifies bundle content and checksums, stages the shims and manifest, then atomically renames each managed target into place, and rolls back every change if any step fails. A post-install verification then re-derives the installed state and re-runs the installed bundle's own verifier before reporting success. This verification is platform-aware: the installer sets POSIX executable-mode bits on Linux and macOS but not on Windows (which uses `.cmd` shims), so exact shim **content** is required on every platform while the executable **bit** is required only where the platform models it. Bundle-content and checksum verification are identical on all platforms.
 
 The installer never downloads anything, never edits your PATH, shell profiles, or MCP client configuration, and never writes to project files.
 

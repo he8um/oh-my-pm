@@ -238,6 +238,18 @@ function isExecutable(path) {
   }
 }
 
+/**
+ * Whether POSIX command shims must carry an executable mode bit on this
+ * platform. Windows filesystems do not model a POSIX executable bit and the
+ * installer intentionally does not chmod there, so exact-state detection must
+ * not require it on Windows; Linux and macOS still require it. Platform is
+ * matched exactly against "win32" — never inferred from the prefix path or the
+ * environment.
+ */
+export function requiresPosixShimExecutableMode(platform) {
+  return platform !== "win32";
+}
+
 function sha256File(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
@@ -549,6 +561,10 @@ export function resolveReleaseInstallPlan(options) {
   const prefix = isAbsolute(options.prefix) ? options.prefix : resolve(options.prefix);
   const apply = options.apply === true;
   const force = options.force === true;
+  // Production callers omit `platform`; tests inject win32/linux/darwin. The
+  // exact-state POSIX executable-mode requirement is platform-aware (see
+  // requiresPosixShimExecutableMode). Platform never appears in public output.
+  const platform = options.platform ?? process.platform;
 
   const sourceValidation = validateReleaseBundleForInstall(bundleRoot);
 
@@ -647,7 +663,12 @@ export function resolveReleaseInstallPlan(options) {
     }
   }
 
-  const shimsMatch = shimPresence.every((entry) => {
+  // Exact four-shim content is required on every platform. POSIX executable
+  // mode is required only where the platform models it (Linux/macOS), matching
+  // what apply actually writes. Content and mode are tracked separately so the
+  // blocked path can emit a precise reason.
+  const requirePosixMode = requiresPosixShimExecutableMode(platform);
+  const shimsContentMatch = shimPresence.every((entry) => {
     if (!entry.regular) return false;
     let content;
     try {
@@ -655,10 +676,12 @@ export function resolveReleaseInstallPlan(options) {
     } catch {
       return false;
     }
-    if (content !== expectedShims[entry.name]) return false;
-    if (entry.posix && !isExecutable(entry.path)) return false;
-    return true;
+    return content === expectedShims[entry.name];
   });
+  const posixShimModesMatch =
+    !requirePosixMode ||
+    shimPresence.every((entry) => !entry.posix || (entry.regular && isExecutable(entry.path)));
+  const shimsMatch = shimsContentMatch && posixShimModesMatch;
 
   const versionMatches =
     versionDirExists && versionDirIsDir && installedVersionMatchesSource(bundleRoot, versionDirectory);
@@ -697,14 +720,82 @@ export function resolveReleaseInstallPlan(options) {
     return { ok: true, action: "replace", reasons, ...base };
   }
 
-  // Blocked without force.
+  // Blocked without force. Distinguish a shim content mismatch from a
+  // POSIX-mode-only mismatch (the latter only on platforms that require it).
   if (anyUnexpectedType) add("managed_path_unexpected_type");
   if (versionDirExists && !versionMatches) add("version_directory_drift");
   if (manifestExists && !manifestValid) add("manifest_invalid");
   else if (manifestExists && !manifestMatches) add("manifest_mismatch");
-  if (shimPresence.some((e) => e.present) && !shimsMatch) add("shim_present");
+  const anyShimPresent = shimPresence.some((e) => e.present);
+  if (anyShimPresent && !shimsContentMatch) add("shim_content_mismatch");
+  else if (anyShimPresent && !posixShimModesMatch) add("posix_shim_not_executable");
   if (reasons.length === 0) add("managed_target_present");
   return { ok: false, action: "blocked", reasons, ...base };
+}
+
+/**
+ * Read-only post-install evaluation. Separately reports the installed bundle
+ * verifier result and the re-derived installed-state, mapping each to bounded,
+ * path-free, content-free sub-reasons. Performs no writes. The installed-state
+ * check is platform-aware through resolveReleaseInstallPlan (POSIX executable
+ * mode is not required on Windows).
+ */
+export function evaluatePostInstallState(options) {
+  const { bundleRoot, prefix, versionDirectory } = options;
+  const platform = options.platform ?? process.platform;
+  const reasons = [];
+
+  // 1. The installed bundle's shipped verifier.
+  const bundleVerifierPath = join(versionDirectory, "libexec", "check-release-bundle.mjs");
+  const bundleVerifier = { ok: false, status: null };
+  if (!isRegularFile(bundleVerifierPath)) {
+    reasons.push("post_bundle_verifier_missing");
+  } else {
+    const run = spawnSync(process.execPath, [bundleVerifierPath, "--bundle", versionDirectory], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    bundleVerifier.status = run.status;
+    bundleVerifier.ok = run.status === 0;
+    if (!bundleVerifier.ok) reasons.push("post_bundle_verifier_failed");
+  }
+
+  // 2. The re-derived installed state must be exactly already-installed.
+  const plan = resolveReleaseInstallPlan({ bundleRoot, prefix, apply: false, force: false, platform });
+  const installedState = { ok: plan.action === "already-installed", action: plan.action, reasons: [] };
+  if (!installedState.ok) {
+    reasons.push("post_installed_state_not_exact");
+    // Map the plan's own reasons to bounded post-check sub-reasons.
+    const map = {
+      manifest_invalid: "post_manifest_invalid",
+      manifest_mismatch: "post_manifest_mismatch",
+      shim_content_mismatch: "post_shim_content_mismatch",
+      posix_shim_not_executable: "post_posix_shim_mode_mismatch",
+      version_directory_drift: "post_version_directory_mismatch",
+      managed_path_unexpected_type: "post_installed_state_not_exact",
+      managed_target_present: "post_installed_state_not_exact",
+    };
+    for (const reason of plan.reasons) {
+      const mapped = map[reason];
+      if (mapped !== undefined && !installedState.reasons.includes(mapped)) {
+        installedState.reasons.push(mapped);
+      }
+    }
+    for (const mapped of installedState.reasons) {
+      if (!reasons.includes(mapped)) reasons.push(mapped);
+    }
+    // A present-but-unverifiable installed bundle surfaces its own sub-reason.
+    if (!bundleVerifier.ok && !reasons.includes("post_installed_bundle_verifier_failed")) {
+      reasons.push("post_installed_bundle_verifier_failed");
+    }
+  }
+
+  return {
+    ok: bundleVerifier.ok && installedState.ok,
+    bundleVerifier,
+    installedState,
+    reasons,
+  };
 }
 
 function safeIsDirectory(path) {
@@ -963,7 +1054,9 @@ export function applyReleaseInstallPlan(plan) {
     for (const shim of shimPlan) {
       const stagedPath = join(stagedBinDir, shim.name);
       writeFileSync(stagedPath, expectedShims[shim.name], "utf8");
-      if (shim.executable && process.platform !== "win32") chmodSync(stagedPath, 0o755);
+      if (shim.executable && requiresPosixShimExecutableMode(process.platform)) {
+        chmodSync(stagedPath, 0o755);
+      }
     }
 
     // 10. Create the staged deterministic install manifest.
@@ -1006,22 +1099,19 @@ export function applyReleaseInstallPlan(plan) {
     renameSync(stagedManifest, manifestPath);
     movedIntoPlace.manifest = true;
 
-    // 15. Post-install verification.
-    const postVerifier = join(versionDirectory, "libexec", "check-release-bundle.mjs");
-    const postVerify = spawnSync(process.execPath, [postVerifier, "--bundle", versionDirectory], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    const postPlan = resolveReleaseInstallPlan({
-      bundleRoot,
-      prefix,
-      apply: false,
-      force: false,
-    });
-    if (postVerify.status !== 0 || postPlan.action !== "already-installed") {
+    // 15. Post-install verification: the installed bundle verifier and the
+    // re-derived installed state must both pass. The check is platform-aware
+    // (Windows does not require POSIX executable mode bits) and reports bounded,
+    // path-free sub-reasons on failure.
+    const post = evaluatePostInstallState({ bundleRoot, prefix, versionDirectory });
+    if (!post.ok) {
       restoreBackups();
       cleanupTempOnly();
-      return { ok: false, code: "post_install_verification_failed", reasons: ["post_install_verification_failed"] };
+      return {
+        ok: false,
+        code: "post_install_verification_failed",
+        reasons: ["post_install_verification_failed", ...post.reasons],
+      };
     }
 
     // 16. Remove transaction backups and temp paths only after success.

@@ -252,10 +252,18 @@ async function run(prefix, expectedVersion) {
   const mcpCommand = join(binDir, isWindows ? "oh-my-pm-mcp.cmd" : "oh-my-pm-mcp");
   const fixtureRoot = join(versionDir, "examples", "markdown-project");
 
+  // Invoke the installed command exactly as a user would: through the shim that
+  // matches the platform. On Windows the shim is a .cmd, which Node refuses to
+  // launch via execFile/spawn without a shell (the CVE-2024-27980 mitigation),
+  // so run it through the shell there. The command is an absolute path under the
+  // controlled prefix and every argument is a fixed literal — never user input.
+  const runInstalledCli = (args) =>
+    execFileSync(cliCommand, args, { encoding: "utf8", shell: isWindows });
+
   // Installed CLI status reports the manifest version and matching kernel.
   let statusOut;
   try {
-    statusOut = execFileSync(cliCommand, ["status"], { encoding: "utf8" });
+    statusOut = runInstalledCli(["status"]);
   } catch {
     return fail("installed CLI status did not exit cleanly");
   }
@@ -267,7 +275,7 @@ async function run(prefix, expectedVersion) {
   for (const workflow of ["brief", "risks", "next", "handoff"]) {
     let out;
     try {
-      out = execFileSync(cliCommand, [workflow, fixtureRoot, "--json"], { encoding: "utf8" });
+      out = runInstalledCli([workflow, fixtureRoot, "--json"]);
     } catch {
       return fail(`installed CLI ${workflow} did not exit cleanly`);
     }

@@ -52,7 +52,11 @@ if (!parsed.ok) {
       process.stderr.write(`release install blocked: ${result.reasons.join(", ")}\n`);
       process.exitCode = 2;
     } else {
-      process.stderr.write(`release install failed: ${result.code}\n`);
+      // reasons are bounded, path-free, content-free codes (e.g.
+      // post_install_verification_failed, post_posix_shim_mode_mismatch) — safe
+      // to surface for CI diagnosis without leaking paths or file contents.
+      const detail = result.reasons && result.reasons.length ? ` (${result.reasons.join(", ")})` : "";
+      process.stderr.write(`release install failed: ${result.code}${detail}\n`);
       process.exitCode = 1;
     }
   }

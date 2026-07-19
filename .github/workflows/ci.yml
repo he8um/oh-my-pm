@@ -207,8 +207,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "installer preview failed" }
           if (Test-Path $prefix) { throw "preview created a prefix" }
           # Apply and verify the four shims, including the .cmd shims, exist.
-          node $installer --prefix $prefix --apply
-          if ($LASTEXITCODE -ne 0) { throw "installer apply failed" }
+          # Capture stderr so a failure surfaces the installer's bounded,
+          # path-free reason codes (e.g. post_install_verification_failed,
+          # post_posix_shim_mode_mismatch) that pinpoint the failing subsystem.
+          $applyErr = Join-Path $env:RUNNER_TEMP "omp-install-apply.err"
+          node $installer --prefix $prefix --apply 2> $applyErr
+          $applyExit = $LASTEXITCODE
+          if (Test-Path $applyErr) { Get-Content $applyErr | Write-Host }
+          if ($applyExit -ne 0) { throw "installer apply failed" }
           foreach ($shim in @("oh-my-pm", "oh-my-pm.cmd", "oh-my-pm-mcp", "oh-my-pm-mcp.cmd")) {
             $path = Join-Path $prefix (Join-Path "bin" $shim)
             if (-not (Test-Path $path)) { throw "missing shim: $path" }

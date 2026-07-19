@@ -84,3 +84,23 @@ describe("check-release-install behavior", () => {
     expect(r.stderr).toContain("shim content mismatch");
   }, 60_000);
 });
+
+// The installed CLI is invoked through the platform shim. On Windows that shim
+// is a .cmd, which Node refuses to launch via execFile/spawn without a shell
+// (CVE-2024-27980), so the verifier must pass `shell: isWindows`. This defect
+// only manifests on Windows (where the smoke job runs), so a cross-platform
+// structural assertion guards against a regression to a bare execFileSync.
+describe("check-release-install spawns the .cmd shim correctly on Windows", () => {
+  const source = readFileSync(checker, "utf8");
+  it("targets the .cmd shim on Windows and the bare shim on POSIX", () => {
+    expect(source).toContain('isWindows ? "oh-my-pm.cmd" : "oh-my-pm"');
+  });
+  it("passes shell: isWindows when launching the installed CLI shim", () => {
+    expect(source).toMatch(/execFileSync\(\s*cliCommand[\s\S]*?shell:\s*isWindows/);
+  });
+  it("never launches the .cmd shim through execFileSync without a shell", () => {
+    // A bare execFileSync(cliCommand, args, { encoding }) with no shell option
+    // would throw EINVAL on Windows for the .cmd shim.
+    expect(source).not.toMatch(/execFileSync\(\s*cliCommand,[^)]*\{\s*encoding:\s*["']utf8["']\s*\}\s*\)/);
+  });
+});
