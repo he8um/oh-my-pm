@@ -183,15 +183,22 @@ jobs:
           # Every generated path must be an exact descendant of RUNNER_TEMP.
           Assert-RunnerTempChild $buildOut
           Assert-RunnerTempChild $prefix
+          # Native (node) failures do not stop pwsh mid-script, so every step's
+          # exit code is checked explicitly to surface a failure at its source.
           node tools/build-release-bundle.mjs --output $buildOut --apply
+          if ($LASTEXITCODE -ne 0) { throw "bundle build failed" }
           $bundle = Join-Path $buildOut $bundleName
           node tools/check-release-bundle.mjs --bundle $bundle
+          if ($LASTEXITCODE -ne 0) { throw "bundle verification failed" }
           $installer = Join-Path $bundle "bin/oh-my-pm-install.mjs"
+          if (-not (Test-Path $installer)) { throw "missing bundled installer: $installer" }
           # Preview must create no prefix.
           node $installer --prefix $prefix
+          if ($LASTEXITCODE -ne 0) { throw "installer preview failed" }
           if (Test-Path $prefix) { throw "preview created a prefix" }
           # Apply and verify the four shims, including the .cmd shims, exist.
           node $installer --prefix $prefix --apply
+          if ($LASTEXITCODE -ne 0) { throw "installer apply failed" }
           foreach ($shim in @("oh-my-pm", "oh-my-pm.cmd", "oh-my-pm-mcp", "oh-my-pm-mcp.cmd")) {
             $path = Join-Path $prefix (Join-Path "bin" $shim)
             if (-not (Test-Path $path)) { throw "missing shim: $path" }
@@ -204,3 +211,4 @@ jobs:
           if (-not (Test-Path $mcpTarget)) { throw "installed MCP entrypoint missing: $mcpTarget" }
           # Full read-only installed-state verification.
           node tools/check-release-install.mjs --prefix $prefix --expected-version $version
+          if ($LASTEXITCODE -ne 0) { throw "installed-state verification failed" }

@@ -517,8 +517,12 @@ export function applyReleaseBundlePlan(plan) {
     // pnpm deploy can exit non-zero during teardown in non-interactive shells
     // even after producing a correct deployment, so success is judged by the
     // presence of the expected deployed structure rather than the exit code.
+    // On Windows the launcher is pnpm.cmd; spawnSync will not resolve a bare
+    // "pnpm" to the .cmd shim without a shell, so select the concrete
+    // executable name per platform (deploy silently produced nothing otherwise).
+    const pnpmExecutable = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
     spawnSync(
-      "pnpm",
+      pnpmExecutable,
       ["--filter", "@oh-my-pm/distribution", "--prod", "deploy", tempDir],
       { cwd: REPO_ROOT, stdio: ["ignore", "ignore", "ignore"], encoding: "utf8" },
     );
