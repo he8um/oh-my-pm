@@ -449,6 +449,17 @@ for (const file of RELEASE_INSTALL_SOURCES) {
   if (!existsSync(file)) err(`release install file missing: ${file}`);
 }
 
+// 7g7b. Safe temporary-workspace helper and its regression tests. All test/tool
+// recursive cleanup of temp workspaces routes through this helper's ownership-
+// verified guard rather than deleting an inferred parent directory.
+const SAFE_TEMP_SOURCES = [
+  "tools/test/safe-temp-workspace.mjs",
+  "tools/test/safe-temp-workspace.test.mjs",
+];
+for (const file of SAFE_TEMP_SOURCES) {
+  if (!existsSync(file)) err(`safe temporary workspace file missing: ${file}`);
+}
+
 // The distribution package must be private and carry no publish config.
 if (existsSync("distribution/package.json")) {
   const distJson = JSON.parse(readFileSync("distribution/package.json", "utf8"));

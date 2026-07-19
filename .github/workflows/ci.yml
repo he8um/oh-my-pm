@@ -113,11 +113,14 @@ jobs:
           # Apply, verify installed state.
           node "$BUNDLE/bin/oh-my-pm-install.mjs" --prefix "$PREFIX" --apply
           node tools/check-release-install.mjs --prefix "$PREFIX" --expected-version "$VERSION"
-          # Remove the source bundle; installed CLI must still work.
+          # Remove the source bundle by its exact RUNNER_TEMP child path;
+          # installed CLI must still work. (Never delete $RUNNER_TEMP itself or
+          # an inferred parent.)
           rm -rf "$BUNDLE_HOME"
           "$PREFIX/bin/oh-my-pm" status
-          # Move the whole prefix; relative shims must still work.
-          mkdir -p "$(dirname "$MOVED_PREFIX")"
+          # Move the whole prefix to another exact RUNNER_TEMP child; relative
+          # shims must still work. $RUNNER_TEMP already exists, so no parent is
+          # created or inferred.
           mv "$PREFIX" "$MOVED_PREFIX"
           "$MOVED_PREFIX/bin/oh-my-pm" status
           node tools/check-release-install.mjs --prefix "$MOVED_PREFIX" --expected-version "$VERSION"
@@ -166,10 +169,20 @@ jobs:
       - name: Release install smoke via .cmd shims
         shell: pwsh
         run: |
+          function Assert-RunnerTempChild([string]$Path) {
+            $runner = [System.IO.Path]::GetFullPath($env:RUNNER_TEMP)
+            $target = [System.IO.Path]::GetFullPath($Path)
+            if (-not $target.StartsWith($runner + [System.IO.Path]::DirectorySeparatorChar)) {
+              throw "unsafe temporary path: $target"
+            }
+          }
           $version = node -p "require('./version.json').version"
           $bundleName = "oh-my-pm-v$version"
           $buildOut = Join-Path $env:RUNNER_TEMP "omp-install-build"
           $prefix = Join-Path $env:RUNNER_TEMP "omp-install-prefix"
+          # Every generated path must be an exact descendant of RUNNER_TEMP.
+          Assert-RunnerTempChild $buildOut
+          Assert-RunnerTempChild $prefix
           node tools/build-release-bundle.mjs --output $buildOut --apply
           $bundle = Join-Path $buildOut $bundleName
           node tools/check-release-bundle.mjs --bundle $bundle

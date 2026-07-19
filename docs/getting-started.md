@@ -249,6 +249,8 @@ pnpm release:archives:check -- --assets .release
 
 Development builds of `0.2.0-alpha.0` are not published; only the stable `v0.1.0` release has public downloads.
 
+> **Temporary-workspace safety.** Development and verification commands must clean only a uniquely created OH MY PM workspace. Never delete the parent of an installation prefix or the shared system temporary directory. When scripting an end-to-end check, create one owned root (for example `mktemp -d "${TMPDIR:-/tmp}/oh-my-pm-e2e.XXXXXX"`), place every generated path beneath it, and remove only that exact root. Deleting the inferred parent of a generated prefix is unsafe: when the prefix sits directly under the system temp directory, its parent is the shared temp root.
+
 ## Self-installing a v0.2 development bundle
 
 There are three distinct ways to run OH MY PM, in increasing independence from a repository checkout:

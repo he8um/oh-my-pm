@@ -1357,6 +1357,45 @@ for (const file of generatedTracked) {
   }
 }
 
+// 6. Destructive temporary-workspace cleanup safety. No tracked text file may
+// teach or perform recursive deletion of an inferred parent directory, the
+// shared temp root, the CI runner temp root, the current working directory, or
+// the filesystem root. Test/tool temp cleanup deletes exact owned roots only
+// (directly, or through the safe-temp-workspace helper). The safe helper itself
+// and its regression test legitimately name these patterns to reject them.
+const CLEANUP_SAFETY_ALLOWED = new Set([
+  "tools/test/safe-temp-workspace.mjs",
+  "tools/test/safe-temp-workspace.test.mjs",
+  "tools/validate-boundaries.mjs",
+]);
+// Shell and JS idioms that delete an inferred parent or a shared root.
+const UNSAFE_CLEANUP_PATTERNS = [
+  'rm -rf "$(dirname',
+  "rm -rf $(dirname",
+  'rm -rf "$TMPDIR"',
+  'rm -rf "${TMPDIR',
+  "rm -rf /tmp",
+  'rm -rf "$RUNNER_TEMP"',
+  'rm -rf "$(pwd)"',
+  "Remove-Item $env:RUNNER_TEMP -Recurse",
+  "Remove-Item (Split-Path",
+  // JS: deleting the parent of a generated path is forbidden; delete the exact
+  // owned root instead (captured directly or via the safe helper).
+  "rmSync(dirname(",
+  "rmSync(join(tmpdir()),",
+];
+for (const file of trackedFiles) {
+  if (CLEANUP_SAFETY_ALLOWED.has(file)) continue;
+  if (!/\.(mjs|ts|js|md|sh|yml|yaml|ps1)$/.test(file)) continue;
+  if (file.startsWith("contracts/generated/")) continue;
+  const contents = readFileSync(file, "utf8");
+  for (const pattern of UNSAFE_CLEANUP_PATTERNS) {
+    if (contents.includes(pattern)) {
+      err(`${file} contains an unsafe temporary-cleanup pattern: "${pattern}"`);
+    }
+  }
+}
+
 if (fail) {
   console.error("validate-boundaries: FAILED");
   process.exit(1);

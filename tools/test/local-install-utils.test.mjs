@@ -12,17 +12,19 @@ import {
 } from "../local-install-utils.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const prefixes = [];
+const roots = [];
 
 function makePrefix() {
-  const prefix = join(mkdtempSync(join(tmpdir(), "oh-my-pm-install-")), "prefix");
-  prefixes.push(prefix);
+  const root = mkdtempSync(join(tmpdir(), "oh-my-pm-install-"));
+  roots.push(root);
+  const prefix = join(root, "prefix");
   return prefix;
 }
 
 afterEach(() => {
-  for (const prefix of prefixes.splice(0)) {
-    rmSync(dirname(prefix), { recursive: true, force: true });
+  for (const root of roots.splice(0)) {
+    // Delete the exact tool-owned mkdtemp root (never an inferred parent).
+    rmSync(root, { recursive: true, force: true });
   }
 });
 

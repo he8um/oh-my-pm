@@ -8,11 +8,12 @@ import { afterEach, describe, expect, it } from "vitest";
 const toolsDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const installCli = join(toolsDir, "install-local.mjs");
 const checkCli = join(toolsDir, "check-local-install.mjs");
-const prefixes = [];
+const roots = [];
 
 function makePrefix() {
-  const prefix = join(mkdtempSync(join(tmpdir(), "oh-my-pm-install-check-")), "prefix");
-  prefixes.push(prefix);
+  const root = mkdtempSync(join(tmpdir(), "oh-my-pm-install-check-"));
+  roots.push(root);
+  const prefix = join(root, "prefix");
   return prefix;
 }
 
@@ -22,8 +23,9 @@ function run(script, args) {
 }
 
 afterEach(() => {
-  for (const prefix of prefixes.splice(0)) {
-    rmSync(dirname(prefix), { recursive: true, force: true });
+  for (const root of roots.splice(0)) {
+    // Delete the exact tool-owned mkdtemp root (never an inferred parent).
+    rmSync(root, { recursive: true, force: true });
   }
 });
 

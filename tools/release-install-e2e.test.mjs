@@ -34,15 +34,17 @@ function run(script, args) {
   const r = spawnSync(process.execPath, [script, ...args], { encoding: "utf8" });
   return { status: r.status, stdout: r.stdout, stderr: r.stderr };
 }
-function installBundle(bundle) {
+function installBundle() {
   // Build a fresh bundle outside the repository so tests exercise source
   // independence, then relocate it to a location the source repo does not own.
+  // Returns the bundle directory plus the exact owned root that contains it, so
+  // "source removal" tests delete that exact root — never an inferred parent.
   const out = tempDir("omp-e2e-build-");
   expect(run(buildBundle, ["--output", out, "--apply"]).status, "bundle build").toBe(0);
-  const moved = tempDir("omp-e2e-bundle-");
-  const bundleDir = join(moved, BUNDLE_NAME);
-  renameSync(join(out, BUNDLE_NAME), bundleDir);
-  return bundleDir;
+  const root = tempDir("omp-e2e-bundle-");
+  const dir = join(root, BUNDLE_NAME);
+  renameSync(join(out, BUNDLE_NAME), dir);
+  return { dir, root };
 }
 
 let bundle;
@@ -60,7 +62,7 @@ afterAll(() => {
 describe("release install e2e", () => {
   it("preview creates no prefix", () => {
     const prefix = join(tempDir("omp-e2e-prev-"), "prefix");
-    const preview = run(wrapper, ["--bundle", bundle, "--prefix", prefix]);
+    const preview = run(wrapper, ["--bundle", bundle.dir, "--prefix", prefix]);
     expect(preview.status, preview.stderr).toBe(0);
     expect(preview.stdout).toContain("action: create");
     expect(existsSync(prefix)).toBe(false);
@@ -70,7 +72,7 @@ describe("release install e2e", () => {
     const parent = tempDir("omp-e2e-apply-");
     const prefix = join(parent, "prefix");
 
-    const apply = run(wrapper, ["--bundle", bundle, "--prefix", prefix, "--apply"]);
+    const apply = run(wrapper, ["--bundle", bundle.dir, "--prefix", prefix, "--apply"]);
     expect(apply.status, apply.stderr).toBe(0);
 
     // Canonical layout.
@@ -104,9 +106,9 @@ describe("release install e2e", () => {
   it("keeps the source bundle unchanged after apply", () => {
     const prefix = join(tempDir("omp-e2e-srcstable-"), "prefix");
     // The shared bundle is only read here, never removed.
-    const before = readFileSync(join(bundle, "SHA256SUMS"), "utf8");
-    expect(run(wrapper, ["--bundle", bundle, "--prefix", prefix, "--apply"]).status).toBe(0);
-    const after = readFileSync(join(bundle, "SHA256SUMS"), "utf8");
+    const before = readFileSync(join(bundle.dir, "SHA256SUMS"), "utf8");
+    expect(run(wrapper, ["--bundle", bundle.dir, "--prefix", prefix, "--apply"]).status).toBe(0);
+    const after = readFileSync(join(bundle.dir, "SHA256SUMS"), "utf8");
     expect(after).toBe(before);
   }, 120_000);
 
@@ -114,10 +116,11 @@ describe("release install e2e", () => {
     const localBundle = installBundle();
     const parent = tempDir("omp-e2e-reloc-");
     const prefix = join(parent, "prefix");
-    expect(run(wrapper, ["--bundle", localBundle, "--prefix", prefix, "--apply"]).status).toBe(0);
+    expect(run(wrapper, ["--bundle", localBundle.dir, "--prefix", prefix, "--apply"]).status).toBe(0);
 
-    // Remove the source bundle entirely.
-    rmSync(dirname(localBundle), { recursive: true, force: true });
+    // Remove the source bundle entirely by deleting its exact owned root
+    // (never an inferred parent of the bundle directory).
+    rmSync(localBundle.root, { recursive: true, force: true });
 
     const cliCmd = join(prefix, "bin", isWindows ? "oh-my-pm.cmd" : "oh-my-pm");
     const status = spawnSync(cliCmd, ["status"], { encoding: "utf8" });
@@ -139,10 +142,10 @@ describe("release install e2e", () => {
   it("is idempotent: a second apply from the same bundle is already-installed and writes nothing new", () => {
     const parent = tempDir("omp-e2e-idem-");
     const prefix = join(parent, "prefix");
-    expect(run(wrapper, ["--bundle", bundle, "--prefix", prefix, "--apply"]).status).toBe(0);
+    expect(run(wrapper, ["--bundle", bundle.dir, "--prefix", prefix, "--apply"]).status).toBe(0);
     const manifestBefore = readFileSync(join(prefix, "lib", "oh-my-pm", "install.json"), "utf8");
 
-    const second = run(wrapper, ["--bundle", bundle, "--prefix", prefix, "--apply"]);
+    const second = run(wrapper, ["--bundle", bundle.dir, "--prefix", prefix, "--apply"]);
     expect(second.status, second.stderr).toBe(0);
     expect(second.stdout).toContain("already installed");
     const manifestAfter = readFileSync(join(prefix, "lib", "oh-my-pm", "install.json"), "utf8");
@@ -152,7 +155,7 @@ describe("release install e2e", () => {
   it("blocks drift without --force and preserves unrelated prefix files under --force", () => {
     const parent = tempDir("omp-e2e-force-");
     const prefix = join(parent, "prefix");
-    const localBundle = bundle;
+    const localBundle = bundle.dir;
     expect(run(wrapper, ["--bundle", localBundle, "--prefix", prefix, "--apply"]).status).toBe(0);
 
     // Unrelated files that force must preserve.
@@ -186,7 +189,7 @@ describe("release install e2e", () => {
   it("does not create shell profiles, MCP client config, or project files", () => {
     const parent = tempDir("omp-e2e-noextra-");
     const prefix = join(parent, "prefix");
-    expect(run(wrapper, ["--bundle", bundle, "--prefix", prefix, "--apply"]).status).toBe(0);
+    expect(run(wrapper, ["--bundle", bundle.dir, "--prefix", prefix, "--apply"]).status).toBe(0);
     // Only bin/ and lib/ appear directly under the prefix.
     const top = readdirSync(prefix).sort();
     expect(top).toEqual(["bin", "lib"]);

@@ -8,11 +8,12 @@ import { afterEach, describe, expect, it } from "vitest";
 const toolsDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const installCli = join(toolsDir, "install-local.mjs");
 const configCli = join(toolsDir, "print-mcp-client-config.mjs");
-const prefixes = [];
+const roots = [];
 
 function makeInstalledPrefix() {
-  const prefix = join(mkdtempSync(join(tmpdir(), "oh-my-pm-mcp-config-")), "prefix");
-  prefixes.push(prefix);
+  const root = mkdtempSync(join(tmpdir(), "oh-my-pm-mcp-config-"));
+  roots.push(root);
+  const prefix = join(root, "prefix");
   spawnSync(process.execPath, [installCli, "--prefix", prefix, "--apply"], { encoding: "utf8" });
   return prefix;
 }
@@ -23,8 +24,9 @@ function run(args) {
 }
 
 afterEach(() => {
-  for (const prefix of prefixes.splice(0)) {
-    rmSync(dirname(prefix), { recursive: true, force: true });
+  for (const root of roots.splice(0)) {
+    // Delete the exact tool-owned mkdtemp root (never an inferred parent).
+    rmSync(root, { recursive: true, force: true });
   }
 });
 
@@ -101,8 +103,9 @@ describe("print-mcp-client-config command", () => {
 
   it("requires --prefix and fails when the command is not installed", () => {
     expect(run([]).status).toBe(2);
-    const emptyPrefix = join(mkdtempSync(join(tmpdir(), "oh-my-pm-mcp-config-empty-")), "prefix");
-    prefixes.push(emptyPrefix);
+    const emptyRoot = mkdtempSync(join(tmpdir(), "oh-my-pm-mcp-config-empty-"));
+    roots.push(emptyRoot);
+    const emptyPrefix = join(emptyRoot, "prefix");
     const result = run(["--prefix", emptyPrefix]);
     expect(result.status).toBe(2);
     expect(result.stderr).toContain("installed command not found");
