@@ -326,11 +326,51 @@ async function run(bundle) {
     }
   }
 
-  // Kernel WASM in the deployed dependency tree
+  // Complete generated Kernel binding in the deployed dependency tree. All
+  // three approved files must be present, regular (not symlinked), and the only
+  // files in the directory; the generated manifest must be CommonJS/private and
+  // the JS glue must reference its sibling WASM binary with no source path.
   const kernelDir = join(bundle, "node_modules", "@oh-my-pm", "kernel", "generated-node");
-  if (!isRegularFile(join(kernelDir, "oh_my_pm_kernel.js"))) return fail("bundled kernel WASM JS missing");
-  if (!isRegularFile(join(kernelDir, "oh_my_pm_kernel_bg.wasm"))) {
-    return fail("bundled kernel WASM binary missing");
+  const kernelJs = join(kernelDir, "oh_my_pm_kernel.js");
+  const kernelWasm = join(kernelDir, "oh_my_pm_kernel_bg.wasm");
+  const kernelPkg = join(kernelDir, "package.json");
+  const notSymlinkRegular = (p) => isRegularFile(p) && !lstatSync(p).isSymbolicLink();
+  if (!notSymlinkRegular(kernelJs)) return fail("bundled kernel WASM JS missing");
+  if (!notSymlinkRegular(kernelWasm)) return fail("bundled kernel WASM binary missing");
+  if (!notSymlinkRegular(kernelPkg)) return fail("bundled kernel generated package manifest missing");
+  const kernelGeneratedFiles = readdirSync(kernelDir).sort();
+  const expectedKernelFiles = ["oh_my_pm_kernel.js", "oh_my_pm_kernel_bg.wasm", "package.json"];
+  if (
+    kernelGeneratedFiles.length !== expectedKernelFiles.length ||
+    kernelGeneratedFiles.some((n, i) => n !== expectedKernelFiles[i])
+  ) {
+    return fail("bundled kernel generated directory contains unexpected files");
+  }
+  let kernelManifest;
+  try {
+    kernelManifest = JSON.parse(readFileSync(kernelPkg, "utf8"));
+  } catch {
+    return fail("bundled kernel manifest invalid");
+  }
+  if (
+    kernelManifest === null ||
+    typeof kernelManifest !== "object" ||
+    kernelManifest.type !== "commonjs" ||
+    kernelManifest.private !== true
+  ) {
+    return fail("bundled kernel manifest invalid");
+  }
+  let kernelGlue;
+  try {
+    kernelGlue = readFileSync(kernelJs, "utf8");
+  } catch {
+    return fail("bundled kernel WASM JS invalid");
+  }
+  if (!kernelGlue.includes("oh_my_pm_kernel_bg.wasm")) {
+    return fail("bundled kernel WASM JS invalid");
+  }
+  if (/\/Users\/|\/home\/|[A-Za-z]:\\\\/.test(kernelGlue)) {
+    return fail("bundled kernel WASM JS invalid");
   }
 
   // Fictional fixture
@@ -346,6 +386,14 @@ async function run(bundle) {
   }
   if (!statusOut.includes(`version: ${expectedVersion}`)) {
     return fail("bundled CLI status did not report the bundle's declared version");
+  }
+  // The real Rust/WASM Kernel must load and report the release version — never a
+  // missing/unavailable binding.
+  if (statusOut.includes("unavailable")) {
+    return fail("bundled kernel binding is unavailable");
+  }
+  if (!statusOut.includes(`kernel: ${expectedVersion}`)) {
+    return fail("bundled kernel version mismatch");
   }
   for (const workflow of ["brief", "risks", "next", "handoff"]) {
     let out;

@@ -240,6 +240,8 @@ node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm.mjs brief ./project --markdown
 node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm-mcp.mjs
 ```
 
+Every portable bundle contains a complete, prebuilt Node-loadable Rust/WASM Kernel binding (the JS glue, the WASM binary, and a CommonJS manifest). End users need only Node.js 20+ — no Rust toolchain and no `wasm-bindgen`. Bundle assembly validates and stages that binding identically on Ubuntu, macOS, and Windows; installation copies the already verified bundle and never rebuilds the Kernel. The generated binding is build output and is never committed to the repository.
+
 The bundle can also be packaged into deterministic archives, verified for reproducibility:
 
 ```bash

@@ -36,6 +36,17 @@ function readCanonicalVersion() {
 export const RELEASE_BUNDLE_VERSION = readCanonicalVersion();
 export const RELEASE_BUNDLE_NAME = `oh-my-pm-v${RELEASE_BUNDLE_VERSION}`;
 
+// The exact generated Kernel binding files the bundle must ship. The runtime
+// loader (kernel/binding/dist/node.js) requires the JS glue, which loads the
+// sibling WASM binary; the CommonJS package.json marks the generated directory
+// as CommonJS so the glue's `require` resolves inside an ESM-typed package. No
+// other generated file (e.g. .d.ts declarations) is needed at runtime.
+export const KERNEL_GENERATED_NODE_ASSETS = [
+  "oh_my_pm_kernel.js",
+  "oh_my_pm_kernel_bg.wasm",
+  "package.json",
+];
+
 /** Deterministic list of prerequisite files the bundle assembly requires. */
 function prerequisiteDefinitions() {
   return [
@@ -60,6 +71,10 @@ function prerequisiteDefinitions() {
     {
       id: "kernel_wasm_binary",
       path: join(REPO_ROOT, "kernel", "binding", "generated-node", "oh_my_pm_kernel_bg.wasm"),
+    },
+    {
+      id: "kernel_wasm_package",
+      path: join(REPO_ROOT, "kernel", "binding", "generated-node", "package.json"),
     },
     { id: "license", path: join(REPO_ROOT, "LICENSE") },
     { id: "readme", path: join(REPO_ROOT, "README.md") },
@@ -122,6 +137,177 @@ function isSymbolicLink(path) {
   } catch {
     return false;
   }
+}
+
+/**
+ * Build the platform-specific pnpm deploy invocation. On Windows the launcher
+ * is a .cmd shim that modern Node refuses to spawn without a shell, so run
+ * through a shell there; POSIX uses a direct, no-shell spawn. Arguments are all
+ * static, tool-controlled values — no user-controlled shell string.
+ */
+export function createPnpmDeployInvocation(platform, outputDirectory) {
+  return {
+    command: "pnpm",
+    args: ["--filter", "@oh-my-pm/distribution", "--prod", "deploy", outputDirectory],
+    shell: platform === "win32",
+  };
+}
+
+function stageFailure(code, reasons) {
+  return { ok: false, code, reasons };
+}
+
+/**
+ * Stage the complete generated Kernel binding into the deployed
+ * @oh-my-pm/kernel package inside the temporary bundle. pnpm deploy's packlist
+ * for generated (post-install) build output is not consistent across operating
+ * systems — on Windows it omitted the JS glue and CommonJS manifest — so the
+ * three approved generated assets are copied explicitly from the current build,
+ * verified byte-for-byte, and confined to the deployed package directory.
+ *
+ * No whole-package recursive copy, no external symlink/junction traversal, no
+ * source-repository fallback. Public errors carry no file contents, absolute
+ * source paths, or ownership tokens.
+ */
+export function stageKernelGeneratedNodeAssets(options) {
+  const { sourceGeneratedNodeDirectory, deployedKernelPackageDirectory, bundleRoot } = options;
+
+  // 1-2. Resolve the bundle root and require the deployed Kernel package.
+  const resolvedBundleRoot = realpathSync(resolve(bundleRoot));
+  if (!existsSync(deployedKernelPackageDirectory)) {
+    return stageFailure("kernel_binding_package_missing", ["kernel_binding_package_missing"]);
+  }
+  const manifestPath = join(deployedKernelPackageDirectory, "package.json");
+  if (!isRegularFile(manifestPath)) {
+    return stageFailure("kernel_binding_package_missing", ["kernel_binding_package_missing"]);
+  }
+
+  // 3. Validate deployed package identity and version (canonical, not literal).
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  } catch {
+    return stageFailure("kernel_binding_package_invalid", ["kernel_binding_package_invalid"]);
+  }
+  if (
+    manifest === null ||
+    typeof manifest !== "object" ||
+    manifest.name !== "@oh-my-pm/kernel" ||
+    manifest.version !== RELEASE_BUNDLE_VERSION
+  ) {
+    return stageFailure("kernel_binding_package_invalid", ["kernel_binding_package_invalid"]);
+  }
+
+  // 4-6. Resolve the real deployed package path and require it to stay inside
+  // the temporary bundle (internal symlink/junction is fine; escape is not).
+  let realPackage;
+  try {
+    realPackage = realpathSync(deployedKernelPackageDirectory);
+  } catch {
+    return stageFailure("kernel_binding_destination_unsafe", ["kernel_binding_destination_unsafe"]);
+  }
+  if (realPackage !== resolvedBundleRoot && !realPackage.startsWith(resolvedBundleRoot + sep)) {
+    return stageFailure("kernel_binding_destination_unsafe", ["kernel_binding_destination_unsafe"]);
+  }
+
+  // 7. Validate every approved source asset: regular, not symlink, inside the
+  // expected source generated directory.
+  const resolvedSourceDir = resolve(sourceGeneratedNodeDirectory);
+  const sourceHashes = new Map();
+  for (const name of KERNEL_GENERATED_NODE_ASSETS) {
+    const sourcePath = join(resolvedSourceDir, name);
+    if (isSymbolicLink(sourcePath)) {
+      return stageFailure("kernel_binding_source_unsafe", ["kernel_binding_source_unsafe"]);
+    }
+    if (!isRegularFile(sourcePath)) {
+      return stageFailure("kernel_binding_source_missing", [`kernel_binding_source_missing:${name}`]);
+    }
+    const resolvedSource = resolve(sourcePath);
+    if (dirname(resolvedSource) !== resolvedSourceDir) {
+      return stageFailure("kernel_binding_source_unsafe", ["kernel_binding_source_unsafe"]);
+    }
+    sourceHashes.set(name, sha256(sourcePath));
+  }
+
+  // 8-11. Target only <deployed-kernel-package>/generated-node. Remove only that
+  // exact directory if present, recreate it, and copy the three approved files.
+  const targetDir = join(realPackage, "generated-node");
+  const resolvedTargetParent = realPackage;
+  if (dirname(targetDir) !== resolvedTargetParent) {
+    return stageFailure("kernel_binding_destination_unsafe", ["kernel_binding_destination_unsafe"]);
+  }
+  if (existsSync(targetDir) || isSymbolicLink(targetDir)) {
+    if (isSymbolicLink(targetDir)) {
+      return stageFailure("kernel_binding_destination_unsafe", ["kernel_binding_destination_unsafe"]);
+    }
+    rmSync(targetDir, { recursive: true, force: true });
+  }
+  try {
+    mkdirSync(targetDir, { recursive: true });
+    for (const name of KERNEL_GENERATED_NODE_ASSETS) {
+      cpSync(join(resolvedSourceDir, name), join(targetDir, name), {
+        dereference: false,
+        errorOnExist: false,
+        recursive: false,
+      });
+    }
+  } catch {
+    return stageFailure("kernel_binding_copy_failed", ["kernel_binding_copy_failed"]);
+  }
+
+  // 12-14. Validate destination files and compare SHA-256 to source.
+  const assets = [];
+  for (const name of KERNEL_GENERATED_NODE_ASSETS) {
+    const destPath = join(targetDir, name);
+    if (isSymbolicLink(destPath) || !isRegularFile(destPath)) {
+      return stageFailure("kernel_binding_copy_failed", ["kernel_binding_copy_failed"]);
+    }
+    const destHash = sha256(destPath);
+    if (destHash !== sourceHashes.get(name)) {
+      return stageFailure("kernel_binding_checksum_mismatch", [`kernel_binding_checksum_mismatch:${name}`]);
+    }
+    assets.push({ name, sha256: destHash });
+  }
+
+  // 15. The destination CommonJS manifest must be CommonJS and private.
+  let destManifest;
+  try {
+    destManifest = JSON.parse(readFileSync(join(targetDir, "package.json"), "utf8"));
+  } catch {
+    return stageFailure("kernel_binding_manifest_invalid", ["kernel_binding_manifest_invalid"]);
+  }
+  if (
+    destManifest === null ||
+    typeof destManifest !== "object" ||
+    destManifest.type !== "commonjs" ||
+    destManifest.private !== true
+  ) {
+    return stageFailure("kernel_binding_manifest_invalid", ["kernel_binding_manifest_invalid"]);
+  }
+
+  // 16. The glue must reference its sibling WASM binary and embed no absolute
+  // repository path.
+  let glue;
+  try {
+    glue = readFileSync(join(targetDir, "oh_my_pm_kernel.js"), "utf8");
+  } catch {
+    return stageFailure("kernel_binding_glue_invalid", ["kernel_binding_glue_invalid"]);
+  }
+  if (!glue.includes("oh_my_pm_kernel_bg.wasm")) {
+    return stageFailure("kernel_binding_glue_invalid", ["kernel_binding_glue_invalid"]);
+  }
+  if (/\/Users\/|\/home\/|[A-Za-z]:\\\\/.test(glue) || glue.includes(REPO_ROOT)) {
+    return stageFailure("kernel_binding_glue_invalid", ["kernel_binding_glue_invalid"]);
+  }
+
+  // 17. The destination directory must contain exactly the approved files.
+  const present = readdirSync(targetDir).sort();
+  const approved = [...KERNEL_GENERATED_NODE_ASSETS].sort();
+  if (present.length !== approved.length || present.some((n, i) => n !== approved[i])) {
+    return stageFailure("kernel_binding_incomplete", ["kernel_binding_incomplete"]);
+  }
+
+  return { ok: true, assets };
 }
 
 /** Build a deterministic bundle plan. Performs no writes. */
@@ -517,30 +703,40 @@ export function applyReleaseBundlePlan(plan) {
     // pnpm deploy can exit non-zero during teardown in non-interactive shells
     // even after producing a correct deployment, so success is judged by the
     // presence of the expected deployed structure rather than the exit code.
-    //
-    // On Windows the pnpm launcher is a .cmd shim, and modern Node refuses to
-    // spawn a .cmd/.bat directly without a shell (CVE-2024-27980 hardening), so
-    // the deploy silently produced nothing there. Run through a shell on
-    // Windows so the shim resolves; POSIX keeps the direct, no-shell spawn. The
-    // arguments are all static, tool-controlled values (no user input).
-    const isWindows = process.platform === "win32";
-    spawnSync(
-      "pnpm",
-      ["--filter", "@oh-my-pm/distribution", "--prod", "deploy", tempDir],
-      { cwd: REPO_ROOT, stdio: ["ignore", "ignore", "ignore"], encoding: "utf8", shell: isWindows },
-    );
+    // The Windows launcher requires a shell; POSIX uses a direct spawn.
+    const invocation = createPnpmDeployInvocation(process.platform, tempDir);
+    spawnSync(invocation.command, invocation.args, {
+      cwd: REPO_ROOT,
+      stdio: ["ignore", "ignore", "ignore"],
+      encoding: "utf8",
+      shell: invocation.shell,
+    });
+
+    // Deploy must at minimum produce the distribution CLI and the @oh-my-pm/kernel
+    // package manifest. Generated-binding completeness is NOT judged here because
+    // pnpm deploy's packlist for generated build output is platform-inconsistent;
+    // the three approved generated assets are staged explicitly below. An
+    // entirely missing Kernel package is a genuine deploy failure and is not
+    // repairable.
     const deployedBin = join(tempDir, "bin", "oh-my-pm.mjs");
-    const deployedKernelWasm = join(
-      tempDir,
-      "node_modules",
-      "@oh-my-pm",
-      "kernel",
-      "generated-node",
-      "oh_my_pm_kernel_bg.wasm",
-    );
-    if (!isRegularFile(deployedBin) || !isRegularFile(deployedKernelWasm)) {
+    const deployedKernelPackage = join(tempDir, "node_modules", "@oh-my-pm", "kernel");
+    const deployedKernelManifest = join(deployedKernelPackage, "package.json");
+    if (!isRegularFile(deployedBin) || !isRegularFile(deployedKernelManifest)) {
       rmSync(tempDir, { recursive: true, force: true });
       return { ok: false, code: "deploy_incomplete", reasons: ["deploy_incomplete"] };
+    }
+
+    // Stage the complete generated Kernel binding (JS glue + WASM + CommonJS
+    // manifest) deterministically from the current build into the deployed
+    // package, so every platform ships an identical, loadable binding.
+    const staged = stageKernelGeneratedNodeAssets({
+      sourceGeneratedNodeDirectory: join(REPO_ROOT, "kernel", "binding", "generated-node"),
+      deployedKernelPackageDirectory: deployedKernelPackage,
+      bundleRoot: tempDir,
+    });
+    if (!staged.ok) {
+      rmSync(tempDir, { recursive: true, force: true });
+      return { ok: false, code: staged.code, reasons: staged.reasons };
     }
 
     // pnpm deploy leaves a self-referential symlink for the deployed package

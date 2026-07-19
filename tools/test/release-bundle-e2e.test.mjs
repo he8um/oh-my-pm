@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -61,6 +61,25 @@ describe("portable release bundle e2e", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toBe(`OH MY PM release bundle check: OK (${CANONICAL_VERSION})\n`);
   }, 120_000);
+
+  it("ships exactly the three generated Kernel binding files", () => {
+    const generatedDir = join(
+      movedBundle,
+      "node_modules",
+      "@oh-my-pm",
+      "kernel",
+      "generated-node",
+    );
+    expect(readdirSync(generatedDir).sort()).toEqual([
+      "oh_my_pm_kernel.js",
+      "oh_my_pm_kernel_bg.wasm",
+      "package.json",
+    ]);
+    const manifest = JSON.parse(readFileSync(join(generatedDir, "package.json"), "utf8"));
+    expect(manifest).toEqual({ type: "commonjs", private: true });
+    const glue = readFileSync(join(generatedDir, "oh_my_pm_kernel.js"), "utf8");
+    expect(glue).toContain("oh_my_pm_kernel_bg.wasm");
+  });
 
   it("has no repository path anywhere in the moved bundle text", () => {
     const releaseText = readFileSync(join(movedBundle, "RELEASE.json"), "utf8");

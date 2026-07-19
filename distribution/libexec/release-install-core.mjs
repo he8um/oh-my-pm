@@ -57,6 +57,7 @@ const REQUIRED_BUNDLE_FILES = [
   "libexec/check-release-bundle.mjs",
   "node_modules/@oh-my-pm/kernel/generated-node/oh_my_pm_kernel.js",
   "node_modules/@oh-my-pm/kernel/generated-node/oh_my_pm_kernel_bg.wasm",
+  "node_modules/@oh-my-pm/kernel/generated-node/package.json",
 ];
 
 // Forbidden private path segments must never appear inside a release bundle.

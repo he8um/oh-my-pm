@@ -1396,6 +1396,46 @@ for (const file of trackedFiles) {
   }
 }
 
+// 7. Kernel WASM binding packaging safety. The generated binding is build
+// output and must never be committed. The release builder stages only the three
+// approved generated assets (never a recursive copy of the whole Kernel source
+// package) and must not introduce a network/download/postinstall fallback.
+for (const file of trackedFiles) {
+  if (file.startsWith("kernel/binding/generated-node/")) {
+    err(`generated Kernel binding must not be committed: ${file}`);
+  }
+}
+const KERNEL_PACKAGING_FILE = "tools/release-bundle-utils.mjs";
+if (trackedFiles.includes(KERNEL_PACKAGING_FILE)) {
+  const contents = readFileSync(KERNEL_PACKAGING_FILE, "utf8");
+  // No recursive copy of the whole deployed/source Kernel package.
+  if (/cpSync\([^)]*kernel[^)]*\{[^}]*recursive:\s*true/s.test(contents)) {
+    err(`${KERNEL_PACKAGING_FILE} must not recursively copy the whole Kernel package`);
+  }
+  // No network/download/postinstall fallback for the binding.
+  for (const marker of ["postinstall", "download", "https://", "http://", "fetch("]) {
+    if (contents.includes(marker)) {
+      err(`${KERNEL_PACKAGING_FILE} contains a forbidden network/postinstall marker: "${marker}"`);
+    }
+  }
+}
+// No workspace package may add a postinstall lifecycle script that builds or
+// downloads the WASM binding for end users.
+for (const file of trackedFiles) {
+  if (!/(^|\/)package\.json$/.test(file)) continue;
+  if (file.startsWith("node_modules/")) continue;
+  let pkg;
+  try {
+    pkg = JSON.parse(readFileSync(file, "utf8"));
+  } catch {
+    continue;
+  }
+  const scripts = pkg && typeof pkg === "object" ? pkg.scripts : undefined;
+  if (scripts && typeof scripts === "object" && typeof scripts.postinstall === "string") {
+    err(`${file} must not declare a postinstall script`);
+  }
+}
+
 if (fail) {
   console.error("validate-boundaries: FAILED");
   process.exit(1);

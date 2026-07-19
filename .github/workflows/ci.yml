@@ -190,6 +190,16 @@ jobs:
           $bundle = Join-Path $buildOut $bundleName
           node tools/check-release-bundle.mjs --bundle $bundle
           if ($LASTEXITCODE -ne 0) { throw "bundle verification failed" }
+          # The complete generated Kernel binding must be present (this is the
+          # exact set that Windows pnpm deploy previously omitted).
+          $generated = Join-Path $bundle "node_modules/@oh-my-pm/kernel/generated-node"
+          foreach ($asset in @("oh_my_pm_kernel.js", "oh_my_pm_kernel_bg.wasm", "package.json")) {
+            $assetPath = Join-Path $generated $asset
+            if (-not (Test-Path $assetPath)) { throw "missing generated kernel asset: $assetPath" }
+          }
+          # The bundled CLI must load the real Kernel and report status.
+          node (Join-Path $bundle "bin/oh-my-pm.mjs") status
+          if ($LASTEXITCODE -ne 0) { throw "bundled CLI status failed" }
           $installer = Join-Path $bundle "bin/oh-my-pm-install.mjs"
           if (-not (Test-Path $installer)) { throw "missing bundled installer: $installer" }
           # Preview must create no prefix.

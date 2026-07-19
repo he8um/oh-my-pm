@@ -217,6 +217,16 @@ async function run(prefix, expectedVersion) {
   });
   if (verify.status !== 0) return fail("installed bundle verifier did not pass");
 
+  // The installed version directory must retain the complete generated Kernel
+  // binding (JS glue + WASM + CommonJS manifest); a WASM-only install is not
+  // acceptable.
+  const installedKernelDir = join(versionDir, "node_modules", "@oh-my-pm", "kernel", "generated-node");
+  for (const asset of ["oh_my_pm_kernel.js", "oh_my_pm_kernel_bg.wasm", "package.json"]) {
+    if (!isRegularFile(join(installedKernelDir, asset))) {
+      return fail(`installed kernel generated asset missing: ${asset}`);
+    }
+  }
+
   // The four exact shims exist and match expected content for this version.
   const binDir = join(prefix, "bin");
   const cliTarget = `../lib/oh-my-pm/versions/${version}/bin/oh-my-pm.mjs`;

@@ -28,6 +28,11 @@
 - GitHub CLI and MCP workflows may resolve repository and limit defaults from provider configuration.
 - Live GitHub CLI and MCP workflows read the current time once at the process/tool-call boundary so overdue classification stays correct; local workflows keep a fixed deterministic clock.
 
+### Fixed
+
+- Portable release bundle assembly now stages the complete generated Kernel binding consistently across Windows and POSIX environments.
+- Windows release installation no longer fails because the generated Node WASM glue file is omitted by deployment packaging.
+
 ## 0.1.0
 
 ### Added
