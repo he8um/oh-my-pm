@@ -30,7 +30,8 @@ function fail(message) {
   process.exitCode = 1;
 }
 
-// The eight-tool surface (four local + four GitHub), compared as a sorted set.
+// The ten-tool surface (four local + four GitHub + two provider diagnostics),
+// compared as a sorted set.
 // The smoke calls only the offline local project_brief; no GitHub tool is
 // invoked, so this smoke never touches the network and needs no token.
 const EXPECTED_TOOLS = [

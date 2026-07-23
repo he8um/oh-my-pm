@@ -123,8 +123,9 @@ async function run(bundle) {
   if (bundleBasename !== expectedBundleName && bundleBasename !== expectedVersion) {
     return fail(`bundle directory basename ${bundleBasename} != ${expectedBundleName}`);
   }
-  // Exactly the eight tools in order: four local, then four GitHub. The local
-  // tools are still callable offline; the GitHub tools are opt-in network.
+  // Exactly the ten tools in order: four local, four GitHub, then two provider
+  // diagnostics. The local tools are still callable offline; the GitHub tools
+  // are opt-in network.
   const expectedTools = [
     "project_brief",
     "project_risks",

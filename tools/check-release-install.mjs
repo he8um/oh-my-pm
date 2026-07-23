@@ -15,7 +15,8 @@ import { pathToFileURL } from "node:url";
 
 const isWindows = process.platform === "win32";
 
-// The eight installed MCP tools (four local + four GitHub), compared sorted.
+// The ten installed MCP tools (four local + four GitHub + two provider
+// diagnostics), compared sorted.
 // This verifier calls only the offline local project_brief; it never invokes a
 // GitHub tool and never touches the network or requires a token.
 const EXPECTED_MCP_TOOLS = [

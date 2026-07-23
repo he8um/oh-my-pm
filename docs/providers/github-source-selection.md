@@ -131,9 +131,11 @@ queries are never stored in configuration. See
 ## Limitations in this phase
 
 - One API page per request; the maximum is 100 items.
-- No comments, review comments, timelines, commits, files, diffs, patches,
-  releases, workflows, refs, labels-as-entities, milestones-as-entities, or
-  GitHub Projects retrieval.
+- No review comments, timelines, commits, files, diffs, patches, releases,
+  workflows, refs, labels-as-entities, milestones-as-entities, or GitHub
+  Projects retrieval. (Ordinary issue/PR conversation comments are supported for
+  the `item` source only, opt-in and disabled by default — see
+  [GitHub item comments](github-item-comments.md).)
 - Issues/pull-requests/search list modes use the GitHub search endpoint and do
   not enrich each pull request with file/diff counts (only the `item` source
   enriches a single pull request).

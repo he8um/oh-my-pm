@@ -62,7 +62,7 @@ follow these rules:
   `OH_MY_PM_GITHUB_TOKEN`.
 - The API origin, API version, HTTP method, and token environment-variable name
   are fixed and are not configurable; only GitHub `enabled`, `defaultRepository`,
-  and `defaultLimit` are user-configurable.
+  `defaultLimit`, `defaultSource`, and `defaultState` are user-configurable.
 - The configuration loader never writes, never reaches the network, never reads
   a token, never follows a symlinked config, never searches parent directories,
   and never returns raw file text or a resolved absolute path.
