@@ -139,6 +139,9 @@ in place (see Phase 5B).
 - bounded pull-request reviews and review comments for the item source, opt-in, PR-only, single-page (complete)
 - cross-platform release-install CI parity: Windows job proves source-bundle independence and prefix relocation, matching POSIX (F-TEST-1 closed on a green Windows run)
 - centralized GitHub list limit constants: one canonical source imported by provider config/settings/selection and the CLI parser, behavior-preserving (F-DUP-1 resolved)
+- controlled live GitHub smoke against the real REST API using the installed portable artifact: tokenless provider/CLI flows, live PR-item discussion, and installed MCP workflows all passed with bounded, sanitized projections; READY FOR RC PREPARATION (complete — see docs/releases/v0.2-live-github-smoke.md)
+
+Next action: prepare `0.2.0-rc.1` as a separate, deliberate step (no version bump in the smoke phase).
 
 ## Phase 6 — Release lifecycle
 
