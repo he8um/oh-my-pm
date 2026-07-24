@@ -140,9 +140,11 @@ in place (see Phase 5B).
 - cross-platform release-install CI parity: Windows job proves source-bundle independence and prefix relocation, matching POSIX (F-TEST-1 closed on a green Windows run)
 - centralized GitHub list limit constants: one canonical source imported by provider config/settings/selection and the CLI parser, behavior-preserving (F-DUP-1 resolved)
 - controlled live GitHub smoke against the real REST API using the installed portable artifact: tokenless provider/CLI flows, live PR-item discussion, and installed MCP workflows all passed with bounded, sanitized projections; READY FOR RC PREPARATION (complete — see docs/releases/v0.2-live-github-smoke.md)
-- `0.2.0-rc.1` prepared: version promoted across manifests/runtime/Kernel, v0.2 scope frozen, RC release notes + publishing guide added, manually gated `Release v0.2 RC` workflow added, RC bundle/archives rehearsed locally (prepared, not published — no tag, release, or asset)
+- `0.2.0-rc.1` prepared: version promoted across manifests/runtime/Kernel, v0.2 scope frozen, RC release notes + publishing guide added, manually gated `Release v0.2 RC` workflow added, RC bundle/archives rehearsed locally
+- `0.2.0-rc.1` published: the manually gated `Release v0.2 RC` workflow was run at `fd03cce…` (dry run `publish=false`, then `publish=true` with the exact confirmation) to create the immutable GitHub **prerelease** (tag `v0.2.0-rc.1`, `draft=false`, `prerelease=true`, exactly three assets). Latest stable remains `v0.1.0`; no stable `v0.2.0` and no registry publication
+- `0.2.0-rc.1` post-publication validation: the published prerelease was validated from the public GitHub Release (artifact verification, installation UX, source independence and relocation, the four local workflows on three project shapes, the strict configuration matrix, tokenless live GitHub read-only flows, and all ten stdio MCP tools) — all passed with no Blocker/High/Medium defects. Decision: **GO for stable preparation** (Low-only findings, documented follow-up). See docs/releases/v0.2.0-rc.1-post-publication-validation.md
 
-Next action: publish `0.2.0-rc.1` only via a separate, explicitly approved run of the manually gated `Release v0.2 RC` workflow (first `publish=false`, then `publish=true` with confirmation). Timeline events, aliases/profiles, and write-back remain deferred beyond v0.2.
+Governance follow-up recommended before stable: add a required reviewer to the `github-release` environment (the RC publication run completed without a manual approval gate because none is configured). Next action: prepare stable `v0.2.0` only via separate, explicit approval. Timeline events, aliases/profiles, and write-back remain deferred beyond v0.2.
 
 ## Phase 6 — Release lifecycle
 
