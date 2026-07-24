@@ -127,7 +127,7 @@ in place (see Phase 5B).
 
 ## Phase 5B — v0.2 development
 
-- development baseline `0.2.0-alpha.0` (in place)
+- development baseline opened at `0.2.0-alpha.0`; candidate version now `0.2.0-rc.1` (v0.2 scope frozen)
 - self-describing version/bundle/archive verification (in place)
 - archive-native preview-first installation from an extracted verified release bundle (in place)
 - GitHub read-only provider (in place)
@@ -140,8 +140,9 @@ in place (see Phase 5B).
 - cross-platform release-install CI parity: Windows job proves source-bundle independence and prefix relocation, matching POSIX (F-TEST-1 closed on a green Windows run)
 - centralized GitHub list limit constants: one canonical source imported by provider config/settings/selection and the CLI parser, behavior-preserving (F-DUP-1 resolved)
 - controlled live GitHub smoke against the real REST API using the installed portable artifact: tokenless provider/CLI flows, live PR-item discussion, and installed MCP workflows all passed with bounded, sanitized projections; READY FOR RC PREPARATION (complete — see docs/releases/v0.2-live-github-smoke.md)
+- `0.2.0-rc.1` prepared: version promoted across manifests/runtime/Kernel, v0.2 scope frozen, RC release notes + publishing guide added, manually gated `Release v0.2 RC` workflow added, RC bundle/archives rehearsed locally (prepared, not published — no tag, release, or asset)
 
-Next action: prepare `0.2.0-rc.1` as a separate, deliberate step (no version bump in the smoke phase).
+Next action: publish `0.2.0-rc.1` only via a separate, explicitly approved run of the manually gated `Release v0.2 RC` workflow (first `publish=false`, then `publish=true` with confirmation). Timeline events, aliases/profiles, and write-back remain deferred beyond v0.2.
 
 ## Phase 6 — Release lifecycle
 

@@ -5,9 +5,9 @@
 It is designed for teams that want clearer delivery context, safer execution boundaries, and repeatable validation around project work.
 
 > **Latest stable release:** [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0)
-> **Current main development version:** `0.2.0-alpha.0` (unreleased)
+> **Current candidate version:** `0.2.0-rc.1` (prepared, not published)
 >
-> Local alpha. `main` may contain unreleased `0.2.0-alpha.0` work. Packages remain private; there is no npm package. `0.2.0-alpha.0` is not published.
+> The first `v0.2` release candidate `0.2.0-rc.1` has been prepared on `main`; the `v0.2` scope is frozen. Nothing is published yet — there is no `v0.2.0-rc.1` tag, GitHub Release, or download, and `v0.1.0` remains the latest stable release until the candidate is explicitly published. Packages remain private; there is no npm package.
 
 ---
 
@@ -161,42 +161,42 @@ Stable archive users need only Node.js 20+ (no Rust or pnpm). Download, verify t
 
 ### Portable release bundle (development)
 
-A maintainer can assemble a self-contained, versioned bundle from `main` that runs on Node.js 20+ with no Rust, pnpm, or repository checkout. The bundle name is derived from the canonical version in `version.json` (currently `0.2.0-alpha.0`):
+A maintainer can assemble a self-contained, versioned bundle from `main` that runs on Node.js 20+ with no Rust, pnpm, or repository checkout. The bundle name is derived from the canonical version in `version.json` (currently `0.2.0-rc.1`):
 
 ```bash
 pnpm build
-pnpm release:bundle -- --output .release --apply   # writes .release/oh-my-pm-v0.2.0-alpha.0/
-node .release/oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm.mjs status
-node .release/oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm-mcp.mjs
+pnpm release:bundle -- --output .release --apply   # writes .release/oh-my-pm-v0.2.0-rc.1/
+node .release/oh-my-pm-v0.2.0-rc.1/bin/oh-my-pm.mjs status
+node .release/oh-my-pm-v0.2.0-rc.1/bin/oh-my-pm-mcp.mjs
 ```
 
-The bundle contains the compiled packages, the real Rust/WASM Kernel, the four CLI workflows, the four read-only MCP tools, deterministic `RELEASE.json` metadata, and `SHA256SUMS`. Development builds of `0.2.0-alpha.0` are not published.
+The bundle contains the compiled packages, the real Rust/WASM Kernel, the four CLI workflows, the four read-only MCP tools, deterministic `RELEASE.json` metadata, and `SHA256SUMS`. `0.2.0-rc.1` bundles are not published until the candidate is explicitly released.
 
 ### Deterministic release archives
 
 The verified bundle can be packaged into two byte-reproducible archives plus a checksum file:
 
 ```bash
-pnpm release:archives -- --bundle .release/oh-my-pm-v0.2.0-alpha.0 --output .release --apply
+pnpm release:archives -- --bundle .release/oh-my-pm-v0.2.0-rc.1 --output .release --apply
 pnpm release:archives:check -- --assets .release
-pnpm release:archives:repro -- --bundle .release/oh-my-pm-v0.2.0-alpha.0
+pnpm release:archives:repro -- --bundle .release/oh-my-pm-v0.2.0-rc.1
 ```
 
 Both archives expand to a single `oh-my-pm-v<version>/` directory and re-pass the bundle verifier. The `v0.1.0` GitHub Release was published through the manually gated `Release v0.1` workflow; see [the release publication guide](docs/releases/publishing-v0.1.0.md). No `v0.2` release exists yet.
 
 ### Self-installation from a v0.2 development bundle
 
-Every portable `0.2.0-alpha.0` bundle now ships a preview-first installer at `bin/oh-my-pm-install.mjs`. Extract a future `v0.2` archive, preview the installation, then apply it into an explicit prefix:
+Every portable `0.2.0-rc.1` bundle ships a preview-first installer at `bin/oh-my-pm-install.mjs`. Extract a future `v0.2` archive, preview the installation, then apply it into an explicit prefix:
 
 ```bash
-tar -xzf oh-my-pm-v0.2.0-alpha.0.tar.gz
-# or: unzip oh-my-pm-v0.2.0-alpha.0.zip
+tar -xzf oh-my-pm-v0.2.0-rc.1.tar.gz
+# or: unzip oh-my-pm-v0.2.0-rc.1.zip
 
 # Preview writes nothing.
-node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local"
+node ./oh-my-pm-v0.2.0-rc.1/bin/oh-my-pm-install.mjs --prefix "$HOME/.local"
 
 # Apply installs a versioned, source-independent copy under the prefix.
-node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local" --apply
+node ./oh-my-pm-v0.2.0-rc.1/bin/oh-my-pm-install.mjs --prefix "$HOME/.local" --apply
 
 # Add the prefix bin to PATH yourself — the installer never edits it.
 export PATH="$HOME/.local/bin:$PATH"

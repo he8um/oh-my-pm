@@ -637,27 +637,34 @@ for (const file of REQUIRED_GENERATED) {
   if (!existsSync(file)) err(`generated contracts file missing: ${file}`);
 }
 
-// 9 + 10. CI workflow exists. The only release-publishing workflow allowed is
-// the dedicated, manually gated release-v0.1.yml; no other workflow may contain
-// npm-publish or GitHub-Release markers, and no other workflow may be
-// release-named.
+// 9 + 10. CI workflow exists. The only release-publishing workflows allowed are
+// the dedicated, manually gated release-v0.1.yml (historical, immutable v0.1.0)
+// and release-v0.2-rc.yml (manually gated v0.2 release candidate). No other
+// workflow may contain npm-publish or GitHub-Release markers, and no other
+// workflow may be release-named.
 const workflowsDir = ".github/workflows";
 if (!existsSync(join(workflowsDir, "ci.yml"))) {
   err(".github/workflows/ci.yml missing");
 }
 const RELEASE_MARKERS = ["npm publish", "softprops/action-gh-release"];
-const ALLOWED_RELEASE_WORKFLOW = "release-v0.1.yml";
+const ALLOWED_RELEASE_WORKFLOWS = new Set(["release-v0.1.yml", "release-v0.2-rc.yml"]);
+// The v0.2 RC release workflow must exist.
+if (!existsSync(join(workflowsDir, "release-v0.2-rc.yml"))) {
+  err(".github/workflows/release-v0.2-rc.yml missing");
+}
 if (existsSync(workflowsDir)) {
   for (const name of readdirSync(workflowsDir)) {
     const path = join(workflowsDir, name);
     if (!statSync(path).isFile()) continue;
-    if (name === ALLOWED_RELEASE_WORKFLOW) {
-      // The dedicated release workflow is validated in detail by
-      // validate-boundaries.mjs; it legitimately uses gh release / tags.
+    if (ALLOWED_RELEASE_WORKFLOWS.has(name)) {
+      // The dedicated release workflows are validated in detail by
+      // validate-boundaries.mjs; they legitimately use gh release / tags.
       continue;
     }
     if (name.toLowerCase().includes("release")) {
-      err(`unexpected release workflow (only ${ALLOWED_RELEASE_WORKFLOW} is allowed): ${path}`);
+      err(
+        `unexpected release workflow (only ${[...ALLOWED_RELEASE_WORKFLOWS].join(", ")} are allowed): ${path}`,
+      );
       continue;
     }
     const contents = readFileSync(path, "utf8");

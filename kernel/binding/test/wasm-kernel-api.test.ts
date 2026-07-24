@@ -54,7 +54,7 @@ describe("node wasm kernel api", () => {
   });
 
   it("returns the real Kernel version", () => {
-    expect(createNodeWasmKernelApi().version()).toBe("0.2.0-alpha.0");
+    expect(createNodeWasmKernelApi().version()).toBe("0.2.0-rc.1");
   });
 
   it("is described as a configured wasm binding", () => {

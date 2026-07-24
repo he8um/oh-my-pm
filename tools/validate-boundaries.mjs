@@ -1343,50 +1343,104 @@ for (const file of trackedFiles) {
   }
 }
 
-// 4g. The manually gated release workflow. It must be workflow_dispatch only,
+// 4g. The manually gated release workflows. Each must be workflow_dispatch only,
 // have top-level contents: read, gate publishing behind a publish boolean, an
 // exact confirmation string, a contents: write publish job, and the protected
 // github-release environment. GitHub-Release/tag-publish verbs may appear ONLY
-// in this workflow (plus its docs/tests); package/tool source stays clean.
+// in these workflows (plus their docs/tests); package/tool source stays clean.
+// The historical v0.1 workflow publishes a stable release (--latest); the v0.2
+// RC workflow publishes a prerelease (--prerelease, never --latest) with an
+// additional version-consistency gate, existence refusal, and no registry verb.
 const RELEASE_WORKFLOW = ".github/workflows/release-v0.1.yml";
-if (!trackedFiles.includes(RELEASE_WORKFLOW)) {
-  err(`release workflow is not tracked: ${RELEASE_WORKFLOW}`);
-} else {
-  const wf = readFileSync(RELEASE_WORKFLOW, "utf8");
-  // Trigger must be workflow_dispatch only.
+const RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.2-rc.yml";
+
+/** Shared manual-gate policy applied to every dedicated release workflow. */
+function checkReleaseWorkflowCommon(path, confirmation) {
+  if (!trackedFiles.includes(path)) {
+    err(`release workflow is not tracked: ${path}`);
+    return null;
+  }
+  const wf = readFileSync(path, "utf8");
   if (!/^on:\s*\n\s+workflow_dispatch:/m.test(wf)) {
-    err(`${RELEASE_WORKFLOW} must trigger on workflow_dispatch only`);
+    err(`${path} must trigger on workflow_dispatch only`);
   }
   for (const forbiddenTrigger of ["\n  push:", "\n  pull_request:", "\n  schedule:", "\n  release:"]) {
     if (wf.includes(forbiddenTrigger)) {
-      err(`${RELEASE_WORKFLOW} must not use trigger "${forbiddenTrigger.trim()}"`);
+      err(`${path} must not use trigger "${forbiddenTrigger.trim()}"`);
     }
   }
-  // Top-level read permission; publish job write permission and env gate.
   if (!/^permissions:\s*\n\s+contents:\s*read\s*$/m.test(wf)) {
-    err(`${RELEASE_WORKFLOW} must declare top-level permissions: contents: read`);
+    err(`${path} must declare top-level permissions: contents: read`);
   }
   if (!wf.includes("contents: write")) {
-    err(`${RELEASE_WORKFLOW} publish job must declare contents: write`);
+    err(`${path} publish job must declare contents: write`);
   }
   if (!/if:\s*\$\{\{\s*inputs\.publish\s*==\s*true\s*\}\}/.test(wf)) {
-    err(`${RELEASE_WORKFLOW} publish job must be gated on inputs.publish == true`);
+    err(`${path} publish job must be gated on inputs.publish == true`);
   }
   if (!/name:\s*github-release/.test(wf)) {
-    err(`${RELEASE_WORKFLOW} publish job must use the github-release environment`);
+    err(`${path} publish job must use the github-release environment`);
   }
-  if (!wf.includes("RELEASE v0.1.0")) {
-    err(`${RELEASE_WORKFLOW} must enforce the exact confirmation string RELEASE v0.1.0`);
+  if (!wf.includes(confirmation)) {
+    err(`${path} must enforce the exact confirmation string ${confirmation}`);
+  }
+  // No registry publishing verb may appear in any release workflow.
+  for (const registryVerb of ["npm publish", "pnpm publish", "cargo publish", "yarn publish"]) {
+    if (wf.includes(registryVerb)) {
+      err(`${path} must not contain a registry publish verb: "${registryVerb}"`);
+    }
+  }
+  return wf;
+}
+
+checkReleaseWorkflowCommon(RELEASE_WORKFLOW, "RELEASE v0.1.0");
+
+// The v0.2 RC workflow adds RC-specific invariants.
+const rcWf = checkReleaseWorkflowCommon(RC_RELEASE_WORKFLOW, "RELEASE v0.2.0-rc.1");
+if (rcWf !== null) {
+  // Exact version gate on the input.
+  if (!rcWf.includes('!= "0.2.0-rc.1"')) {
+    err(`${RC_RELEASE_WORKFLOW} must gate on the exact version 0.2.0-rc.1`);
+  }
+  // version.json must be checked against the input version.
+  if (!rcWf.includes("require('./version.json').version") && !rcWf.includes('require("./version.json").version')) {
+    err(`${RC_RELEASE_WORKFLOW} must verify version.json equals the input version`);
+  }
+  // Prerelease, never latest.
+  if (!rcWf.includes("--prerelease")) {
+    err(`${RC_RELEASE_WORKFLOW} must create the release with --prerelease`);
+  }
+  if (rcWf.includes("--latest")) {
+    err(`${RC_RELEASE_WORKFLOW} must never use --latest`);
+  }
+  if (!/isPrerelease\s*!==\s*true/.test(rcWf)) {
+    err(`${RC_RELEASE_WORKFLOW} must verify the published release isPrerelease === true`);
+  }
+  // Existence refusal before creating tag/release.
+  if (!rcWf.includes("refusing to overwrite")) {
+    err(`${RC_RELEASE_WORKFLOW} must refuse when the tag or release already exists`);
+  }
+  // Exactly the three RC assets are created.
+  for (const asset of [
+    "oh-my-pm-v0.2.0-rc.1.tar.gz",
+    "oh-my-pm-v0.2.0-rc.1.zip",
+    "oh-my-pm-v0.2.0-rc.1-SHA256SUMS.txt",
+  ]) {
+    if (!rcWf.includes(asset)) {
+      err(`${RC_RELEASE_WORKFLOW} must reference the RC asset: ${asset}`);
+    }
   }
 }
 
-// GitHub-Release / tag-publish verbs are confined to the release workflow, its
-// documentation, and its dedicated test/tool scope. No package or general tool
+// GitHub-Release / tag-publish verbs are confined to the release workflows, their
+// documentation, and their dedicated test/tool scope. No package or general tool
 // source may create tags or GitHub Releases.
 const RELEASE_PUBLISH_MARKERS = ["gh release create", "softprops/action-gh-release"];
 const RELEASE_PUBLISH_ALLOWED = new Set([
   RELEASE_WORKFLOW,
+  RC_RELEASE_WORKFLOW,
   "docs/releases/publishing-v0.1.0.md",
+  "docs/releases/publishing-v0.2.0-rc.1.md",
   "docs/releases/v0.1.0.md",
   "tools/validate-boundaries.mjs",
   "tools/validate-structure.mjs",

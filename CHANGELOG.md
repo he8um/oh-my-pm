@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.2.0-rc.1] - 2026-07-24
+
+First `v0.2` release candidate (prerelease). Prepared on `main`; not published.
+
 ### Added
 
 - Explicit, bounded pull-request review submissions and inline review comments for GitHub item workflows in CLI and MCP (`--include-reviews` / `--review-limit` and `--include-review-comments` / `--review-comment-limit`, and `includeReviews` / `reviewLimit` / `includeReviewComments` / `reviewCommentLimit` for the MCP GitHub tools). Disabled by default, available only for the `item` source and only when the item is a pull request, one page of at most 20 each, and never fetching timeline events, thread resolution, reactions, diffs, files, or commits. See [docs/providers/github-pr-reviews.md](docs/providers/github-pr-reviews.md).
@@ -31,6 +35,12 @@
 - Risk and next-task output includes optional public provenance, ownership, due-date, and priority metadata.
 - GitHub CLI and MCP workflows may resolve repository and limit defaults from provider configuration.
 - Live GitHub CLI and MCP workflows read the current time once at the process/tool-call boundary so overdue classification stays correct; local workflows keep a fixed deterministic clock.
+- Centralized the GitHub list limit constants (minimum 1, default 50, maximum 100) into one canonical source imported by provider configuration, effective settings, the source-selection resolver, and the CLI parser; the `DEFAULT_GITHUB_PROVIDER_LIMIT` and `GITHUB_CLI_DEFAULT_LIMIT` compatibility aliases are retained. Behavior-preserving; no numeric value, flag, error, or schema changed.
+
+### Hardening and validation
+
+- Cross-platform release-install CI parity: the Windows release-install job (like the POSIX job) verifies that a release installation survives deleting the extracted source bundle and moving the complete installed prefix, re-running the installed CLI and read-only installed-state verification (which exercises the installed MCP) after each operation.
+- Controlled, read-only live GitHub smoke through the installed portable artifact: the tokenless provider/CLI flows (status, doctor, repository, issues, search, and a bounded live pull-request discussion) and the installed stdio MCP live workflows (all four GitHub tools, exact ten-tool order) passed with bounded, sanitized projections and no forbidden discussion data (no bodies, diff hunks, or commit identifiers). The authenticated smoke was not run because no token was available.
 
 ### Fixed
 
@@ -62,3 +72,6 @@
 - No telemetry
 - No HTTP MCP transport
 - No external provider integration in v0.1.0
+
+[Unreleased]: https://github.com/he8um/oh-my-pm/compare/v0.2.0-rc.1...HEAD
+[0.2.0-rc.1]: https://github.com/he8um/oh-my-pm/compare/v0.1.0...v0.2.0-rc.1

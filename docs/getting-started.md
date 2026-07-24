@@ -2,7 +2,7 @@
 
 ## What this version is
 
-This is a local alpha of OH MY PM. It is installed from the repository, not from a package registry — the workspace packages remain private and unpublished. The CLI and the MCP server are both read-only: they analyze local Markdown project documents and never modify project files. No external integration is required, and no project context is uploaded and no telemetry is emitted.
+This is the `v0.2` line of OH MY PM; the first release candidate `0.2.0-rc.1` has been prepared (not yet published — `v0.1.0` remains the latest stable release). It is installed from the repository or a release archive, not from a package registry — the workspace packages remain private and unpublished. The CLI and the MCP server are both read-only: they analyze local Markdown project documents and never modify project files. No external integration is required, and no project context is uploaded and no telemetry is emitted.
 
 There are two ways to run OH MY PM:
 
@@ -227,19 +227,19 @@ Each archive expands to a single `oh-my-pm-v0.1.0/` directory. See [the v0.1.0 r
 
 ## Building a development bundle from main
 
-`main` may contain unreleased `0.2.0-alpha.0` work. Contributors can assemble a self-contained, versioned bundle whose name is derived from `version.json`:
+The `v0.2` scope is frozen and the candidate version is `0.2.0-rc.1` (prepared, not published). Contributors can assemble a self-contained, versioned bundle whose name is derived from `version.json`:
 
 ```bash
 pnpm build
 pnpm release:bundle -- --output .release --apply
 ```
 
-This produces `.release/oh-my-pm-v0.2.0-alpha.0/`, which is movable anywhere and runs standalone on Node.js 20+:
+This produces `.release/oh-my-pm-v0.2.0-rc.1/`, which is movable anywhere and runs standalone on Node.js 20+:
 
 ```bash
-node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm.mjs status
-node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm.mjs brief ./project --markdown
-node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm-mcp.mjs
+node ./oh-my-pm-v0.2.0-rc.1/bin/oh-my-pm.mjs status
+node ./oh-my-pm-v0.2.0-rc.1/bin/oh-my-pm.mjs brief ./project --markdown
+node ./oh-my-pm-v0.2.0-rc.1/bin/oh-my-pm-mcp.mjs
 ```
 
 Every portable bundle contains a complete, prebuilt Node-loadable Rust/WASM Kernel binding (the JS glue, the WASM binary, and a CommonJS manifest). End users need only Node.js 20+ — no Rust toolchain and no `wasm-bindgen`. Bundle assembly validates and stages that binding identically on Ubuntu, macOS, and Windows; installation copies the already verified bundle and never rebuilds the Kernel. The generated binding is build output and is never committed to the repository.
@@ -247,11 +247,11 @@ Every portable bundle contains a complete, prebuilt Node-loadable Rust/WASM Kern
 The bundle can also be packaged into deterministic archives, verified for reproducibility:
 
 ```bash
-pnpm release:archives -- --bundle .release/oh-my-pm-v0.2.0-alpha.0 --output .release --apply
+pnpm release:archives -- --bundle .release/oh-my-pm-v0.2.0-rc.1 --output .release --apply
 pnpm release:archives:check -- --assets .release
 ```
 
-Development builds of `0.2.0-alpha.0` are not published; only the stable `v0.1.0` release has public downloads.
+`0.2.0-rc.1` is not published; only the stable `v0.1.0` release has public downloads until the candidate is explicitly released.
 
 > **Temporary-workspace safety.** Development and verification commands must clean only a uniquely created OH MY PM workspace. Never delete the parent of an installation prefix or the shared system temporary directory. When scripting an end-to-end check, create one owned root (for example `mktemp -d "${TMPDIR:-/tmp}/oh-my-pm-e2e.XXXXXX"`), place every generated path beneath it, and remove only that exact root. Deleting the inferred parent of a generated prefix is unsafe: when the prefix sits directly under the system temp directory, its parent is the shared temp root.
 
@@ -261,18 +261,18 @@ There are three distinct ways to run OH MY PM, in increasing independence from a
 
 1. **Stable v0.1.0 manual archive** — download, verify checksums, extract, and run `node ./oh-my-pm-v0.1.0/bin/*.mjs` directly (see above). v0.1 has no installer; its immutable archive predates this feature.
 2. **Repository-development install** — from a checkout, `pnpm local:install -- --prefix <prefix> --apply` writes four shims that point back into the repository (see [Apply local installation](#apply-local-installation)).
-3. **v0.2 development bundle self-installation** — extract a portable `0.2.0-alpha.0` bundle and run its own installer, which copies a complete, versioned, source-independent installation into an explicit prefix.
+3. **v0.2 development bundle self-installation** — extract a portable `0.2.0-rc.1` bundle and run its own installer, which copies a complete, versioned, source-independent installation into an explicit prefix.
 
 The third path uses the installer shipped inside every current bundle:
 
 ```bash
-tar -xzf oh-my-pm-v0.2.0-alpha.0.tar.gz          # or: unzip oh-my-pm-v0.2.0-alpha.0.zip
+tar -xzf oh-my-pm-v0.2.0-rc.1.tar.gz          # or: unzip oh-my-pm-v0.2.0-rc.1.zip
 
 # Preview writes nothing and requires an explicit --prefix.
-node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local"
+node ./oh-my-pm-v0.2.0-rc.1/bin/oh-my-pm-install.mjs --prefix "$HOME/.local"
 
 # Apply installs the versioned copy and the four command shims.
-node ./oh-my-pm-v0.2.0-alpha.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local" --apply
+node ./oh-my-pm-v0.2.0-rc.1/bin/oh-my-pm-install.mjs --prefix "$HOME/.local" --apply
 
 export PATH="$HOME/.local/bin:$PATH"                # add it yourself; the installer never edits PATH
 

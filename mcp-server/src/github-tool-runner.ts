@@ -32,7 +32,7 @@ import type {
 // tools resolve the invocation timestamp once at the tool-call boundary; the
 // fixed value below is an explicitly named test fixture only, never the
 // production default. Overdue classification uses the resolved invocation time.
-export const MCP_GITHUB_RUNTIME_VERSION = "0.2.0-alpha.0";
+export const MCP_GITHUB_RUNTIME_VERSION = "0.2.0-rc.1";
 /** Fixed timestamp for deterministic tests only; not a production default. */
 export const MCP_GITHUB_TEST_NOW = "2026-01-01T00:00:00.000Z";
 export const MCP_GITHUB_DEFAULT_LIMIT = 50;

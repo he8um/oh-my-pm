@@ -1,0 +1,292 @@
+name: Release v0.2 RC
+
+# Manually gated release-candidate workflow for the v0.2 line. It builds and
+# verifies the exact 0.2.0-rc.1 portable artifact and, only on an explicitly
+# confirmed and environment-approved publish run, creates an immutable GitHub
+# PRERELEASE. It publishes to no registry and never marks the release "latest".
+#
+# Manually triggered only. There is no push, pull_request, release, schedule, or
+# tag trigger. The prepare job cannot write repository contents; only the gated
+# publish job receives contents: write, and only when publish == true with the
+# exact confirmation and the protected github-release environment approval.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Canonical version without v prefix
+        required: true
+        default: "0.2.0-rc.1"
+        type: string
+      publish:
+        description: Create the Git tag and prerelease GitHub Release after validation
+        required: true
+        default: false
+        type: boolean
+      confirmation:
+        description: Type RELEASE v0.2.0-rc.1 when publish is enabled
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oh-my-pm-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare release-candidate assets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Enforce main branch
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Release v0.2 RC must run from refs/heads/main (got $GITHUB_REF)" >&2
+            exit 1
+          fi
+
+      - name: Enforce version and confirmation gates
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$INPUT_VERSION" != "0.2.0-rc.1" ]; then
+            echo "Only version 0.2.0-rc.1 is accepted by this workflow (got $INPUT_VERSION)" >&2
+            exit 1
+          fi
+          if [ "$INPUT_PUBLISH" = "true" ] && [ "$INPUT_CONFIRMATION" != "RELEASE v0.2.0-rc.1" ]; then
+            echo "publish requires confirmation exactly equal to: RELEASE v0.2.0-rc.1" >&2
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Enforce version.json equals the input version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          FILE_VERSION="$(node -p "require('./version.json').version")"
+          if [ "$FILE_VERSION" != "$INPUT_VERSION" ]; then
+            echo "version.json ($FILE_VERSION) does not equal input version ($INPUT_VERSION)" >&2
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.4.0
+        with:
+          version: 9.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy, rustfmt
+
+      - name: Install wasm-bindgen CLI
+        run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build contracts
+        run: pnpm build:contracts
+
+      - name: Build kernel
+        run: pnpm build:kernel
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Validate
+        run: pnpm validate
+
+      - name: MCP smoke
+        run: pnpm mcp:smoke
+
+      - name: Build and verify portable bundle
+        run: |
+          BUNDLE_OUT="$RUNNER_TEMP/bundle"
+
+          node tools/build-release-bundle.mjs \
+            --output "$BUNDLE_OUT" \
+            --apply
+
+          node tools/check-release-bundle.mjs \
+            --bundle "$BUNDLE_OUT/oh-my-pm-v0.2.0-rc.1"
+
+      - name: Build and verify deterministic archives
+        run: |
+          BUNDLE_DIR="$RUNNER_TEMP/bundle/oh-my-pm-v0.2.0-rc.1"
+          ASSETS_DIR="$RUNNER_TEMP/release-assets"
+
+          node tools/build-release-archives.mjs \
+            --bundle "$BUNDLE_DIR" \
+            --output "$ASSETS_DIR" \
+            --apply
+
+          node tools/check-release-archives.mjs \
+            --assets "$ASSETS_DIR"
+
+          node tools/check-release-archive-reproducibility.mjs \
+            --bundle "$BUNDLE_DIR"
+
+      - name: Verify installer preview, apply, source-removal, and relocation
+        run: |
+          VERSION="0.2.0-rc.1"
+          BUNDLE_HOME="$RUNNER_TEMP/install-bundle"
+          PREFIX="$RUNNER_TEMP/install-prefix"
+          MOVED_PREFIX="$RUNNER_TEMP/install-prefix-moved"
+          # Move the verified bundle out of the build tree, then install from it.
+          mkdir -p "$BUNDLE_HOME"
+          cp -R "$RUNNER_TEMP/bundle/oh-my-pm-v$VERSION" "$BUNDLE_HOME/oh-my-pm-v$VERSION"
+          BUNDLE="$BUNDLE_HOME/oh-my-pm-v$VERSION"
+          # Preview must create no prefix.
+          node "$BUNDLE/bin/oh-my-pm-install.mjs" --prefix "$PREFIX"
+          test ! -e "$PREFIX"
+          # Apply and verify installed state.
+          node "$BUNDLE/bin/oh-my-pm-install.mjs" --prefix "$PREFIX" --apply
+          node tools/check-release-install.mjs --prefix "$PREFIX" --expected-version "$VERSION"
+          # Source-bundle independence: remove the extracted bundle; installed
+          # CLI and full installed-state verification (CLI + MCP) must still work.
+          rm -rf "$BUNDLE_HOME"
+          test ! -e "$BUNDLE_HOME"
+          "$PREFIX/bin/oh-my-pm" status
+          node tools/check-release-install.mjs --prefix "$PREFIX" --expected-version "$VERSION"
+          # Prefix relocation: move the whole prefix; relocated CLI and full
+          # installed-state verification must still work.
+          mv "$PREFIX" "$MOVED_PREFIX"
+          test ! -e "$PREFIX"
+          "$MOVED_PREFIX/bin/oh-my-pm" status
+          node tools/check-release-install.mjs --prefix "$MOVED_PREFIX" --expected-version "$VERSION"
+
+      - name: Print archive checksums to summary
+        run: |
+          {
+            echo "### OH MY PM v0.2.0-rc.1 release archive checksums"
+            echo ""
+            echo '```'
+            cat "$RUNNER_TEMP/release-assets/oh-my-pm-v0.2.0-rc.1-SHA256SUMS.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload release assets artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: oh-my-pm-v0.2.0-rc.1-release-assets
+          path: |
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.2.0-rc.1.tar.gz
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.2.0-rc.1.zip
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.2.0-rc.1-SHA256SUMS.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  publish:
+    name: Publish GitHub prerelease
+    needs: prepare
+    if: ${{ inputs.publish == true }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-release
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: oh-my-pm-v0.2.0-rc.1-release-assets
+          path: release-assets
+
+      - name: Re-verify archive checksums
+        run: |
+          cd release-assets
+          sha256sum -c oh-my-pm-v0.2.0-rc.1-SHA256SUMS.txt
+
+      - name: Ensure release notes exist
+        run: test -f docs/releases/v0.2.0-rc.1.md
+
+      - name: Ensure tag and release do not already exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=v0.2.0-rc.1
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists on origin; refusing to overwrite" >&2
+            exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "GitHub Release $TAG already exists; refusing to overwrite" >&2
+            exit 1
+          fi
+
+      - name: Create GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v0.2.0-rc.1" \
+            "release-assets/oh-my-pm-v0.2.0-rc.1.tar.gz" \
+            "release-assets/oh-my-pm-v0.2.0-rc.1.zip" \
+            "release-assets/oh-my-pm-v0.2.0-rc.1-SHA256SUMS.txt" \
+            --target "$GITHUB_SHA" \
+            --title "OH MY PM v0.2.0-rc.1" \
+            --notes-file "docs/releases/v0.2.0-rc.1.md" \
+            --prerelease
+
+      - name: Verify published prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          META="$(gh release view v0.2.0-rc.1 --json tagName,isDraft,isPrerelease,assets)"
+          echo "$META"
+          echo "$META" | node -e '
+            const meta = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+            const expected = [
+              "oh-my-pm-v0.2.0-rc.1-SHA256SUMS.txt",
+              "oh-my-pm-v0.2.0-rc.1.tar.gz",
+              "oh-my-pm-v0.2.0-rc.1.zip",
+            ].sort();
+            const names = (meta.assets || []).map((a) => a.name).sort();
+            if (meta.tagName !== "v0.2.0-rc.1") { console.error("bad tag"); process.exit(1); }
+            if (meta.isDraft !== false) { console.error("draft must be false"); process.exit(1); }
+            if (meta.isPrerelease !== true) { console.error("prerelease must be true"); process.exit(1); }
+            if (JSON.stringify(names) !== JSON.stringify(expected)) { console.error("asset mismatch"); process.exit(1); }
+          '
+
+      - name: Revalidate published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DL="$RUNNER_TEMP/published"
+          mkdir -p "$DL"
+          gh release download v0.2.0-rc.1 --dir "$DL"
+          cd "$DL"
+          sha256sum -c oh-my-pm-v0.2.0-rc.1-SHA256SUMS.txt
+
+      - name: Print release URL to summary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          URL="$(gh release view v0.2.0-rc.1 --json url --jq .url)"
+          echo "Published prerelease: $URL" >> "$GITHUB_STEP_SUMMARY"

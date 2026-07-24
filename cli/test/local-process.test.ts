@@ -21,8 +21,8 @@ describe("runLocalCliProcess", () => {
   it("reports the current version and kernel version for status", async () => {
     const result = await runLocalCliProcess(["status"]);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("version: 0.2.0-alpha.0");
-    expect(result.stdout).toContain("kernel: 0.2.0-alpha.0");
+    expect(result.stdout).toContain("version: 0.2.0-rc.1");
+    expect(result.stdout).toContain("kernel: 0.2.0-rc.1");
   });
 
   it("matches the repository bin output for status", async () => {

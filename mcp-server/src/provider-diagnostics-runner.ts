@@ -27,7 +27,7 @@ import {
 import type { GitHubHttpTransport, ResolvedProviderConfig } from "@oh-my-pm/providers";
 import { readGitHubTokenFromEnvironment } from "@oh-my-pm/cli";
 
-export const MCP_PROVIDER_DIAGNOSTICS_VERSION = "0.2.0-alpha.0";
+export const MCP_PROVIDER_DIAGNOSTICS_VERSION = "0.2.0-rc.1";
 
 export type McpProviderDiagnosticsOptions = {
   /** Injected transport wins so tests stay offline. */
