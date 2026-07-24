@@ -25,6 +25,10 @@ const GITHUB_CLI_MIN_LIMIT = 1;
 const GITHUB_CLI_MAX_LIMIT = 100;
 const GITHUB_CLI_MIN_COMMENT_LIMIT = 1;
 const GITHUB_CLI_MAX_COMMENT_LIMIT = 50;
+const GITHUB_CLI_MIN_REVIEW_LIMIT = 1;
+const GITHUB_CLI_MAX_REVIEW_LIMIT = 20;
+const GITHUB_CLI_MIN_REVIEW_COMMENT_LIMIT = 1;
+const GITHUB_CLI_MAX_REVIEW_COMMENT_LIMIT = 20;
 const GITHUB_OPERATIONS: readonly GitHubCliOperation[] = ["brief", "risks", "next", "handoff"];
 const PROVIDERS_SUBCOMMANDS: readonly ProvidersSubcommand[] = ["status", "doctor"];
 
@@ -101,6 +105,10 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
   let query: string | null = null;
   let includeComments: boolean | null = null;
   let commentLimit: number | null = null;
+  let includeReviews: boolean | null = null;
+  let reviewLimit: number | null = null;
+  let includeReviewComments: boolean | null = null;
+  let reviewCommentLimit: number | null = null;
   let outputMode: CliOutputMode = "brief";
 
   for (let i = 0; i < rest.length; i += 1) {
@@ -210,6 +218,70 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
       i += 1;
       continue;
     }
+    if (arg === "--include-reviews") {
+      if (includeReviews !== null) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "duplicate --include-reviews" };
+      }
+      includeReviews = true;
+      continue;
+    }
+    if (arg === "--review-limit") {
+      if (reviewLimit !== null) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "duplicate --review-limit" };
+      }
+      const value = rest[i + 1];
+      if (value === undefined || value.startsWith("--")) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--review-limit requires a value" };
+      }
+      if (!/^[0-9]+$/.test(value)) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--review-limit must be an integer" };
+      }
+      const parsed = Number(value);
+      if (parsed < GITHUB_CLI_MIN_REVIEW_LIMIT || parsed > GITHUB_CLI_MAX_REVIEW_LIMIT) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--review-limit must be in 1..20" };
+      }
+      reviewLimit = parsed;
+      i += 1;
+      continue;
+    }
+    if (arg === "--include-review-comments") {
+      if (includeReviewComments !== null) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "duplicate --include-review-comments" };
+      }
+      includeReviewComments = true;
+      continue;
+    }
+    if (arg === "--review-comment-limit") {
+      if (reviewCommentLimit !== null) {
+        return { ok: false, code: OMP_C_INVALID_OPTION, message: "duplicate --review-comment-limit" };
+      }
+      const value = rest[i + 1];
+      if (value === undefined || value.startsWith("--")) {
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "--review-comment-limit requires a value",
+        };
+      }
+      if (!/^[0-9]+$/.test(value)) {
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "--review-comment-limit must be an integer",
+        };
+      }
+      const parsed = Number(value);
+      if (parsed < GITHUB_CLI_MIN_REVIEW_COMMENT_LIMIT || parsed > GITHUB_CLI_MAX_REVIEW_COMMENT_LIMIT) {
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "--review-comment-limit must be in 1..20",
+        };
+      }
+      reviewCommentLimit = parsed;
+      i += 1;
+      continue;
+    }
     if (arg === "--limit") {
       if (limit !== null) {
         return { ok: false, code: OMP_C_INVALID_OPTION, message: "duplicate --limit" };
@@ -272,6 +344,10 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
   if (query !== null) result.query = query;
   if (includeComments !== null) result.includeComments = includeComments;
   if (commentLimit !== null) result.commentLimit = commentLimit;
+  if (includeReviews !== null) result.includeReviews = includeReviews;
+  if (reviewLimit !== null) result.reviewLimit = reviewLimit;
+  if (includeReviewComments !== null) result.includeReviewComments = includeReviewComments;
+  if (reviewCommentLimit !== null) result.reviewCommentLimit = reviewCommentLimit;
   return result;
 }
 

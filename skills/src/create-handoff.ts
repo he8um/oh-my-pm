@@ -13,7 +13,16 @@ import {
   collectMarkdownUncheckedTasks,
   inferMarkdownProjectTitle,
 } from "./markdown-project.js";
-import { classifyGitHubCommentRisks, classifyGitHubCommentTasks } from "./project-signals.js";
+import {
+  classifyGitHubCommentRisks,
+  classifyGitHubCommentTasks,
+  classifyGitHubReviewCommentRisks,
+  classifyGitHubReviewCommentTasks,
+  classifyGitHubReviewRisks,
+  classifyGitHubReviewTasks,
+  isGitHubReviewCommentItem,
+  isGitHubReviewItem,
+} from "./project-signals.js";
 import type { HandoffResult, Skill, TextItem } from "./types.js";
 
 const MAX_SECTION_ITEMS = 5;
@@ -27,10 +36,46 @@ function isGitHubCommentItem(item: TextItem): boolean {
   );
 }
 
+/** Any bounded GitHub discussion note (comment, review, or review comment). */
+function isDiscussionNote(item: TextItem): boolean {
+  return isGitHubCommentItem(item) || isGitHubReviewItem(item) || isGitHubReviewCommentItem(item);
+}
+
 /** Prefix a comment-derived line with its author, e.g. `@alice: text`. */
 function commentPrefixed(item: TextItem, text: string): string {
   const author = (item.author ?? "").trim();
   return author === "" ? text : `@${author}: ${text}`;
+}
+
+/**
+ * Prefix a review/review-comment-derived line with its author and, for a review
+ * comment, its file provenance: `@alice [src/file.ts:42]: text`, or without the
+ * line, `@alice [src/file.ts]: text`. A review has no file provenance.
+ */
+function reviewPrefixed(item: TextItem, text: string): string {
+  const author = (item.author ?? "").trim();
+  const at = author === "" ? "" : `@${author}`;
+  let provenance = "";
+  if (isGitHubReviewCommentItem(item) && item.filePath !== undefined && item.filePath !== "") {
+    provenance =
+      item.line !== undefined ? ` [${item.filePath}:${item.line}]` : ` [${item.filePath}]`;
+  }
+  const prefix = `${at}${provenance}`.trim();
+  return prefix === "" ? text : `${prefix}: ${text}`;
+}
+
+/**
+ * The state-derived decision line for a review, or null. Approved and dismissed
+ * reviews contribute decisions on any parent state; changes-requested reviews
+ * never contribute a decision (they surface through Risks/Open Tasks instead).
+ */
+function reviewStateDecision(item: TextItem): string | null {
+  if (!isGitHubReviewItem(item)) return null;
+  const author = (item.author ?? "unknown").trim();
+  const state = (item.reviewState ?? "").trim().toLowerCase();
+  if (state === "approved") return `@${author} approved the pull request`;
+  if (state === "dismissed") return `@${author} review was dismissed`;
+  return null;
 }
 
 // Normalized Markdown heading aliases per handoff section. Summary blends the
@@ -94,9 +139,10 @@ function openTasks(parsed: {
   items?: TextItem[];
 }): string[] {
   const items = parsed.items ?? [];
-  // Comments are handled separately (author-prefixed); exclude them from the
-  // document-level checkbox/operational scans so they are not double-counted.
-  const documentItems = items.filter((item) => !isGitHubCommentItem(item));
+  // Discussion notes (comments, reviews, review comments) are handled separately
+  // (author-prefixed); exclude them from the document-level checkbox/operational
+  // scans so they are not double-counted.
+  const documentItems = items.filter((item) => !isDiscussionNote(item));
   const titles: string[] = [];
   const seenText = new Set<string>();
   const seenIds = new Set<string>();
@@ -122,11 +168,24 @@ function openTasks(parsed: {
       add(item.id, item.title);
     }
   }
-  // Comment-derived action items last, author-prefixed and bounded.
+  // Discussion-derived action items last, author-prefixed and bounded, in the
+  // canonical group order: comments, then reviews, then review comments.
   for (const item of items) {
     if (!isGitHubCommentItem(item)) continue;
     for (const task of classifyGitHubCommentTasks(item)) {
       add(task.id, commentPrefixed(item, task.title));
+    }
+  }
+  for (const item of items) {
+    if (!isGitHubReviewItem(item)) continue;
+    for (const task of classifyGitHubReviewTasks(item)) {
+      add(task.id, reviewPrefixed(item, task.title));
+    }
+  }
+  for (const item of items) {
+    if (!isGitHubReviewCommentItem(item)) continue;
+    for (const task of classifyGitHubReviewCommentTasks(item)) {
+      add(task.id, reviewPrefixed(item, task.title));
     }
   }
   return titles;
@@ -142,31 +201,67 @@ function declaredThenMarkdown(
 ): string[] {
   const collected: string[] = [];
   const seen = new Set<string>();
-  // Comments contribute only through the author-prefixed pass below; the
-  // document-level section scan must not see them (no double-counting).
-  const documentItems = items.filter((item) => !isGitHubCommentItem(item));
+  // Discussion notes contribute only through the author-prefixed passes below;
+  // the document-level section scan must not see them (no double-counting).
+  const documentItems = items.filter((item) => !isDiscussionNote(item));
   for (const entry of explicit ?? []) {
     pushDeduped(collected, seen, entry.title);
   }
   for (const text of collectMarkdownSectionItems(documentItems, headings)) {
     pushDeduped(collected, seen, text);
   }
-  if (commentSection !== null) {
+  if (commentSection === "risks") {
+    // Comments, then reviews, then review comments — author/file-prefixed risks.
     for (const item of items) {
       if (!isGitHubCommentItem(item)) continue;
-      if (commentSection === "risks") {
-        for (const risk of classifyGitHubCommentRisks(item)) {
-          pushDeduped(collected, seen, commentPrefixed(item, risk.title));
-        }
-      } else {
-        // Decisions: only recognized decision-heading content from the comment.
-        for (const text of collectMarkdownSectionItems([item], headings)) {
-          pushDeduped(collected, seen, commentPrefixed(item, text));
-        }
+      for (const risk of classifyGitHubCommentRisks(item)) {
+        pushDeduped(collected, seen, commentPrefixed(item, risk.title));
+      }
+    }
+    for (const item of items) {
+      if (!isGitHubReviewItem(item)) continue;
+      for (const risk of classifyGitHubReviewRisks(item)) {
+        pushDeduped(collected, seen, reviewPrefixed(item, risk.title));
+      }
+    }
+    for (const item of items) {
+      if (!isGitHubReviewCommentItem(item)) continue;
+      for (const risk of classifyGitHubReviewCommentRisks(item)) {
+        pushDeduped(collected, seen, reviewPrefixed(item, risk.title));
+      }
+    }
+  } else if (commentSection === "decisions") {
+    // Comments: recognized decision-heading content only.
+    for (const item of items) {
+      if (!isGitHubCommentItem(item)) continue;
+      for (const text of collectMarkdownSectionItems([item], headings)) {
+        pushDeduped(collected, seen, commentPrefixed(item, text));
+      }
+    }
+    // Reviews: state decision (approved/dismissed) first, then decision-heading
+    // content from the review body.
+    for (const item of items) {
+      if (!isGitHubReviewItem(item)) continue;
+      const stateDecision = reviewStateDecision(item);
+      if (stateDecision !== null) pushDeduped(collected, seen, stateDecision);
+      for (const text of collectMarkdownSectionItems([reviewDocument(item)], headings)) {
+        pushDeduped(collected, seen, reviewPrefixed(item, text));
+      }
+    }
+    // Review comments: recognized decision-heading content only.
+    for (const item of items) {
+      if (!isGitHubReviewCommentItem(item)) continue;
+      for (const text of collectMarkdownSectionItems([reviewDocument(item)], headings)) {
+        pushDeduped(collected, seen, reviewPrefixed(item, text));
       }
     }
   }
   return collected;
+}
+
+/** A review/review-comment TextItem as a Markdown document (its body only). */
+function reviewDocument(item: TextItem): TextItem {
+  return { id: item.id, title: item.title, body: item.body ?? "" };
 }
 
 export function createHandoffSkill(): Skill {
@@ -195,9 +290,10 @@ export function createHandoffSkill(): Skill {
       }
 
       const items = parsed.items ?? [];
-      // Comments are conversation context, not project documents: they never
-      // influence the title, Summary, or top-level Markdown section inference.
-      const documentItems = items.filter((item) => !isGitHubCommentItem(item));
+      // Discussion notes (comments, reviews, review comments) are conversation
+      // context, not project documents: they never influence the title, Summary,
+      // or top-level Markdown section inference.
+      const documentItems = items.filter((item) => !isDiscussionNote(item));
 
       // Title: a Markdown project title from the first document wins, then an
       // explicit title, then a fixed fallback. The Runtime request string is

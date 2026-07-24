@@ -100,6 +100,10 @@ describe("resolveGitHubSourceSelection — item", () => {
         number: 123,
         includeComments: false,
         commentLimit: 20,
+        includeReviews: false,
+        reviewLimit: 10,
+        includeReviewComments: false,
+        reviewCommentLimit: 10,
       });
     else throw new Error("expected ok");
   });
@@ -256,11 +260,20 @@ describe("createGitHubProviderRequest", () => {
     expect(prs.query).toBe("owner/repo::source=pull-requests&state=open");
   });
 
-  it("maps item to a fetch request with limit 1 when comments are disabled", () => {
-    const req = createGitHubProviderRequest({
-      repository: repo,
-      selection: { mode: "item", number: 42, includeComments: false, commentLimit: 20 },
-    });
+  const itemSelection = (over: Record<string, unknown>) => ({
+    mode: "item" as const,
+    number: 42,
+    includeComments: false,
+    commentLimit: 20,
+    includeReviews: false,
+    reviewLimit: 10,
+    includeReviewComments: false,
+    reviewCommentLimit: 10,
+    ...over,
+  });
+
+  it("maps item to a fetch request with limit 1 when all optional context is disabled", () => {
+    const req = createGitHubProviderRequest({ repository: repo, selection: itemSelection({}) });
     expect(req).toStrictEqual({
       providerId: "github",
       action: "fetch",
@@ -272,7 +285,7 @@ describe("createGitHubProviderRequest", () => {
   it("maps item with comments to a fetch request with the comment query and limit 1+N", () => {
     const req = createGitHubProviderRequest({
       repository: repo,
-      selection: { mode: "item", number: 42, includeComments: true, commentLimit: 20 },
+      selection: itemSelection({ includeComments: true, commentLimit: 20 }),
     });
     expect(req).toStrictEqual({
       providerId: "github",
@@ -280,6 +293,41 @@ describe("createGitHubProviderRequest", () => {
       query: "owner/repo#42::comments=20",
       limit: 21,
     });
+  });
+
+  it("maps item with reviews and review comments to the canonical query and summed limit", () => {
+    const req = createGitHubProviderRequest({
+      repository: repo,
+      selection: itemSelection({
+        includeReviews: true,
+        reviewLimit: 10,
+        includeReviewComments: true,
+        reviewCommentLimit: 10,
+      }),
+    });
+    expect(req).toStrictEqual({
+      providerId: "github",
+      action: "fetch",
+      query: "owner/repo#42::reviews=10&review-comments=10",
+      limit: 21,
+    });
+  });
+
+  it("maps the maximum item selection to the 91-item ceiling", () => {
+    const req = createGitHubProviderRequest({
+      repository: repo,
+      selection: itemSelection({
+        includeComments: true,
+        commentLimit: 50,
+        includeReviews: true,
+        reviewLimit: 20,
+        includeReviewComments: true,
+        reviewCommentLimit: 20,
+      }),
+    });
+    // 1 primary + 50 comments + 20 reviews + 20 review comments = 91 (<= 100).
+    expect(req.limit).toBe(91);
+    expect(req.query).toBe("owner/repo#42::comments=50&reviews=20&review-comments=20");
   });
 
   it("maps search to a search request with encoded terms", () => {
@@ -368,5 +416,116 @@ describe("resolveGitHubSourceSelection — item comments", () => {
     // Defaults never carry comment options; overview stays valid with no comments.
     const r = resolve({ source: "overview" });
     expect(r.ok).toBe(true);
+  });
+});
+
+describe("resolveGitHubSourceSelection — reviews and review comments", () => {
+  it("reviews and review comments are disabled by default with default limits", () => {
+    const r = resolve({ source: "item", number: 5 });
+    expect(r.ok).toBe(true);
+    if (r.ok && r.selection.mode === "item") {
+      expect(r.selection.includeReviews).toBe(false);
+      expect(r.selection.reviewLimit).toBe(10);
+      expect(r.selection.includeReviewComments).toBe(false);
+      expect(r.selection.reviewCommentLimit).toBe(10);
+    }
+  });
+
+  it("--include-reviews enables reviews and defaults the limit to 10", () => {
+    const r = resolve({ source: "item", number: 5, includeReviews: true });
+    expect(r.ok).toBe(true);
+    if (r.ok && r.selection.mode === "item") {
+      expect(r.selection.includeReviews).toBe(true);
+      expect(r.selection.reviewLimit).toBe(10);
+    }
+  });
+
+  it("--include-review-comments enables review comments and defaults the limit to 10", () => {
+    const r = resolve({ source: "item", number: 5, includeReviewComments: true });
+    expect(r.ok).toBe(true);
+    if (r.ok && r.selection.mode === "item") {
+      expect(r.selection.includeReviewComments).toBe(true);
+      expect(r.selection.reviewCommentLimit).toBe(10);
+    }
+  });
+
+  it("accepts explicit review/review-comment limits (1 and 20)", () => {
+    for (const limit of [1, 20]) {
+      const r = resolve({
+        source: "item",
+        number: 5,
+        includeReviews: true,
+        reviewLimit: limit,
+        includeReviewComments: true,
+        reviewCommentLimit: limit,
+      });
+      expect(r.ok, `limit ${limit}`).toBe(true);
+      if (r.ok && r.selection.mode === "item") {
+        expect(r.selection.reviewLimit).toBe(limit);
+        expect(r.selection.reviewCommentLimit).toBe(limit);
+      }
+    }
+  });
+
+  it("rejects a review limit without --include-reviews", () => {
+    const r = resolve({ source: "item", number: 5, reviewLimit: 10 });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("github_review_limit_invalid");
+  });
+
+  it("rejects a review-comment limit without --include-review-comments", () => {
+    const r = resolve({ source: "item", number: 5, reviewCommentLimit: 10 });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("github_review_comment_limit_invalid");
+  });
+
+  it("rejects out-of-range review and review-comment limits", () => {
+    for (const limit of [0, 21, -1, 1.5]) {
+      const rv = resolve({ source: "item", number: 5, includeReviews: true, reviewLimit: limit });
+      expect(rv.ok, `review ${limit}`).toBe(false);
+      if (!rv.ok) expect(rv.code).toBe("github_review_limit_invalid");
+      const rc = resolve({
+        source: "item",
+        number: 5,
+        includeReviewComments: true,
+        reviewCommentLimit: limit,
+      });
+      expect(rc.ok, `review-comment ${limit}`).toBe(false);
+      if (!rc.ok) expect(rc.code).toBe("github_review_comment_limit_invalid");
+    }
+  });
+
+  it("rejects all review options for every non-item source", () => {
+    for (const source of ["overview", "repository", "issues", "pull-requests", "search"] as const) {
+      const base = source === "search" ? { source, query: "x" } : { source };
+      const cases: Array<[Record<string, unknown>, string]> = [
+        [{ ...base, includeReviews: true }, "github_reviews_not_applicable"],
+        [{ ...base, reviewLimit: 10 }, "github_review_limit_not_applicable"],
+        [{ ...base, includeReviewComments: true }, "github_review_comments_not_applicable"],
+        [{ ...base, reviewCommentLimit: 10 }, "github_review_comment_limit_not_applicable"],
+      ];
+      for (const [overrides, code] of cases) {
+        const r = resolve(overrides);
+        expect(r.ok, `${source} ${code}`).toBe(false);
+        if (!r.ok) expect(r.code).toBe(code);
+      }
+    }
+  });
+
+  it("ordinary comments remain independent of review options", () => {
+    const r = resolve({ source: "item", number: 5, includeComments: true, includeReviews: true });
+    expect(r.ok).toBe(true);
+    if (r.ok && r.selection.mode === "item") {
+      expect(r.selection.includeComments).toBe(true);
+      expect(r.selection.includeReviews).toBe(true);
+      expect(r.selection.includeReviewComments).toBe(false);
+    }
+  });
+
+  it("does not mutate the overrides input", () => {
+    const overrides = { source: "item" as const, number: 5, includeReviews: true, reviewLimit: 20 };
+    const snapshot = JSON.stringify(overrides);
+    resolve(overrides);
+    expect(JSON.stringify(overrides)).toBe(snapshot);
   });
 });

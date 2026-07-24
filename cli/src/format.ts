@@ -47,10 +47,25 @@ type RiskEntry = {
   url?: string;
   owner?: string;
   author?: string;
+  reviewState?: string;
+  filePath?: string;
+  line?: number;
   due?: string;
   repository?: string;
   number?: number;
 };
+
+/** Render optional file provenance: ` — file: path:line` or ` — file: path`. */
+function fileProvenance(filePath: string | undefined, line: number | undefined): string {
+  if (filePath === undefined) return "";
+  return line !== undefined ? ` — file: ${filePath}:${line}` : ` — file: ${filePath}`;
+}
+
+/** Render optional file provenance for Markdown: code-quoted path/line. */
+function fileProvenanceMarkdown(filePath: string | undefined, line: number | undefined): string {
+  if (filePath === undefined) return "";
+  return line !== undefined ? ` — file: \`${filePath}:${line}\`` : ` — file: \`${filePath}\``;
+}
 
 function optionalStringField(raw: Record<string, unknown>, key: string): string | undefined {
   return stringFrom(raw[key]);
@@ -81,6 +96,12 @@ function asRiskEntries(value: unknown): RiskEntry[] | null {
     if (owner !== undefined) entry.owner = owner;
     const author = optionalStringField(raw, "author");
     if (author !== undefined) entry.author = author;
+    const reviewState = optionalStringField(raw, "reviewState");
+    if (reviewState !== undefined) entry.reviewState = reviewState;
+    const filePath = optionalStringField(raw, "filePath");
+    if (filePath !== undefined) entry.filePath = filePath;
+    const line = optionalNumberField(raw, "line");
+    if (line !== undefined) entry.line = line;
     const due = optionalStringField(raw, "due");
     if (due !== undefined) entry.due = due;
     const repository = optionalStringField(raw, "repository");
@@ -93,11 +114,13 @@ function asRiskEntries(value: unknown): RiskEntry[] | null {
 }
 
 /** Append present metadata to a brief line in the canonical order:
- * owner, author, due, source, URL. */
+ * owner, author, review state, file path/line, due, source, URL. */
 function riskBriefMetadata(entry: RiskEntry): string {
   let line = `- [${entry.severity}] ${entry.title} — ${entry.reason}`;
   if (entry.owner !== undefined) line += ` — owner: ${entry.owner}`;
   if (entry.author !== undefined) line += ` — author: ${entry.author}`;
+  if (entry.reviewState !== undefined) line += ` — review: ${entry.reviewState}`;
+  line += fileProvenance(entry.filePath, entry.line);
   if (entry.due !== undefined) line += ` — due: ${entry.due}`;
   if (entry.repository !== undefined && entry.number !== undefined) {
     line += ` — source: ${entry.repository}#${entry.number}`;
@@ -125,6 +148,8 @@ function riskMarkdownMetadata(entry: RiskEntry): string {
   let line = `- **${entry.severity}** — ${markdownTitleCell(entry.title, entry.url)} — \`${entry.reason}\``;
   if (entry.owner !== undefined) line += ` — owner: \`${entry.owner}\``;
   if (entry.author !== undefined) line += ` — author: \`${entry.author}\``;
+  if (entry.reviewState !== undefined) line += ` — review: \`${entry.reviewState}\``;
+  line += fileProvenanceMarkdown(entry.filePath, entry.line);
   if (entry.due !== undefined) line += ` — due: \`${entry.due}\``;
   return line;
 }
@@ -158,6 +183,9 @@ type NextTaskEntry = {
   url?: string;
   owner?: string;
   author?: string;
+  reviewState?: string;
+  filePath?: string;
+  line?: number;
   due?: string;
   repository?: string;
   number?: number;
@@ -183,6 +211,12 @@ function asNextTaskEntries(value: unknown): NextTaskEntry[] | null {
     if (owner !== undefined) entry.owner = owner;
     const author = optionalStringField(raw, "author");
     if (author !== undefined) entry.author = author;
+    const reviewState = optionalStringField(raw, "reviewState");
+    if (reviewState !== undefined) entry.reviewState = reviewState;
+    const filePath = optionalStringField(raw, "filePath");
+    if (filePath !== undefined) entry.filePath = filePath;
+    const line = optionalNumberField(raw, "line");
+    if (line !== undefined) entry.line = line;
     const due = optionalStringField(raw, "due");
     if (due !== undefined) entry.due = due;
     const repository = optionalStringField(raw, "repository");
@@ -194,12 +228,15 @@ function asNextTaskEntries(value: unknown): NextTaskEntry[] | null {
   return entries;
 }
 
-/** Append present metadata in the canonical order: owner, author, due, source, URL. */
+/** Append present metadata in the canonical order:
+ * owner, author, review state, file path/line, due, source, URL. */
 function nextTaskBriefLine(entry: NextTaskEntry): string {
   const prefix = entry.priority !== undefined ? `- [${entry.priority}] ` : "- ";
   let line = `${prefix}${entry.title} — ${entry.reason}`;
   if (entry.owner !== undefined) line += ` — owner: ${entry.owner}`;
   if (entry.author !== undefined) line += ` — author: ${entry.author}`;
+  if (entry.reviewState !== undefined) line += ` — review: ${entry.reviewState}`;
+  line += fileProvenance(entry.filePath, entry.line);
   if (entry.due !== undefined) line += ` — due: ${entry.due}`;
   if (entry.repository !== undefined && entry.number !== undefined) {
     line += ` — source: ${entry.repository}#${entry.number}`;
@@ -220,6 +257,8 @@ function nextTaskMarkdownLine(entry: NextTaskEntry): string {
   let line = `- ${severity}${markdownTitleCell(entry.title, entry.url)} — \`${entry.reason}\``;
   if (entry.owner !== undefined) line += ` — owner: \`${entry.owner}\``;
   if (entry.author !== undefined) line += ` — author: \`${entry.author}\``;
+  if (entry.reviewState !== undefined) line += ` — review: \`${entry.reviewState}\``;
+  line += fileProvenanceMarkdown(entry.filePath, entry.line);
   if (entry.due !== undefined) line += ` — due: \`${entry.due}\``;
   return line;
 }

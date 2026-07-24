@@ -84,3 +84,41 @@ describe("summarizeStatus excludes GitHub item comments", () => {
     expect(output.counts.total).toBe(0);
   });
 });
+
+describe("summarizeStatus excludes GitHub reviews and review comments", () => {
+  const review = {
+    id: "github:owner/repo:pull-request:7:review:1",
+    title: "Review by @alice: changes requested",
+    source: "github",
+    type: "note",
+    kind: "pullRequestReview",
+    reviewState: "changesRequested",
+    body: "This is blocked and done to me",
+    status: "open",
+  };
+  const reviewComment = {
+    id: "github:owner/repo:pull-request:7:review-comment:1",
+    title: "Review comment by @alice on src/app.ts",
+    source: "github",
+    type: "note",
+    kind: "pullRequestReviewComment",
+    body: "blocked done",
+    status: "open",
+  };
+
+  it("review and review-comment notes never change the counts", () => {
+    const withReviews = skill.execute(envelope({ items: [...items, review, reviewComment] }));
+    const withoutReviews = skill.execute(envelope({ items }));
+    expect((withReviews.output as StatusSummary).counts).toEqual(
+      (withoutReviews.output as StatusSummary).counts,
+    );
+  });
+
+  it("review titles never become highlights and never count as top-level items", () => {
+    const result = skill.execute(envelope({ items: [review, reviewComment] }));
+    const output = result.output as StatusSummary;
+    expect(output.highlights).not.toContain("Review by @alice: changes requested");
+    expect(output.highlights).not.toContain("Review comment by @alice on src/app.ts");
+    expect(output.counts.total).toBe(0);
+  });
+});

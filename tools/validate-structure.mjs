@@ -429,6 +429,8 @@ const GITHUB_FEATURE_SOURCES = [
   "tools/check-github-provider-live.mjs",
   "docs/providers/github.md",
   "docs/providers/github-item-comments.md",
+  "docs/providers/github-pr-reviews.md",
+  "skills/test/github-review-signals.test.ts",
 ];
 for (const file of GITHUB_FEATURE_SOURCES) {
   if (!existsSync(file)) err(`github feature file missing: ${file}`);

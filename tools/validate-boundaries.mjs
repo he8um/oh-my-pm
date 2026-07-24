@@ -1164,6 +1164,73 @@ for (const file of trackedFiles) {
   }
 }
 
+// 4k2. Bounded pull-request reviews and inline review comments. Reviews and
+// review comments are an explicit, item-source-only, pull-request-only,
+// default-disabled, single-page opt-in. The provider may fetch ONLY the reviews
+// and inline review-comments endpoints for a PR; timeline, review-thread
+// resolution, reactions, commits, files, and diffs endpoints must never appear.
+// The provider request layer must enforce the review bound (max 20) and the
+// PR-only failure. The MCP projection must never expose a review/review-comment
+// body, diff hunk, or commit id.
+const GITHUB_PROVIDER = "providers/src/github/provider.ts";
+if (trackedFiles.includes(GITHUB_PROVIDER)) {
+  const contents = readFileSync(GITHUB_PROVIDER, "utf8");
+  // Forbidden discussion/diff endpoints must never be requested.
+  for (const fragment of [
+    "/timeline",
+    "/reactions",
+    "/commits",
+    "/files",
+    "/threads",
+    ".diff",
+    ".patch",
+  ]) {
+    if (contents.includes(fragment)) {
+      err(`${GITHUB_PROVIDER} references a forbidden GitHub endpoint fragment: "${fragment}"`);
+    }
+  }
+  // The approved review endpoints must be present and single-page (page=1).
+  for (const fragment of ["/pulls/${parent.number}/reviews", "/pulls/${parent.number}/comments"]) {
+    if (!contents.includes(fragment)) {
+      err(`${GITHUB_PROVIDER} is missing the approved review endpoint: "${fragment}"`);
+    }
+  }
+  if (!contents.includes('url.searchParams.set("page", "1")')) {
+    err(`${GITHUB_PROVIDER} must request page=1 only (single page per endpoint)`);
+  }
+  // PR-only enforcement must be present with the stable reason identifier.
+  if (!contents.includes("github_pull_request_required")) {
+    err(`${GITHUB_PROVIDER} must enforce the pull-request-required failure for review options`);
+  }
+}
+// Review bounds live in the query and constants modules and are item-only in
+// selection. Assert the exact maxima so a future edit cannot silently widen them.
+const GITHUB_QUERY = "providers/src/github/query.ts";
+if (trackedFiles.includes(GITHUB_QUERY)) {
+  const contents = readFileSync(GITHUB_QUERY, "utf8");
+  if (!contents.includes("MAX_GITHUB_REVIEW_LIMIT = 20")) {
+    err(`${GITHUB_QUERY} must cap the review limit at 20`);
+  }
+  if (!contents.includes("MAX_GITHUB_REVIEW_COMMENT_LIMIT = 20")) {
+    err(`${GITHUB_QUERY} must cap the review-comment limit at 20`);
+  }
+  if (!contents.includes("DEFAULT_GITHUB_REVIEW_LIMIT = 10")) {
+    err(`${GITHUB_QUERY} must default the review limit to 10`);
+  }
+}
+// The MCP projection surfaces (runner + server) must never expose a raw review
+// body, diff hunk, or commit id.
+const GITHUB_MCP_PROJECTION = ["mcp-server/src/github-tool-runner.ts", "mcp-server/src/server.ts"];
+for (const file of GITHUB_MCP_PROJECTION) {
+  if (!trackedFiles.includes(file)) continue;
+  const contents = readFileSync(file, "utf8");
+  for (const marker of ["diff_hunk", "diffHunk", "commit_id", "commitId", "original_commit_id"]) {
+    if (contents.includes(marker)) {
+      err(`${file} references a forbidden raw review field in the MCP projection: "${marker}"`);
+    }
+  }
+}
+
 // 4l. Provider configuration is strictly read-only. The pure schema/settings
 // modules must reach no Node built-in (covered by the pure-package rule above)
 // and must carry no secret-bearing field name; the CLI provider-config loader

@@ -34,10 +34,13 @@ import {
 } from "./constants.js";
 import {
   type GitHubCommentParent,
+  type GitHubReviewParent,
   normalizeIssue,
   normalizeIssueComments,
   normalizeIssueOrPullRequest,
   normalizePullRequest,
+  normalizePullRequestReviewComments,
+  normalizePullRequestReviews,
   normalizeRepository,
   readPullRequestDetail,
 } from "./normalize.js";
@@ -377,6 +380,84 @@ export function createGitHubProvider(options: {
     };
   }
 
+  /**
+   * Fetch the review submissions for a confirmed pull request: exactly one
+   * read-only page of GET /repos/{slug}/pulls/{number}/reviews with
+   * per_page=<limit>&page=1. No pagination, retry, or concurrency. On failure the
+   * caller propagates the sanitized provider error (no silent fallback).
+   */
+  async function fetchPullRequestReviews(
+    parent: GitHubReviewParent,
+    limit: number,
+  ): Promise<
+    | { ok: true; items: NormalizedProviderItem[]; warnings: KernelWarning[] }
+    | { ok: false; result: ProviderResult }
+  > {
+    const url = new URL(`${GITHUB_API_ORIGIN}/repos/${parent.slug}/pulls/${parent.number}/reviews`);
+    url.searchParams.set("per_page", String(limit));
+    url.searchParams.set("page", "1");
+    const result = await get(url.toString());
+    if (!result.ok) return { ok: false, result: result.result };
+    const body = result.response.body;
+    if (!Array.isArray(body)) {
+      return { ok: false, result: providerFailure("github", OMP_P_INVALID_RESPONSE) };
+    }
+    const normalized = normalizePullRequestReviews(parent, body.slice(0, limit));
+    return {
+      ok: true,
+      items: normalized.items,
+      warnings: [...normalized.warnings, ...lowRateLimitWarning(result.response.headers)],
+    };
+  }
+
+  /**
+   * Fetch the inline review comments for a confirmed pull request: exactly one
+   * read-only page of GET /repos/{slug}/pulls/{number}/comments with
+   * per_page=<limit>&page=1. No pagination, retry, or concurrency. On failure the
+   * caller propagates the sanitized provider error (no silent fallback).
+   */
+  async function fetchPullRequestReviewComments(
+    parent: GitHubReviewParent,
+    limit: number,
+  ): Promise<
+    | { ok: true; items: NormalizedProviderItem[]; warnings: KernelWarning[] }
+    | { ok: false; result: ProviderResult }
+  > {
+    const url = new URL(`${GITHUB_API_ORIGIN}/repos/${parent.slug}/pulls/${parent.number}/comments`);
+    url.searchParams.set("per_page", String(limit));
+    url.searchParams.set("page", "1");
+    const result = await get(url.toString());
+    if (!result.ok) return { ok: false, result: result.result };
+    const body = result.response.body;
+    if (!Array.isArray(body)) {
+      return { ok: false, result: providerFailure("github", OMP_P_INVALID_RESPONSE) };
+    }
+    const normalized = normalizePullRequestReviewComments(parent, body.slice(0, limit));
+    return {
+      ok: true,
+      items: normalized.items,
+      warnings: [...normalized.warnings, ...lowRateLimitWarning(result.response.headers)],
+    };
+  }
+
+  /**
+   * A review option was requested but the selected item is an issue, not a pull
+   * request. Fail immediately with the sanitized taxonomy, carrying the stable
+   * `github_pull_request_required` reason identifier as the warning code. No PR
+   * endpoint request (detail, reviews, comments, review comments) is ever made.
+   */
+  function pullRequestRequiredFailure(): ProviderResult {
+    const message = "selected item is not a pull request";
+    return {
+      ok: false,
+      code: OMP_P_INVALID_REQUEST,
+      message,
+      response: emptyProviderResponse("github", [
+        providerWarning("github_pull_request_required", message),
+      ]),
+    };
+  }
+
   async function handleFetch(query: string): Promise<ProviderResult> {
     const parsed = parseGitHubFetchQuery(query);
     if (!parsed.ok) {
@@ -386,7 +467,14 @@ export function createGitHubProvider(options: {
     const number = parsed.number;
     const includeComments = parsed.includeComments;
     const commentLimit = parsed.commentLimit;
-    // 1. GET issue.
+    const includeReviews = parsed.includeReviews;
+    const reviewLimit = parsed.reviewLimit;
+    const includeReviewComments = parsed.includeReviewComments;
+    const reviewCommentLimit = parsed.reviewCommentLimit;
+    const anyReviewOption = includeReviews || includeReviewComments;
+
+    // 1. GET issue (item identification). This is the only request made when an
+    // issue is selected with review options enabled.
     const issueResult = await get(`${GITHUB_API_ORIGIN}/repos/${slug}/issues/${number}`);
     if (!issueResult.ok) return issueResult.result;
     const issueBody = issueResult.response.body;
@@ -397,6 +485,13 @@ export function createGitHubProvider(options: {
       issueBody !== null &&
       !Array.isArray(issueBody) &&
       (issueBody as Record<string, unknown>)["pull_request"] !== undefined;
+
+    // PR-only enforcement: when any review option is enabled and the item is not
+    // a pull request, fail now. Ordinary comments are NOT fetched and no PR
+    // endpoint request is made.
+    if (!isPr && anyReviewOption) {
+      return pullRequestRequiredFailure();
+    }
 
     if (isPr) {
       // 2. GET PR detail.
@@ -409,9 +504,9 @@ export function createGitHubProvider(options: {
       }
       warnings.push(...norm.warnings, ...lowRateLimitWarning(prResult.response.headers));
       const items: NormalizedProviderItem[] = [norm.item];
+      const parentStatus = statusOf(norm.item);
       if (includeComments) {
         // 3. GET issue comments (ordinary PR conversation comments).
-        const parentStatus = statusOf(norm.item);
         const comments = await fetchIssueComments(
           { slug, number, parentType: "pullRequest", parentStatus },
           commentLimit,
@@ -419,6 +514,23 @@ export function createGitHubProvider(options: {
         if (!comments.ok) return comments.result;
         items.push(...comments.items);
         warnings.push(...comments.warnings);
+      }
+      if (includeReviews) {
+        // 4. GET PR reviews.
+        const reviews = await fetchPullRequestReviews({ slug, number, parentStatus }, reviewLimit);
+        if (!reviews.ok) return reviews.result;
+        items.push(...reviews.items);
+        warnings.push(...reviews.warnings);
+      }
+      if (includeReviewComments) {
+        // 5. GET PR inline review comments.
+        const reviewComments = await fetchPullRequestReviewComments(
+          { slug, number, parentStatus },
+          reviewCommentLimit,
+        );
+        if (!reviewComments.ok) return reviewComments.result;
+        items.push(...reviewComments.items);
+        warnings.push(...reviewComments.warnings);
       }
       return success(items, dedupeWarnings(warnings));
     }

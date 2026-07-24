@@ -493,6 +493,34 @@ const githubInputShape = {
     .max(50)
     .optional()
     .describe("Maximum item comments when includeComments is set (1..50, default 20)"),
+  includeReviews: z
+    .boolean()
+    .optional()
+    .describe(
+      "Include pull-request review submissions for the item source; the item must be a pull request (disabled by default)",
+    ),
+  reviewLimit: z
+    .number()
+    .int()
+    .min(1)
+    .max(20)
+    .optional()
+    .describe("Maximum pull-request reviews when includeReviews is set (1..20, default 10)"),
+  includeReviewComments: z
+    .boolean()
+    .optional()
+    .describe(
+      "Include inline pull-request review comments for the item source; the item must be a pull request (disabled by default)",
+    ),
+  reviewCommentLimit: z
+    .number()
+    .int()
+    .min(1)
+    .max(20)
+    .optional()
+    .describe(
+      "Maximum inline review comments when includeReviewComments is set (1..20, default 10)",
+    ),
 } as const;
 
 // A public comment metadata entry: identity and provenance only, never the
@@ -507,6 +535,32 @@ const githubCommentSchema = z
   })
   .strict();
 
+// A public review metadata entry: identity/state/provenance only, never the
+// review body, diff hunk, commit id, or any raw provider object.
+const githubReviewSchema = z
+  .object({
+    id: z.string(),
+    author: z.string(),
+    state: z.enum(["approved", "changesRequested", "commented", "dismissed", "pending", "unknown"]),
+    submittedAt: z.string().optional(),
+    url: z.string().optional(),
+  })
+  .strict();
+
+// A public review-comment metadata entry: identity/file provenance only, never
+// the body, diff hunk, commit id, or any raw provider object.
+const githubReviewCommentSchema = z
+  .object({
+    id: z.string(),
+    author: z.string(),
+    filePath: z.string().optional(),
+    line: z.number().int().optional(),
+    createdAt: z.string().optional(),
+    updatedAt: z.string().optional(),
+    url: z.string().optional(),
+  })
+  .strict();
+
 const githubSourceSchema = z
   .object({
     type: z.enum(["issue", "pullRequest"]),
@@ -515,6 +569,8 @@ const githubSourceSchema = z
     state: z.string(),
     url: z.string().optional(),
     comments: z.array(githubCommentSchema).max(50).optional(),
+    reviews: z.array(githubReviewSchema).max(20).optional(),
+    reviewComments: z.array(githubReviewCommentSchema).max(20).optional(),
   })
   .strict();
 
@@ -528,6 +584,10 @@ const githubSelectionSchema = z
     limit: z.number().int().optional(),
     includeComments: z.boolean().optional(),
     commentLimit: z.number().int().optional(),
+    includeReviews: z.boolean().optional(),
+    reviewLimit: z.number().int().optional(),
+    includeReviewComments: z.boolean().optional(),
+    reviewCommentLimit: z.number().int().optional(),
   })
   .strict();
 
@@ -544,6 +604,8 @@ function githubOutputShape(operation: McpGitHubOperation) {
         issues: z.number().int(),
         pullRequests: z.number().int(),
         comments: z.number().int(),
+        reviews: z.number().int(),
+        reviewComments: z.number().int(),
       })
       .strict(),
     sources: z.array(githubSourceSchema),
@@ -619,8 +681,24 @@ const providerStatusOutputShape = {
                 pagination: z.literal("single-page"),
               })
               .strict(),
-            reviewComments: z.literal(false),
-            reviews: z.literal(false),
+            reviews: z
+              .object({
+                supported: z.literal(true),
+                defaultEnabled: z.literal(false),
+                defaultLimit: z.literal(10),
+                maxLimit: z.literal(20),
+                pagination: z.literal("single-page"),
+              })
+              .strict(),
+            reviewComments: z
+              .object({
+                supported: z.literal(true),
+                defaultEnabled: z.literal(false),
+                defaultLimit: z.literal(10),
+                maxLimit: z.literal(20),
+                pagination: z.literal("single-page"),
+              })
+              .strict(),
             timelines: z.literal(false),
             pullRequestFiles: z.literal(false),
           })
@@ -844,7 +922,21 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
         inputSchema: githubInputShape,
         outputSchema: githubOutputShape(tool.operation),
       },
-      ({ repository, limit, source, state, number, query, kind, includeComments, commentLimit }) =>
+      ({
+        repository,
+        limit,
+        source,
+        state,
+        number,
+        query,
+        kind,
+        includeComments,
+        commentLimit,
+        includeReviews,
+        reviewLimit,
+        includeReviewComments,
+        reviewCommentLimit,
+      }) =>
         handleGitHubTool(executeGitHub, tool.name, {
           ...(repository !== undefined ? { repository } : {}),
           ...(limit !== undefined ? { limit } : {}),
@@ -855,6 +947,10 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
           ...(kind !== undefined ? { kind } : {}),
           ...(includeComments !== undefined ? { includeComments } : {}),
           ...(commentLimit !== undefined ? { commentLimit } : {}),
+          ...(includeReviews !== undefined ? { includeReviews } : {}),
+          ...(reviewLimit !== undefined ? { reviewLimit } : {}),
+          ...(includeReviewComments !== undefined ? { includeReviewComments } : {}),
+          ...(reviewCommentLimit !== undefined ? { reviewCommentLimit } : {}),
         }),
     );
   }

@@ -118,6 +118,22 @@ function textItemFrom(value: JsonValue): TextItem | null {
   if (parentStatus !== undefined) item.parentStatus = parentStatus;
   const authorAssociation = textFrom(value["authorAssociation"]);
   if (authorAssociation !== undefined) item.authorAssociation = authorAssociation;
+
+  // GitHub review / review-comment provenance (validated; review notes only).
+  const reviewState = textFrom(value["reviewState"]);
+  if (reviewState !== undefined) item.reviewState = reviewState;
+  const submittedAt = textFrom(value["submittedAt"]);
+  if (submittedAt !== undefined) item.submittedAt = submittedAt;
+  const filePath = textFrom(value["filePath"]);
+  if (filePath !== undefined) item.filePath = filePath;
+  const line = positiveIntegerFrom(value["line"]);
+  if (line !== undefined) item.line = line;
+  const startLine = positiveIntegerFrom(value["startLine"]);
+  if (startLine !== undefined) item.startLine = startLine;
+  const side = value["side"];
+  if (side === "left" || side === "right") item.side = side;
+  const startSide = value["startSide"];
+  if (startSide === "left" || startSide === "right") item.startSide = startSide;
   return item;
 }
 

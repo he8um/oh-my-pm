@@ -91,13 +91,19 @@ repository-scoped `search` by `--query` — with `--state open|closed|all` and
 search `--kind`. The `item` source can optionally include a single issue/PR's
 ordinary conversation comments with `--include-comments` (opt-in, disabled by
 default) and `--comment-limit`; see
-[GitHub item comments](docs/providers/github-item-comments.md). See also
+[GitHub item comments](docs/providers/github-item-comments.md). A pull-request
+`item` can additionally include bounded review submissions
+(`--include-reviews` / `--review-limit`) and inline review comments
+(`--include-review-comments` / `--review-comment-limit`), disabled by default
+and only when the selected item is a pull request; see
+[GitHub pull-request reviews](docs/providers/github-pr-reviews.md). See also
 [GitHub source selection](docs/providers/github-source-selection.md):
 
 ```bash
 oh-my-pm github risks owner/repository --source issues --state open --markdown
 oh-my-pm github brief owner/repository --source item --number 123 --markdown
 oh-my-pm github risks owner/repository --source item --number 123 --include-comments --comment-limit 20 --markdown
+oh-my-pm github risks owner/repository --source item --number 123 --include-reviews --review-limit 10 --include-review-comments --review-comment-limit 10 --markdown
 oh-my-pm github risks owner/repository --source search --query "release blocker" --markdown
 ```
 

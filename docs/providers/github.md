@@ -146,8 +146,11 @@ strict source-selection model: `overview` (default), `repository`, `issues`,
 repository-scoped `search`, each with `open`/`closed`/`all` state and a search
 `kind`. It stays `GET`-only and single page. The `item` source may optionally
 include ordinary issue/PR conversation comments (opt-in, disabled by default —
-see [GitHub item comments](./github-item-comments.md)); review comments,
-reviews, timelines, and diffs are never fetched. See
+see [GitHub item comments](./github-item-comments.md)); a pull-request `item`
+may additionally include bounded review submissions and inline review comments
+(opt-in, disabled by default, PR-only — see
+[GitHub pull-request reviews](./github-pr-reviews.md)). Timeline events, thread
+resolution, reactions, diffs, files, and commits are never fetched. See
 [GitHub source selection](./github-source-selection.md).
 
 ## Provider configuration and diagnostics

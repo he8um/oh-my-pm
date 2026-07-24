@@ -193,6 +193,90 @@ describe("providerItemsToTextItems", () => {
     ]);
     expect(item).toEqual(snapshot);
   });
+
+  it("carries only the approved review provenance and discards raw/diff/commit fields", () => {
+    const review: NormalizedProviderItem = {
+      id: "github:o/r:pull-request:7:review:1",
+      type: "note",
+      title: "Review by @alice: approved",
+      source: "github",
+      url: "https://github.com/o/r/pull/7#pullrequestreview-1",
+      data: {
+        kind: "pullRequestReview",
+        repository: "o/r",
+        parentNumber: 7,
+        parentType: "pullRequest",
+        parentStatus: "open",
+        author: "alice",
+        authorAssociation: "MEMBER",
+        reviewState: "approved",
+        submittedAt: "2026-02-01T00:00:00Z",
+        body: "LGTM",
+        // Raw fields that must never be carried through.
+        state: "APPROVED",
+        node_id: "SHOULD_NOT_LEAK",
+        commit_id: "SHOULD_NOT_LEAK",
+        diff_hunk: "SHOULD_NOT_LEAK",
+        user: { login: "alice" },
+        reactions: { total: 1 },
+      },
+    };
+    const snapshot = JSON.parse(JSON.stringify(review));
+    const [mapped] = providerItemsToTextItems([review]);
+    expect(mapped).toEqual({
+      id: "github:o/r:pull-request:7:review:1",
+      title: "Review by @alice: approved",
+      source: "github",
+      type: "note",
+      url: "https://github.com/o/r/pull/7#pullrequestreview-1",
+      body: "LGTM",
+      repository: "o/r",
+      kind: "pullRequestReview",
+      author: "alice",
+      parentNumber: 7,
+      parentType: "pullRequest",
+      parentStatus: "open",
+      authorAssociation: "MEMBER",
+      reviewState: "approved",
+      submittedAt: "2026-02-01T00:00:00Z",
+    });
+    const serialized = JSON.stringify(mapped);
+    for (const forbidden of ["SHOULD_NOT_LEAK", "node_id", "commit_id", "diff_hunk", "reactions"]) {
+      expect(serialized).not.toContain(forbidden);
+    }
+    expect(review).toEqual(snapshot);
+  });
+
+  it("carries review-comment file/line/side provenance with valid values only", () => {
+    const reviewComment: NormalizedProviderItem = {
+      id: "github:o/r:pull-request:7:review-comment:11",
+      type: "note",
+      title: "Review comment by @alice on src/app.ts",
+      source: "github",
+      data: {
+        kind: "pullRequestReviewComment",
+        repository: "o/r",
+        parentNumber: 7,
+        parentType: "pullRequest",
+        parentStatus: "open",
+        author: "alice",
+        filePath: "src/app.ts",
+        line: 42,
+        startLine: 40,
+        side: "right",
+        startSide: "right",
+        body: "here",
+        diff_hunk: "SHOULD_NOT_LEAK",
+      },
+    };
+    const [mapped] = providerItemsToTextItems([reviewComment]);
+    expect(mapped?.filePath).toBe("src/app.ts");
+    expect(mapped?.line).toBe(42);
+    expect(mapped?.startLine).toBe(40);
+    expect(mapped?.side).toBe("right");
+    expect(mapped?.startSide).toBe("right");
+    expect(JSON.stringify(mapped)).not.toContain("SHOULD_NOT_LEAK");
+  });
 });
 
 describe("notesFromPlannerContext", () => {

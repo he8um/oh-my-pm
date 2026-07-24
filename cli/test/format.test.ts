@@ -230,6 +230,71 @@ describe("cli formatting", () => {
     );
   });
 
+  it("renders review state and file provenance in the canonical brief order", () => {
+    const response: RuntimeResponse = {
+      id: "cli-risks",
+      ok: true,
+      data: {
+        output: {
+          risks: [
+            {
+              id: "rv",
+              title: "Changes requested by @alice",
+              severity: "high",
+              reason: "github_review:changes_requested",
+              owner: "ow",
+              author: "alice",
+              reviewState: "changesRequested",
+              due: "2026-05-01",
+              repository: "owner/repo",
+              number: 7,
+              url: "https://github.com/owner/repo/pull/7",
+            },
+            {
+              id: "rc",
+              title: "null deref",
+              severity: "high",
+              reason: "github_review_comment:marker:blocker",
+              author: "carol",
+              filePath: "src/app.ts",
+              line: 42,
+            },
+          ],
+        },
+      },
+    };
+    const out = formatRuntimeResponse(response, "brief");
+    // Canonical order: owner, author, review state, file path/line, due, source, URL.
+    expect(out).toContain(
+      "- [high] Changes requested by @alice — github_review:changes_requested — owner: ow — author: alice — review: changesRequested — due: 2026-05-01 — source: owner/repo#7 — https://github.com/owner/repo/pull/7",
+    );
+    expect(out).toContain(
+      "- [high] null deref — github_review_comment:marker:blocker — author: carol — file: src/app.ts:42",
+    );
+  });
+
+  it("renders file provenance without a line when the line is absent (markdown)", () => {
+    const response: RuntimeResponse = {
+      id: "cli-next",
+      ok: true,
+      data: {
+        output: {
+          tasks: [
+            {
+              id: "t",
+              title: "rename it",
+              reason: "github_review_comment:unchecked_task",
+              author: "dan",
+              filePath: "src/x.ts",
+            },
+          ],
+        },
+      },
+    };
+    const out = formatRuntimeResponse(response, "markdown");
+    expect(out).toContain("— author: `dan` — file: `src/x.ts`");
+  });
+
   it("formats valid risk entries with counts in markdown mode", () => {
     const response: RuntimeResponse = {
       id: "cli-risks",

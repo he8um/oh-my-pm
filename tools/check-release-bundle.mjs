@@ -199,32 +199,39 @@ async function run(bundle) {
   if (sel.diffs !== false) {
     return fail("RELEASE.json sourceSelection must not enable diffs");
   }
-  // Item discussion: bounded, opt-in issue comments only. Review comments,
-  // reviews, timeline events, and writes must all stay disabled.
+  // Item discussion: bounded, opt-in issue comments, pull-request reviews, and
+  // pull-request review comments. Timeline events, thread resolution, diffs, and
+  // writes must all stay disabled.
   const disc = sel.itemDiscussion;
   if (disc === null || typeof disc !== "object") {
     return fail("RELEASE.json sourceSelection.itemDiscussion metadata is missing");
   }
-  const ic = disc.issueComments;
-  if (ic === null || typeof ic !== "object") {
-    return fail("RELEASE.json itemDiscussion.issueComments metadata is missing");
-  }
-  if (
-    ic.supported !== true ||
-    ic.defaultEnabled !== false ||
-    ic.defaultLimit !== 20 ||
-    ic.maxLimit !== 50 ||
-    ic.pagination !== "single-page"
-  ) {
+  // Each bounded discussion capability must be single-page, default-disabled,
+  // and carry the exact default/max limits.
+  const boundedCapOk = (cap, defaultLimit, maxLimit) =>
+    cap !== null &&
+    typeof cap === "object" &&
+    cap.supported === true &&
+    cap.defaultEnabled === false &&
+    cap.defaultLimit === defaultLimit &&
+    cap.maxLimit === maxLimit &&
+    cap.pagination === "single-page";
+  if (!boundedCapOk(disc.issueComments, 20, 50)) {
     return fail("RELEASE.json itemDiscussion.issueComments bounds are unexpected");
   }
+  if (!boundedCapOk(disc.pullRequestReviews, 10, 20)) {
+    return fail("RELEASE.json itemDiscussion.pullRequestReviews bounds are unexpected");
+  }
+  if (!boundedCapOk(disc.pullRequestReviewComments, 10, 20)) {
+    return fail("RELEASE.json itemDiscussion.pullRequestReviewComments bounds are unexpected");
+  }
   if (
-    disc.pullRequestReviewComments !== false ||
-    disc.pullRequestReviews !== false ||
     disc.timelineEvents !== false ||
+    disc.threadResolution !== false ||
+    disc.diffs !== false ||
     disc.writes !== false
   ) {
-    return fail("RELEASE.json itemDiscussion must not enable reviews/timeline/writes");
+    return fail("RELEASE.json itemDiscussion must not enable timeline/thread/diffs/writes");
   }
 
   // Installer metadata: preview-first, prefix-required, no network/profile/

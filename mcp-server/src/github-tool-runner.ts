@@ -142,6 +142,26 @@ export type McpGitHubComment = {
   url?: string;
 };
 
+/** Public review metadata: identity/state/provenance only, never the body. */
+export type McpGitHubReview = {
+  id: string;
+  author: string;
+  state: "approved" | "changesRequested" | "commented" | "dismissed" | "pending" | "unknown";
+  submittedAt?: string;
+  url?: string;
+};
+
+/** Public review-comment metadata: identity/provenance only, never the body. */
+export type McpGitHubReviewComment = {
+  id: string;
+  author: string;
+  filePath?: string;
+  line?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  url?: string;
+};
+
 /** Sanitized public source list from the normalized provider responses. */
 export type McpGitHubSource = {
   type: "issue" | "pullRequest";
@@ -150,6 +170,8 @@ export type McpGitHubSource = {
   state: string;
   url?: string;
   comments?: McpGitHubComment[];
+  reviews?: McpGitHubReview[];
+  reviewComments?: McpGitHubReviewComment[];
 };
 
 export type McpGitHubSourceSummary = {
@@ -158,7 +180,24 @@ export type McpGitHubSourceSummary = {
   issues: number;
   pullRequests: number;
   comments: number;
+  reviews: number;
+  reviewComments: number;
 };
+
+const REVIEW_STATES = new Set([
+  "approved",
+  "changesRequested",
+  "commented",
+  "dismissed",
+  "pending",
+  "unknown",
+]);
+
+function reviewStateOf(value: unknown): McpGitHubReview["state"] {
+  return typeof value === "string" && REVIEW_STATES.has(value)
+    ? (value as McpGitHubReview["state"])
+    : "unknown";
+}
 
 function projectSources(response: RuntimeResponse): {
   summary: McpGitHubSourceSummary;
@@ -170,11 +209,15 @@ function projectSources(response: RuntimeResponse): {
     issues: 0,
     pullRequests: 0,
     comments: 0,
+    reviews: 0,
+    reviewComments: 0,
   };
   const sources: McpGitHubSource[] = [];
-  // Comment metadata is attached to its parent issue/PR source, matched by the
+  // Discussion metadata is attached to its parent issue/PR source, matched by the
   // parent number. Only identity/provenance is projected — never the body.
   const commentsByParent = new Map<number, McpGitHubComment[]>();
+  const reviewsByParent = new Map<number, McpGitHubReview[]>();
+  const reviewCommentsByParent = new Map<number, McpGitHubReviewComment[]>();
   if (!isRecord(response.data)) return { summary, sources };
   const providerResponses = response.data["providerResponses"];
   if (!Array.isArray(providerResponses)) return { summary, sources };
@@ -207,6 +250,55 @@ function projectSources(response: RuntimeResponse): {
         commentsByParent.set(parentNumber, bucket);
         continue;
       }
+      // Pull-request review submission: counted separately and attached to a
+      // parent; never a top-level source and never exposing its body.
+      if (type === "note" && data["kind"] === "pullRequestReview") {
+        summary.reviews += 1;
+        const parentNumber = data["parentNumber"];
+        if (typeof parentNumber !== "number") continue;
+        const idValue = item["id"];
+        const authorValue = data["author"];
+        const review: McpGitHubReview = {
+          id: typeof idValue === "string" ? idValue : "",
+          author: typeof authorValue === "string" ? authorValue : "",
+          state: reviewStateOf(data["reviewState"]),
+        };
+        const submittedAt = data["submittedAt"];
+        if (typeof submittedAt === "string") review.submittedAt = submittedAt;
+        const urlValue = item["url"];
+        if (typeof urlValue === "string") review.url = urlValue;
+        const bucket = reviewsByParent.get(parentNumber) ?? [];
+        bucket.push(review);
+        reviewsByParent.set(parentNumber, bucket);
+        continue;
+      }
+      // Inline pull-request review comment: counted separately and attached to a
+      // parent; never a top-level source and never exposing its body/diff hunk.
+      if (type === "note" && data["kind"] === "pullRequestReviewComment") {
+        summary.reviewComments += 1;
+        const parentNumber = data["parentNumber"];
+        if (typeof parentNumber !== "number") continue;
+        const idValue = item["id"];
+        const authorValue = data["author"];
+        const reviewComment: McpGitHubReviewComment = {
+          id: typeof idValue === "string" ? idValue : "",
+          author: typeof authorValue === "string" ? authorValue : "",
+        };
+        const filePath = data["filePath"];
+        if (typeof filePath === "string") reviewComment.filePath = filePath;
+        const line = data["line"];
+        if (typeof line === "number") reviewComment.line = line;
+        const createdAt = data["createdAt"];
+        if (typeof createdAt === "string") reviewComment.createdAt = createdAt;
+        const updatedAt = data["updatedAt"];
+        if (typeof updatedAt === "string") reviewComment.updatedAt = updatedAt;
+        const urlValue = item["url"];
+        if (typeof urlValue === "string") reviewComment.url = urlValue;
+        const bucket = reviewCommentsByParent.get(parentNumber) ?? [];
+        bucket.push(reviewComment);
+        reviewCommentsByParent.set(parentNumber, bucket);
+        continue;
+      }
       summary.total += 1;
       if (type === "record") {
         summary.repositories += 1;
@@ -229,11 +321,20 @@ function projectSources(response: RuntimeResponse): {
       sources.push(source);
     }
   }
-  // Attach bounded comment metadata to matching parent sources (max 50).
+  // Attach bounded discussion metadata to matching parent sources: comments
+  // (max 50), reviews (max 20), review comments (max 20).
   for (const source of sources) {
     const comments = commentsByParent.get(source.number);
     if (comments !== undefined && comments.length > 0) {
       source.comments = comments.slice(0, 50);
+    }
+    const reviews = reviewsByParent.get(source.number);
+    if (reviews !== undefined && reviews.length > 0) {
+      source.reviews = reviews.slice(0, 20);
+    }
+    const reviewComments = reviewCommentsByParent.get(source.number);
+    if (reviewComments !== undefined && reviewComments.length > 0) {
+      source.reviewComments = reviewComments.slice(0, 20);
     }
   }
   return { summary, sources };
@@ -300,6 +401,14 @@ export async function executeMcpGitHubTool(
       ...(input.limit !== undefined ? { limit: input.limit } : {}),
       ...(input.includeComments !== undefined ? { includeComments: input.includeComments } : {}),
       ...(input.commentLimit !== undefined ? { commentLimit: input.commentLimit } : {}),
+      ...(input.includeReviews !== undefined ? { includeReviews: input.includeReviews } : {}),
+      ...(input.reviewLimit !== undefined ? { reviewLimit: input.reviewLimit } : {}),
+      ...(input.includeReviewComments !== undefined
+        ? { includeReviewComments: input.includeReviewComments }
+        : {}),
+      ...(input.reviewCommentLimit !== undefined
+        ? { reviewCommentLimit: input.reviewCommentLimit }
+        : {}),
     },
   });
   if (!selectionResult.ok) {
@@ -399,8 +508,12 @@ export function publicSelection(selection: GitHubSourceSelection): McpGitHubSele
         mode: "item",
         number: selection.number,
         includeComments: selection.includeComments,
+        includeReviews: selection.includeReviews,
+        includeReviewComments: selection.includeReviewComments,
       };
       if (selection.includeComments) summary.commentLimit = selection.commentLimit;
+      if (selection.includeReviews) summary.reviewLimit = selection.reviewLimit;
+      if (selection.includeReviewComments) summary.reviewCommentLimit = selection.reviewCommentLimit;
       return summary;
     }
     case "search":

@@ -117,8 +117,8 @@
 
 Next priorities:
 
-1. pull-request reviews and review comments as a separate bounded phase
-2. timeline events as a separate bounded phase
+1. timeline events as a separate bounded phase
+2. close F-TEST-1 before release-candidate preparation
 3. provider aliases/profiles only with demonstrated usage
 4. controlled write-back only with separate approval
 
@@ -137,6 +137,7 @@ in place (see Phase 5B).
 - provider configuration and diagnostics (complete)
 - richer GitHub fetch modes and source selection (complete)
 - bounded GitHub item comments for the item source, opt-in and single-page (complete)
+- bounded pull-request reviews and review comments for the item source, opt-in, PR-only, single-page (complete)
 
 ## Phase 6 — Release lifecycle
 

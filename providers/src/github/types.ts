@@ -61,5 +61,9 @@ export type GitHubFetchQueryResult =
       number: number;
       includeComments: boolean;
       commentLimit: number;
+      includeReviews: boolean;
+      reviewLimit: number;
+      includeReviewComments: boolean;
+      reviewCommentLimit: number;
     }
   | { ok: false; reason: string };

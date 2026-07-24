@@ -185,3 +185,137 @@ describe("github offline e2e — MCP item comments", () => {
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
 });
+
+// --- PR reviews / review comments E2E --------------------------------------
+
+function reviewTransport(): { transport: GitHubHttpTransport; paths: string[] } {
+  const paths: string[] = [];
+  const prIssue = (load("issues.json") as unknown[])[1];
+  const transport: GitHubHttpTransport = {
+    async request(request: GitHubHttpRequest): Promise<GitHubHttpResponse> {
+      const url = new URL(request.url);
+      paths.push(url.pathname);
+      if (url.pathname === `/repos/${SLUG}/issues/47`) return { status: 200, headers: {}, body: prIssue };
+      if (url.pathname === `/repos/${SLUG}/pulls/47`) return { status: 200, headers: {}, body: load("pull-request.json") };
+      if (url.pathname === `/repos/${SLUG}/pulls/47/reviews`) {
+        return {
+          status: 200,
+          headers: {},
+          body: [
+            {
+              id: 601,
+              user: { login: "alice" },
+              state: "CHANGES_REQUESTED",
+              body: "SECRET-REVIEW-BODY must not appear in the projection",
+              author_association: "MEMBER",
+              submitted_at: "2026-02-01T00:00:00Z",
+              html_url: `https://github.com/${SLUG}/pull/47#pullrequestreview-601`,
+            },
+          ],
+        };
+      }
+      if (url.pathname === `/repos/${SLUG}/pulls/47/comments`) {
+        return {
+          status: 200,
+          headers: {},
+          body: [
+            {
+              id: 701,
+              user: { login: "bob" },
+              body: "SECRET-REVIEW-COMMENT-BODY must not appear",
+              path: "src/app.ts",
+              line: 42,
+              side: "RIGHT",
+              author_association: "MEMBER",
+              created_at: "2026-02-01T00:00:00Z",
+              html_url: `https://github.com/${SLUG}/pull/47#discussion_r701`,
+            },
+          ],
+        };
+      }
+      if (url.pathname === `/repos/${SLUG}/issues/42`) return { status: 200, headers: {}, body: load("issue.json") };
+      return { status: 404, headers: {}, body: {} };
+    },
+  };
+  return { transport, paths };
+}
+
+describe("github offline e2e — MCP PR reviews / review comments", () => {
+  it("fetches reviews and echoes the review selection without exposing the body", async () => {
+    const { transport, paths } = reviewTransport();
+    const result = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, source: "item", number: 47, includeReviews: true, reviewLimit: 10 },
+      { transport, providerConfig: OFFLINE_CONFIG, now: NOW },
+    );
+    expect(result.ok, result.ok ? "" : result.message).toBe(true);
+    if (!result.ok) return;
+    expect(paths).toEqual([
+      `/repos/${SLUG}/issues/47`,
+      `/repos/${SLUG}/pulls/47`,
+      `/repos/${SLUG}/pulls/47/reviews`,
+    ]);
+    expect(result.selection).toMatchObject({ mode: "item", number: 47, includeReviews: true, reviewLimit: 10 });
+    expect(result.sourceSummary.reviews).toBe(1);
+    const parent = result.sources.find((s) => s.number === 47);
+    expect(parent?.reviews).toBeDefined();
+    const rv = parent!.reviews![0]!;
+    expect(rv.state).toBe("changesRequested");
+    expect(rv.author).toBe("alice");
+    expect(rv).not.toHaveProperty("body");
+    expect(JSON.stringify(result)).not.toContain("SECRET-REVIEW-BODY");
+  });
+
+  it("attaches review-comment metadata with file/line but never the body or diff hunk", async () => {
+    const { transport } = reviewTransport();
+    const result = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, source: "item", number: 47, includeReviewComments: true },
+      { transport, providerConfig: OFFLINE_CONFIG, now: NOW },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.sourceSummary.reviewComments).toBe(1);
+    const parent = result.sources.find((s) => s.number === 47);
+    const rc = parent!.reviewComments![0]!;
+    expect(rc.filePath).toBe("src/app.ts");
+    expect(rc.line).toBe(42);
+    expect(rc).not.toHaveProperty("body");
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("SECRET-REVIEW-COMMENT-BODY");
+    expect(serialized).not.toContain("diff_hunk");
+    expect(serialized).not.toContain("providerResponses");
+  });
+
+  it("fails with a controlled selection error when a non-PR item is given review options", async () => {
+    const { transport, paths } = reviewTransport();
+    const result = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, source: "item", number: 42, includeReviews: true },
+      { transport, providerConfig: OFFLINE_CONFIG, now: NOW },
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.message).toContain("not a pull request");
+    // Exactly one item-identification request; no PR/review endpoint.
+    expect(paths).toEqual([`/repos/${SLUG}/issues/42`]);
+  });
+
+  it("produces a deterministic projection across repeated runs", async () => {
+    const run = async () => {
+      const { transport } = reviewTransport();
+      return executeMcpGitHubTool(
+        "handoff",
+        {
+          repository: SLUG,
+          source: "item",
+          number: 47,
+          includeReviews: true,
+          includeReviewComments: true,
+        },
+        { transport, providerConfig: OFFLINE_CONFIG, now: NOW },
+      );
+    };
+    expect(JSON.stringify(await run())).toBe(JSON.stringify(await run()));
+  });
+});

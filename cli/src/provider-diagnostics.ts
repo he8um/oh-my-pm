@@ -68,8 +68,7 @@ export type GitHubSourceSelectionCapability = {
   singleItemFetch: true;
   singlePage: true;
   // Ordinary item conversation comments: an explicit, bounded opt-in for the
-  // item source only. Review comments, reviews, and timeline events are not
-  // included in this phase.
+  // item source only.
   comments: {
     supported: true;
     defaultEnabled: false;
@@ -77,8 +76,25 @@ export type GitHubSourceSelectionCapability = {
     maxLimit: 50;
     pagination: "single-page";
   };
-  reviewComments: false;
-  reviews: false;
+  // Pull-request review submissions: an explicit, bounded opt-in for the item
+  // source only, and only when the selected item is a pull request.
+  reviews: {
+    supported: true;
+    defaultEnabled: false;
+    defaultLimit: 10;
+    maxLimit: 20;
+    pagination: "single-page";
+  };
+  // Inline pull-request review comments: an explicit, bounded opt-in for the
+  // item source only, and only when the selected item is a pull request.
+  reviewComments: {
+    supported: true;
+    defaultEnabled: false;
+    defaultLimit: 10;
+    maxLimit: 20;
+    pagination: "single-page";
+  };
+  // Timeline events remain excluded in this phase.
   timelines: false;
   pullRequestFiles: false;
 };
@@ -122,8 +138,20 @@ export function githubSourceSelectionCapability(
       maxLimit: 50,
       pagination: "single-page",
     },
-    reviewComments: false,
-    reviews: false,
+    reviews: {
+      supported: true,
+      defaultEnabled: false,
+      defaultLimit: 10,
+      maxLimit: 20,
+      pagination: "single-page",
+    },
+    reviewComments: {
+      supported: true,
+      defaultEnabled: false,
+      defaultLimit: 10,
+      maxLimit: 20,
+      pagination: "single-page",
+    },
     timelines: false,
     pullRequestFiles: false,
   };

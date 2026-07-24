@@ -46,7 +46,17 @@ function statusBrief(report: ProviderStatusReport): string {
       lines.push(`github item comments default limit: ${cap.comments.defaultLimit}`);
       lines.push(`github item comments maximum limit: ${cap.comments.maxLimit}`);
       lines.push(`github item comments pagination: one page`);
-      lines.push(`github review comments/reviews/timeline: not included`);
+      lines.push(`github pr reviews: item/PR only explicit opt-in`);
+      lines.push(`github pr reviews default enabled: no`);
+      lines.push(`github pr reviews default limit: ${cap.reviews.defaultLimit}`);
+      lines.push(`github pr reviews maximum limit: ${cap.reviews.maxLimit}`);
+      lines.push(`github pr reviews pagination: one page`);
+      lines.push(`github pr review comments: item/PR only explicit opt-in`);
+      lines.push(`github pr review comments default enabled: no`);
+      lines.push(`github pr review comments default limit: ${cap.reviewComments.defaultLimit}`);
+      lines.push(`github pr review comments maximum limit: ${cap.reviewComments.maxLimit}`);
+      lines.push(`github pr review comments pagination: one page`);
+      lines.push(`github timeline/thread resolution/reactions/diffs/writes: not included`);
     }
   }
   lines.push("");
@@ -91,7 +101,17 @@ function statusMarkdown(report: ProviderStatusReport): string {
         lines.push(`- Item comments default limit: ${cap.comments.defaultLimit}`);
         lines.push(`- Item comments maximum limit: ${cap.comments.maxLimit}`);
         lines.push(`- Item comments pagination: one page`);
-        lines.push(`- Review comments / reviews / timeline included: no`);
+        lines.push(`- PR reviews: item/PR only explicit opt-in`);
+        lines.push(`- PR reviews default enabled: no`);
+        lines.push(`- PR reviews default limit: ${cap.reviews.defaultLimit}`);
+        lines.push(`- PR reviews maximum limit: ${cap.reviews.maxLimit}`);
+        lines.push(`- PR reviews pagination: one page`);
+        lines.push(`- PR review comments: item/PR only explicit opt-in`);
+        lines.push(`- PR review comments default enabled: no`);
+        lines.push(`- PR review comments default limit: ${cap.reviewComments.defaultLimit}`);
+        lines.push(`- PR review comments maximum limit: ${cap.reviewComments.maxLimit}`);
+        lines.push(`- PR review comments pagination: one page`);
+        lines.push(`- Timeline / thread resolution / reactions / diffs / writes included: no`);
         lines.push(`- Pull-request file/diff data included: no`);
       }
     }

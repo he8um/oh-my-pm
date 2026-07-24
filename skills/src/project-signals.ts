@@ -27,6 +27,9 @@ export type RiskCandidate = {
   url?: string;
   owner?: string;
   author?: string;
+  reviewState?: string;
+  filePath?: string;
+  line?: number;
   due?: string;
   repository?: string;
   number?: number;
@@ -43,6 +46,9 @@ export type NextTaskCandidate = {
   url?: string;
   owner?: string;
   author?: string;
+  reviewState?: string;
+  filePath?: string;
+  line?: number;
   due?: string;
   repository?: string;
   number?: number;
@@ -541,6 +547,328 @@ function groupBySection<M>(
     sections[sections.length - 1]!.entries.push(entry);
   }
   return sections;
+}
+
+// --- GitHub pull-request review classification (bounded) -------------------
+//
+// A GitHub review is exactly source=github, type=note, kind=pullRequestReview;
+// a review comment is source=github, type=note, kind=pullRequestReviewComment.
+// Both are mutually exclusive. Each contributes body signals ONLY from the same
+// recognized Markdown risk/action structures used elsewhere (headings and
+// explicit markers) — never from arbitrary prose or title keywords. A review or
+// review comment is never a top-level issue/PR/repository, is never overdue, and
+// is never a label-based signal. Reviews may additionally produce
+// state-derived risk/task signals (see review-state logic below).
+
+export function isGitHubReviewItem(item: TextItem): boolean {
+  return (
+    item.source === "github" &&
+    item.type === "note" &&
+    normalizeSignalText(item.kind ?? "") === "pullrequestreview"
+  );
+}
+
+export function isGitHubReviewCommentItem(item: TextItem): boolean {
+  return (
+    item.source === "github" &&
+    item.type === "note" &&
+    normalizeSignalText(item.kind ?? "") === "pullrequestreviewcomment"
+  );
+}
+
+/** Whether a review's parent PR is open/draft enough to accept action items. */
+function reviewParentAcceptsTasks(item: TextItem): boolean {
+  const status = normalizeSignalText(item.parentStatus ?? "");
+  return status === "open" || status === "draft";
+}
+
+/** Whether a review's parent PR is closed or merged (terminal). */
+function reviewParentIsTerminal(item: TextItem): boolean {
+  const status = normalizeSignalText(item.parentStatus ?? "");
+  return status === "closed" || status === "merged";
+}
+
+function reviewMetadata(
+  item: TextItem,
+  source: "github-review" | "github-review-comment",
+): Partial<RiskCandidate> & Partial<NextTaskCandidate> {
+  const meta: Partial<RiskCandidate> & Partial<NextTaskCandidate> = { sourceType: "note" };
+  if (item.url !== undefined) meta.url = item.url;
+  if (item.author !== undefined) meta.author = item.author;
+  if (item.repository !== undefined) meta.repository = item.repository;
+  if (item.parentNumber !== undefined) meta.number = item.parentNumber;
+  if (source === "github-review" && item.reviewState !== undefined) meta.reviewState = item.reviewState;
+  if (source === "github-review-comment") {
+    if (item.filePath !== undefined) meta.filePath = item.filePath;
+    if (item.line !== undefined) meta.line = item.line;
+  }
+  return meta;
+}
+
+/**
+ * Map a review body risk heading to a source-specific reason. Uses the full
+ * Persian-aware Markdown risk heading taxonomy so both English and Persian
+ * risk/blocker/dependency headings are recognized inside review bodies.
+ */
+function reviewHeadingRisk(
+  normalizedHeading: string,
+  prefix: string,
+): { severity: Severity; reason: string } | null {
+  const md = markdownHeadingSeverity(normalizedHeading);
+  if (md === null) return null;
+  const kind = md.reason.slice("markdown_heading:".length); // blockers | risks | dependencies
+  return { severity: md.severity, reason: `${prefix}:heading:${kind}` };
+}
+
+/** Map a review body risk marker prefix to a source-specific reason. */
+function reviewMarkerRisk(markerPrefix: string, prefix: string): { severity: Severity; reason: string } {
+  const p = normalizeSignalText(markerPrefix);
+  if (p === "blocker" || p === "blocked by" || p === "مانع" || p === "مسدودکننده") {
+    return { severity: "high", reason: `${prefix}:marker:blocker` };
+  }
+  if (p === "dependency" || p === "وابستگی") {
+    return { severity: "medium", reason: `${prefix}:marker:dependency` };
+  }
+  if (p === "risk" || p === "ریسک") {
+    return { severity: "medium", reason: `${prefix}:marker:risk` };
+  }
+  return { severity: "low", reason: `${prefix}:marker:concern` };
+}
+
+/** A review's TextItem viewed as a parseable Markdown document (its body). */
+function reviewDocument(item: TextItem): TextItem {
+  return { id: item.id, title: item.title, body: item.body ?? "" };
+}
+
+/**
+ * Extract bounded body risk candidates from one review or review comment. The
+ * recognized signals are exactly explicit risk/blocker/dependency/concern
+ * markers and list/paragraph lines under a recognized risk heading. Arbitrary
+ * prose never counts. For a terminal (closed/merged) parent these are still
+ * extractable as historical context.
+ */
+function classifyReviewBodyRisks(
+  item: TextItem,
+  source: "github-review" | "github-review-comment",
+): RiskCandidate[] {
+  const prefix = source === "github-review" ? "github_review" : "github_review_comment";
+  const entries = parseMarkdownSignalEntries(reviewDocument(item));
+  const bySection = groupBySection(entries, (h) => ({ risk: reviewHeadingRisk(h, prefix) }));
+  const out: RiskCandidate[] = [];
+  for (const section of bySection) {
+    const hasListItems = section.entries.some(
+      (e) =>
+        e.kind === "list-item" ||
+        e.kind === "numbered-item" ||
+        e.kind === "unchecked-task" ||
+        e.kind === "checked-task",
+    );
+    for (const entry of section.entries) {
+      if (entry.kind === "marker") {
+        const marker = matchRiskMarker(entry.text);
+        if (marker !== null) {
+          const mapped = reviewMarkerRisk(marker.prefix, prefix);
+          out.push(makeReviewRisk(item, source, entry, mapped.severity, mapped.reason, marker.body));
+        }
+        continue;
+      }
+      if (section.meta.risk === null) continue;
+      if (entry.kind === "checked-task") continue;
+      if (entry.kind === "list-item" || entry.kind === "numbered-item" || entry.kind === "unchecked-task") {
+        out.push(makeReviewRisk(item, source, entry, section.meta.risk.severity, section.meta.risk.reason));
+      } else if (entry.kind === "paragraph" && !hasListItems) {
+        out.push(makeReviewRisk(item, source, entry, section.meta.risk.severity, section.meta.risk.reason));
+      }
+    }
+  }
+  return out;
+}
+
+function makeReviewRisk(
+  item: TextItem,
+  source: "github-review" | "github-review-comment",
+  entry: MarkdownSignalEntry,
+  severity: Severity,
+  reason: string,
+  overrideTitle?: string,
+): RiskCandidate {
+  const title = (overrideTitle ?? entry.text).trim();
+  const id = `${item.id}#risk-${entry.sequence}`;
+  return {
+    id,
+    title,
+    severity,
+    reason,
+    source,
+    sourceId: id,
+    ...reviewMetadata(item, source),
+  };
+}
+
+/**
+ * Extract bounded body task candidates from one review or review comment. The
+ * recognized signals are exactly unchecked checkboxes, recognized action
+ * headings, and explicit action/next/task markers. Allowed only when the parent
+ * PR is open or draft (terminal parents contribute no tasks). Arbitrary prose
+ * never counts.
+ */
+function classifyReviewBodyTasks(
+  item: TextItem,
+  source: "github-review" | "github-review-comment",
+): NextTaskCandidate[] {
+  if (!reviewParentAcceptsTasks(item)) return [];
+  const prefix = source === "github-review" ? "github_review" : "github_review_comment";
+  const entries = parseMarkdownSignalEntries(reviewDocument(item));
+  const bySection = groupBySection(entries, (h) => ({
+    action: MD_ACTION_HEADINGS.has(h),
+    risk: reviewHeadingRisk(h, prefix) !== null,
+  }));
+  const out: NextTaskCandidate[] = [];
+  for (const section of bySection) {
+    for (const entry of section.entries) {
+      if (entry.kind === "marker") {
+        const marker = matchActionMarker(entry.text);
+        if (marker !== null) {
+          out.push(
+            makeReviewTask(
+              item,
+              source,
+              entry,
+              actionMarkerReason(marker.prefix).replace("markdown_marker:", `${prefix}:marker:`),
+              marker.body,
+              "action",
+            ),
+          );
+        }
+        continue;
+      }
+      if (entry.kind === "unchecked-task" && !section.meta.risk) {
+        out.push(makeReviewTask(item, source, entry, `${prefix}:unchecked_task`, entry.text, "task"));
+        continue;
+      }
+      if (entry.kind === "checked-task") continue;
+      if ((entry.kind === "list-item" || entry.kind === "numbered-item") && section.meta.action) {
+        out.push(
+          makeReviewTask(
+            item,
+            source,
+            entry,
+            actionHeadingReason(entry.normalizedHeading).replace("markdown_heading:", `${prefix}:heading:`),
+            entry.text,
+            "action",
+          ),
+        );
+      }
+    }
+  }
+  return out;
+}
+
+function makeReviewTask(
+  item: TextItem,
+  source: "github-review" | "github-review-comment",
+  entry: MarkdownSignalEntry,
+  reason: string,
+  rawTitle: string,
+  idKind: "task" | "action",
+): NextTaskCandidate {
+  const stripped = stripPriorityMarker(rawTitle);
+  const id = `${item.id}#${idKind}-${entry.sequence}`;
+  const candidate: NextTaskCandidate = {
+    id,
+    title: stripped.title.trim(),
+    reason,
+    source,
+    sourceId: id,
+    ...reviewMetadata(item, source),
+  };
+  if (stripped.priority !== undefined) candidate.priority = stripped.priority;
+  return candidate;
+}
+
+// --- Review-state-derived signals (Step 12) --------------------------------
+//
+// A review submission may produce structured signals from its canonical state,
+// independent of its body. For an open/draft parent PR only:
+//   changesRequested -> one high risk + one high next task
+//   approved         -> no state risk/task (handoff decision handled elsewhere)
+//   others           -> no state-derived risk/task
+// For a closed/merged parent PR no state-derived risk or task is produced.
+
+/** The changes-requested state risk for an open/draft-parent review, or null. */
+export function classifyGitHubReviewStateRisk(item: TextItem): RiskCandidate | null {
+  if (!isGitHubReviewItem(item)) return null;
+  if (reviewParentIsTerminal(item)) return null;
+  if (!reviewParentAcceptsTasks(item)) return null;
+  if (normalizeSignalText(item.reviewState ?? "") !== "changesrequested") return null;
+  const author = (item.author ?? "unknown").trim();
+  const id = `${item.id}#state-risk`;
+  return {
+    id,
+    title: `Changes requested by @${author}`,
+    severity: "high",
+    reason: "github_review:changes_requested",
+    source: "github-review",
+    sourceId: id,
+    ...reviewMetadata(item, "github-review"),
+  };
+}
+
+/** The changes-requested state task for an open/draft-parent review, or null. */
+export function classifyGitHubReviewStateTask(item: TextItem): NextTaskCandidate | null {
+  if (!isGitHubReviewItem(item)) return null;
+  if (reviewParentIsTerminal(item)) return null;
+  if (!reviewParentAcceptsTasks(item)) return null;
+  if (normalizeSignalText(item.reviewState ?? "") !== "changesrequested") return null;
+  const author = (item.author ?? "unknown").trim();
+  const id = `${item.id}#state-task`;
+  return {
+    id,
+    title: `Address changes requested by @${author}`,
+    reason: "github_review:address_changes_requested",
+    source: "github-review",
+    sourceId: id,
+    priority: "high",
+    ...reviewMetadata(item, "github-review"),
+  };
+}
+
+/**
+ * All bounded risk candidates from one review submission: the state-derived risk
+ * (open/draft parent, changesRequested) followed by explicit body risks.
+ */
+export function classifyGitHubReviewRisks(item: TextItem): RiskCandidate[] {
+  if (!isGitHubReviewItem(item)) return [];
+  const out: RiskCandidate[] = [];
+  const stateRisk = classifyGitHubReviewStateRisk(item);
+  if (stateRisk !== null) out.push(stateRisk);
+  out.push(...classifyReviewBodyRisks(item, "github-review"));
+  return out;
+}
+
+/**
+ * All bounded task candidates from one review submission: the state-derived task
+ * (open/draft parent, changesRequested) followed by explicit body tasks.
+ */
+export function classifyGitHubReviewTasks(item: TextItem): NextTaskCandidate[] {
+  if (!isGitHubReviewItem(item)) return [];
+  const out: NextTaskCandidate[] = [];
+  const stateTask = classifyGitHubReviewStateTask(item);
+  if (stateTask !== null) out.push(stateTask);
+  out.push(...classifyReviewBodyTasks(item, "github-review"));
+  return out;
+}
+
+/** Bounded risk candidates from one inline review comment (body signals only). */
+export function classifyGitHubReviewCommentRisks(item: TextItem): RiskCandidate[] {
+  if (!isGitHubReviewCommentItem(item)) return [];
+  return classifyReviewBodyRisks(item, "github-review-comment");
+}
+
+/** Bounded task candidates from one inline review comment (body signals only). */
+export function classifyGitHubReviewCommentTasks(item: TextItem): NextTaskCandidate[] {
+  if (!isGitHubReviewCommentItem(item)) return [];
+  return classifyReviewBodyTasks(item, "github-review-comment");
 }
 
 /**
@@ -1110,12 +1438,25 @@ export function extractRiskCandidates(input: {
     }
   }
 
-  // 3. GitHub candidates in provider order. A comment is never a top-level
-  // issue/PR/repository risk; it contributes only its own bounded comment risks.
+  // 3. GitHub candidates in canonical group order: primary repository/issue/PR
+  // first, then ordinary comments, then reviews, then review comments. A
+  // comment/review/review-comment note is never a top-level issue/PR/repository
+  // risk; each contributes only its own bounded body (and, for reviews, state)
+  // risks. API order is preserved within each group.
+  const reviewRisks: RiskCandidate[] = [];
+  const reviewCommentRisks: RiskCandidate[] = [];
   for (const item of input.items) {
     if (!isGitHubItem(item)) continue;
     if (isGitHubComment(item)) {
       for (const candidate of classifyGitHubCommentRisks(item)) risks.add(candidate);
+      continue;
+    }
+    if (isGitHubReviewItem(item)) {
+      reviewRisks.push(...classifyGitHubReviewRisks(item));
+      continue;
+    }
+    if (isGitHubReviewCommentItem(item)) {
+      reviewCommentRisks.push(...classifyGitHubReviewCommentRisks(item));
       continue;
     }
     if (isRepositoryRecord(item)) {
@@ -1126,6 +1467,8 @@ export function extractRiskCandidates(input: {
     const risk = classifyGitHubRisk(item, input.now);
     if (risk !== null) risks.add(risk);
   }
+  for (const candidate of reviewRisks) risks.add(candidate);
+  for (const candidate of reviewCommentRisks) risks.add(candidate);
 
   // 4. generic fallback (non-GitHub, non-Markdown items only).
   for (const item of input.items) {
@@ -1182,15 +1525,27 @@ export function extractNextTaskCandidates(input: {
     }
   }
 
-  // 3. GitHub high/medium/low buckets in provider order. Comments contribute
-  // only their own bounded comment tasks (never treated as a top-level issue/PR)
-  // and are appended after the issue/PR buckets, in provider then line order.
+  // 3. GitHub high/medium/low buckets in provider order. Comments, reviews, and
+  // review comments contribute only their own bounded tasks (never treated as a
+  // top-level issue/PR) and are appended after the issue/PR buckets in the
+  // canonical group order: ordinary comments, then reviews, then review comments.
+  // API/line order is preserved within each group.
   const gh: NextTaskCandidate[] = [];
   const commentTasks: NextTaskCandidate[] = [];
+  const reviewTasks: NextTaskCandidate[] = [];
+  const reviewCommentTasks: NextTaskCandidate[] = [];
   for (const item of input.items) {
     if (!isGitHubItem(item)) continue;
     if (isGitHubComment(item)) {
       commentTasks.push(...classifyGitHubCommentTasks(item));
+      continue;
+    }
+    if (isGitHubReviewItem(item)) {
+      reviewTasks.push(...classifyGitHubReviewTasks(item));
+      continue;
+    }
+    if (isGitHubReviewCommentItem(item)) {
+      reviewCommentTasks.push(...classifyGitHubReviewCommentTasks(item));
       continue;
     }
     const task = classifyGitHubNextTask(item, input.now);
@@ -1202,6 +1557,8 @@ export function extractNextTaskCandidates(input: {
     }
   }
   for (const task of commentTasks) tasks.add(task);
+  for (const task of reviewTasks) tasks.add(task);
+  for (const task of reviewCommentTasks) tasks.add(task);
 
   // 4. generic fallback (non-GitHub, non-Markdown items only).
   for (const item of input.items) {

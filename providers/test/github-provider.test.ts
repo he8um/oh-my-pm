@@ -315,3 +315,224 @@ describe("fetch — item comments", () => {
     expect(data.reactions).toBeUndefined();
   });
 });
+
+describe("fetch — pull-request reviews and review comments", () => {
+  const prIssue = () => (load("issues.json") as unknown[])[1];
+  const review = (id: number, state: string, body = "", login = "alice") => ({
+    id,
+    node_id: `MDE=${id}`,
+    user: { login, id: 99, node_id: "U_x" },
+    body,
+    state,
+    author_association: "MEMBER",
+    submitted_at: "2026-02-01T00:00:00Z",
+    commit_id: "deadbeef",
+    html_url: `https://github.com/${SLUG}/pull/47#pullrequestreview-${id}`,
+    _links: { html: { href: "x" } },
+  });
+  const reviewComment = (id: number, body = "", login = "alice") => ({
+    id,
+    node_id: `MDI=${id}`,
+    user: { login, id: 5 },
+    body,
+    path: "src/app.ts",
+    line: 42,
+    start_line: null,
+    side: "RIGHT",
+    diff_hunk: "@@ -1 +1 @@",
+    commit_id: "cafe",
+    original_commit_id: "beef",
+    pull_request_review_id: 7,
+    author_association: "MEMBER",
+    created_at: "2026-02-01T00:00:00Z",
+    updated_at: "2026-02-02T00:00:00Z",
+    html_url: `https://github.com/${SLUG}/pull/47#discussion_r${id}`,
+  });
+
+  it("PR+reviews issues exactly issue, pull detail, reviews (per_page/page=1)", async () => {
+    const { provider: p, calls } = provider([
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/47`, body: prIssue() },
+      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47`, body: load("pull-request.json") },
+      {
+        match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/reviews`,
+        body: [review(1, "APPROVED"), review(2, "CHANGES_REQUESTED", "Please fix")],
+      },
+    ]);
+    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#47::reviews=10`, limit: 11 }), context);
+    if (!result.ok) throw new Error("expected ok");
+    expect(result.response.items[0]!.type).toBe("pullRequest");
+    const notes = result.response.items.slice(1);
+    expect(notes).toHaveLength(2);
+    expect(notes.every((n) => n.type === "note")).toBe(true);
+    expect(calls.map((c) => new URL(c.url).pathname)).toEqual([
+      `/repos/${SLUG}/issues/47`,
+      `/repos/${SLUG}/pulls/47`,
+      `/repos/${SLUG}/pulls/47/reviews`,
+    ]);
+    const reviewsCall = calls.find((c) => new URL(c.url).pathname.endsWith("/reviews"))!;
+    const ru = new URL(reviewsCall.url);
+    expect(ru.searchParams.get("per_page")).toBe("10");
+    expect(ru.searchParams.get("page")).toBe("1");
+    // API order preserved (earliest first).
+    expect((notes[0]!.data as Record<string, unknown>).reviewState).toBe("approved");
+    expect((notes[1]!.data as Record<string, unknown>).reviewState).toBe("changesRequested");
+  });
+
+  it("PR+review comments issues exactly issue, pull detail, review comments", async () => {
+    const { provider: p, calls } = provider([
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/47`, body: prIssue() },
+      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47`, body: load("pull-request.json") },
+      {
+        match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/comments`,
+        body: [reviewComment(11, "nit")],
+      },
+    ]);
+    const result = await p.execute(
+      req({ action: "fetch", query: `${SLUG}#47::review-comments=10`, limit: 11 }),
+      context,
+    );
+    if (!result.ok) throw new Error("expected ok");
+    expect(calls.map((c) => new URL(c.url).pathname)).toEqual([
+      `/repos/${SLUG}/issues/47`,
+      `/repos/${SLUG}/pulls/47`,
+      `/repos/${SLUG}/pulls/47/comments`,
+    ]);
+    const rc = calls.find((c) => new URL(c.url).pathname === `/repos/${SLUG}/pulls/47/comments`)!;
+    const rcu = new URL(rc.url);
+    expect(rcu.searchParams.get("per_page")).toBe("10");
+    expect(rcu.searchParams.get("page")).toBe("1");
+  });
+
+  it("PR + all optional contexts issues exactly five requests in canonical order", async () => {
+    const { provider: p, calls } = provider([
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/47`, body: prIssue() },
+      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47`, body: load("pull-request.json") },
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/47/comments`, body: [] },
+      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/reviews`, body: [review(1, "COMMENTED")] },
+      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/comments`, body: [reviewComment(11)] },
+    ]);
+    const result = await p.execute(
+      req({
+        action: "fetch",
+        query: `${SLUG}#47::comments=20&reviews=10&review-comments=10`,
+        limit: 41,
+      }),
+      context,
+    );
+    if (!result.ok) throw new Error("expected ok");
+    expect(calls.map((c) => new URL(c.url).pathname)).toEqual([
+      `/repos/${SLUG}/issues/47`,
+      `/repos/${SLUG}/pulls/47`,
+      `/repos/${SLUG}/issues/47/comments`,
+      `/repos/${SLUG}/pulls/47/reviews`,
+      `/repos/${SLUG}/pulls/47/comments`,
+    ]);
+    // GET-only.
+    expect(calls.every((c) => c.method === "GET")).toBe(true);
+  });
+
+  it("fails an issue with review options after exactly one item GET (no PR request)", async () => {
+    const { provider: p, calls } = provider([
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/42`, body: load("issue.json") },
+    ]);
+    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#42::reviews=10`, limit: 11 }), context);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe("OMP-P-4003");
+      expect(result.message).toBe("selected item is not a pull request");
+      expect(result.response.warnings?.[0]?.code).toBe("github_pull_request_required");
+    }
+    // Exactly one request; no PR detail, comments, reviews, or review-comments.
+    expect(calls.map((c) => new URL(c.url).pathname)).toEqual([`/repos/${SLUG}/issues/42`]);
+  });
+
+  it("fails an issue with review options even when comments are also requested (no comments GET)", async () => {
+    const { provider: p, calls } = provider([
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/42`, body: load("issue.json") },
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/42/comments`, body: [] },
+    ]);
+    const result = await p.execute(
+      req({ action: "fetch", query: `${SLUG}#42::comments=20&reviews=10`, limit: 31 }),
+      context,
+    );
+    expect(result.ok).toBe(false);
+    expect(calls.map((c) => new URL(c.url).pathname)).toEqual([`/repos/${SLUG}/issues/42`]);
+  });
+
+  it("propagates a reviews-endpoint failure without a silent fallback", async () => {
+    const { provider: p } = provider([
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/47`, body: prIssue() },
+      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47`, body: load("pull-request.json") },
+      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/reviews`, status: 500, body: {} },
+    ]);
+    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#47::reviews=10`, limit: 11 }), context);
+    expect(result.ok).toBe(false);
+  });
+
+  it("review notes carry only bounded provenance, never raw state/diff/commit data", async () => {
+    const { provider: p } = provider([
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/47`, body: prIssue() },
+      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47`, body: load("pull-request.json") },
+      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/reviews`, body: [review(3, "APPROVED", "LGTM")] },
+    ]);
+    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#47::reviews=10`, limit: 11 }), context);
+    if (!result.ok) throw new Error("expected ok");
+    const note = result.response.items[1]!;
+    expect(note.id).toBe(`github:${SLUG}:pull-request:47:review:3`);
+    expect(note.title).toBe("Review by @alice: approved");
+    const data = note.data as Record<string, unknown>;
+    expect(data.kind).toBe("pullRequestReview");
+    expect(data.reviewState).toBe("approved");
+    expect(data.parentType).toBe("pullRequest");
+    expect(data.body).toBe("LGTM");
+    expect(data.node_id).toBeUndefined();
+    expect(data.commit_id).toBeUndefined();
+    expect(data.state).toBeUndefined(); // raw uppercase state never retained
+    expect(data.user).toBeUndefined();
+    expect(data._links).toBeUndefined();
+  });
+
+  it("review-comment notes carry file provenance but never diff_hunk/commit ids", async () => {
+    const { provider: p } = provider([
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/47`, body: prIssue() },
+      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47`, body: load("pull-request.json") },
+      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/comments`, body: [reviewComment(12, "here")] },
+    ]);
+    const result = await p.execute(
+      req({ action: "fetch", query: `${SLUG}#47::review-comments=10`, limit: 11 }),
+      context,
+    );
+    if (!result.ok) throw new Error("expected ok");
+    const note = result.response.items[1]!;
+    expect(note.id).toBe(`github:${SLUG}:pull-request:47:review-comment:12`);
+    expect(note.title).toBe("Review comment by @alice on src/app.ts");
+    const data = note.data as Record<string, unknown>;
+    expect(data.kind).toBe("pullRequestReviewComment");
+    expect(data.filePath).toBe("src/app.ts");
+    expect(data.line).toBe(42);
+    expect(data.side).toBe("right");
+    expect(data.body).toBe("here");
+    expect(data.diff_hunk).toBeUndefined();
+    expect(data.commit_id).toBeUndefined();
+    expect(data.pull_request_review_id).toBeUndefined();
+    expect(data.node_id).toBeUndefined();
+  });
+
+  it("never requests timeline, reactions, or diff/file/commit endpoints", async () => {
+    const { provider: p, calls } = provider([
+      { match: (u) => u.pathname === `/repos/${SLUG}/issues/47`, body: prIssue() },
+      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47`, body: load("pull-request.json") },
+      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/reviews`, body: [review(1, "APPROVED")] },
+      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/comments`, body: [reviewComment(11)] },
+    ]);
+    await p.execute(
+      req({ action: "fetch", query: `${SLUG}#47::reviews=10&review-comments=10`, limit: 21 }),
+      context,
+    );
+    const paths = calls.map((c) => new URL(c.url).pathname);
+    expect(paths.some((x) => x.endsWith("/timeline"))).toBe(false);
+    expect(paths.some((x) => x.endsWith("/reactions"))).toBe(false);
+    expect(paths.some((x) => x.endsWith("/files"))).toBe(false);
+    expect(paths.some((x) => x.endsWith("/commits"))).toBe(false);
+  });
+});

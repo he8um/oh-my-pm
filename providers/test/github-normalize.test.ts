@@ -5,12 +5,21 @@ import { describe, expect, it } from "vitest";
 import {
   GITHUB_MAX_BODY_CHARS,
   GITHUB_MAX_COMBINED_COMMENT_CHARS,
+  GITHUB_MAX_COMBINED_REVIEW_CHARS,
+  GITHUB_MAX_COMBINED_REVIEW_COMMENT_CHARS,
   GITHUB_MAX_COMMENT_BODY_CHARS,
   GITHUB_MAX_COMMENTS,
+  GITHUB_MAX_REVIEW_BODY_CHARS,
+  GITHUB_MAX_REVIEW_COMMENT_BODY_CHARS,
+  GITHUB_MAX_REVIEW_COMMENT_PATH_CHARS,
+  GITHUB_MAX_REVIEW_COMMENTS,
+  GITHUB_MAX_REVIEWS,
   normalizeIssue,
   normalizeIssueComments,
   normalizeIssueOrPullRequest,
   normalizePullRequest,
+  normalizePullRequestReviewComments,
+  normalizePullRequestReviews,
   normalizeRepository,
   readPullRequestDetail,
 } from "../src/index.js";
@@ -231,5 +240,228 @@ describe("normalizeIssueComments", () => {
   it("returns nothing for a non-array input", () => {
     expect(normalizeIssueComments(parent, null).items).toHaveLength(0);
     expect(normalizeIssueComments(parent, { not: "array" }).items).toHaveLength(0);
+  });
+});
+
+describe("normalizePullRequestReviews", () => {
+  const parent = { slug: "owner/repo", number: 7, parentStatus: "open" };
+  const raw = (id: number, state: string, over: Record<string, unknown> = {}) => ({
+    id,
+    node_id: `MDE=${id}`,
+    user: { login: "alice", id: 5, node_id: "U_1" },
+    body: `body-${id}`,
+    state,
+    author_association: "MEMBER",
+    submitted_at: "2026-02-01T00:00:00Z",
+    commit_id: "deadbeef",
+    html_url: `https://github.com/owner/repo/pull/7#pullrequestreview-${id}`,
+    _links: { html: { href: "x" } },
+    ...over,
+  });
+
+  it("maps all known states and drops raw state / node / user / commit data", () => {
+    const states: Array<[string, string]> = [
+      ["APPROVED", "approved"],
+      ["CHANGES_REQUESTED", "changesRequested"],
+      ["COMMENTED", "commented"],
+      ["DISMISSED", "dismissed"],
+      ["PENDING", "pending"],
+    ];
+    const { items, warnings } = normalizePullRequestReviews(
+      parent,
+      states.map(([s], i) => raw(i + 1, s)),
+    );
+    expect(items.map((i) => (i.data as Record<string, unknown>).reviewState)).toEqual(
+      states.map(([, canonical]) => canonical),
+    );
+    expect(items[0]!.id).toBe("github:owner/repo:pull-request:7:review:1");
+    expect(items[0]!.title).toBe("Review by @alice: approved");
+    const d0 = items[0]!.data as Record<string, unknown>;
+    expect(d0.parentType).toBe("pullRequest");
+    expect(d0.state).toBeUndefined();
+    expect(d0.node_id).toBeUndefined();
+    expect(d0.user).toBeUndefined();
+    expect(d0.commit_id).toBeUndefined();
+    expect(d0._links).toBeUndefined();
+    expect(warnings).toHaveLength(0);
+  });
+
+  it("maps an unknown state to unknown with a stable warning", () => {
+    const { items, warnings } = normalizePullRequestReviews(parent, [raw(1, "WEIRD_STATE")]);
+    expect((items[0]!.data as Record<string, unknown>).reviewState).toBe("unknown");
+    expect(warnings.some((w) => w.code === "github_review_state_unknown")).toBe(true);
+  });
+
+  it("skips a record with a missing/invalid id, preserving order and warning", () => {
+    const { items, warnings } = normalizePullRequestReviews(parent, [
+      raw(1, "APPROVED"),
+      { state: "COMMENTED" },
+      raw(0, "COMMENTED"),
+      "nope",
+      raw(4, "COMMENTED"),
+    ]);
+    expect(items.map((i) => i.id)).toEqual([
+      "github:owner/repo:pull-request:7:review:1",
+      "github:owner/repo:pull-request:7:review:4",
+    ]);
+    expect(warnings.some((w) => w.code === "github_review_invalid")).toBe(true);
+  });
+
+  it("falls back to the unknown author when the login is missing", () => {
+    const { items } = normalizePullRequestReviews(parent, [raw(1, "APPROVED", { user: {} })]);
+    expect((items[0]!.data as Record<string, unknown>).author).toBe("unknown");
+  });
+
+  it("accepts only a canonical github html url", () => {
+    const { items } = normalizePullRequestReviews(parent, [
+      raw(1, "APPROVED", { html_url: "https://evil.example/x" }),
+    ]);
+    expect(items[0]!.url).toBeUndefined();
+  });
+
+  it("truncates a per-review body and warns", () => {
+    const big = "x".repeat(GITHUB_MAX_REVIEW_BODY_CHARS + 50);
+    const { items, warnings } = normalizePullRequestReviews(parent, [raw(1, "APPROVED", { body: big })]);
+    expect(((items[0]!.data as Record<string, unknown>).body as string).length).toBe(
+      GITHUB_MAX_REVIEW_BODY_CHARS,
+    );
+    expect(warnings.some((w) => w.code === "github_review_body_truncated")).toBe(true);
+  });
+
+  it("bounds combined bodies and caps the count, preserving earliest first", () => {
+    const size = GITHUB_MAX_REVIEW_BODY_CHARS;
+    const many = Array.from({ length: GITHUB_MAX_REVIEWS + 5 }, (_, i) =>
+      raw(i + 1, "COMMENTED", { body: "y".repeat(size) }),
+    );
+    const { items, warnings } = normalizePullRequestReviews(parent, many);
+    expect(items).toHaveLength(GITHUB_MAX_REVIEWS);
+    const total = items.reduce((n, i) => n + ((i.data as Record<string, unknown>).body as string).length, 0);
+    expect(total).toBeLessThanOrEqual(GITHUB_MAX_COMBINED_REVIEW_CHARS);
+    expect(warnings.some((w) => w.code === "github_reviews_combined_truncated")).toBe(true);
+    expect(warnings.some((w) => w.code === "github_reviews_count_truncated")).toBe(true);
+  });
+
+  it("never mutates the input objects", () => {
+    const input = [raw(1, "APPROVED")];
+    const snapshot = JSON.stringify(input);
+    normalizePullRequestReviews(parent, input);
+    expect(JSON.stringify(input)).toBe(snapshot);
+  });
+
+  it("returns nothing for a non-array input", () => {
+    expect(normalizePullRequestReviews(parent, null).items).toHaveLength(0);
+  });
+});
+
+describe("normalizePullRequestReviewComments", () => {
+  const parent = { slug: "owner/repo", number: 7, parentStatus: "open" };
+  const raw = (id: number, over: Record<string, unknown> = {}) => ({
+    id,
+    node_id: `MDI=${id}`,
+    user: { login: "alice" },
+    body: `body-${id}`,
+    path: "src/app.ts",
+    line: 42,
+    start_line: 40,
+    side: "RIGHT",
+    start_side: "RIGHT",
+    diff_hunk: "@@ -1 +1 @@",
+    commit_id: "cafe",
+    original_commit_id: "beef",
+    original_position: 3,
+    position: 4,
+    pull_request_review_id: 9,
+    in_reply_to_id: 8,
+    author_association: "MEMBER",
+    created_at: "2026-02-01T00:00:00Z",
+    updated_at: "2026-02-02T00:00:00Z",
+    html_url: `https://github.com/owner/repo/pull/7#discussion_r${id}`,
+    ...over,
+  });
+
+  it("normalizes valid path/line metadata and never retains diff/commit data", () => {
+    const { items, warnings } = normalizePullRequestReviewComments(parent, [raw(11)]);
+    expect(warnings).toHaveLength(0);
+    expect(items[0]!.id).toBe("github:owner/repo:pull-request:7:review-comment:11");
+    expect(items[0]!.title).toBe("Review comment by @alice on src/app.ts");
+    const d = items[0]!.data as Record<string, unknown>;
+    expect(d).toMatchObject({
+      kind: "pullRequestReviewComment",
+      filePath: "src/app.ts",
+      line: 42,
+      startLine: 40,
+      side: "right",
+      startSide: "right",
+      parentType: "pullRequest",
+    });
+    for (const forbidden of [
+      "diff_hunk",
+      "commit_id",
+      "original_commit_id",
+      "position",
+      "original_position",
+      "node_id",
+      "pull_request_review_id",
+      "in_reply_to_id",
+      "user",
+    ]) {
+      expect(d[forbidden]).toBeUndefined();
+    }
+  });
+
+  it("strips control characters from the file path", () => {
+    const tab = String.fromCharCode(9);
+    const { items } = normalizePullRequestReviewComments(parent, [raw(1, { path: `src${tab}/app.ts` })]);
+    const cleaned = (items[0]!.data as Record<string, unknown>).filePath as string;
+    expect(cleaned.includes(tab)).toBe(false);
+  });
+
+  it("truncates an over-long file path and warns", () => {
+    const path = "x".repeat(GITHUB_MAX_REVIEW_COMMENT_PATH_CHARS + 20);
+    const { items, warnings } = normalizePullRequestReviewComments(parent, [raw(1, { path })]);
+    const fp = (items[0]!.data as Record<string, unknown>).filePath as string;
+    expect(fp.length).toBe(GITHUB_MAX_REVIEW_COMMENT_PATH_CHARS);
+    expect(warnings.some((w) => w.code === "github_review_comment_path_truncated")).toBe(true);
+  });
+
+  it("omits invalid line and unknown side values", () => {
+    const { items } = normalizePullRequestReviewComments(parent, [
+      raw(1, { line: 0, start_line: -3, side: "MIDDLE", start_side: "top" }),
+    ]);
+    const d = items[0]!.data as Record<string, unknown>;
+    expect(d.line).toBeUndefined();
+    expect(d.startLine).toBeUndefined();
+    expect(d.side).toBeUndefined();
+    expect(d.startSide).toBeUndefined();
+  });
+
+  it("skips an invalid record and warns", () => {
+    const { items, warnings } = normalizePullRequestReviewComments(parent, [raw(1), { body: "no id" }, raw(3)]);
+    expect(items.map((i) => i.id)).toEqual([
+      "github:owner/repo:pull-request:7:review-comment:1",
+      "github:owner/repo:pull-request:7:review-comment:3",
+    ]);
+    expect(warnings.some((w) => w.code === "github_review_comment_invalid")).toBe(true);
+  });
+
+  it("truncates a per-comment body, bounds the combined bodies, and caps the count", () => {
+    const size = GITHUB_MAX_REVIEW_COMMENT_BODY_CHARS;
+    const many = Array.from({ length: GITHUB_MAX_REVIEW_COMMENTS + 5 }, (_, i) =>
+      raw(i + 1, { body: "y".repeat(size + 10) }),
+    );
+    const { items, warnings } = normalizePullRequestReviewComments(parent, many);
+    expect(items).toHaveLength(GITHUB_MAX_REVIEW_COMMENTS);
+    const total = items.reduce((n, i) => n + ((i.data as Record<string, unknown>).body as string).length, 0);
+    expect(total).toBeLessThanOrEqual(GITHUB_MAX_COMBINED_REVIEW_COMMENT_CHARS);
+    expect(warnings.some((w) => w.code === "github_review_comment_body_truncated")).toBe(true);
+    expect(warnings.some((w) => w.code === "github_review_comments_combined_truncated")).toBe(true);
+    expect(warnings.some((w) => w.code === "github_review_comments_count_truncated")).toBe(true);
+  });
+
+  it("never mutates the input objects", () => {
+    const input = [raw(1)];
+    const snapshot = JSON.stringify(input);
+    normalizePullRequestReviewComments(parent, input);
+    expect(JSON.stringify(input)).toBe(snapshot);
   });
 });

@@ -58,6 +58,14 @@ export type TextItem = {
   parentType?: string;
   parentStatus?: string;
   authorAssociation?: string;
+  // GitHub review / review-comment provenance (only present on review notes).
+  reviewState?: string;
+  submittedAt?: string;
+  filePath?: string;
+  line?: number;
+  startLine?: number;
+  side?: "left" | "right";
+  startSide?: "left" | "right";
 };
 
 export type ProjectSignalSource =
@@ -67,6 +75,8 @@ export type ProjectSignalSource =
   | "github-issue"
   | "github-pull-request"
   | "github-comment"
+  | "github-review"
+  | "github-review-comment"
   | "generic";
 
 export type SkillInputObject = {
@@ -105,6 +115,9 @@ export type RiskSummary = {
     url?: string;
     owner?: string;
     author?: string;
+    reviewState?: string;
+    filePath?: string;
+    line?: number;
     due?: string;
     repository?: string;
     number?: number;
@@ -122,6 +135,9 @@ export type NextTasksResult = {
     url?: string;
     owner?: string;
     author?: string;
+    reviewState?: string;
+    filePath?: string;
+    line?: number;
     due?: string;
     repository?: string;
     number?: number;

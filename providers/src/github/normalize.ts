@@ -8,8 +8,15 @@ import type { KernelWarning, NormalizedProviderItem } from "@oh-my-pm/contracts"
 import {
   GITHUB_MAX_BODY_CHARS,
   GITHUB_MAX_COMBINED_COMMENT_CHARS,
+  GITHUB_MAX_COMBINED_REVIEW_CHARS,
+  GITHUB_MAX_COMBINED_REVIEW_COMMENT_CHARS,
   GITHUB_MAX_COMMENT_BODY_CHARS,
   GITHUB_MAX_COMMENTS,
+  GITHUB_MAX_REVIEW_BODY_CHARS,
+  GITHUB_MAX_REVIEW_COMMENT_BODY_CHARS,
+  GITHUB_MAX_REVIEW_COMMENT_PATH_CHARS,
+  GITHUB_MAX_REVIEW_COMMENTS,
+  GITHUB_MAX_REVIEWS,
 } from "./constants.js";
 
 // --- Small validated readers (never trust arbitrary JSON) -----------------
@@ -536,6 +543,342 @@ export function normalizeIssueComments(
     warnings.push({
       code: "github_comments_count_truncated",
       message: "some comments were dropped beyond the comment limit",
+    });
+  }
+  return { items, warnings };
+}
+
+// --- Pull-request review submissions ----------------------------------------
+
+/** Canonical, sanitized review state; raw GitHub state strings never leak. */
+export type GitHubReviewState =
+  | "approved"
+  | "changesRequested"
+  | "commented"
+  | "dismissed"
+  | "pending"
+  | "unknown";
+
+export type GitHubReviewParent = {
+  slug: string;
+  number: number;
+  parentStatus: string;
+};
+
+/** Map a raw GitHub review state to the canonical enum. */
+function mapReviewState(raw: string | undefined): { state: GitHubReviewState; unknown: boolean } {
+  switch (raw) {
+    case "APPROVED":
+      return { state: "approved", unknown: false };
+    case "CHANGES_REQUESTED":
+      return { state: "changesRequested", unknown: false };
+    case "COMMENTED":
+      return { state: "commented", unknown: false };
+    case "DISMISSED":
+      return { state: "dismissed", unknown: false };
+    case "PENDING":
+      return { state: "pending", unknown: false };
+    default:
+      return { state: "unknown", unknown: true };
+  }
+}
+
+/** Human-readable display state for a review title. */
+function reviewDisplayState(state: GitHubReviewState): string {
+  switch (state) {
+    case "approved":
+      return "approved";
+    case "changesRequested":
+      return "changes requested";
+    case "commented":
+      return "commented";
+    case "dismissed":
+      return "dismissed";
+    case "pending":
+      return "pending";
+    default:
+      return "unknown";
+  }
+}
+
+/** Bound a review body to the per-review ceiling; report truncation. */
+function boundReviewBody(value: string): { body: string; truncated: boolean } {
+  if (value.length <= GITHUB_MAX_REVIEW_BODY_CHARS) {
+    return { body: value, truncated: false };
+  }
+  return { body: value.slice(0, GITHUB_MAX_REVIEW_BODY_CHARS), truncated: true };
+}
+
+/**
+ * Normalize a pull request's review submissions into `note` items, in API order,
+ * preserving the earliest reviews first. Applies the review-count, per-review-
+ * body, and combined-body ceilings, and drops records missing a positive-safe-
+ * integer id. Raw API objects, node IDs, commit IDs, nested users, links, and raw
+ * state strings are never retained. Returns the notes plus stable warnings.
+ */
+export function normalizePullRequestReviews(
+  parent: GitHubReviewParent,
+  raw: unknown,
+): { items: NormalizedProviderItem[]; warnings: KernelWarning[] } {
+  const items: NormalizedProviderItem[] = [];
+  const warnings: KernelWarning[] = [];
+  if (!Array.isArray(raw)) {
+    return { items, warnings };
+  }
+
+  let invalidSeen = false;
+  let stateUnknownSeen = false;
+  let perReviewTruncated = false;
+  let combinedTruncated = false;
+  let countDropped = false;
+  let combined = 0;
+
+  for (const entry of raw) {
+    if (items.length >= GITHUB_MAX_REVIEWS) {
+      if (raw.length > GITHUB_MAX_REVIEWS) countDropped = true;
+      break;
+    }
+    if (!isRecord(entry)) {
+      invalidSeen = true;
+      continue;
+    }
+    const reviewId = readInteger(entry["id"]);
+    if (reviewId === undefined || !Number.isSafeInteger(reviewId) || reviewId <= 0) {
+      invalidSeen = true;
+      continue;
+    }
+    const authorRaw = isRecord(entry["user"]) ? readString(entry["user"]["login"]) : undefined;
+    const author =
+      authorRaw === undefined || sanitizeLine(authorRaw) === "" ? "unknown" : sanitizeLine(authorRaw);
+    const associationRaw = readString(entry["author_association"]);
+    const association = associationRaw === undefined ? undefined : sanitizeLine(associationRaw);
+    const url = validGitHubUrl(entry["html_url"]);
+    const submittedAt = readString(entry["submitted_at"]);
+    const { state, unknown } = mapReviewState(readString(entry["state"]));
+    if (unknown) stateUnknownSeen = true;
+
+    let { body, truncated } = boundReviewBody(readString(entry["body"]) ?? "");
+    if (truncated) perReviewTruncated = true;
+    if (combined + body.length > GITHUB_MAX_COMBINED_REVIEW_CHARS) {
+      const remaining = Math.max(0, GITHUB_MAX_COMBINED_REVIEW_CHARS - combined);
+      body = body.slice(0, remaining);
+      combinedTruncated = true;
+    }
+    combined += body.length;
+
+    const data: Record<string, unknown> = {
+      kind: "pullRequestReview",
+      repository: parent.slug,
+      parentNumber: parent.number,
+      parentType: "pullRequest",
+      parentStatus: parent.parentStatus,
+      author,
+      reviewState: state,
+      body,
+    };
+    if (association !== undefined) data["authorAssociation"] = association;
+    if (submittedAt !== undefined) data["submittedAt"] = submittedAt;
+
+    const item: NormalizedProviderItem = {
+      id: `github:${parent.slug}:pull-request:${parent.number}:review:${reviewId}`,
+      type: "note",
+      title: `Review by @${author}: ${reviewDisplayState(state)}`,
+      source: "github",
+      data: data as NormalizedProviderItem["data"],
+    };
+    if (url !== undefined) item.url = url;
+    items.push(item);
+  }
+
+  if (invalidSeen) {
+    warnings.push({ code: "github_review_invalid", message: "a review record was invalid and was skipped" });
+  }
+  if (stateUnknownSeen) {
+    warnings.push({ code: "github_review_state_unknown", message: "a review had an unrecognized state" });
+  }
+  if (perReviewTruncated) {
+    warnings.push({ code: "github_review_body_truncated", message: "a review body was truncated" });
+  }
+  if (combinedTruncated) {
+    warnings.push({
+      code: "github_reviews_combined_truncated",
+      message: "combined review bodies were truncated",
+    });
+  }
+  if (countDropped) {
+    warnings.push({
+      code: "github_reviews_count_truncated",
+      message: "some reviews were dropped beyond the review limit",
+    });
+  }
+  return { items, warnings };
+}
+
+// --- Inline pull-request review comments ------------------------------------
+
+/** Bound a review-comment body to its per-comment ceiling; report truncation. */
+function boundReviewCommentBody(value: string): { body: string; truncated: boolean } {
+  if (value.length <= GITHUB_MAX_REVIEW_COMMENT_BODY_CHARS) {
+    return { body: value, truncated: false };
+  }
+  return { body: value.slice(0, GITHUB_MAX_REVIEW_COMMENT_BODY_CHARS), truncated: true };
+}
+
+/**
+ * Sanitize a display file path: strip control characters, trim whitespace, and
+ * cap at 512 characters. This is display provenance only; it is never resolved
+ * against the local filesystem or read. Returns the bounded path and truncation.
+ */
+function boundFilePath(value: string): { path: string; truncated: boolean } {
+  const sanitized = sanitizeLine(value);
+  if (sanitized.length <= GITHUB_MAX_REVIEW_COMMENT_PATH_CHARS) {
+    return { path: sanitized, truncated: false };
+  }
+  return { path: sanitized.slice(0, GITHUB_MAX_REVIEW_COMMENT_PATH_CHARS), truncated: true };
+}
+
+/** Read a positive-safe-integer line field, or undefined when invalid. */
+function readPositiveLine(value: unknown): number | undefined {
+  const n = readInteger(value);
+  if (n === undefined || !Number.isSafeInteger(n) || n <= 0) return undefined;
+  return n;
+}
+
+/** Normalize a LEFT/RIGHT side to lowercase, omitting anything else. */
+function readSide(value: unknown): "left" | "right" | undefined {
+  const raw = readString(value);
+  if (raw === "LEFT") return "left";
+  if (raw === "RIGHT") return "right";
+  return undefined;
+}
+
+/**
+ * Normalize a pull request's inline review comments into `note` items, in API
+ * order, preserving the earliest comments first. Applies the count, per-comment-
+ * body, combined-body, and file-path ceilings, and drops records missing a
+ * positive-safe-integer id. diff_hunk, commit IDs, positions, node IDs, links,
+ * nested users, and reactions are never retained. Returns notes plus warnings.
+ */
+export function normalizePullRequestReviewComments(
+  parent: GitHubReviewParent,
+  raw: unknown,
+): { items: NormalizedProviderItem[]; warnings: KernelWarning[] } {
+  const items: NormalizedProviderItem[] = [];
+  const warnings: KernelWarning[] = [];
+  if (!Array.isArray(raw)) {
+    return { items, warnings };
+  }
+
+  let invalidSeen = false;
+  let perCommentTruncated = false;
+  let combinedTruncated = false;
+  let countDropped = false;
+  let pathTruncated = false;
+  let combined = 0;
+
+  for (const entry of raw) {
+    if (items.length >= GITHUB_MAX_REVIEW_COMMENTS) {
+      if (raw.length > GITHUB_MAX_REVIEW_COMMENTS) countDropped = true;
+      break;
+    }
+    if (!isRecord(entry)) {
+      invalidSeen = true;
+      continue;
+    }
+    const commentId = readInteger(entry["id"]);
+    if (commentId === undefined || !Number.isSafeInteger(commentId) || commentId <= 0) {
+      invalidSeen = true;
+      continue;
+    }
+    const authorRaw = isRecord(entry["user"]) ? readString(entry["user"]["login"]) : undefined;
+    const author =
+      authorRaw === undefined || sanitizeLine(authorRaw) === "" ? "unknown" : sanitizeLine(authorRaw);
+    const associationRaw = readString(entry["author_association"]);
+    const association = associationRaw === undefined ? undefined : sanitizeLine(associationRaw);
+    const url = validGitHubUrl(entry["html_url"]);
+    const createdAt = readString(entry["created_at"]);
+    const updatedAt = readString(entry["updated_at"]);
+
+    const pathRaw = readString(entry["path"]);
+    let filePath: string | undefined;
+    if (pathRaw !== undefined) {
+      const bounded = boundFilePath(pathRaw);
+      if (bounded.truncated) pathTruncated = true;
+      filePath = bounded.path === "" ? undefined : bounded.path;
+    }
+
+    const line = readPositiveLine(entry["line"]);
+    const startLine = readPositiveLine(entry["start_line"]);
+    const side = readSide(entry["side"]);
+    const startSide = readSide(entry["start_side"]);
+
+    let { body, truncated } = boundReviewCommentBody(readString(entry["body"]) ?? "");
+    if (truncated) perCommentTruncated = true;
+    if (combined + body.length > GITHUB_MAX_COMBINED_REVIEW_COMMENT_CHARS) {
+      const remaining = Math.max(0, GITHUB_MAX_COMBINED_REVIEW_COMMENT_CHARS - combined);
+      body = body.slice(0, remaining);
+      combinedTruncated = true;
+    }
+    combined += body.length;
+
+    const data: Record<string, unknown> = {
+      kind: "pullRequestReviewComment",
+      repository: parent.slug,
+      parentNumber: parent.number,
+      parentType: "pullRequest",
+      parentStatus: parent.parentStatus,
+      author,
+      body,
+    };
+    if (association !== undefined) data["authorAssociation"] = association;
+    if (filePath !== undefined) data["filePath"] = filePath;
+    if (line !== undefined) data["line"] = line;
+    if (startLine !== undefined) data["startLine"] = startLine;
+    if (side !== undefined) data["side"] = side;
+    if (startSide !== undefined) data["startSide"] = startSide;
+    if (createdAt !== undefined) data["createdAt"] = createdAt;
+    if (updatedAt !== undefined) data["updatedAt"] = updatedAt;
+
+    const titlePath = filePath ?? "unknown";
+    const item: NormalizedProviderItem = {
+      id: `github:${parent.slug}:pull-request:${parent.number}:review-comment:${commentId}`,
+      type: "note",
+      title: `Review comment by @${author} on ${titlePath}`,
+      source: "github",
+      data: data as NormalizedProviderItem["data"],
+    };
+    if (url !== undefined) item.url = url;
+    items.push(item);
+  }
+
+  if (invalidSeen) {
+    warnings.push({
+      code: "github_review_comment_invalid",
+      message: "a review comment record was invalid and was skipped",
+    });
+  }
+  if (perCommentTruncated) {
+    warnings.push({
+      code: "github_review_comment_body_truncated",
+      message: "a review comment body was truncated",
+    });
+  }
+  if (combinedTruncated) {
+    warnings.push({
+      code: "github_review_comments_combined_truncated",
+      message: "combined review comment bodies were truncated",
+    });
+  }
+  if (countDropped) {
+    warnings.push({
+      code: "github_review_comments_count_truncated",
+      message: "some review comments were dropped beyond the review comment limit",
+    });
+  }
+  if (pathTruncated) {
+    warnings.push({
+      code: "github_review_comment_path_truncated",
+      message: "a review comment file path was truncated",
     });
   }
   return { items, warnings };

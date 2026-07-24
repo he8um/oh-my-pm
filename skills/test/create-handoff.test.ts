@@ -290,3 +290,92 @@ describe("createHandoff with GitHub item comments", () => {
     expect(summary.items).toEqual(["No project summary found."]);
   });
 });
+
+describe("createHandoff with GitHub reviews and review comments", () => {
+  const review = (over: Record<string, unknown>) => ({
+    id: "github:owner/repo:pull-request:7:review:1",
+    title: "Review by @alice: commented",
+    source: "github",
+    type: "note",
+    kind: "pullRequestReview",
+    repository: "owner/repo",
+    parentNumber: 7,
+    parentType: "pullRequest",
+    parentStatus: "open",
+    author: "alice",
+    reviewState: "commented",
+    body: "",
+    ...over,
+  });
+  const reviewComment = (over: Record<string, unknown>) => ({
+    id: "github:owner/repo:pull-request:7:review-comment:1",
+    title: "Review comment by @alice on src/app.ts",
+    source: "github",
+    type: "note",
+    kind: "pullRequestReviewComment",
+    repository: "owner/repo",
+    parentNumber: 7,
+    parentType: "pullRequest",
+    parentStatus: "open",
+    author: "alice",
+    filePath: "src/app.ts",
+    line: 42,
+    body: "",
+    ...over,
+  });
+
+  const section = (r: HandoffResult, heading: string) => r.sections.find((s) => s.heading === heading)!;
+
+  it("records an approval as a Decision with the author", () => {
+    const r = handoffOf({ items: [review({ reviewState: "approved" })] });
+    expect(section(r, "Decisions").items).toContain("@alice approved the pull request");
+  });
+
+  it("records a dismissal as a Decision with the author", () => {
+    const r = handoffOf({ items: [review({ reviewState: "dismissed" })] });
+    expect(section(r, "Decisions").items).toContain("@alice review was dismissed");
+  });
+
+  it("surfaces changes-requested through Risks and Open Tasks, not as a decision", () => {
+    const r = handoffOf({ items: [review({ reviewState: "changesRequested" })] });
+    expect(section(r, "Risks").items).toContain("@alice: Changes requested by @alice");
+    expect(section(r, "Open Tasks").items).toContain("@alice: Address changes requested by @alice");
+    expect(section(r, "Decisions").items).not.toContain("@alice approved the pull request");
+  });
+
+  it("extracts a review-body decision heading with the author", () => {
+    const body = ["## Decisions", "- adopt the new schema"].join("\n");
+    const r = handoffOf({ items: [review({ body })] });
+    expect(section(r, "Decisions").items).toContain("@alice: adopt the new schema");
+  });
+
+  it("prefixes a review-comment risk with author and file:line", () => {
+    const r = handoffOf({ items: [reviewComment({ body: "Blocker: null deref here" })] });
+    expect(section(r, "Risks").items).toContain("@alice [src/app.ts:42]: null deref here");
+  });
+
+  it("prefixes a review-comment with only the file when the line is unavailable", () => {
+    const rc = reviewComment({ body: "- [ ] rename this", line: undefined });
+    const r = handoffOf({ items: [rc] });
+    expect(section(r, "Open Tasks").items).toContain("@alice [src/app.ts]: rename this");
+  });
+
+  it("reviews never change the title or Summary and respect section caps", () => {
+    const reviews = Array.from({ length: 8 }, (_, i) =>
+      review({
+        id: `github:owner/repo:pull-request:7:review:${i + 1}`,
+        reviewState: "changesRequested",
+        author: `dev${i}`,
+      }),
+    );
+    const r = handoffOf({ items: reviews, title: "My Project" });
+    expect(r.title).toBe("My Project");
+    expect(section(r, "Risks").items.length).toBeLessThanOrEqual(5);
+    expect(section(r, "Open Tasks").items.length).toBeLessThanOrEqual(5);
+  });
+
+  it("produces deterministic, deduped output", () => {
+    const items = [review({ reviewState: "approved" }), reviewComment({ body: "Risk: perf" })];
+    expect(JSON.stringify(handoffOf({ items }))).toBe(JSON.stringify(handoffOf({ items })));
+  });
+});

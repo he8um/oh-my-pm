@@ -10,8 +10,14 @@
 import type { ProviderRequest } from "@oh-my-pm/contracts";
 import {
   DEFAULT_GITHUB_COMMENT_LIMIT,
+  DEFAULT_GITHUB_REVIEW_COMMENT_LIMIT,
+  DEFAULT_GITHUB_REVIEW_LIMIT,
   MAX_GITHUB_COMMENT_LIMIT,
+  MAX_GITHUB_REVIEW_COMMENT_LIMIT,
+  MAX_GITHUB_REVIEW_LIMIT,
   MIN_GITHUB_COMMENT_LIMIT,
+  MIN_GITHUB_REVIEW_COMMENT_LIMIT,
+  MIN_GITHUB_REVIEW_LIMIT,
   buildGitHubFetchQuery,
   buildGitHubListQuery,
   buildGitHubSearchQuery,
@@ -19,8 +25,14 @@ import {
 
 export {
   DEFAULT_GITHUB_COMMENT_LIMIT,
+  DEFAULT_GITHUB_REVIEW_COMMENT_LIMIT,
+  DEFAULT_GITHUB_REVIEW_LIMIT,
   MAX_GITHUB_COMMENT_LIMIT,
+  MAX_GITHUB_REVIEW_COMMENT_LIMIT,
+  MAX_GITHUB_REVIEW_LIMIT,
   MIN_GITHUB_COMMENT_LIMIT,
+  MIN_GITHUB_REVIEW_COMMENT_LIMIT,
+  MIN_GITHUB_REVIEW_LIMIT,
 } from "./query.js";
 
 export const GITHUB_SOURCE_MODES = [
@@ -60,7 +72,16 @@ export type GitHubSourceSelection =
   | { mode: "repository" }
   | { mode: "issues"; state: GitHubSourceState; limit: number }
   | { mode: "pull-requests"; state: GitHubSourceState; limit: number }
-  | { mode: "item"; number: number; includeComments: boolean; commentLimit: number }
+  | {
+      mode: "item";
+      number: number;
+      includeComments: boolean;
+      commentLimit: number;
+      includeReviews: boolean;
+      reviewLimit: number;
+      includeReviewComments: boolean;
+      reviewCommentLimit: number;
+    }
   | {
       mode: "search";
       query: string;
@@ -78,6 +99,10 @@ export type GitHubSourceSelectionOverrides = {
   limit?: number;
   includeComments?: boolean;
   commentLimit?: number;
+  includeReviews?: boolean;
+  reviewLimit?: number;
+  includeReviewComments?: boolean;
+  reviewCommentLimit?: number;
 };
 
 export type GitHubSourceSelectionErrorCode =
@@ -91,7 +116,13 @@ export type GitHubSourceSelectionErrorCode =
   | "github_option_not_applicable"
   | "github_comments_not_applicable"
   | "github_comment_limit_not_applicable"
-  | "github_comment_limit_invalid";
+  | "github_comment_limit_invalid"
+  | "github_reviews_not_applicable"
+  | "github_review_limit_not_applicable"
+  | "github_review_limit_invalid"
+  | "github_review_comments_not_applicable"
+  | "github_review_comment_limit_not_applicable"
+  | "github_review_comment_limit_invalid";
 
 export type GitHubSourceSelectionResult =
   | { ok: true; selection: GitHubSourceSelection }
@@ -196,13 +227,36 @@ export function resolveGitHubSourceSelection(input: {
       `--comment-limit must be an integer in ${MIN_GITHUB_COMMENT_LIMIT}..${MAX_GITHUB_COMMENT_LIMIT}`,
     );
   }
+  if (
+    overrides.reviewLimit !== undefined &&
+    (!Number.isInteger(overrides.reviewLimit) ||
+      overrides.reviewLimit < MIN_GITHUB_REVIEW_LIMIT ||
+      overrides.reviewLimit > MAX_GITHUB_REVIEW_LIMIT)
+  ) {
+    return fail(
+      "github_review_limit_invalid",
+      `--review-limit must be an integer in ${MIN_GITHUB_REVIEW_LIMIT}..${MAX_GITHUB_REVIEW_LIMIT}`,
+    );
+  }
+  if (
+    overrides.reviewCommentLimit !== undefined &&
+    (!Number.isInteger(overrides.reviewCommentLimit) ||
+      overrides.reviewCommentLimit < MIN_GITHUB_REVIEW_COMMENT_LIMIT ||
+      overrides.reviewCommentLimit > MAX_GITHUB_REVIEW_COMMENT_LIMIT)
+  ) {
+    return fail(
+      "github_review_comment_limit_invalid",
+      `--review-comment-limit must be an integer in ${MIN_GITHUB_REVIEW_COMMENT_LIMIT}..${MAX_GITHUB_REVIEW_COMMENT_LIMIT}`,
+    );
+  }
 
   const mode: GitHubSourceMode = overrides.source ?? defaults.source;
   const state: GitHubSourceState = overrides.state ?? defaults.state;
   const limit: number = overrides.limit ?? defaults.limit;
 
-  // Comment options apply only to the item source. Reject them everywhere else
-  // with a stable, path/token-free code; the item branch handles the valid case.
+  // Comment and review options apply only to the item source. Reject them
+  // everywhere else with a stable, path/token-free code; the item branch handles
+  // the valid case.
   if (mode !== "item") {
     if (overrides.includeComments !== undefined) {
       return fail(
@@ -214,6 +268,30 @@ export function resolveGitHubSourceSelection(input: {
       return fail(
         "github_comment_limit_not_applicable",
         `--comment-limit is not valid with --source ${mode}`,
+      );
+    }
+    if (overrides.includeReviews !== undefined) {
+      return fail(
+        "github_reviews_not_applicable",
+        `--include-reviews is not valid with --source ${mode}`,
+      );
+    }
+    if (overrides.reviewLimit !== undefined) {
+      return fail(
+        "github_review_limit_not_applicable",
+        `--review-limit is not valid with --source ${mode}`,
+      );
+    }
+    if (overrides.includeReviewComments !== undefined) {
+      return fail(
+        "github_review_comments_not_applicable",
+        `--include-review-comments is not valid with --source ${mode}`,
+      );
+    }
+    if (overrides.reviewCommentLimit !== undefined) {
+      return fail(
+        "github_review_comment_limit_not_applicable",
+        `--review-comment-limit is not valid with --source ${mode}`,
       );
     }
   }
@@ -267,9 +345,9 @@ export function resolveGitHubSourceSelection(input: {
       if (overrides.number === undefined) {
         return fail("github_number_required", "github item source requires --number");
       }
-      // Comments are disabled by default. --comment-limit is only meaningful
-      // alongside --include-comments; supplying it alone is invalid. When
-      // comments are enabled the limit defaults to 20.
+      // Comments, reviews, and review comments are disabled by default. Each
+      // limit is only meaningful alongside its include flag; supplying a limit
+      // alone is invalid. When enabled, a limit defaults to its own default.
       const includeComments = overrides.includeComments === true;
       if (!includeComments && overrides.commentLimit !== undefined) {
         return fail(
@@ -280,9 +358,41 @@ export function resolveGitHubSourceSelection(input: {
       const commentLimit = includeComments
         ? (overrides.commentLimit ?? DEFAULT_GITHUB_COMMENT_LIMIT)
         : DEFAULT_GITHUB_COMMENT_LIMIT;
+
+      const includeReviews = overrides.includeReviews === true;
+      if (!includeReviews && overrides.reviewLimit !== undefined) {
+        return fail(
+          "github_review_limit_invalid",
+          "--review-limit requires --include-reviews",
+        );
+      }
+      const reviewLimit = includeReviews
+        ? (overrides.reviewLimit ?? DEFAULT_GITHUB_REVIEW_LIMIT)
+        : DEFAULT_GITHUB_REVIEW_LIMIT;
+
+      const includeReviewComments = overrides.includeReviewComments === true;
+      if (!includeReviewComments && overrides.reviewCommentLimit !== undefined) {
+        return fail(
+          "github_review_comment_limit_invalid",
+          "--review-comment-limit requires --include-review-comments",
+        );
+      }
+      const reviewCommentLimit = includeReviewComments
+        ? (overrides.reviewCommentLimit ?? DEFAULT_GITHUB_REVIEW_COMMENT_LIMIT)
+        : DEFAULT_GITHUB_REVIEW_COMMENT_LIMIT;
+
       return {
         ok: true,
-        selection: { mode: "item", number: overrides.number, includeComments, commentLimit },
+        selection: {
+          mode: "item",
+          number: overrides.number,
+          includeComments,
+          commentLimit,
+          includeReviews,
+          reviewLimit,
+          includeReviewComments,
+          reviewCommentLimit,
+        },
       };
     }
     case "search": {
@@ -352,10 +462,20 @@ export function createGitHubProviderRequest(input: {
           number: selection.number,
           includeComments: selection.includeComments,
           commentLimit: selection.commentLimit,
+          includeReviews: selection.includeReviews,
+          reviewLimit: selection.reviewLimit,
+          includeReviewComments: selection.includeReviewComments,
+          reviewCommentLimit: selection.reviewCommentLimit,
         }),
-        // The primary item plus, when comments are enabled, up to commentLimit
-        // comment notes. A single comments page is ever requested.
-        limit: selection.includeComments ? 1 + selection.commentLimit : 1,
+        // The primary item plus, for each enabled optional context, up to its own
+        // limit of bounded notes. A single page per endpoint is ever requested.
+        // The maximum stays within the provider's 100-item ceiling:
+        // 1 + 50 comments + 20 reviews + 20 review comments = 91.
+        limit:
+          1 +
+          (selection.includeComments ? selection.commentLimit : 0) +
+          (selection.includeReviews ? selection.reviewLimit : 0) +
+          (selection.includeReviewComments ? selection.reviewCommentLimit : 0),
       };
     case "search":
       return {

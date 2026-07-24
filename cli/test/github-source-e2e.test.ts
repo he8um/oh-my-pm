@@ -230,3 +230,218 @@ describe("GitHub item comments E2E", () => {
     expect(a.stdout).toBe(b.stdout);
   });
 });
+
+// --- PR reviews and review comments E2E ------------------------------------
+
+function reviewTransport(recorded: string[]): GitHubHttpTransport {
+  return {
+    async request(request: GitHubHttpRequest): Promise<GitHubHttpResponse> {
+      const url = new URL(request.url);
+      recorded.push(url.pathname);
+      if (url.pathname === `/repos/${SLUG}/issues/8`) {
+        return { status: 200, headers: {}, body: ghItem(8, "pr") };
+      }
+      if (url.pathname === `/repos/${SLUG}/pulls/8`) {
+        return { status: 200, headers: {}, body: { ...ghItem(8, "pr"), merged: false, draft: false } };
+      }
+      if (url.pathname === `/repos/${SLUG}/issues/8/comments`) {
+        return { status: 200, headers: {}, body: [] };
+      }
+      if (url.pathname === `/repos/${SLUG}/pulls/8/reviews`) {
+        return {
+          status: 200,
+          headers: {},
+          body: [
+            {
+              id: 201,
+              user: { login: "alice" },
+              state: "CHANGES_REQUESTED",
+              body: "",
+              author_association: "MEMBER",
+              submitted_at: "2026-02-01T00:00:00Z",
+              html_url: `https://github.com/${SLUG}/pull/8#pullrequestreview-201`,
+            },
+            {
+              id: 202,
+              user: { login: "bob" },
+              state: "APPROVED",
+              body: "## Decisions\n- ship it",
+              author_association: "MEMBER",
+              submitted_at: "2026-02-02T00:00:00Z",
+              html_url: `https://github.com/${SLUG}/pull/8#pullrequestreview-202`,
+            },
+          ],
+        };
+      }
+      if (url.pathname === `/repos/${SLUG}/pulls/8/comments`) {
+        return {
+          status: 200,
+          headers: {},
+          body: [
+            {
+              id: 301,
+              user: { login: "carol" },
+              body: "Blocker: null pointer here",
+              path: "src/lib.ts",
+              line: 12,
+              side: "RIGHT",
+              author_association: "MEMBER",
+              created_at: "2026-02-01T00:00:00Z",
+              html_url: `https://github.com/${SLUG}/pull/8#discussion_r301`,
+            },
+          ],
+        };
+      }
+      return { status: 404, headers: {}, body: {} };
+    },
+  };
+}
+
+async function reviewRun(args: string[], recorded: string[] = []) {
+  return runLocalCliProcess(["github", ...args], {
+    githubTransport: reviewTransport(recorded),
+    now: NOW,
+    providerConfig: defaultProviderConfig(),
+  });
+}
+
+describe("GitHub PR reviews / review comments E2E", () => {
+  it("PR item + --include-reviews brings the primary PR and review notes into the Runtime", async () => {
+    const recorded: string[] = [];
+    const result = await reviewRun(
+      ["brief", SLUG, "--source", "item", "--number", "8", "--include-reviews", "--json"],
+      recorded,
+    );
+    expect(result.exitCode, result.stderr).toBe(0);
+    const items = JSON.parse(result.stdout).data.providerResponses[0].items as Array<{
+      type: string;
+      data: Record<string, unknown>;
+    }>;
+    expect(items[0]!.type).toBe("pullRequest");
+    const reviews = items.filter((i) => i.data.kind === "pullRequestReview");
+    expect(reviews).toHaveLength(2);
+    expect(recorded).toEqual([
+      `/repos/${SLUG}/issues/8`,
+      `/repos/${SLUG}/pulls/8`,
+      `/repos/${SLUG}/pulls/8/reviews`,
+    ]);
+  });
+
+  it("PR item + --include-review-comments requests exactly issue, pull detail, review comments", async () => {
+    const recorded: string[] = [];
+    const result = await reviewRun(
+      ["brief", SLUG, "--source", "item", "--number", "8", "--include-review-comments", "--json"],
+      recorded,
+    );
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(recorded).toEqual([
+      `/repos/${SLUG}/issues/8`,
+      `/repos/${SLUG}/pulls/8`,
+      `/repos/${SLUG}/pulls/8/comments`,
+    ]);
+  });
+
+  it("PR item + all optional context requests five endpoints in canonical order", async () => {
+    const recorded: string[] = [];
+    const result = await reviewRun(
+      [
+        "brief",
+        SLUG,
+        "--source",
+        "item",
+        "--number",
+        "8",
+        "--include-comments",
+        "--include-reviews",
+        "--include-review-comments",
+        "--json",
+      ],
+      recorded,
+    );
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(recorded).toEqual([
+      `/repos/${SLUG}/issues/8`,
+      `/repos/${SLUG}/pulls/8`,
+      `/repos/${SLUG}/issues/8/comments`,
+      `/repos/${SLUG}/pulls/8/reviews`,
+      `/repos/${SLUG}/pulls/8/comments`,
+    ]);
+  });
+
+  it("an issue selected with review options fails with exit 2 after the item-identification GET", async () => {
+    const recorded: string[] = [];
+    const result = await runLocalCliProcess(
+      ["github", "brief", SLUG, "--source", "item", "--number", "7", "--include-reviews"],
+      { githubTransport: commentTransport(recorded), now: NOW, providerConfig: defaultProviderConfig() },
+    );
+    expect(result.exitCode).toBe(2);
+    expect(result.stderr).toContain("not a pull request");
+    // Exactly one item-identification request; no PR/review request.
+    expect(recorded).toEqual([`/repos/${SLUG}/issues/7`]);
+  });
+
+  it("risks from a changes-requested review surface with the author and high severity", async () => {
+    const result = await reviewRun(["risks", SLUG, "--source", "item", "--number", "8", "--include-reviews"]);
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(result.stdout).toContain("Changes requested by @alice");
+    expect(result.stdout).toContain("[high]");
+    expect(result.stdout).toContain("author: alice");
+  });
+
+  it("next from a changes-requested review surfaces the address task", async () => {
+    const result = await reviewRun(["next", SLUG, "--source", "item", "--number", "8", "--include-reviews"]);
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(result.stdout).toContain("Address changes requested by @alice");
+  });
+
+  it("handoff records an approval decision and an inline review-comment risk with file provenance", async () => {
+    const result = await reviewRun([
+      "handoff",
+      SLUG,
+      "--source",
+      "item",
+      "--number",
+      "8",
+      "--include-reviews",
+      "--include-review-comments",
+      "--markdown",
+    ]);
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(result.stdout).toContain("@bob approved the pull request");
+    expect(result.stdout).toContain("src/lib.ts:12");
+  });
+
+  it("never prints a raw review body unless a bounded signal title was extracted", async () => {
+    const result = await reviewRun([
+      "risks",
+      SLUG,
+      "--source",
+      "item",
+      "--number",
+      "8",
+      "--include-reviews",
+      "--markdown",
+    ]);
+    // The bob review body "## Decisions\n- ship it" yields no risk; its raw body
+    // text must not appear in the risks output.
+    expect(result.stdout).not.toContain("ship it");
+  });
+
+  it("produces byte-identical output on repeated runs (determinism)", async () => {
+    const run = () =>
+      reviewRun([
+        "risks",
+        SLUG,
+        "--source",
+        "item",
+        "--number",
+        "8",
+        "--include-reviews",
+        "--include-review-comments",
+        "--json",
+      ]);
+    const a = await run();
+    const b = await run();
+    expect(a.stdout).toBe(b.stdout);
+  });
+});

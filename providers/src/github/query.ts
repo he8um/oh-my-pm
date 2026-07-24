@@ -24,6 +24,21 @@ export const DEFAULT_GITHUB_COMMENT_LIMIT = 20;
 export const MIN_GITHUB_COMMENT_LIMIT = 1;
 export const MAX_GITHUB_COMMENT_LIMIT = 50;
 
+// Bounds for the optional pull-request review count. Reviews are disabled by
+// default; when enabled the limit defaults to 10 and must be an integer in
+// 1..20. A single page of at most 20 reviews is ever requested — no pagination.
+export const DEFAULT_GITHUB_REVIEW_LIMIT = 10;
+export const MIN_GITHUB_REVIEW_LIMIT = 1;
+export const MAX_GITHUB_REVIEW_LIMIT = 20;
+
+// Bounds for the optional inline review-comment count. Review comments are
+// disabled by default; when enabled the limit defaults to 10 and must be an
+// integer in 1..20. A single page of at most 20 review comments is ever
+// requested — no pagination.
+export const DEFAULT_GITHUB_REVIEW_COMMENT_LIMIT = 10;
+export const MIN_GITHUB_REVIEW_COMMENT_LIMIT = 1;
+export const MAX_GITHUB_REVIEW_COMMENT_LIMIT = 20;
+
 // Conservative GitHub-compatible segment: letters, numbers, "_", "-", ".".
 // Path traversal (".", "..") and empty segments are rejected separately.
 const SEGMENT_PATTERN = /^[A-Za-z0-9._-]+$/;
@@ -143,23 +158,38 @@ export function buildGitHubSearchQuery(input: {
 
 /**
  * Build the fetch query. Two shapes:
- *   - short legacy form when comments are disabled: `owner/repository#number`
- *   - explicit form when comments are enabled:
- *       `owner/repository#number::comments=<limit>`
- * The short form is always emitted when comments are disabled so the legacy
- * grammar round-trips unchanged.
+ *   - short legacy form when no optional context is enabled:
+ *       `owner/repository#number`
+ *   - explicit form emitting only the enabled parameters in the canonical order
+ *     `comments`, `reviews`, `review-comments`, e.g.
+ *       `owner/repository#number::comments=20&reviews=10&review-comments=10`
+ * The short form is always emitted when every optional context is disabled so
+ * the legacy grammar round-trips unchanged.
  */
 export function buildGitHubFetchQuery(input: {
   repository: string;
   number: number;
   includeComments?: boolean;
   commentLimit?: number;
+  includeReviews?: boolean;
+  reviewLimit?: number;
+  includeReviewComments?: boolean;
+  reviewCommentLimit?: number;
 }): string {
+  const params: string[] = [];
   if (input.includeComments === true) {
-    const limit = input.commentLimit ?? DEFAULT_GITHUB_COMMENT_LIMIT;
-    return `${input.repository}#${input.number}::comments=${limit}`;
+    params.push(`comments=${input.commentLimit ?? DEFAULT_GITHUB_COMMENT_LIMIT}`);
   }
-  return `${input.repository}#${input.number}`;
+  if (input.includeReviews === true) {
+    params.push(`reviews=${input.reviewLimit ?? DEFAULT_GITHUB_REVIEW_LIMIT}`);
+  }
+  if (input.includeReviewComments === true) {
+    params.push(`review-comments=${input.reviewCommentLimit ?? DEFAULT_GITHUB_REVIEW_COMMENT_LIMIT}`);
+  }
+  if (params.length === 0) {
+    return `${input.repository}#${input.number}`;
+  }
+  return `${input.repository}#${input.number}::${params.join("&")}`;
 }
 
 // --- Query parsers ----------------------------------------------------------
@@ -319,12 +349,45 @@ export function parseGitHubSearchQuery(query: string): GitHubSearchQueryResult {
 }
 
 /**
+ * Read one recognized limit parameter, validating a strict positive integer in
+ * [min, max]. Returns { enabled, limit } where a missing parameter is disabled
+ * with the given default; a present, well-formed value is enabled.
+ */
+function readLimitParam(
+  values: Map<string, string>,
+  key: string,
+  label: string,
+  min: number,
+  max: number,
+  fallback: number,
+): { ok: true; enabled: boolean; limit: number } | { ok: false; reason: string } {
+  const raw = values.get(key);
+  if (raw === undefined) {
+    return { ok: true, enabled: false, limit: fallback };
+  }
+  if (!/^[1-9][0-9]*$/.test(raw)) {
+    return { ok: false, reason: `${label} limit must be a positive integer` };
+  }
+  const limit = Number(raw);
+  if (!Number.isSafeInteger(limit) || limit < min || limit > max) {
+    return { ok: false, reason: `${label} limit is out of range` };
+  }
+  return { ok: true, enabled: true, limit };
+}
+
+/**
  * fetch query grammar. Two accepted forms:
- *   - legacy: `owner/repository#number` (comments disabled, limit defaults to 20)
- *   - explicit: `owner/repository#number::comments=<limit>` where limit is an
- *     integer in 1..50 (comments enabled)
- * Only the single parameter `comments` is recognized; unknown, duplicate, empty,
- * malformed, repeated-separator, or out-of-range forms are rejected.
+ *   - legacy: `owner/repository#number` (all optional context disabled, limits
+ *     default)
+ *   - explicit: `owner/repository#number::comments=<limit>&reviews=<limit>&review-comments=<limit>`
+ *     where each present limit is a positive integer in its own range (comments
+ *     1..50, reviews 1..20, review-comments 1..20). Only the enabled parameters
+ *     need appear, always in the canonical order comments, reviews,
+ *     review-comments.
+ * Only `comments`, `reviews`, and `review-comments` are recognized; unknown,
+ * duplicate, empty, malformed, repeated-separator, or out-of-range forms are
+ * rejected. Legacy forms resolve to every optional context disabled with
+ * default limits.
  */
 export function parseGitHubFetchQuery(query: string): GitHubFetchQueryResult {
   if (typeof query !== "string" || query === "") {
@@ -353,7 +416,7 @@ export function parseGitHubFetchQuery(query: string): GitHubFetchQueryResult {
     return { ok: false, reason: "fetch number is out of range" };
   }
 
-  // Legacy bare form: comments disabled, limit defaults to 20.
+  // Legacy bare form: every optional context disabled with default limits.
   if (paramsPart === undefined) {
     return {
       ok: true,
@@ -361,34 +424,59 @@ export function parseGitHubFetchQuery(query: string): GitHubFetchQueryResult {
       number: parsed,
       includeComments: false,
       commentLimit: DEFAULT_GITHUB_COMMENT_LIMIT,
+      includeReviews: false,
+      reviewLimit: DEFAULT_GITHUB_REVIEW_LIMIT,
+      includeReviewComments: false,
+      reviewCommentLimit: DEFAULT_GITHUB_REVIEW_COMMENT_LIMIT,
     };
   }
 
   if (paramsPart.includes("::")) {
     return { ok: false, reason: "fetch query contains a repeated separator" };
   }
-  const parsedParams = parseParams(paramsPart, ["comments"]);
+  const parsedParams = parseParams(paramsPart, ["comments", "reviews", "review-comments"]);
   if (!parsedParams.ok) return { ok: false, reason: parsedParams.reason };
-  const commentsRaw = parsedParams.values.get("comments");
-  if (commentsRaw === undefined) {
-    return { ok: false, reason: "fetch query parameters must include comments" };
+  if (parsedParams.values.size === 0) {
+    return { ok: false, reason: "fetch query parameters must include a recognized parameter" };
   }
-  if (!/^[1-9][0-9]*$/.test(commentsRaw)) {
-    return { ok: false, reason: "comments limit must be a positive integer" };
-  }
-  const commentLimit = Number(commentsRaw);
-  if (
-    !Number.isSafeInteger(commentLimit) ||
-    commentLimit < MIN_GITHUB_COMMENT_LIMIT ||
-    commentLimit > MAX_GITHUB_COMMENT_LIMIT
-  ) {
-    return { ok: false, reason: "comments limit is out of range" };
-  }
+
+  const comments = readLimitParam(
+    parsedParams.values,
+    "comments",
+    "comments",
+    MIN_GITHUB_COMMENT_LIMIT,
+    MAX_GITHUB_COMMENT_LIMIT,
+    DEFAULT_GITHUB_COMMENT_LIMIT,
+  );
+  if (!comments.ok) return { ok: false, reason: comments.reason };
+  const reviews = readLimitParam(
+    parsedParams.values,
+    "reviews",
+    "reviews",
+    MIN_GITHUB_REVIEW_LIMIT,
+    MAX_GITHUB_REVIEW_LIMIT,
+    DEFAULT_GITHUB_REVIEW_LIMIT,
+  );
+  if (!reviews.ok) return { ok: false, reason: reviews.reason };
+  const reviewComments = readLimitParam(
+    parsedParams.values,
+    "review-comments",
+    "review comments",
+    MIN_GITHUB_REVIEW_COMMENT_LIMIT,
+    MAX_GITHUB_REVIEW_COMMENT_LIMIT,
+    DEFAULT_GITHUB_REVIEW_COMMENT_LIMIT,
+  );
+  if (!reviewComments.ok) return { ok: false, reason: reviewComments.reason };
+
   return {
     ok: true,
     ref: repoResult.ref,
     number: parsed,
-    includeComments: true,
-    commentLimit,
+    includeComments: comments.enabled,
+    commentLimit: comments.limit,
+    includeReviews: reviews.enabled,
+    reviewLimit: reviews.limit,
+    includeReviewComments: reviewComments.enabled,
+    reviewCommentLimit: reviewComments.limit,
   };
 }

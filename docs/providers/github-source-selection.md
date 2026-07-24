@@ -64,6 +64,12 @@ oh-my-pm github brief owner/repository --source item --number 123 --markdown
 oh-my-pm github risks owner/repository --source item --number 123 \
   --include-comments --comment-limit 20 --markdown
 
+# One pull-request item, optionally including bounded reviews and inline review
+# comments (opt-in, PR-only):
+oh-my-pm github risks owner/repository --source item --number 123 \
+  --include-reviews --review-limit 10 \
+  --include-review-comments --review-comment-limit 10 --markdown
+
 # Repository-scoped search:
 oh-my-pm github risks owner/repository \
   --source search --query "release blocker" --kind all --state open --limit 25 --markdown
@@ -79,14 +85,23 @@ valid with `--source item`; `--comment-limit` requires `--include-comments`.
 Comments are disabled by default and add a single extra read-only request. See
 [GitHub item comments](github-item-comments.md).
 
+`--include-reviews` / `--review-limit` and `--include-review-comments` /
+`--review-comment-limit` (`1..20`, default `10`) are also only valid with
+`--source item`, and only when the selected item is a pull request; each limit
+requires its include flag. Reviews and review comments are disabled by default
+and each add a single extra read-only request. An issue selected with any review
+option fails after the first item-identification request. See
+[GitHub pull-request reviews](github-pr-reviews.md).
+
 ## MCP
 
 The same model is available on the four existing GitHub workflow tools
 (`github_project_brief`, `github_project_risks`, `github_project_next`,
 `github_project_handoff`) — no new tools are added. Their input accepts optional
 `repository`, `limit`, `source`, `state`, `number`, `query`, `kind`,
-`includeComments`, and `commentLimit` (the last two apply only to the item
-source):
+`includeComments`, `commentLimit`, `includeReviews`, `reviewLimit`,
+`includeReviewComments`, and `reviewCommentLimit` (all discussion options apply
+only to the item source):
 
 ```json
 {

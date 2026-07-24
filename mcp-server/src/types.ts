@@ -68,12 +68,34 @@ export type McpGitHubSourceSummary = {
   issues: number;
   pullRequests: number;
   comments: number;
+  reviews: number;
+  reviewComments: number;
 };
 
 /** Public comment metadata: identity and provenance only, never the body. */
 export type McpGitHubComment = {
   id: string;
   author: string;
+  createdAt?: string;
+  updatedAt?: string;
+  url?: string;
+};
+
+/** Public review metadata: identity/state/provenance only, never the body. */
+export type McpGitHubReview = {
+  id: string;
+  author: string;
+  state: "approved" | "changesRequested" | "commented" | "dismissed" | "pending" | "unknown";
+  submittedAt?: string;
+  url?: string;
+};
+
+/** Public review-comment metadata: identity/provenance only, never the body. */
+export type McpGitHubReviewComment = {
+  id: string;
+  author: string;
+  filePath?: string;
+  line?: number;
   createdAt?: string;
   updatedAt?: string;
   url?: string;
@@ -86,6 +108,8 @@ export type McpGitHubSource = {
   state: string;
   url?: string;
   comments?: McpGitHubComment[];
+  reviews?: McpGitHubReview[];
+  reviewComments?: McpGitHubReviewComment[];
 };
 
 /** Tool input carrying repository plus the source-selection fields. */
@@ -99,6 +123,10 @@ export type McpGitHubToolInput = {
   kind?: GitHubSearchKind;
   includeComments?: boolean;
   commentLimit?: number;
+  includeReviews?: boolean;
+  reviewLimit?: number;
+  includeReviewComments?: boolean;
+  reviewCommentLimit?: number;
 };
 
 /** Sanitized public projection of the resolved source selection. */
@@ -111,6 +139,10 @@ export type McpGitHubSelectionSummary = {
   limit?: number;
   includeComments?: boolean;
   commentLimit?: number;
+  includeReviews?: boolean;
+  reviewLimit?: number;
+  includeReviewComments?: boolean;
+  reviewCommentLimit?: number;
 };
 
 export type McpGitHubToolSuccess = {

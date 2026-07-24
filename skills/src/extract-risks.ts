@@ -23,6 +23,9 @@ function toRiskEntry(candidate: RiskCandidate): RiskSummary["risks"][number] {
   if (candidate.url !== undefined) entry.url = candidate.url;
   if (candidate.owner !== undefined) entry.owner = candidate.owner;
   if (candidate.author !== undefined) entry.author = candidate.author;
+  if (candidate.reviewState !== undefined) entry.reviewState = candidate.reviewState;
+  if (candidate.filePath !== undefined) entry.filePath = candidate.filePath;
+  if (candidate.line !== undefined) entry.line = candidate.line;
   if (candidate.due !== undefined) entry.due = candidate.due;
   if (candidate.repository !== undefined) entry.repository = candidate.repository;
   if (candidate.number !== undefined) entry.number = candidate.number;

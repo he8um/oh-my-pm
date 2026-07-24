@@ -10,14 +10,21 @@ import {
 } from "./helpers.js";
 import type { Skill, StatusSummary, TextItem } from "./types.js";
 
-// A GitHub item-comment is exactly source=github, type=note, kind=issueComment.
-// Comment notes are conversation context: they never change status counts and
-// their titles never become highlights.
-function isGitHubCommentItem(item: TextItem): boolean {
+// A bounded GitHub discussion note is source=github, type=note, and one of the
+// discussion kinds (issueComment, pullRequestReview, pullRequestReviewComment).
+// These are conversation context: they never change status counts and their
+// generated titles never become highlights.
+const DISCUSSION_NOTE_KINDS = new Set([
+  "issuecomment",
+  "pullrequestreview",
+  "pullrequestreviewcomment",
+]);
+
+function isDiscussionNote(item: TextItem): boolean {
   return (
     item.source === "github" &&
     item.type === "note" &&
-    (item.kind ?? "").trim().toLowerCase() === "issuecomment"
+    DISCUSSION_NOTE_KINDS.has((item.kind ?? "").trim().toLowerCase())
   );
 }
 
@@ -47,8 +54,9 @@ export function createSummarizeStatusSkill(): Skill {
       }
 
       const notes = parsed.notes ?? [];
-      // Comment notes are excluded from every count and from highlights.
-      const items = (parsed.items ?? []).filter((item) => !isGitHubCommentItem(item));
+      // Discussion notes (comments, reviews, review comments) are excluded from
+      // every count and from highlights.
+      const items = (parsed.items ?? []).filter((item) => !isDiscussionNote(item));
 
       let done = 0;
       let blocked = 0;

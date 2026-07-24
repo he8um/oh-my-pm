@@ -26,7 +26,7 @@ Current commands:
 - `risks [root]`
 - `next [root]`
 - `handoff [root]`
-- `github <brief|risks|next|handoff> [owner/repo] [--source <mode>] [--state <open|closed|all>] [--number <n>] [--query <text>] [--kind <all|issues|pull-requests>] [--limit <1..100>] [--provider-config <path>]`
+- `github <brief|risks|next|handoff> [owner/repo] [--source <mode>] [--state <open|closed|all>] [--number <n>] [--query <text>] [--kind <all|issues|pull-requests>] [--limit <1..100>] [--include-comments] [--comment-limit <1..50>] [--include-reviews] [--review-limit <1..20>] [--include-review-comments] [--review-comment-limit <1..20>] [--provider-config <path>]`
 - `providers status [--provider-config <path>]`
 - `providers doctor [github [owner/repo]] [--provider-config <path>] [--confirm-network]`
 - `install-preview <root>`
@@ -78,6 +78,8 @@ oh-my-pm github risks --markdown   # uses providers.json defaultRepository
 ## GitHub source selection
 
 `--source` chooses which read-only GitHub context is analyzed; the default is `overview` (repository metadata plus open issues/PRs). Options that do not apply to the selected source are rejected before any network access.
+
+The `item` source can optionally include a single issue/PR's ordinary conversation comments (`--include-comments` / `--comment-limit`, `1..50`, default `20`; see [GitHub item comments](../docs/providers/github-item-comments.md)). A pull-request `item` can additionally include bounded review submissions (`--include-reviews` / `--review-limit`) and inline review comments (`--include-review-comments` / `--review-comment-limit`, `1..20`, default `10`), disabled by default and only when the item is a pull request; see [GitHub pull-request reviews](../docs/providers/github-pr-reviews.md).
 
 | source          | state | limit | number | query | kind |
 | --------------- | ----- | ----- | ------ | ----- | ---- |

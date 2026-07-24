@@ -52,6 +52,16 @@ export type RuntimeTextItem = {
   parentType?: string;
   parentStatus?: string;
   authorAssociation?: string;
+  // GitHub review / review-comment provenance (only present on review notes).
+  // Approved provenance only; a raw review/review-comment object, diff_hunk,
+  // commit id, node id, nested user, or api url is never carried.
+  reviewState?: string;
+  submittedAt?: string;
+  filePath?: string;
+  line?: number;
+  startLine?: number;
+  side?: "left" | "right";
+  startSide?: "left" | "right";
 };
 
 const INTENT_TO_SKILL: Readonly<Record<IntentCategory, SkillId>> = {
@@ -218,9 +228,33 @@ export function providerItemsToTextItems(
       if (parentStatus !== undefined) text.parentStatus = parentStatus;
       const authorAssociation = trimmedStringOf(data["authorAssociation"]);
       if (authorAssociation !== undefined) text.authorAssociation = authorAssociation;
+
+      // GitHub review / review-comment provenance (only present on review notes).
+      // Approved fields only; a raw review/review-comment object, diff_hunk,
+      // commit id, node id, nested user, or api url is never carried.
+      const reviewState = trimmedStringOf(data["reviewState"]);
+      if (reviewState !== undefined) text.reviewState = reviewState;
+      const submittedAt = trimmedStringOf(data["submittedAt"]);
+      if (submittedAt !== undefined) text.submittedAt = submittedAt;
+      const filePath = trimmedStringOf(data["filePath"]);
+      if (filePath !== undefined) text.filePath = filePath;
+      const line = positiveIntegerOf(data["line"]);
+      if (line !== undefined) text.line = line;
+      const startLine = positiveIntegerOf(data["startLine"]);
+      if (startLine !== undefined) text.startLine = startLine;
+      const side = sideOf(data["side"]);
+      if (side !== undefined) text.side = side;
+      const startSide = sideOf(data["startSide"]);
+      if (startSide !== undefined) text.startSide = startSide;
     }
     return text;
   });
+}
+
+/** Read a normalized diff side, accepting only the lowercase "left"/"right". */
+function sideOf(value: unknown): "left" | "right" | undefined {
+  if (value === "left" || value === "right") return value;
+  return undefined;
 }
 
 /** Trimmed non-empty notes from the planner context, in order. */

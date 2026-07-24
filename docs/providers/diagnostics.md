@@ -35,9 +35,13 @@ read-only network posture and state, the configured GitHub defaults (including
 describes the GitHub source-selection capability offline: the supported source
 modes, states, and search kinds; that single-item fetch is supported; that only
 a single API page is read; that item conversation comments are an explicit
-opt-in (disabled by default, default limit 20, maximum 50, single page); and
-that review comments, reviews, timelines, and pull-request file/diff data are
-never included. It never contacts the network. It exits `0`
+opt-in (disabled by default, default limit 20, maximum 50, single page); that
+pull-request reviews and inline review comments are explicit item/PR-only
+opt-ins (disabled by default, default limit 10, maximum 20, single page each);
+and that timeline events, review-thread resolution, reactions, and
+pull-request file/diff/commit data are never included. The network doctor
+remains exactly one repository-metadata `GET`; it never fetches a pull request,
+review, or comment. It never contacts the network for status. It exits `0`
 for valid configuration and `2` for an invalid or unreadable explicit/environment
 configuration.
 

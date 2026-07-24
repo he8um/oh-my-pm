@@ -43,8 +43,17 @@ follows these rules:
 - The `item` source may optionally include ordinary issue/PR conversation
   comments (`--include-comments` / `includeComments`), disabled by default. This
   adds a single extra `GET .../issues/{number}/comments` (one page, at most 50).
-  Review comments, reviews, timeline events, diffs, and files are never fetched;
-  comment bodies are bounded and never exposed through the MCP projection.
+  Comment bodies are bounded and never exposed through the MCP projection.
+- A pull-request `item` may optionally include bounded review submissions
+  (`--include-reviews` / `includeReviews`) and inline review comments
+  (`--include-review-comments` / `includeReviewComments`), disabled by default
+  and only when the selected item is a pull request. Each adds a single extra
+  `GET .../pulls/{number}/reviews` or `GET .../pulls/{number}/comments` (one
+  page, at most 20). Timeline events, thread resolution, reactions, diffs,
+  files, and commits are never fetched; review and review-comment bodies, diff
+  hunks, and commit ids are never exposed through the MCP projection. An issue
+  selected with review options fails with a sanitized error after exactly one
+  item-identification request.
 
 ## Provider configuration and diagnostics
 

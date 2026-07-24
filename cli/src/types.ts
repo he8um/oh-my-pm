@@ -54,6 +54,10 @@ export type CliParseResult =
       limit?: number;
       includeComments?: boolean;
       commentLimit?: number;
+      includeReviews?: boolean;
+      reviewLimit?: number;
+      includeReviewComments?: boolean;
+      reviewCommentLimit?: number;
       providerConfigPath?: string;
       outputMode: CliOutputMode;
     }

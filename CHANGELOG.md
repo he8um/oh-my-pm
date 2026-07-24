@@ -4,6 +4,8 @@
 
 ### Added
 
+- Explicit, bounded pull-request review submissions and inline review comments for GitHub item workflows in CLI and MCP (`--include-reviews` / `--review-limit` and `--include-review-comments` / `--review-comment-limit`, and `includeReviews` / `reviewLimit` / `includeReviewComments` / `reviewCommentLimit` for the MCP GitHub tools). Disabled by default, available only for the `item` source and only when the item is a pull request, one page of at most 20 each, and never fetching timeline events, thread resolution, reactions, diffs, files, or commits. See [docs/providers/github-pr-reviews.md](docs/providers/github-pr-reviews.md).
+- Deterministic review-state and explicit Markdown-derived risk, task, and handoff signals.
 - Optional, bounded GitHub item comments: the `item` source can now include an issue or pull request's ordinary conversation comments (`--include-comments` / `--comment-limit`, and `includeComments` / `commentLimit` for the MCP GitHub tools). Comments are disabled by default, limited to one page of at most 50, and only ordinary issue/PR comments are fetched — never review comments, reviews, timeline events, or diffs. See [docs/providers/github-item-comments.md](docs/providers/github-item-comments.md).
 - Portable release bundles now contain a preview-first self-installer that creates a versioned, source-independent local installation under an explicit prefix.
 - A strictly read-only, explicitly opt-in GitHub provider for repository metadata, issues, and pull requests.
@@ -20,6 +22,7 @@
 
 ### Changed
 
+- GitHub item source summaries now report sanitized review and review-comment metadata without exposing bodies, diff hunks, or commit identifiers.
 - Opened the `0.2.0-alpha.0` development line.
 - GitHub CLI and MCP workflows now route through a single strict source-selection model while preserving the existing overview/open behavior by default.
 - Generalized version, bundle, and archive verification around self-describing metadata.

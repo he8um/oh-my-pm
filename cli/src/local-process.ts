@@ -374,6 +374,14 @@ export async function runLocalCliProcess(
         ...(parsed.limit !== undefined ? { limit: parsed.limit } : {}),
         ...(parsed.includeComments !== undefined ? { includeComments: parsed.includeComments } : {}),
         ...(parsed.commentLimit !== undefined ? { commentLimit: parsed.commentLimit } : {}),
+        ...(parsed.includeReviews !== undefined ? { includeReviews: parsed.includeReviews } : {}),
+        ...(parsed.reviewLimit !== undefined ? { reviewLimit: parsed.reviewLimit } : {}),
+        ...(parsed.includeReviewComments !== undefined
+          ? { includeReviewComments: parsed.includeReviewComments }
+          : {}),
+        ...(parsed.reviewCommentLimit !== undefined
+          ? { reviewCommentLimit: parsed.reviewCommentLimit }
+          : {}),
       },
     });
     if (!selectionResult.ok) {
