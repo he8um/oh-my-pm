@@ -180,9 +180,14 @@ jobs:
           $bundleName = "oh-my-pm-v$version"
           $buildOut = Join-Path $env:RUNNER_TEMP "omp-install-build"
           $prefix = Join-Path $env:RUNNER_TEMP "omp-install-prefix"
-          # Every generated path must be an exact descendant of RUNNER_TEMP.
+          $movedPrefix = Join-Path $env:RUNNER_TEMP "omp-install-prefix-moved"
+          # Every generated/deleted/moved path must be an exact descendant of
+          # RUNNER_TEMP.
           Assert-RunnerTempChild $buildOut
           Assert-RunnerTempChild $prefix
+          Assert-RunnerTempChild $movedPrefix
+          # The relocation target must not pre-exist.
+          if (Test-Path -LiteralPath $movedPrefix) { throw "moved prefix already exists" }
           # Native (node) failures do not stop pwsh mid-script, so every step's
           # exit code is checked explicitly to surface a failure at its source.
           node tools/build-release-bundle.mjs --output $buildOut --apply
@@ -228,3 +233,28 @@ jobs:
           # Full read-only installed-state verification.
           node tools/check-release-install.mjs --prefix $prefix --expected-version $version
           if ($LASTEXITCODE -ne 0) { throw "installed-state verification failed" }
+          # Source-bundle independence: remove ONLY the exact bundle-build
+          # directory (validated as a RUNNER_TEMP child), then prove the installed
+          # CLI and the full installed-state checker (CLI workflows + MCP) still
+          # work. This catches any dependency on the extracted bundle, junctions
+          # back to it, or assets that were not copied into the version directory.
+          Assert-RunnerTempChild $buildOut
+          Remove-Item -LiteralPath $buildOut -Recurse -Force
+          if (Test-Path -LiteralPath $buildOut) { throw "source bundle removal failed" }
+          & (Join-Path $prefix "bin/oh-my-pm.cmd") status
+          if ($LASTEXITCODE -ne 0) { throw "installed CLI failed after source bundle removal" }
+          node tools/check-release-install.mjs --prefix $prefix --expected-version $version
+          if ($LASTEXITCODE -ne 0) { throw "installed-state verification failed after source bundle removal" }
+          # Prefix relocation: move the complete installed prefix to another exact
+          # RUNNER_TEMP child, then prove the relocated .cmd shim and the full
+          # installed-state checker (CLI workflows + MCP) still work. This catches
+          # hard-coded absolute prefix paths, non-relocatable shims, absolute
+          # Windows junctions, and manifests/imports tied to the original location.
+          if (Test-Path -LiteralPath $movedPrefix) { throw "moved prefix already exists" }
+          Move-Item -LiteralPath $prefix -Destination $movedPrefix
+          if (Test-Path -LiteralPath $prefix) { throw "original prefix still exists after relocation" }
+          if (-not (Test-Path -LiteralPath $movedPrefix)) { throw "relocated prefix is missing" }
+          & (Join-Path $movedPrefix "bin/oh-my-pm.cmd") status
+          if ($LASTEXITCODE -ne 0) { throw "relocated installed CLI .cmd status failed" }
+          node tools/check-release-install.mjs --prefix $movedPrefix --expected-version $version
+          if ($LASTEXITCODE -ne 0) { throw "relocated installed-state verification failed" }

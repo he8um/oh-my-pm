@@ -118,9 +118,8 @@
 Next priorities:
 
 1. timeline events as a separate bounded phase
-2. close F-TEST-1 before release-candidate preparation
-3. provider aliases/profiles only with demonstrated usage
-4. controlled write-back only with separate approval
+2. provider aliases/profiles only with demonstrated usage
+3. controlled write-back only with separate approval
 
 Preview-first installation from an extracted verified release bundle, the
 read-only GitHub provider, and finer deterministic risk/task extraction are now
@@ -138,6 +137,7 @@ in place (see Phase 5B).
 - richer GitHub fetch modes and source selection (complete)
 - bounded GitHub item comments for the item source, opt-in and single-page (complete)
 - bounded pull-request reviews and review comments for the item source, opt-in, PR-only, single-page (complete)
+- cross-platform release-install CI parity: Windows job proves source-bundle independence and prefix relocation, matching POSIX (F-TEST-1 closed on a green Windows run)
 
 ## Phase 6 — Release lifecycle
 
