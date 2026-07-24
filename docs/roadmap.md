@@ -138,6 +138,7 @@ in place (see Phase 5B).
 - bounded GitHub item comments for the item source, opt-in and single-page (complete)
 - bounded pull-request reviews and review comments for the item source, opt-in, PR-only, single-page (complete)
 - cross-platform release-install CI parity: Windows job proves source-bundle independence and prefix relocation, matching POSIX (F-TEST-1 closed on a green Windows run)
+- centralized GitHub list limit constants: one canonical source imported by provider config/settings/selection and the CLI parser, behavior-preserving (F-DUP-1 resolved)
 
 ## Phase 6 — Release lifecycle
 

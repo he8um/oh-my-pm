@@ -6,6 +6,11 @@
 // permitted. Repository grammar is delegated to the existing strict parser so
 // there is exactly one owner/repository definition.
 
+import {
+  GITHUB_DEFAULT_LIMIT,
+  GITHUB_MAX_LIMIT,
+  GITHUB_MIN_LIMIT,
+} from "./github/constants.js";
 import { parseGitHubRepository } from "./github/query.js";
 import {
   GITHUB_CONFIGURABLE_SOURCES,
@@ -14,11 +19,11 @@ import {
 import type { GitHubConfigurableSource, GitHubSourceState } from "./github/selection.js";
 
 export const PROVIDER_CONFIG_VERSION = 1;
-export const DEFAULT_GITHUB_PROVIDER_LIMIT = 50;
+// Public compatibility alias — the configured default GitHub limit. Resolves to
+// the canonical list default (50); kept as a stable name for existing importers.
+export const DEFAULT_GITHUB_PROVIDER_LIMIT = GITHUB_DEFAULT_LIMIT;
 export const DEFAULT_GITHUB_PROVIDER_SOURCE: GitHubConfigurableSource = "overview";
 export const DEFAULT_GITHUB_PROVIDER_STATE: GitHubSourceState = "open";
-const GITHUB_PROVIDER_MIN_LIMIT = 1;
-const GITHUB_PROVIDER_MAX_LIMIT = 100;
 
 export type GitHubProviderConfig = {
   enabled: boolean;
@@ -180,8 +185,8 @@ function validateGitHub(value: unknown): GitHubProviderConfig | { error: Provide
     if (
       typeof raw !== "number" ||
       !Number.isInteger(raw) ||
-      raw < GITHUB_PROVIDER_MIN_LIMIT ||
-      raw > GITHUB_PROVIDER_MAX_LIMIT
+      raw < GITHUB_MIN_LIMIT ||
+      raw > GITHUB_MAX_LIMIT
     ) {
       return {
         error: fail(

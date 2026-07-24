@@ -5,16 +5,17 @@
 // overrides fail closed and never silently fall back to configuration.
 
 import {
-  DEFAULT_GITHUB_PROVIDER_LIMIT,
   DEFAULT_GITHUB_PROVIDER_SOURCE,
   DEFAULT_GITHUB_PROVIDER_STATE,
 } from "./config.js";
 import type { ResolvedProviderConfig } from "./config.js";
+import {
+  GITHUB_DEFAULT_LIMIT,
+  GITHUB_MAX_LIMIT,
+  GITHUB_MIN_LIMIT,
+} from "./github/constants.js";
 import { parseGitHubRepository } from "./github/query.js";
 import type { GitHubConfigurableSource, GitHubSourceState } from "./github/selection.js";
-
-const GITHUB_PROVIDER_MIN_LIMIT = 1;
-const GITHUB_PROVIDER_MAX_LIMIT = 100;
 
 export type GitHubProviderOverrides = {
   repository?: string;
@@ -130,7 +131,7 @@ export function resolveGitHubProviderSettings(input: {
       };
     }
     limit = github.defaultLimit;
-    limitSource = github.defaultLimit === DEFAULT_GITHUB_PROVIDER_LIMIT ? "default" : "config";
+    limitSource = github.defaultLimit === GITHUB_DEFAULT_LIMIT ? "default" : "config";
   }
 
   // Source: explicit override wins; otherwise the configured default, reported
@@ -173,7 +174,7 @@ function isValidLimit(value: number): boolean {
   return (
     typeof value === "number" &&
     Number.isInteger(value) &&
-    value >= GITHUB_PROVIDER_MIN_LIMIT &&
-    value <= GITHUB_PROVIDER_MAX_LIMIT
+    value >= GITHUB_MIN_LIMIT &&
+    value <= GITHUB_MAX_LIMIT
   );
 }

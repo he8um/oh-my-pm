@@ -1164,6 +1164,41 @@ for (const file of trackedFiles) {
   }
 }
 
+// 4k1b. Single-source GitHub limit constants (F-DUP-1). The executable
+// config/settings/selection/CLI layers must import the canonical list/comment/
+// review bounds from their canonical modules (`github/constants.ts` for the list
+// limit; `github/query.ts` for the comment/review limits) rather than
+// re-declaring the numbers. This forbids a local `const NAME = <n>` declaration
+// of a bound and the inline `value >= 1 && value <= 100` list-range literal in
+// exactly those layers. Canonical modules, tests, MCP JSON schemas, and release/
+// install verifiers are intentionally exempt (their literals are public-schema or
+// repository-independent boundary-defense assertions, not domain constants).
+const GITHUB_LIMIT_CONSUMER_LAYERS = [
+  "providers/src/config.ts",
+  "providers/src/settings.ts",
+  "providers/src/github/selection.ts",
+  "cli/src/parser.ts",
+];
+// Local re-declaration of a numeric bound: `const <NAME> = <int>;` (optionally
+// exported). The canonical sources live elsewhere, so any such local literal in a
+// consumer layer is a re-declaration.
+const LOCAL_LIMIT_CONST = /(?:export\s+)?const\s+[A-Za-z_][A-Za-z0-9_]*(?:MIN|MAX|DEFAULT)[A-Za-z0-9_]*LIMIT[A-Za-z0-9_]*\s*=\s*\d+\s*;/;
+// Inline list-range literal: `>= 1 && ... <= 100` (any spacing).
+const INLINE_LIST_RANGE = />=\s*1\s*&&[^\n]*<=\s*100/;
+for (const file of GITHUB_LIMIT_CONSUMER_LAYERS) {
+  if (!trackedFiles.includes(file)) {
+    err(`GitHub limit consumer layer is not tracked: ${file}`);
+    continue;
+  }
+  const contents = readFileSync(file, "utf8");
+  if (LOCAL_LIMIT_CONST.test(contents)) {
+    err(`${file} re-declares a GitHub limit bound locally; import the canonical constant instead (F-DUP-1)`);
+  }
+  if (INLINE_LIST_RANGE.test(contents)) {
+    err(`${file} inlines the 1..100 list-limit range; use GITHUB_MIN_LIMIT/GITHUB_MAX_LIMIT (F-DUP-1)`);
+  }
+}
+
 // 4k2. Bounded pull-request reviews and inline review comments. Reviews and
 // review comments are an explicit, item-source-only, pull-request-only,
 // default-disabled, single-page opt-in. The provider may fetch ONLY the reviews

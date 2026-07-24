@@ -1,9 +1,18 @@
 import type { CliOutputMode } from "@oh-my-pm/contracts";
 import {
+  GITHUB_DEFAULT_LIMIT,
+  GITHUB_MAX_LIMIT,
+  GITHUB_MIN_LIMIT,
   GITHUB_SEARCH_KINDS,
   GITHUB_SOURCE_MODES,
   GITHUB_SOURCE_QUERY_MAX,
   GITHUB_SOURCE_STATES,
+  MAX_GITHUB_COMMENT_LIMIT,
+  MAX_GITHUB_REVIEW_COMMENT_LIMIT,
+  MAX_GITHUB_REVIEW_LIMIT,
+  MIN_GITHUB_COMMENT_LIMIT,
+  MIN_GITHUB_REVIEW_COMMENT_LIMIT,
+  MIN_GITHUB_REVIEW_LIMIT,
 } from "@oh-my-pm/providers";
 import type {
   GitHubSearchKind,
@@ -20,15 +29,10 @@ import type {
 export const OMP_C_INVALID_COMMAND = "OMP-C-3001";
 export const OMP_C_INVALID_OPTION = "OMP-C-3002";
 
-export const GITHUB_CLI_DEFAULT_LIMIT = 50;
-const GITHUB_CLI_MIN_LIMIT = 1;
-const GITHUB_CLI_MAX_LIMIT = 100;
-const GITHUB_CLI_MIN_COMMENT_LIMIT = 1;
-const GITHUB_CLI_MAX_COMMENT_LIMIT = 50;
-const GITHUB_CLI_MIN_REVIEW_LIMIT = 1;
-const GITHUB_CLI_MAX_REVIEW_LIMIT = 20;
-const GITHUB_CLI_MIN_REVIEW_COMMENT_LIMIT = 1;
-const GITHUB_CLI_MAX_REVIEW_COMMENT_LIMIT = 20;
+// Public compatibility alias — the CLI's default GitHub list limit. Resolves to
+// the canonical list default (50). The list/comment/review bounds are imported
+// from the provider package's canonical constants rather than re-declared here.
+export const GITHUB_CLI_DEFAULT_LIMIT = GITHUB_DEFAULT_LIMIT;
 const GITHUB_OPERATIONS: readonly GitHubCliOperation[] = ["brief", "risks", "next", "handoff"];
 const PROVIDERS_SUBCOMMANDS: readonly ProvidersSubcommand[] = ["status", "doctor"];
 
@@ -211,7 +215,7 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
         return { ok: false, code: OMP_C_INVALID_OPTION, message: "--comment-limit must be an integer" };
       }
       const parsed = Number(value);
-      if (parsed < GITHUB_CLI_MIN_COMMENT_LIMIT || parsed > GITHUB_CLI_MAX_COMMENT_LIMIT) {
+      if (parsed < MIN_GITHUB_COMMENT_LIMIT || parsed > MAX_GITHUB_COMMENT_LIMIT) {
         return { ok: false, code: OMP_C_INVALID_OPTION, message: "--comment-limit must be in 1..50" };
       }
       commentLimit = parsed;
@@ -237,7 +241,7 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
         return { ok: false, code: OMP_C_INVALID_OPTION, message: "--review-limit must be an integer" };
       }
       const parsed = Number(value);
-      if (parsed < GITHUB_CLI_MIN_REVIEW_LIMIT || parsed > GITHUB_CLI_MAX_REVIEW_LIMIT) {
+      if (parsed < MIN_GITHUB_REVIEW_LIMIT || parsed > MAX_GITHUB_REVIEW_LIMIT) {
         return { ok: false, code: OMP_C_INVALID_OPTION, message: "--review-limit must be in 1..20" };
       }
       reviewLimit = parsed;
@@ -271,7 +275,7 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
         };
       }
       const parsed = Number(value);
-      if (parsed < GITHUB_CLI_MIN_REVIEW_COMMENT_LIMIT || parsed > GITHUB_CLI_MAX_REVIEW_COMMENT_LIMIT) {
+      if (parsed < MIN_GITHUB_REVIEW_COMMENT_LIMIT || parsed > MAX_GITHUB_REVIEW_COMMENT_LIMIT) {
         return {
           ok: false,
           code: OMP_C_INVALID_OPTION,
@@ -294,7 +298,7 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
         return { ok: false, code: OMP_C_INVALID_OPTION, message: "--limit must be an integer" };
       }
       const parsed = Number(value);
-      if (parsed < GITHUB_CLI_MIN_LIMIT || parsed > GITHUB_CLI_MAX_LIMIT) {
+      if (parsed < GITHUB_MIN_LIMIT || parsed > GITHUB_MAX_LIMIT) {
         return { ok: false, code: OMP_C_INVALID_OPTION, message: "--limit must be in 1..100" };
       }
       limit = parsed;

@@ -108,6 +108,31 @@ describe("resolveGitHubProviderSettings — limit precedence", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("github_limit_invalid");
   });
+
+  it("accepts the explicit minimum (1) and maximum (100) overrides", () => {
+    for (const limit of [1, 100]) {
+      const result = resolveGitHubProviderSettings({
+        config: configWith({ defaultRepository: "a/b" }),
+        overrides: { limit },
+      });
+      expect(result.ok, String(limit)).toBe(true);
+      if (result.ok) {
+        expect(result.limit).toBe(limit);
+        expect(result.limitSource).toBe("explicit");
+      }
+    }
+  });
+
+  it("rejects an explicit limit just below (0) or above (101) the range", () => {
+    for (const limit of [0, 101]) {
+      const result = resolveGitHubProviderSettings({
+        config: configWith({ defaultRepository: "a/b" }),
+        overrides: { limit },
+      });
+      expect(result.ok, String(limit)).toBe(false);
+      if (!result.ok) expect(result.code).toBe("github_limit_invalid");
+    }
+  });
 });
 
 describe("resolveGitHubProviderSettings — disabled", () => {

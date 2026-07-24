@@ -5,6 +5,11 @@
 
 export const GITHUB_API_ORIGIN = "https://api.github.com";
 export const GITHUB_API_VERSION = "2026-03-10";
+// Canonical GitHub list/overview/search item-count bounds. These are the single
+// executable source for the list limit range; provider config, effective
+// settings, the source-selection resolver, and the CLI parser all import them
+// rather than re-declaring the numbers.
+export const GITHUB_MIN_LIMIT = 1;
 export const GITHUB_DEFAULT_LIMIT = 50;
 export const GITHUB_MAX_LIMIT = 100;
 export const GITHUB_REQUEST_TIMEOUT_MS = 15_000;

@@ -529,3 +529,24 @@ describe("resolveGitHubSourceSelection — reviews and review comments", () => {
     expect(JSON.stringify(overrides)).toBe(snapshot);
   });
 });
+
+describe("resolveGitHubSourceSelection — list limit boundary matrix (F-DUP-1)", () => {
+  it("accepts the minimum (1) and maximum (100) list limits", () => {
+    for (const limit of [1, 100]) {
+      const r = resolve({ source: "overview", limit });
+      expect(r.ok, String(limit)).toBe(true);
+      if (r.ok && r.selection.mode === "overview") expect(r.selection.limit).toBe(limit);
+    }
+  });
+
+  it("rejects a list limit just below (0) or above (101) the range", () => {
+    for (const limit of [0, 101]) {
+      const r = resolve({ source: "overview", limit });
+      expect(r.ok, String(limit)).toBe(false);
+      if (!r.ok) {
+        expect(r.code).toBe("github_option_not_applicable");
+        expect(r.message).toBe("limit must be an integer in 1..100");
+      }
+    }
+  });
+});

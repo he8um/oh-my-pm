@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  GITHUB_DEFAULT_LIMIT,
+  GITHUB_MAX_LIMIT,
+  GITHUB_MIN_LIMIT,
+} from "../src/github/constants.js";
+import {
   DEFAULT_GITHUB_PROVIDER_LIMIT,
   PROVIDER_CONFIG_VERSION,
   defaultProviderConfig,
@@ -21,6 +26,43 @@ describe("defaultProviderConfig", () => {
   it("exposes stable constants", () => {
     expect(PROVIDER_CONFIG_VERSION).toBe(1);
     expect(DEFAULT_GITHUB_PROVIDER_LIMIT).toBe(50);
+  });
+});
+
+describe("canonical GitHub list-limit constants (F-DUP-1)", () => {
+  it("holds the expected values", () => {
+    expect(GITHUB_MIN_LIMIT).toBe(1);
+    expect(GITHUB_DEFAULT_LIMIT).toBe(50);
+    expect(GITHUB_MAX_LIMIT).toBe(100);
+  });
+
+  it("the provider-config default alias resolves to the canonical default", () => {
+    expect(DEFAULT_GITHUB_PROVIDER_LIMIT).toBe(GITHUB_DEFAULT_LIMIT);
+  });
+});
+
+describe("validateProviderConfig — limit boundary matrix", () => {
+  const withLimit = (defaultLimit: unknown) =>
+    validateProviderConfig({ version: 1, providers: { github: { enabled: true, defaultLimit } } });
+
+  it("accepts the minimum (1) and maximum (100) list limits", () => {
+    for (const limit of [GITHUB_MIN_LIMIT, GITHUB_MAX_LIMIT]) {
+      const result = withLimit(limit);
+      expect(result.ok, String(limit)).toBe(true);
+      if (result.ok) expect(result.config.providers.github?.defaultLimit).toBe(limit);
+    }
+  });
+
+  it("rejects just below the minimum (0) and just above the maximum (101)", () => {
+    for (const limit of [0, 101]) {
+      const result = withLimit(limit);
+      expect(result.ok, String(limit)).toBe(false);
+      if (!result.ok) expect(result.code).toBe("provider_config_invalid_limit");
+    }
+  });
+
+  it("keeps the default at 50 when no limit is configured", () => {
+    expect(defaultProviderConfig().providers.github?.defaultLimit).toBe(50);
   });
 });
 

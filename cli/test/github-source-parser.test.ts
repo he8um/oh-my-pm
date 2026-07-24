@@ -1,5 +1,6 @@
+import { GITHUB_DEFAULT_LIMIT } from "@oh-my-pm/providers";
 import { describe, expect, it } from "vitest";
-import { parseCliArgs } from "../src/index.js";
+import { GITHUB_CLI_DEFAULT_LIMIT, parseCliArgs } from "../src/index.js";
 
 function parseGitHub(args: string[]) {
   const r = parseCliArgs(["github", ...args]);
@@ -96,5 +97,48 @@ describe("github source options — parsing", () => {
     expect(j.outputMode).toBe("json");
     const m = parseGitHub(["risks", "owner/repo", "--source", "search", "--query", "x", "--markdown"]);
     expect(m.outputMode).toBe("markdown");
+  });
+});
+
+describe("github --limit boundary matrix + canonical alias (F-DUP-1)", () => {
+  const limitOf = (args: string[]) => {
+    const r = parseGitHub(args);
+    return r;
+  };
+
+  it("accepts --limit 1 and 100", () => {
+    for (const limit of [1, 100]) {
+      const r = limitOf(["brief", "owner/repo", "--source", "issues", "--limit", String(limit)]);
+      expect(r.ok, String(limit)).toBe(true);
+      if (r.ok && r.command === "github") expect(r.limit).toBe(limit);
+    }
+  });
+
+  it("rejects --limit 0 and 101 with the invalid-option code", () => {
+    for (const limit of [0, 101]) {
+      const r = parseCliArgs(["github", "brief", "owner/repo", "--source", "issues", "--limit", String(limit)]);
+      expect(r.ok, String(limit)).toBe(false);
+      if (!r.ok) expect(r.code).toBe("OMP-C-3002");
+    }
+  });
+
+  it("keeps ordinary comment bounds (1..50) unchanged", () => {
+    expect(parseCliArgs(["github", "brief", "owner/repo", "--source", "item", "--number", "1", "--include-comments", "--comment-limit", "50"]).ok).toBe(true);
+    expect(parseCliArgs(["github", "brief", "owner/repo", "--source", "item", "--number", "1", "--include-comments", "--comment-limit", "51"]).ok).toBe(false);
+  });
+
+  it("keeps review bounds (1..20) unchanged", () => {
+    expect(parseCliArgs(["github", "brief", "owner/repo", "--source", "item", "--number", "1", "--include-reviews", "--review-limit", "20"]).ok).toBe(true);
+    expect(parseCliArgs(["github", "brief", "owner/repo", "--source", "item", "--number", "1", "--include-reviews", "--review-limit", "21"]).ok).toBe(false);
+  });
+
+  it("keeps review-comment bounds (1..20) unchanged", () => {
+    expect(parseCliArgs(["github", "brief", "owner/repo", "--source", "item", "--number", "1", "--include-review-comments", "--review-comment-limit", "20"]).ok).toBe(true);
+    expect(parseCliArgs(["github", "brief", "owner/repo", "--source", "item", "--number", "1", "--include-review-comments", "--review-comment-limit", "21"]).ok).toBe(false);
+  });
+
+  it("the CLI default-limit alias resolves to the canonical provider default", () => {
+    expect(GITHUB_CLI_DEFAULT_LIMIT).toBe(GITHUB_DEFAULT_LIMIT);
+    expect(GITHUB_CLI_DEFAULT_LIMIT).toBe(50);
   });
 });

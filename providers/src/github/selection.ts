@@ -8,6 +8,7 @@
 // value happening to match a default.
 
 import type { ProviderRequest } from "@oh-my-pm/contracts";
+import { GITHUB_MAX_LIMIT, GITHUB_MIN_LIMIT } from "./constants.js";
 import {
   DEFAULT_GITHUB_COMMENT_LIMIT,
   DEFAULT_GITHUB_REVIEW_COMMENT_LIMIT,
@@ -166,7 +167,7 @@ function validNumber(value: number): boolean {
 }
 
 function validLimit(value: number): boolean {
-  return Number.isInteger(value) && value >= 1 && value <= 100;
+  return Number.isInteger(value) && value >= GITHUB_MIN_LIMIT && value <= GITHUB_MAX_LIMIT;
 }
 
 /**
