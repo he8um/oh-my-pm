@@ -151,6 +151,31 @@ in place (see Phase 5B).
 
 - **v0.2.x — maintenance only.** The line is bug-fix / security / packaging / docs / CI-reliability only; new features, providers, MCP tools, and v0.3 architecture require a separate, explicit approval. See docs/releases/v0.2.x-maintenance-policy.md. v0.3 development has not started.
 
+## Phase 5C — v0.3 discovery and architecture gate
+
+- **v0.3 discovery and architecture gate: complete.** An evidence-based audit of
+  the stable `v0.2.0` product, a scored comparison of four candidate directions,
+  and a narrow architecture for the highest-scoring direction were produced as
+  documentation only. No source, version, workflow, or release changed; `main`
+  remains at source version `0.2.0` and `v0.2.x` stays maintenance-only.
+- **v0.3 implementation: not started.** Implementation requires a separate,
+  explicit approval; when granted, only Phase 0 (contracts and guards, no
+  persistence, no behavior) may begin.
+- **Selected North Star:** OH MY PM can capture a project observation locally,
+  preserve minimized evidence, compare it with the previous observation, and
+  return deterministic changes — without modifying the project or uploading its
+  content.
+- **Selected direction:** Project Brain Foundation (canonical project state,
+  evidence ledger, immutable snapshots, deterministic change engine, freshness,
+  local persistence, export/delete). Distribution/UX, MCP intelligence, and more
+  integrations are deferred and sequenced to follow, each unblocked by the state
+  foundation. The single new capability is an explicit, local, user-controlled
+  application-state write boundary; project-file writes remain prohibited and no
+  content is uploaded.
+- See [the v0.3 project brain foundation](v0.3/README.md) for the full discovery,
+  data model, architecture, threat model, phased plan, acceptance gates, and the
+  formal GO scope decision.
+
 ## Phase 6 — Release lifecycle
 
 - Version registry
