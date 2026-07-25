@@ -1679,6 +1679,133 @@ for (const file of generatedTracked) {
   }
 }
 
+// 5b. v0.3 Project Brain (Phase 0) boundary guards. Phase 0 introduces the six
+// versioned contracts and their guards only: no persistence, no application-state
+// write, no project write, no network path, and no new MCP tool. The projectbrain
+// surface must live entirely under contracts/**; any projectbrain-named runtime
+// source, or any forbidden capability marker inside a projectbrain file, means a
+// later phase leaked into Phase 0. (This validator is the detector, so its own
+// marker strings never trip these scans: it carries no "projectbrain" filename.)
+if (!trackedFiles.includes("contracts/schema/projectbrain.schema.json")) {
+  err("contracts/schema/projectbrain.schema.json is missing (Phase 0 contract domain)");
+}
+for (const gen of [
+  "contracts/generated/ts/projectbrain.ts",
+  "contracts/generated/rust/projectbrain.rs",
+]) {
+  if (!trackedFiles.includes(gen)) err(`generated projectbrain module is missing: ${gen}`);
+}
+if (trackedFiles.includes("contracts/generated/ts/index.ts")) {
+  const tsBarrel = readFileSync("contracts/generated/ts/index.ts", "utf8");
+  if (!tsBarrel.includes('export * from "./projectbrain.js";')) {
+    err("contracts/generated/ts/index.ts must export the projectbrain barrel");
+  }
+}
+if (trackedFiles.includes("contracts/generated/rust/mod.rs")) {
+  const rustBarrel = readFileSync("contracts/generated/rust/mod.rs", "utf8");
+  if (!rustBarrel.includes("pub mod projectbrain;")) {
+    err("contracts/generated/rust/mod.rs must declare pub mod projectbrain");
+  }
+}
+// Phase 0 is contracts-only. A projectbrain-named source or test file living
+// outside contracts/** (or the single permitted kernel serde round-trip test)
+// signals premature Phase 1+ implementation (persistence, capture, memory store).
+const PROJECT_BRAIN_ALLOWED_OUTSIDE_CONTRACTS = new Set([
+  "kernel/crate/tests/projectbrain_contracts.rs",
+]);
+const projectBrainFiles = trackedFiles.filter(
+  (f) => /projectbrain/i.test(f) && /\.(ts|mjs|js|rs)$/.test(f),
+);
+for (const file of projectBrainFiles) {
+  if (file.startsWith("contracts/")) continue;
+  if (PROJECT_BRAIN_ALLOWED_OUTSIDE_CONTRACTS.has(file)) continue;
+  err(`Phase 0 projectbrain surface must live under contracts/; unexpected file: ${file}`);
+}
+// No projectbrain file may introduce a write, network, persistence, or database
+// capability in Phase 0. Substring markers mirror the existing forbidden-API
+// idiom used elsewhere in this validator.
+const PROJECT_BRAIN_PHASE0_FORBIDDEN = [
+  "writeFile",
+  "appendFile",
+  "createWriteStream",
+  "mkdirSync",
+  "rmSync",
+  "unlinkSync",
+  "renameSync",
+  "copyFileSync",
+  "fetch(",
+  "XMLHttpRequest",
+  "WebSocket",
+  "node:http",
+  "node:https",
+  "node:net",
+  "better-sqlite3",
+  "PRAGMA",
+  "CREATE TABLE",
+  "PersistenceAdapter",
+  "MemoryStore",
+  "SnapshotStore",
+];
+for (const file of projectBrainFiles) {
+  const contents = readFileSync(file, "utf8");
+  for (const marker of PROJECT_BRAIN_PHASE0_FORBIDDEN) {
+    if (contents.includes(marker)) {
+      err(`${file} introduces a forbidden Phase 0 projectbrain capability: "${marker}"`);
+    }
+  }
+}
+// No unapproved persistence/store/memory-command source may appear anywhere as a
+// tracked file in Phase 0 (memory-store, snapshot-store, persistence-adapter).
+const PHASE1_PLUS_FILE_MARKERS = [
+  "memory-store",
+  "snapshot-store",
+  "persistence-adapter",
+];
+for (const file of trackedFiles) {
+  if (file.startsWith("docs/")) continue; // documentation may name deferred phases
+  for (const marker of PHASE1_PLUS_FILE_MARKERS) {
+    if (file.toLowerCase().includes(marker)) {
+      err(`Phase 0 forbids premature persistence source: ${file}`);
+    }
+  }
+}
+// The MCP server must not register a projectbrain tool in Phase 0 (the ten-tool
+// set is unchanged; no project_changes / memory projection is added yet).
+if (trackedFiles.includes("mcp-server/src/server.ts")) {
+  const server = readFileSync("mcp-server/src/server.ts", "utf8");
+  if (/projectbrain|project_changes|memory/i.test(server)) {
+    err("mcp-server/src/server.ts must not add a projectbrain/memory MCP tool in Phase 0");
+  }
+}
+// Phase 0 privacy invariants on the generated projectbrain contracts: identity
+// stores no absolute path; evidence stores no credential or raw body. Match field
+// declarations only (doc-comment prose legitimately mentions bodies/tokens).
+for (const gen of Object.keys({
+  "contracts/generated/ts/projectbrain.ts": 0,
+  "contracts/generated/rust/projectbrain.rs": 0,
+})) {
+  if (!trackedFiles.includes(gen)) continue;
+  const contents = readFileSync(gen, "utf8");
+  const forbiddenDecls = gen.endsWith(".ts")
+    ? [
+        [/^\s*absolutePath\??:/m, "absolute-path field"],
+        [/^\s*token\??:/m, "token field"],
+        [/^\s*authorization\??:/m, "authorization field"],
+        [/^\s*bearer\??:/m, "bearer field"],
+        [/^\s*body\??:/m, "raw-body field"],
+      ]
+    : [
+        [/^\s*pub absolute_path:/m, "absolute-path field"],
+        [/^\s*pub token:/m, "token field"],
+        [/^\s*pub authorization:/m, "authorization field"],
+        [/^\s*pub bearer:/m, "bearer field"],
+        [/^\s*pub body:/m, "raw-body field"],
+      ];
+  for (const [re, why] of forbiddenDecls) {
+    if (re.test(contents)) err(`${gen} must not declare a ${why} (Phase 0 privacy invariant)`);
+  }
+}
+
 // 6. Destructive temporary-workspace cleanup safety. No tracked text file may
 // teach or perform recursive deletion of an inferred parent directory, the
 // shared temp root, the CI runner temp root, the current working directory, or

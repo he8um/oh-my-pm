@@ -158,9 +158,22 @@ in place (see Phase 5B).
   and a narrow architecture for the highest-scoring direction were produced as
   documentation only. No source, version, workflow, or release changed; `main`
   remains at source version `0.2.0` and `v0.2.x` stays maintenance-only.
-- **v0.3 implementation: not started.** Implementation requires a separate,
-  explicit approval; when granted, only Phase 0 (contracts and guards, no
-  persistence, no behavior) may begin.
+- **v0.3 Phase 0 (contracts and guards): implemented.** Under a separate,
+  explicit owner approval for Phase 0 only, the six versioned Project Brain
+  contracts (`ProjectIdentity`, `EvidenceRecord`, `ProjectState`,
+  `ProjectSnapshot`, `ChangeSet`, `Freshness`) were added as a single
+  `projectbrain` contract domain, generated deterministically to TypeScript and
+  Rust, covered by contract tests (TS fixtures + a contract-only Rust serde
+  round-trip) and by architecture guards in `validate-structure.mjs` /
+  `validate-boundaries.mjs`. No persistence, no application-state write, no
+  project write, no network path, and no new MCP tool was added; `version.json`
+  stays `0.2.0`, the MCP surface stays exactly ten tools, and no v0.2 behavior
+  changed. See [phase-0-contracts.md](v0.3/phase-0-contracts.md).
+- **v0.3 Phases 1–6: not started.** The Project Brain product is not implemented
+  (no capture, compare, freshness, persistence, or `memory` command exists). Each
+  remaining phase requires a separate, explicit approval; the next authorized step
+  would be Phase 1 (deterministic Kernel normalization, identifiers, fingerprints,
+  change classification, and freshness rules only).
 - **Selected North Star:** OH MY PM can capture a project observation locally,
   preserve minimized evidence, compare it with the previous observation, and
   return deterministic changes — without modifying the project or uploading its

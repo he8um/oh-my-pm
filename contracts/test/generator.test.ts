@@ -8,7 +8,17 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const tsDir = join(repoRoot, "contracts", "generated", "ts");
 const rustDir = join(repoRoot, "contracts", "generated", "rust");
 
-const DOMAINS = ["cli", "core", "installer", "kernel", "planner", "providers", "runtime", "skills"];
+const DOMAINS = [
+  "cli",
+  "core",
+  "installer",
+  "kernel",
+  "planner",
+  "projectbrain",
+  "providers",
+  "runtime",
+  "skills",
+];
 
 const read = (dir: string, file: string) => readFileSync(join(dir, file), "utf8");
 
@@ -69,6 +79,35 @@ describe("contracts generator", () => {
     expect(read(tsDir, "installer.ts")).toContain("export interface InstallManifest");
   });
 
+  it("TypeScript output includes the six Project Brain contracts and schema version", () => {
+    const pb = read(tsDir, "projectbrain.ts");
+    expect(pb).toContain("export const PROJECT_BRAIN_SCHEMA_VERSION = 1 as const;");
+    expect(pb).toContain("export interface ProjectIdentity");
+    expect(pb).toContain("export interface EvidenceRecord");
+    expect(pb).toContain("export interface ProjectState");
+    expect(pb).toContain("export interface ProjectSnapshot");
+    expect(pb).toContain("export interface ChangeSet");
+    expect(pb).toContain("export interface Freshness");
+  });
+
+  it("Project Brain enums serialize to the approved camelCase values", () => {
+    const pb = read(tsDir, "projectbrain.ts");
+    expect(pb).toContain('"githubIssue"');
+    expect(pb).toContain('"githubPullRequest"');
+    expect(pb).toContain('"notStored"');
+    expect(pb).toContain('"storedOptIn"');
+    expect(pb).toContain('"pendingDelete"');
+    expect(pb).toContain('"becameOverdue"');
+    expect(pb).toContain('"noLongerOverdue"');
+    expect(pb).toContain('"severityIncreased"');
+    expect(pb).toContain('"evidenceChanged"');
+  });
+
+  it("Project Brain TS barrel is exported and Rust barrel exposes the domain", () => {
+    expect(read(tsDir, "index.ts")).toContain('export * from "./projectbrain.js";');
+    expect(read(rustDir, "mod.rs")).toContain("pub mod projectbrain;");
+  });
+
   it("TypeScript unions are discriminated by their string tag", () => {
     const core = read(tsDir, "core.ts");
     expect(core).toContain("export type KernelResult = KernelResultOk | KernelResultErr;");
@@ -85,6 +124,18 @@ describe("contracts generator", () => {
     expect(read(rustDir, "skills.rs")).toContain("pub enum SkillId");
     expect(read(rustDir, "cli.rs")).toContain("pub struct CliJsonOutput");
     expect(read(rustDir, "installer.rs")).toContain("pub struct InstallManifest");
+  });
+
+  it("Rust output includes the six Project Brain contracts and schema version", () => {
+    const pb = read(rustDir, "projectbrain.rs");
+    expect(pb).toContain("pub fn project_brain_schema_version() -> i64 {");
+    expect(pb).toContain("pub struct ProjectIdentity");
+    expect(pb).toContain("pub struct EvidenceRecord");
+    expect(pb).toContain("pub struct ProjectState");
+    expect(pb).toContain("pub struct ProjectSnapshot");
+    expect(pb).toContain("pub struct ChangeSet");
+    expect(pb).toContain("pub struct Freshness");
+    expect(pb).toContain('#[serde(rename_all = "camelCase")]');
   });
 
   it("Rust unions use serde string tags", () => {

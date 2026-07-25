@@ -37,7 +37,13 @@ an explicit "no previous observation," not an error.
 
 ---
 
-## Phase 0 — Contracts and architecture guards · complexity M
+## Phase 0 — Contracts and architecture guards · complexity M · **implemented**
+
+> **Implemented and green.** The six versioned contracts, deterministic TS/Rust
+> generation, contract tests, and boundary guards are in place with no
+> persistence and no behavior change. Source version remains `0.2.0` and the
+> MCP surface remains exactly ten tools. See
+> [phase-0-contracts.md](phase-0-contracts.md). Phase 1 is **not started**.
 
 - **Objective:** define the six versioned contracts and the guardrails, with no
   persistence and no behavior.

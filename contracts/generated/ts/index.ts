@@ -5,6 +5,7 @@ export * from "./core.js";
 export * from "./installer.js";
 export * from "./kernel.js";
 export * from "./planner.js";
+export * from "./projectbrain.js";
 export * from "./providers.js";
 export * from "./runtime.js";
 export * from "./skills.js";

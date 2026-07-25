@@ -626,7 +626,17 @@ for (const file of INSTALLER_SOURCES) {
 }
 
 // 8. Generated contract domain files and barrels exist.
-const CONTRACT_DOMAINS = ["core", "kernel", "runtime", "planner", "providers", "skills", "cli", "installer"];
+const CONTRACT_DOMAINS = [
+  "core",
+  "kernel",
+  "runtime",
+  "planner",
+  "projectbrain",
+  "providers",
+  "skills",
+  "cli",
+  "installer",
+];
 const REQUIRED_GENERATED = [
   ...CONTRACT_DOMAINS.map((d) => `contracts/generated/ts/${d}.ts`),
   "contracts/generated/ts/index.ts",
@@ -635,6 +645,69 @@ const REQUIRED_GENERATED = [
 ];
 for (const file of REQUIRED_GENERATED) {
   if (!existsSync(file)) err(`generated contracts file missing: ${file}`);
+}
+
+// 8b. v0.3 Project Brain (Phase 0) contract surface.
+// The six versioned contract families and the schema-version constant exist in
+// both generated languages, the schema domain exists, and the barrels expose it.
+// Phase 0 is contracts-only: no persistence, no behavior, no field that would
+// store an absolute path or a credential.
+const PROJECT_BRAIN_SCHEMA = "contracts/schema/projectbrain.schema.json";
+if (!existsSync(PROJECT_BRAIN_SCHEMA)) {
+  err(`project brain schema domain missing: ${PROJECT_BRAIN_SCHEMA}`);
+}
+const PROJECT_BRAIN_GENERATED = {
+  ts: "contracts/generated/ts/projectbrain.ts",
+  rust: "contracts/generated/rust/projectbrain.rs",
+};
+for (const file of Object.values(PROJECT_BRAIN_GENERATED)) {
+  if (!existsSync(file)) err(`project brain generated module missing: ${file}`);
+}
+const PROJECT_BRAIN_CONTRACTS = [
+  "ProjectIdentity",
+  "EvidenceRecord",
+  "ProjectState",
+  "ProjectSnapshot",
+  "ChangeSet",
+  "Freshness",
+];
+if (existsSync(PROJECT_BRAIN_GENERATED.ts) && existsSync(PROJECT_BRAIN_GENERATED.rust)) {
+  const pbTs = readFileSync(PROJECT_BRAIN_GENERATED.ts, "utf8");
+  const pbRust = readFileSync(PROJECT_BRAIN_GENERATED.rust, "utf8");
+  for (const name of PROJECT_BRAIN_CONTRACTS) {
+    // Every primary contract exists in both languages and carries schemaVersion.
+    if (!pbTs.includes(`export interface ${name} {`)) {
+      err(`project brain TS contract missing: ${name}`);
+    } else if (!/schemaVersion: number;/.test(pbTs.split(`export interface ${name} {`)[1].split("}")[0])) {
+      err(`project brain TS contract ${name} must carry schemaVersion`);
+    }
+    if (!pbRust.includes(`pub struct ${name} {`)) {
+      err(`project brain Rust contract missing: ${name}`);
+    } else if (!/pub schema_version: i64,/.test(pbRust.split(`pub struct ${name} {`)[1].split("}")[0])) {
+      err(`project brain Rust contract ${name} must carry schemaVersion`);
+    }
+  }
+  // The schema version is a generated constant in both languages.
+  if (!pbTs.includes("export const PROJECT_BRAIN_SCHEMA_VERSION = 1 as const;")) {
+    err("project brain TS schema-version constant missing or not 1");
+  }
+  if (!pbRust.includes("pub fn project_brain_schema_version() -> i64 {")) {
+    err("project brain Rust schema-version function missing");
+  }
+  // Phase 0 privacy invariants: no absolute-path field on identity, no
+  // credential/body field on evidence. Match generated field declarations only,
+  // never doc-comment prose (doc lines start with `/**` in TS and `///` in Rust).
+  const FORBIDDEN_FIELD_DECLS = [
+    { ts: /^\s*absolutePath\??:/m, rust: /^\s*pub absolute_path:/m, why: "absolute-path field" },
+    { ts: /^\s*token\??:/m, rust: /^\s*pub token:/m, why: "token field" },
+    { ts: /^\s*authorization\??:/m, rust: /^\s*pub authorization:/m, why: "authorization field" },
+    { ts: /^\s*bearer\??:/m, rust: /^\s*pub bearer:/m, why: "bearer field" },
+    { ts: /^\s*body\??:/m, rust: /^\s*pub body:/m, why: "raw-body field" },
+  ];
+  for (const { ts, rust, why } of FORBIDDEN_FIELD_DECLS) {
+    if (ts.test(pbTs)) err(`project brain TS must not declare a ${why}`);
+    if (rust.test(pbRust)) err(`project brain Rust must not declare a ${why}`);
+  }
 }
 
 // 9 + 10. CI workflow exists. The only release-publishing workflows allowed are

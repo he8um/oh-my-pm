@@ -1,12 +1,16 @@
 # OH MY PM — v0.3 Project Brain Foundation
 
-> **Status: discovery and architecture gate — complete.**
-> **v0.3 implementation: not started.** No source, version, workflow, or release
-> change is authorized by this document set. `version.json` remains `0.2.0` and
-> `v0.2.x` stays maintenance-only (see
+> **Status: discovery and architecture gate — complete. Phase 0 (contracts and
+> guards) — implemented.**
+> **v0.3 product: not implemented; Phase 1 not started.** Phase 0 added the six
+> versioned Project Brain contracts, their deterministic TS/Rust generation,
+> contract tests, and architecture guards only — no persistence, no behavior, and
+> no user-visible change. `version.json` remains `0.2.0` and `v0.2.x` stays
+> maintenance-only (see
 > [the v0.2.x maintenance policy](../releases/v0.2.x-maintenance-policy.md)).
-> Implementation requires a separate, explicit approval, and only Phase 0 may
-> begin when that approval is given.
+> Phases 1–6 remain unstarted; each requires a separate, explicit approval. See
+> [phase-0-contracts.md](phase-0-contracts.md) for the implemented contract
+> surface.
 
 ## What this is
 
@@ -51,6 +55,7 @@ changed.
 | 7 | [implementation-plan.md](implementation-plan.md) | Independently testable Phases 0–6 with allowed files, deliverables, and stop conditions. |
 | 8 | [acceptance-gates.md](acceptance-gates.md) | Hard gates G1–G14 with measurable evidence. |
 | 9 | [scope-decision.md](scope-decision.md) | The formal GO decision and its required contents. |
+| 10 | [phase-0-contracts.md](phase-0-contracts.md) | The **implemented** Phase 0 contract surface: the six contracts, generation, tests, and guards. |
 
 ## Invariants this plan will not cross
 

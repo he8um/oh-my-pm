@@ -5,6 +5,7 @@ pub mod core;
 pub mod installer;
 pub mod kernel;
 pub mod planner;
+pub mod projectbrain;
 pub mod providers;
 pub mod runtime;
 pub mod skills;
