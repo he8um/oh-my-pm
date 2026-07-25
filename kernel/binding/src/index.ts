@@ -12,8 +12,21 @@ import { UNAVAILABLE_REASON, WASM_MODE } from "./status.js";
 
 export {
   createNodeWasmKernelApi,
+  createNodeWasmProjectBrainKernelApi,
   isNodeWasmKernelAvailable,
 } from "./node.js";
+export {
+  createUnavailableProjectBrainKernelApi,
+  unavailableProjectBrainError,
+} from "./projectbrain.js";
+export type {
+  DeriveFreshnessInput,
+  DiffProjectSnapshotsInput,
+  FingerprintContentInput,
+  ProjectBrainKernelApi,
+  ProjectBrainKernelResult,
+  ProjectIdentitySeedInput,
+} from "./projectbrain.js";
 
 /** Public boundary the rest of the workspace uses to reach the Kernel. */
 export type KernelApi = {

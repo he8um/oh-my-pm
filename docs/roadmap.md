@@ -149,7 +149,7 @@ in place (see Phase 5B).
 
 **v0.2 phase complete.** Governance (L3) is closed: the `github-release` environment had a required reviewer (`he8um`, type User) alongside its preserved custom `main` branch policy, and the stable publication run paused for and received a manual approval (no administrator bypass; `prevent_self_review` stays `false` so a single administrator can approve). Timeline events, aliases/profiles, and write-back remain deferred beyond v0.2.
 
-- **v0.2.x — maintenance only.** The line is bug-fix / security / packaging / docs / CI-reliability only; new features, providers, MCP tools, and v0.3 architecture require a separate, explicit approval. See docs/releases/v0.2.x-maintenance-policy.md. v0.3 development is limited to the approved, non-user-facing foundation (Phases 0, 1, and 2); no v0.3 product is shipped and `version.json` stays `0.2.0`.
+- **v0.2.x — maintenance only.** The line is bug-fix / security / packaging / docs / CI-reliability only; new features, providers, MCP tools, and v0.3 architecture require a separate, explicit approval. See docs/releases/v0.2.x-maintenance-policy.md. v0.3 development is limited to the approved, non-user-facing foundation (Phases 0, 1, 2, and 3); no v0.3 product is shipped, capture/compare work only programmatically below the CLI, and `version.json` stays `0.2.0`.
 
 ## Phase 5C — v0.3 discovery and architecture gate
 
@@ -196,11 +196,23 @@ in place (see Phase 5B).
   application-state adapter exists but the Project Brain remains user-inaccessible.
   `version.json` stays `0.2.0`, the MCP surface stays exactly ten tools, and no
   v0.2 behavior changed. See [phase-2-persistence.md](v0.3/phase-2-persistence.md).
-- **v0.3 Phases 3–6: not started.** The Project Brain product is still not
-  user-accessible (no Runtime capture/compare orchestration, CLI, or MCP exposure
-  exists). Each remaining phase requires a separate, explicit approval; the next
-  authorized step would be Phase 3 (provider-independent Runtime capture/compare
-  orchestration only).
+- **v0.3 Phase 3 (Runtime capture and compare): implemented.** Under a separate,
+  explicit owner approval for Phase 3 only, the provider-independent Project Brain
+  Runtime API (`runtime/src/projectbrain/**`) was added, wiring read-only
+  observation → pure Skills state/evidence derivation → Phase 1 Kernel
+  finalization via a new minimal WASM/TypeScript binding for the seven pure
+  functions → one Phase 2 memory transaction → Phase 1 deterministic diff. It adds
+  no CLI memory command, no MCP tool, no provider change, no provider→memory
+  dependency, no project-file write, and no contract or Phase 1/Phase 2 semantic
+  change; the existing `Runtime.handle()` behavior and the ten-tool MCP surface
+  are unchanged. Capture and compare work only programmatically below the CLI —
+  the full vertical slice is proven end-to-end with the real adapter — and the
+  Project Brain remains user-inaccessible. `version.json` stays `0.2.0`. See
+  [phase-3-runtime.md](v0.3/phase-3-runtime.md).
+- **v0.3 Phases 4–6: not started.** The Project Brain product is still not
+  user-accessible (no CLI or MCP exposure exists). Each remaining phase requires a
+  separate, explicit approval; the next authorized step would be Phase 4 (the
+  minimal preview-first CLI `memory` surface only).
 - **Selected North Star:** OH MY PM can capture a project observation locally,
   preserve minimized evidence, compare it with the previous observation, and
   return deterministic changes — without modifying the project or uploading its

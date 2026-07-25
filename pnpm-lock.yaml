@@ -168,6 +168,10 @@ importers:
       '@oh-my-pm/skills':
         specifier: workspace:*
         version: link:../skills
+    devDependencies:
+      '@oh-my-pm/project-memory':
+        specifier: workspace:*
+        version: link:../project-memory
 
   skills:
     dependencies:

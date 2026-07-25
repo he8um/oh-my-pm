@@ -25,5 +25,8 @@
     "@oh-my-pm/planner": "workspace:*",
     "@oh-my-pm/providers": "workspace:*",
     "@oh-my-pm/skills": "workspace:*"
+  },
+  "devDependencies": {
+    "@oh-my-pm/project-memory": "workspace:*"
   }
 }

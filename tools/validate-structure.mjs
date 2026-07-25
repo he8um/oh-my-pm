@@ -930,6 +930,41 @@ if (existsSync(PROJECT_MEMORY_DIR)) {
   }
 }
 
+// 9. v0.3 Phase 3 Runtime orchestration. The Project Brain Runtime capture/
+// compare surface, the pure Skills derivation module, the minimal Kernel binding,
+// and their tests must exist. No CLI or MCP surface invokes them.
+const PHASE3_SOURCES = [
+  // Minimal Kernel binding exposure.
+  "kernel/binding/src/projectbrain.ts",
+  "kernel/binding/test/wasm-projectbrain-api.test.ts",
+  "kernel/crate/tests/projectbrain_binding_parity.rs",
+  // Pure Skills derivation.
+  "skills/src/project-brain-state.ts",
+  "skills/test/project-brain-state.test.ts",
+  // Runtime orchestration.
+  "runtime/src/projectbrain/index.ts",
+  "runtime/src/projectbrain/types.ts",
+  "runtime/src/projectbrain/errors.ts",
+  "runtime/src/projectbrain/observation.ts",
+  "runtime/src/projectbrain/evidence.ts",
+  "runtime/src/projectbrain/privacy.ts",
+  "runtime/src/projectbrain/capture.ts",
+  "runtime/src/projectbrain/compare.ts",
+  "runtime/src/projectbrain/runtime.ts",
+  // Runtime tests + e2e below CLI.
+  "runtime/test/projectbrain-fixtures.ts",
+  "runtime/test/projectbrain-capture.test.ts",
+  "runtime/test/projectbrain-compare.test.ts",
+  "runtime/test/projectbrain-e2e.test.ts",
+  "runtime/test/projectbrain-purity.test.ts",
+  "runtime/test/projectbrain-privacy.test.ts",
+  // Phase 3 documentation.
+  "docs/v0.3/phase-3-runtime.md",
+];
+for (const file of PHASE3_SOURCES) {
+  if (!existsSync(file)) err(`Phase 3 file missing: ${file}`);
+}
+
 if (fail) {
   console.error("validate-structure: FAILED");
   process.exit(1);

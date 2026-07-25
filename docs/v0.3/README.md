@@ -2,24 +2,31 @@
 
 > **Status: discovery and architecture gate — complete. Phase 0 (contracts and
 > guards) — implemented. Phase 1 (deterministic Kernel) — implemented. Phase 2
-> (local persistence adapter) — implemented.**
-> **v0.3 product: not implemented; not user-accessible. Phase 3 not started.**
+> (local persistence adapter) — implemented. Phase 3 (Runtime capture and
+> compare) — implemented.**
+> **v0.3 product: not user-accessible. Capture/compare work only programmatically
+> below the CLI; no CLI or MCP surface invokes them. Phase 4 not started.**
 > Phase 0 added the six versioned Project Brain contracts, their deterministic
 > TS/Rust generation, contract tests, and architecture guards. Phase 1 added the
 > pure, deterministic Kernel module (normalization, identifiers, canonical
 > serialization, fingerprints, freshness, and diff) with golden fixtures. Phase 2
 > added the private `@oh-my-pm/project-memory` package and one explicit Node
-> filesystem adapter: application-state persistence with atomic writes, manifest
-> and record integrity, immutable records, safe reads, single-writer locking, a
-> migration scaffold, export, and delete — with **no** public command invoking
-> it, **no** Runtime orchestration, and **no** project write. The
-> application-state adapter exists but the Project Brain remains user-inaccessible.
+> filesystem adapter (atomic writes, integrity, immutable records, safe reads,
+> single-writer locking, a migration scaffold, export, and delete). Phase 3 wired
+> them together into a provider-independent Runtime capture/compare API: read-only
+> observation → pure Skills state/evidence derivation → Phase 1 Kernel
+> finalization → one Phase 2 memory transaction → Phase 1 deterministic diff. It
+> added the minimal Kernel WASM/TypeScript binding for the seven pure Phase 1
+> functions, a pure Skills derivation module, and the orchestration under
+> `runtime/src/projectbrain/**` — with **no** CLI memory command, **no** MCP tool,
+> **no** provider change, **no** project write, and an unchanged `Runtime.handle()`.
 > `version.json` remains `0.2.0` and `v0.2.x` stays maintenance-only (see
 > [the v0.2.x maintenance policy](../releases/v0.2.x-maintenance-policy.md)).
-> Phases 3–6 remain unstarted; each requires a separate, explicit approval. See
+> Phases 4–6 remain unstarted; each requires a separate, explicit approval. See
 > [phase-0-contracts.md](phase-0-contracts.md) for the contract surface,
-> [phase-1-kernel.md](phase-1-kernel.md) for the implemented Kernel, and
-> [phase-2-persistence.md](phase-2-persistence.md) for the implemented adapter.
+> [phase-1-kernel.md](phase-1-kernel.md) for the Kernel,
+> [phase-2-persistence.md](phase-2-persistence.md) for the adapter, and
+> [phase-3-runtime.md](phase-3-runtime.md) for the Runtime orchestration.
 
 ## What this is
 
@@ -67,6 +74,7 @@ changed.
 | 10 | [phase-0-contracts.md](phase-0-contracts.md) | The **implemented** Phase 0 contract surface: the six contracts, generation, tests, and guards. |
 | 11 | [phase-1-kernel.md](phase-1-kernel.md) | The **implemented** Phase 1 pure Kernel: normalization, identifiers, fingerprints, freshness, diff, and golden fixtures. |
 | 12 | [phase-2-persistence.md](phase-2-persistence.md) | The **implemented** Phase 2 local persistence adapter: format, layout, atomic commit, locking, integrity, migration, export, delete, and privacy. |
+| 13 | [phase-3-runtime.md](phase-3-runtime.md) | The **implemented** Phase 3 Runtime capture/compare orchestration, the minimal Kernel binding, the pure Skills deriver, evidence minimization, and the below-CLI e2e slice. |
 
 ## Invariants this plan will not cross
 

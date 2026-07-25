@@ -1679,15 +1679,17 @@ for (const file of generatedTracked) {
   }
 }
 
-// 5b. v0.3 Project Brain (Phase 1) boundary guards. Phase 1 adds a PURE,
-// deterministic Kernel module for the Phase 0 contracts: normalization,
-// identifiers, canonical serialization, fingerprints, freshness, and diff. It
-// adds NO persistence, application-state write, project write, network path,
-// clock read, environment read, randomness, Runtime orchestration, CLI memory
-// command, or MCP tool. The projectbrain surface may now live under the narrowly
-// allowed Phase 1 locations below and nowhere else. (This validator is the
-// detector, so its own marker strings never trip these scans: it carries no
-// "projectbrain" filename.)
+// 5b. v0.3 Project Brain boundary guards (Phase 1 pure Kernel + Phase 3 Runtime
+// orchestration). Phase 1 added the PURE, deterministic Kernel module. Phase 3
+// adds: the minimal Kernel WASM/TypeScript binding for the seven approved pure
+// functions; a pure Skills state-derivation module; and the provider-independent
+// Runtime capture/compare orchestration under runtime/src/projectbrain/**. It
+// still adds NO CLI memory command, MCP Project Brain tool, new provider,
+// provider->memory dependency, project write, or Runtime/Skills direct
+// fs/network/clock/random access, and no contract or Phase 1 semantic change.
+// The projectbrain surface may live only under the narrowly allowed locations
+// below. (This validator is the detector, so its own marker strings never trip
+// these scans: it carries no "projectbrain" filename.)
 if (!trackedFiles.includes("contracts/schema/projectbrain.schema.json")) {
   err("contracts/schema/projectbrain.schema.json is missing (Phase 0 contract domain)");
 }
@@ -1709,19 +1711,25 @@ if (trackedFiles.includes("contracts/generated/rust/mod.rs")) {
     err("contracts/generated/rust/mod.rs must declare pub mod projectbrain");
   }
 }
-// Phase 1 allowlist. A projectbrain-named source, test, fixture, or doc file must
-// live under one of these locations. Anything else signals a premature Phase 2+
-// leak (persistence, capture orchestration, memory store, CLI/MCP exposure).
+// Allowlist. A projectbrain-named source, test, fixture, or doc file must live
+// under one of these locations. Anything else signals a premature Phase 4+ leak
+// (CLI memory command, MCP exposure, new provider).
 const PROJECT_BRAIN_ALLOWED_PREFIXES = [
   "contracts/", // Phase 0 contract surface
   "kernel/crate/src/projectbrain/", // Phase 1 pure Kernel module
+  "kernel/binding/src/", // Phase 3 minimal binding (projectbrain.ts, node.ts)
+  "kernel/binding/test/", // Phase 3 binding tests
+  "runtime/src/projectbrain/", // Phase 3 Runtime orchestration
+  "runtime/test/", // Phase 3 Runtime tests
+  "skills/src/", // Phase 3 pure derivation module
+  "skills/test/", // Phase 3 derivation tests
   "examples/fixtures/project-brain/", // golden fixtures
   "docs/", // documentation may name any phase
 ];
 const PROJECT_BRAIN_ALLOWED_FILES = new Set([
   "kernel/crate/tests/projectbrain_contracts.rs", // Phase 0 serde round-trip
 ]);
-// Phase 1 kernel integration tests: kernel/crate/tests/projectbrain_*.rs.
+// Kernel integration tests: kernel/crate/tests/projectbrain_*.rs.
 const PROJECT_BRAIN_TEST_RE = /^kernel\/crate\/tests\/projectbrain_[a-z_]+\.rs$/;
 const projectBrainFiles = trackedFiles.filter(
   (f) => /project[-_]?brain/i.test(f) && /\.(ts|mjs|js|rs|json)$/.test(f),
@@ -1730,36 +1738,13 @@ for (const file of projectBrainFiles) {
   if (PROJECT_BRAIN_ALLOWED_PREFIXES.some((p) => file.startsWith(p))) continue;
   if (PROJECT_BRAIN_ALLOWED_FILES.has(file)) continue;
   if (PROJECT_BRAIN_TEST_RE.test(file)) continue;
-  err(`Phase 1 projectbrain surface is not in an allowed location: ${file}`);
+  err(`projectbrain surface is not in an allowed location: ${file}`);
 }
-// The pure Kernel module (Rust) and any projectbrain JS/TS surface must introduce
-// no write, network, persistence, database, clock, environment, or randomness
-// capability. These markers cover both the JS idiom used elsewhere in this
-// validator and the Rust standard-library / crate impurity forms.
-const PROJECT_BRAIN_PHASE1_FORBIDDEN = [
-  // JS/Node I/O and persistence.
-  "writeFileSync",
-  "appendFile",
-  "createWriteStream",
-  "mkdirSync",
-  "rmSync",
-  "unlinkSync",
-  "renameSync",
-  "copyFileSync",
-  "fetch(",
-  "XMLHttpRequest",
-  "WebSocket",
-  "node:http",
-  "node:https",
-  "node:net",
-  "node:fs",
-  "better-sqlite3",
-  "PRAGMA",
-  "CREATE TABLE",
-  "PersistenceAdapter",
-  "MemoryStore",
-  "SnapshotStore",
-  // Rust impurity: filesystem, network, environment, clock, process, randomness.
+// Rust impurity markers: the pure Kernel module and its integration tests must
+// introduce no filesystem, network, environment, clock, process, or randomness
+// capability. (TypeScript purity for the Runtime/Skills layers is enforced by
+// the dedicated per-layer scans below and by the packages' own purity tests.)
+const PROJECT_BRAIN_RUST_FORBIDDEN = [
   "std::fs",
   "std::net",
   "std::env",
@@ -1775,19 +1760,15 @@ const PROJECT_BRAIN_PHASE1_FORBIDDEN = [
   "reqwest",
 ];
 // The purity test itself enumerates the impurity markers as detection strings,
-// exactly as this validator does; it is the behavioral counterpart to this scan
-// and is exempted from the capability scan (its own assertions enforce purity).
+// exactly as this validator does; it is exempted from the capability scan (its
+// own assertions enforce purity).
 const PROJECT_BRAIN_MARKER_DETECTORS = new Set([
   "kernel/crate/tests/projectbrain_purity.rs",
 ]);
 for (const file of projectBrainFiles) {
+  if (!file.endsWith(".rs")) continue; // TypeScript layers scanned separately
   if (PROJECT_BRAIN_MARKER_DETECTORS.has(file)) continue;
   const raw = readFileSync(file, "utf8");
-  // Strip Rust comment lines and JS line comments so prose that documents what
-  // the code does NOT do (e.g. "never calls now_utc") is not counted. The test
-  // helper (tests/common/mod.rs) legitimately reads fixtures via std::fs; the
-  // Kernel module and its integration tests do not, which is what these guards
-  // protect. Test files that read fixtures are exempted from the fs marker only.
   const contents = raw
     .split("\n")
     .filter((line) => {
@@ -1796,12 +1777,71 @@ for (const file of projectBrainFiles) {
     })
     .join("\n");
   const isTest = PROJECT_BRAIN_TEST_RE.test(file) || file === "kernel/crate/tests/common/mod.rs";
-  for (const marker of PROJECT_BRAIN_PHASE1_FORBIDDEN) {
+  for (const marker of PROJECT_BRAIN_RUST_FORBIDDEN) {
     // Integration tests may read fixtures from disk via std::fs; the Kernel
     // module proper may not. All other markers still apply everywhere.
     if (isTest && marker === "std::fs") continue;
     if (contents.includes(marker)) {
-      err(`${file} introduces a forbidden projectbrain capability: "${marker}"`);
+      err(`${file} introduces a forbidden projectbrain Rust capability: "${marker}"`);
+    }
+  }
+}
+// Phase 3 TypeScript purity: the Runtime orchestration and the Skills derivation
+// PRODUCTION sources must never reach a Node built-in, the network, a clock, or
+// randomness — every effect flows through an injected port. Tests are exempt
+// (the e2e test legitimately uses node:fs + the real adapter against a temp dir).
+const PROJECT_BRAIN_TS_PURE_FILES = trackedFiles.filter(
+  (f) =>
+    (f.startsWith("runtime/src/projectbrain/") || f === "skills/src/project-brain-state.ts") &&
+    f.endsWith(".ts"),
+);
+const PROJECT_BRAIN_TS_FORBIDDEN = [
+  'from "fs"',
+  'from "node:fs"',
+  'from "node:path"',
+  'from "node:os"',
+  'from "node:crypto"',
+  'from "node:child_process"',
+  'from "node:http"',
+  'from "node:https"',
+  'from "node:net"',
+  "process.env",
+  "child_process",
+  "fetch(",
+  "XMLHttpRequest",
+  "WebSocket",
+  "Date.now",
+  "new Date",
+  "Math.random",
+  "crypto.randomUUID",
+  "better-sqlite3",
+  // Runtime/Skills must never import or construct the Node persistence adapter.
+  "createNodeProjectMemoryStore",
+];
+for (const file of PROJECT_BRAIN_TS_PURE_FILES) {
+  const raw = readFileSync(file, "utf8");
+  const contents = raw
+    .split("\n")
+    .filter((line) => {
+      const t = line.trimStart();
+      return !(t.startsWith("//") || t.startsWith("*") || t.startsWith("/*"));
+    })
+    .join("\n");
+  for (const marker of PROJECT_BRAIN_TS_FORBIDDEN) {
+    if (contents.includes(marker)) {
+      err(`${file} introduces a forbidden projectbrain TypeScript capability: "${marker}"`);
+    }
+  }
+}
+// The Runtime production source (all of runtime/src/**, not only the projectbrain
+// module) must never import the project-memory package: the persistence adapter
+// is reached only through the structural port, and only tests may import it.
+for (const file of trackedFiles) {
+  if (!file.startsWith("runtime/src/") || !file.endsWith(".ts")) continue;
+  const contents = readFileSync(file, "utf8");
+  for (const match of contents.matchAll(IMPORT_SPECIFIER)) {
+    if (match[1] === "@oh-my-pm/project-memory") {
+      err(`${file} imports @oh-my-pm/project-memory; Runtime source must use the structural port`);
     }
   }
 }
@@ -1827,9 +1867,10 @@ for (const file of projectBrainModuleFiles) {
     }
   }
 }
-// No unapproved persistence/store/memory-command source may appear anywhere as a
-// tracked file (memory-store, snapshot-store, persistence-adapter). Phase 1 adds
-// pure logic only; no store surface is introduced.
+// No unapproved store/persistence source may appear under the pure layers. The
+// persistence adapter lives only in project-memory/**; these hyphenated file
+// markers must never appear in the Kernel, Runtime, Skills, Providers, CLI, or
+// MCP source trees.
 const PHASE2_PLUS_FILE_MARKERS = [
   "memory-store",
   "snapshot-store",
@@ -1837,38 +1878,92 @@ const PHASE2_PLUS_FILE_MARKERS = [
 ];
 for (const file of trackedFiles) {
   if (file.startsWith("docs/")) continue; // documentation may name deferred phases
+  if (file.startsWith("project-memory/")) continue; // the approved persistence package
   for (const marker of PHASE2_PLUS_FILE_MARKERS) {
     if (file.toLowerCase().includes(marker)) {
-      err(`Phase 1 forbids premature persistence source: ${file}`);
+      err(`forbidden premature persistence source outside project-memory: ${file}`);
     }
   }
 }
-// The MCP server must not register a projectbrain tool in Phase 1 (the ten-tool
-// set is unchanged; no project_changes / memory projection is added yet).
+// The MCP server must not register a projectbrain/memory tool (the ten-tool set
+// is unchanged; no project_changes / capture / compare / memory projection is
+// added in Phase 3). The ten-tool count and order are asserted separately below.
 if (trackedFiles.includes("mcp-server/src/server.ts")) {
   const server = readFileSync("mcp-server/src/server.ts", "utf8");
-  if (/projectbrain|project_changes|memory/i.test(server)) {
-    err("mcp-server/src/server.ts must not add a projectbrain/memory MCP tool in Phase 1");
+  if (/projectbrain|project_changes|project_capture|project_compare|\bmemory\b/i.test(server)) {
+    err("mcp-server/src/server.ts must not add a projectbrain/memory MCP tool");
   }
 }
-// The Kernel WASM binding and the KernelApi surface must NOT gain a projectbrain
-// method in Phase 1: the binding surface is frozen until Phase 3. The Rust crate
-// may re-export pure functions, but no new WASM js_name export or KernelApi
-// method may appear.
+// Phase 3 Kernel binding surface. The Kernel WASM binding gains the seven
+// approved Project Brain exports (11 total: the original 4 plus these 7) and no
+// others. The original four exports must remain, and no export outside the
+// approved allowlist may appear.
+const APPROVED_PB_WASM_EXPORTS = [
+  "deriveProjectIdentity",
+  "fingerprintMinimizedContent",
+  "deriveEvidenceId",
+  "deriveFreshness",
+  "finalizeProjectState",
+  "finalizeProjectSnapshot",
+  "diffProjectSnapshots",
+];
+const ORIGINAL_WASM_EXPORTS = [
+  "kernelVersion",
+  "validateJson",
+  "checkUpdatePlan",
+  "decideTransition",
+];
 if (trackedFiles.includes("kernel/crate/src/wasm.rs")) {
   const wasm = readFileSync("kernel/crate/src/wasm.rs", "utf8");
-  const exportCount = (wasm.match(/js_name\s*=/g) || []).length;
-  if (exportCount !== 4) {
-    err(`kernel/crate/src/wasm.rs must expose exactly 4 WASM exports in Phase 1 (found ${exportCount})`);
+  const exportNames = [...wasm.matchAll(/js_name\s*=\s*([A-Za-z0-9_]+)/g)].map((m) => m[1]);
+  const allowed = new Set([...ORIGINAL_WASM_EXPORTS, ...APPROVED_PB_WASM_EXPORTS]);
+  if (exportNames.length !== allowed.size) {
+    err(
+      `kernel/crate/src/wasm.rs must expose exactly ${allowed.size} WASM exports in Phase 3 (found ${exportNames.length})`,
+    );
   }
-  if (/projectbrain|projectBrain|projectState|projectSnapshot|changeSet/i.test(wasm)) {
-    err("kernel/crate/src/wasm.rs must not expose a Project Brain WASM export in Phase 1");
+  for (const name of ORIGINAL_WASM_EXPORTS) {
+    if (!exportNames.includes(name)) {
+      err(`kernel/crate/src/wasm.rs must keep the original WASM export "${name}"`);
+    }
+  }
+  for (const name of exportNames) {
+    if (!allowed.has(name)) {
+      err(`kernel/crate/src/wasm.rs exposes an unapproved WASM export "${name}"`);
+    }
   }
 }
+// The KernelApi type (version/validateJson/checkUpdatePlan/decideTransition) must
+// stay byte-stable: the Project Brain methods live on a SEPARATE
+// ProjectBrainKernelApi and must NOT be added to KernelApi. Assert the KernelApi
+// type block still lists exactly its four original methods.
 if (trackedFiles.includes("kernel/binding/src/index.ts")) {
   const binding = readFileSync("kernel/binding/src/index.ts", "utf8");
-  if (/projectbrain|projectBrain|finalizeProjectState|diffProjectSnapshots/i.test(binding)) {
-    err("kernel/binding/src/index.ts must not add a Project Brain method in Phase 1");
+  const kernelApiBlock = binding.match(/export type KernelApi = \{([\s\S]*?)\};/);
+  if (kernelApiBlock === null) {
+    err("kernel/binding/src/index.ts must keep the KernelApi type declaration");
+  } else {
+    const body = kernelApiBlock[1];
+    for (const method of ["version(", "validateJson(", "checkUpdatePlan(", "decideTransition("]) {
+      if (!body.includes(method)) {
+        err(`kernel/binding/src/index.ts KernelApi must keep the "${method}" method`);
+      }
+    }
+    for (const pbMethod of APPROVED_PB_WASM_EXPORTS) {
+      if (body.includes(`${pbMethod}(`)) {
+        err(`kernel/binding/src/index.ts must not add "${pbMethod}" to KernelApi (use ProjectBrainKernelApi)`);
+      }
+    }
+  }
+  // The seven approved binding methods must appear on the ProjectBrainKernelApi
+  // surface and nowhere else may a new binding method be introduced.
+  if (trackedFiles.includes("kernel/binding/src/projectbrain.ts")) {
+    const pb = readFileSync("kernel/binding/src/projectbrain.ts", "utf8");
+    for (const method of APPROVED_PB_WASM_EXPORTS) {
+      if (!pb.includes(`${method}(`)) {
+        err(`kernel/binding/src/projectbrain.ts must declare the approved binding method "${method}"`);
+      }
+    }
   }
 }
 // Phase 1 dependency guard: only sha2 and time may be newly added to the Kernel
@@ -2135,8 +2230,11 @@ if (trackedFiles.includes("project-memory/package.json")) {
     }
   }
 }
-// No other package may depend on @oh-my-pm/project-memory yet: it is groundwork
-// only, wired into no Runtime/CLI/MCP/Installer/Provider/Skill path.
+// Project-memory dependency policy. No package may take a PRODUCTION dependency
+// on @oh-my-pm/project-memory: the Phase 3 Runtime reaches persistence only
+// through its structural port. The single exception is the Runtime's test-only
+// devDependency, used by the e2e integration test to compose the real adapter.
+const PROJECT_MEMORY_DEV_DEP_ALLOWED = new Set(["runtime/package.json"]);
 for (const file of trackedFiles) {
   if (!/(^|\/)package\.json$/.test(file)) continue;
   if (file === "project-memory/package.json") continue;
@@ -2147,24 +2245,126 @@ for (const file of trackedFiles) {
   } catch {
     continue;
   }
-  for (const field of ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"]) {
+  for (const field of ["dependencies", "peerDependencies", "optionalDependencies"]) {
     const deps = pkg && typeof pkg === "object" ? pkg[field] : undefined;
     if (deps && typeof deps === "object" && "@oh-my-pm/project-memory" in deps) {
-      err(`${file} must not depend on @oh-my-pm/project-memory in Phase 2`);
+      err(`${file} must not take a production dependency on @oh-my-pm/project-memory`);
     }
   }
+  const devDeps = pkg && typeof pkg === "object" ? pkg.devDependencies : undefined;
+  if (
+    devDeps &&
+    typeof devDeps === "object" &&
+    "@oh-my-pm/project-memory" in devDeps &&
+    !PROJECT_MEMORY_DEV_DEP_ALLOWED.has(file)
+  ) {
+    err(`${file} must not devDepend on @oh-my-pm/project-memory (only the runtime e2e may)`);
+  }
 }
-// No package source outside project-memory may import the adapter package: the
-// persistence boundary stays isolated until a later phase wires it in.
+// Only test files (and the two validators) may reference the adapter package by
+// name: the persistence boundary is reached in production source only through
+// the structural port. A PRODUCTION source referencing it is a leak.
 for (const file of trackedFiles) {
   if (file.startsWith("project-memory/")) continue;
   if (!/\.(ts|mjs|js)$/.test(file)) continue;
   if (file.startsWith("contracts/generated/")) continue;
   if (file === "tools/validate-boundaries.mjs" || file === "tools/validate-structure.mjs") continue;
   if (file.startsWith("docs/")) continue;
+  // Test files may import the real adapter for integration composition.
+  if (/\.test\.(ts|mjs|js)$/.test(file)) continue;
+  if (file.startsWith("runtime/test/") || file.includes("/test/")) continue;
   const contents = readFileSync(file, "utf8");
   if (contents.includes("@oh-my-pm/project-memory")) {
-    err(`${file} references @oh-my-pm/project-memory outside the isolated package`);
+    err(`${file} references @oh-my-pm/project-memory in production source (use the structural port)`);
+  }
+}
+
+// 9. v0.3 Phase 3 exact guards. Phase 3 wires capture/compare below the CLI
+// without changing any public surface. These assertions fail closed if a Phase 4+
+// change (a public capture/compare RuntimeRequest kind, a CLI memory command, a
+// new SkillId, a provider->memory dependency) is introduced.
+//
+// 9a. Runtime.handle() request kinds are unchanged: exactly status/doctor/plan
+// plus the unsupported-kind fall-through. No capture/compare kind is dispatched
+// there.
+if (trackedFiles.includes("runtime/src/runtime.ts")) {
+  const runtime = readFileSync("runtime/src/runtime.ts", "utf8");
+  for (const kind of ['request.kind === "status"', 'request.kind === "doctor"', 'request.kind === "plan"']) {
+    if (!runtime.includes(kind)) {
+      err(`runtime/src/runtime.ts must keep the "${kind}" dispatch`);
+    }
+  }
+  // Runtime.handle must not learn a capture/compare kind.
+  if (/request\.kind\s*===\s*"(capture|compare|projectBrainCapture|projectBrainCompare)"/.test(runtime)) {
+    err("runtime/src/runtime.ts must not dispatch a Project Brain capture/compare request kind");
+  }
+}
+// 9b. No new RuntimeRequest kind for capture/compare in the generated contract.
+if (trackedFiles.includes("contracts/generated/ts/runtime.ts")) {
+  const runtimeContract = readFileSync("contracts/generated/ts/runtime.ts", "utf8");
+  if (/"capture"|"compare"|projectBrainCapture|projectBrainCompare/.test(runtimeContract)) {
+    err("contracts/generated/ts/runtime.ts must not add a capture/compare RuntimeRequest kind");
+  }
+}
+// 9c. The Skill registry keeps exactly the five original SkillIds; no new Skill
+// is registered for Project Brain state derivation.
+if (trackedFiles.includes("contracts/generated/ts/skills.ts")) {
+  const skills = readFileSync("contracts/generated/ts/skills.ts", "utf8");
+  const match = skills.match(/SKILL_ID_VALUES\s*=\s*\[([^\]]*)\]/);
+  if (match === null) {
+    err("contracts/generated/ts/skills.ts must declare SKILL_ID_VALUES");
+  } else {
+    const ids = [...match[1].matchAll(/"([a-zA-Z]+)"/g)].map((m) => m[1]).sort();
+    const expected = ["createHandoff", "deriveNextTasks", "extractRisks", "reviewChanges", "summarizeStatus"].sort();
+    if (JSON.stringify(ids) !== JSON.stringify(expected)) {
+      err(`SKILL_ID_VALUES must remain the five original ids (found ${ids.join(", ")})`);
+    }
+  }
+}
+// The Skills registry must not register a project-brain-state skill.
+if (trackedFiles.includes("skills/src/registry.ts")) {
+  const registry = readFileSync("skills/src/registry.ts", "utf8");
+  if (/projectBrainState|project-brain-state|deriveProjectBrainState/.test(registry)) {
+    err("skills/src/registry.ts must not register a Project Brain state skill");
+  }
+}
+// 9d. The Skills derivation module is a pure add: it must not import a Node
+// built-in, network, clock, or randomness (covered by the pure-package rule and
+// the TS purity scan above) and must not register a SkillId.
+if (trackedFiles.includes("skills/src/project-brain-state.ts")) {
+  const module = readFileSync("skills/src/project-brain-state.ts", "utf8");
+  if (/SkillDescriptor|descriptor:\s*\{|registerSkill|createSkillRegistry/.test(module)) {
+    err("skills/src/project-brain-state.ts must not declare or register a Skill");
+  }
+}
+// 9e. CLI has no memory/capture/compare command. The parser and command surface
+// must not learn a Project Brain command in Phase 3.
+for (const cliFile of ["cli/src/parser.ts", "cli/src/cli.ts", "cli/src/request.ts"]) {
+  if (!trackedFiles.includes(cliFile)) continue;
+  const contents = readFileSync(cliFile, "utf8");
+  if (/"memory"|"capture"|"compare"|projectBrain|project_brain/i.test(contents)) {
+    err(`${cliFile} must not add a Project Brain / memory CLI command in Phase 3`);
+  }
+}
+// 9f. The Runtime observation adapter is the only bridge from providers to
+// capture: no provider source may reference memory, snapshots, capture, or the
+// project-memory package (providers stay unaware of persistence).
+for (const file of trackedFiles) {
+  if (!file.startsWith("providers/src/") || !file.endsWith(".ts")) continue;
+  const contents = readFileSync(file, "utf8");
+  for (const marker of ["@oh-my-pm/project-memory", "@oh-my-pm/runtime", "commitSnapshotBundle", "ProjectSnapshot", "captureProject"]) {
+    if (contents.includes(marker)) {
+      err(`${file} references a forbidden capture/memory marker "${marker}"; providers stay persistence-unaware`);
+    }
+  }
+}
+// 9g. Project-memory remains excluded from the v0.2 release bundle. The bundle
+// builder references an explicit first-party package list; project-memory must
+// not appear in it.
+if (trackedFiles.includes("tools/release-bundle-utils.mjs")) {
+  const bundle = readFileSync("tools/release-bundle-utils.mjs", "utf8");
+  if (bundle.includes("project-memory") || bundle.includes("@oh-my-pm/project-memory")) {
+    err("tools/release-bundle-utils.mjs must not include project-memory in the release bundle");
   }
 }
 

@@ -14,6 +14,15 @@ import type {
   ValidationTarget,
 } from "@oh-my-pm/contracts";
 import type { KernelApi } from "./index.js";
+import type {
+  DeriveFreshnessInput,
+  DiffProjectSnapshotsInput,
+  FingerprintContentInput,
+  ProjectBrainKernelApi,
+  ProjectBrainKernelResult,
+  ProjectIdentitySeedInput,
+} from "./projectbrain.js";
+import type { ChangeSet, EvidenceRecord, Freshness, ProjectIdentity, ProjectSnapshot, ProjectState } from "@oh-my-pm/contracts";
 import type { BindingMarkers } from "./status.js";
 import { WASM_MODE } from "./status.js";
 
@@ -28,6 +37,15 @@ type WasmKernelModule = {
   validateJson(target: string, payloadJson: string): string;
   checkUpdatePlan(planJson: string): string;
   decideTransition(inputJson: string): string;
+  // Project Brain binding exports (v0.3 Phase 3). Each returns a serialized
+  // `{ ok, value }` / `{ ok: false, error }` envelope.
+  deriveProjectIdentity(seedJson: string): string;
+  fingerprintMinimizedContent(inputJson: string): string;
+  deriveEvidenceId(recordJson: string): string;
+  deriveFreshness(inputJson: string): string;
+  finalizeProjectState(stateJson: string): string;
+  finalizeProjectSnapshot(snapshotJson: string): string;
+  diffProjectSnapshots(inputJson: string): string;
 };
 
 function loadWasmKernelModule(): WasmKernelModule | null {
@@ -88,4 +106,54 @@ export function createNodeWasmKernelApi(): KernelApi {
   };
   api[WASM_MODE] = true;
   return api;
+}
+
+/**
+ * Create a ProjectBrainKernelApi backed by the real Rust Kernel compiled to
+ * WASM. Each method serializes its typed input to JSON, invokes the pure Phase 1
+ * function through the WASM boundary, and parses the deterministic result
+ * envelope. Throws only when the generated binding has not been built.
+ */
+export function createNodeWasmProjectBrainKernelApi(): ProjectBrainKernelApi {
+  const wasm = loadWasmKernelModule();
+  if (wasm === null) {
+    throw new Error(
+      "Kernel WASM binding is not built. Run pnpm --filter @oh-my-pm/kernel build.",
+    );
+  }
+  const call = <T>(operation: string, raw: string): ProjectBrainKernelResult<T> =>
+    parseWasmResult<ProjectBrainKernelResult<T>>(operation, raw);
+  return {
+    deriveProjectIdentity(seed: ProjectIdentitySeedInput): ProjectBrainKernelResult<ProjectIdentity> {
+      return call("deriveProjectIdentity", wasm.deriveProjectIdentity(JSON.stringify(seed)));
+    },
+    fingerprintMinimizedContent(
+      input: FingerprintContentInput,
+    ): ProjectBrainKernelResult<string> {
+      return call(
+        "fingerprintMinimizedContent",
+        wasm.fingerprintMinimizedContent(JSON.stringify(input)),
+      );
+    },
+    deriveEvidenceId(record: EvidenceRecord): ProjectBrainKernelResult<string> {
+      return call("deriveEvidenceId", wasm.deriveEvidenceId(JSON.stringify(record)));
+    },
+    deriveFreshness(input: DeriveFreshnessInput): ProjectBrainKernelResult<Freshness> {
+      return call("deriveFreshness", wasm.deriveFreshness(JSON.stringify(input)));
+    },
+    finalizeProjectState(state: ProjectState): ProjectBrainKernelResult<ProjectState> {
+      return call("finalizeProjectState", wasm.finalizeProjectState(JSON.stringify(state)));
+    },
+    finalizeProjectSnapshot(
+      snapshot: ProjectSnapshot,
+    ): ProjectBrainKernelResult<ProjectSnapshot> {
+      return call(
+        "finalizeProjectSnapshot",
+        wasm.finalizeProjectSnapshot(JSON.stringify(snapshot)),
+      );
+    },
+    diffProjectSnapshots(input: DiffProjectSnapshotsInput): ProjectBrainKernelResult<ChangeSet> {
+      return call("diffProjectSnapshots", wasm.diffProjectSnapshots(JSON.stringify(input)));
+    },
+  };
 }

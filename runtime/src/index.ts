@@ -26,3 +26,39 @@ export type {
   RuntimePlanData,
   RuntimePlanNodeResult,
 } from "./types.js";
+
+// v0.3 Phase 3: the separate Project Brain Runtime API (capture/compare). This
+// is a workspace/programmatic surface only; the existing createRuntime() and
+// Runtime.handle() behavior above is unchanged, and no CLI or MCP surface
+// invokes the Project Brain Runtime.
+export {
+  createProjectBrainRuntime,
+  createProviderRegistryObservationPort,
+  isProjectBrainRuntimeError,
+  PROJECT_BRAIN_RUNTIME_ERROR_CODES,
+  ProjectBrainRuntimeError,
+} from "./projectbrain/index.js";
+export type {
+  CaptureCoverageEntry,
+  CaptureProjectInput,
+  CaptureProjectResult,
+  CompareProjectInput,
+  CompareProjectResult,
+  CompareStatus,
+  MemoryCommitInput,
+  MemoryCommitResult,
+  MemoryManifest,
+  MemorySnapshotSummary,
+  ProjectBrainKernelPort,
+  ProjectBrainRuntime,
+  ProjectBrainRuntimeDeps,
+  ProjectBrainRuntimeErrorCode,
+  ProjectBrainRuntimeErrorEnvelope,
+  ProjectBrainTraceEntry,
+  ProjectIdentitySeedCaptureInput,
+  ProjectMemoryPort,
+  ProjectObservationPort,
+  ProjectObservationRequest,
+  ProjectObservationResult,
+  ProjectStateDeriver,
+} from "./projectbrain/index.js";

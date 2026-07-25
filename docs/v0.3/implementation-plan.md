@@ -125,7 +125,19 @@ an explicit "no previous observation," not an error.
   dependency added without separate approval → stop.
 - **Dependencies:** Phase 0.
 
-## Phase 3 — Runtime capture and compare · complexity M
+## Phase 3 — Runtime capture and compare · complexity M · **implemented**
+
+> **Implemented and green.** The provider-independent Project Brain Runtime API
+> (`runtime/src/projectbrain/**`) orchestrates capture and compare through narrow
+> dependency ports: read-only observation → pure Skills state/evidence derivation
+> (`skills/src/project-brain-state.ts`) → Phase 1 Kernel finalization via the new
+> minimal WASM/TypeScript binding → one Phase 2 memory transaction → Phase 1
+> deterministic diff. It adds no CLI memory command, no MCP tool, no provider
+> change, no provider→memory dependency, no project write, and no contract or
+> Phase 1/Phase 2 semantic change; `Runtime.handle()` is unchanged. The full
+> vertical slice is proven end-to-end below the CLI with the real adapter. Source
+> version remains `0.2.0` and the MCP surface remains exactly ten tools. See
+> [phase-3-runtime.md](phase-3-runtime.md). Phase 4 is **not started**.
 
 - **Objective:** provider-independent orchestration of capture and compare through
   the runtime, with the transaction boundary.

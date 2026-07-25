@@ -53,6 +53,22 @@ export type {
   RiskCandidate,
 } from "./project-signals.js";
 export {
+  deriveProjectBrainState,
+  MAX_BLOCKERS,
+  MAX_DECISIONS,
+  MAX_DEPENDENCIES,
+  MAX_FINGERPRINT_INPUT_BYTES,
+  MAX_MILESTONES,
+} from "./project-brain-state.js";
+export type {
+  EvidenceCandidate,
+  EvidenceSourceKind,
+  ProjectStateDerivationInput,
+  ProjectStateDerivationResult,
+  SourceDescriptor,
+  StateItemDraft,
+} from "./project-brain-state.js";
+export {
   createReviewChangesSkill,
 } from "./review-changes.js";
 export {
