@@ -10,3 +10,4 @@ packages:
   - "examples"
   - "mcp-server"
   - "distribution"
+  - "project-memory"

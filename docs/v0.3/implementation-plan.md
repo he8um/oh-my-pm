@@ -70,7 +70,8 @@ an explicit "no previous observation," not an error.
 > `examples/fixtures/project-brain/**`. No I/O, no persistence, no
 > application-state write, and no binding/CLI/MCP surface change. Source version
 > remains `0.2.0` and the MCP surface remains exactly ten tools. See
-> [phase-1-kernel.md](phase-1-kernel.md). Phase 2 is **not started**.
+> [phase-1-kernel.md](phase-1-kernel.md). Phase 2 is **implemented**; Phase 3 is
+> **not started**.
 
 - **Objective:** pure normalization, stable matching, change classification, and
   freshness rules in the kernel.
@@ -88,7 +89,20 @@ an explicit "no previous observation," not an error.
   instead.
 - **Dependencies:** Phase 0.
 
-## Phase 2 — Local persistence adapter · complexity L
+## Phase 2 — Local persistence adapter · complexity L · **implemented**
+
+> **Implemented and green.** The private `@oh-my-pm/project-memory` package and
+> one explicit Node filesystem adapter provide application-state persistence:
+> the finalized JSON storage format (store format `1`), the application-data
+> resolver, atomic temp-then-rename commits with the manifest rename as the
+> commit point, domain-separated SHA-256 manifest/record/export integrity,
+> immutable snapshot/evidence records, safe reads with corruption handling,
+> single-writer locking, a migration mechanism proven by a synthetic test-only
+> `0 → 1` migration, export, and delete. Writes flow only through the explicit
+> Node adapter boundary; no public CLI command, MCP tool, Runtime path, or v0.2
+> release bundle invokes or includes it. Source version remains `0.2.0` and the
+> MCP surface remains exactly ten tools. See
+> [phase-2-persistence.md](phase-2-persistence.md). Phase 3 is **not started**.
 
 - **Objective:** an explicit persistence interface and a single Node adapter that
   writes application state atomically, with export/delete and integrity — **no

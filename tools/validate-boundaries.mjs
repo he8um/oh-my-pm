@@ -2031,6 +2031,143 @@ for (const file of trackedFiles) {
   }
 }
 
+// 8. v0.3 Phase 2 local project memory adapter boundaries. The private
+// @oh-my-pm/project-memory package is the explicit application-state persistence
+// boundary. Its ONLY module allowed to perform real filesystem I/O is
+// node-adapter.ts; every other source file (including the store) must reach no
+// node:fs. No source may reach the network, a database/native driver, a child
+// process, telemetry/logging, or the environment (except the resolver wrapper,
+// which reads process.platform/process.env/os.homedir for PATH RESOLUTION only
+// and never a provider token). The package must have no dependency yet from
+// Providers, Skills, CLI, MCP, Installer, or Runtime.
+const PROJECT_MEMORY_SRC = trackedFiles.filter(
+  (f) => f.startsWith("project-memory/src/") && f.endsWith(".ts"),
+);
+const PROJECT_MEMORY_FS_BOUNDARY = "project-memory/src/node-adapter.ts";
+// The single approved environment/platform reader (path resolution only).
+const PROJECT_MEMORY_ENV_BOUNDARY = "project-memory/src/node-adapter.ts";
+// Database, native-driver, daemon, watcher, and queue markers forbidden anywhere.
+const PROJECT_MEMORY_FORBIDDEN_EVERYWHERE = [
+  // Network.
+  "fetch(",
+  "XMLHttpRequest",
+  "WebSocket",
+  "node:http",
+  "node:https",
+  "node:net",
+  "node:tls",
+  "node:dgram",
+  "http://",
+  "https://",
+  // Database / native / ORM.
+  "better-sqlite3",
+  "sqlite3",
+  "leveldown",
+  "levelup",
+  "PRAGMA",
+  "CREATE TABLE",
+  "typeorm",
+  "prisma",
+  "sequelize",
+  "mongodb",
+  // Process execution.
+  "child_process",
+  "execSync",
+  "spawn(",
+  "spawnSync",
+  // Telemetry / logging / remote.
+  "telemetry",
+  "console.log",
+  "console.error",
+  "upload",
+  "download",
+  "registry.npmjs",
+  // Secrets.
+  "OH_MY_PM_GITHUB_TOKEN",
+];
+for (const file of PROJECT_MEMORY_SRC) {
+  const raw = readFileSync(file, "utf8");
+  // Strip line/block-comment lines so prose that documents what the code does
+  // NOT do (e.g. "no network, telemetry"; "reads process.env for path
+  // resolution") is not mistaken for a real call. Import specifiers still parse
+  // from the raw text below; the marker scans use the stripped code.
+  const contents = raw
+    .split("\n")
+    .filter((line) => {
+      const t = line.trimStart();
+      return !(t.startsWith("//") || t.startsWith("*") || t.startsWith("/*"));
+    })
+    .join("\n");
+  // Only node-adapter.ts may import a Node filesystem module.
+  if (file !== PROJECT_MEMORY_FS_BOUNDARY) {
+    for (const match of raw.matchAll(IMPORT_SPECIFIER)) {
+      const spec = match[1];
+      if (spec === "fs" || spec.startsWith("node:fs")) {
+        err(`${file} imports a Node filesystem module outside the adapter boundary: "${spec}"`);
+      }
+    }
+  }
+  // process.env / process.platform / os.homedir only in the resolver wrapper.
+  if (file !== PROJECT_MEMORY_ENV_BOUNDARY) {
+    for (const marker of ["process.env", "process.platform", "os.homedir", "node:os"]) {
+      if (contents.includes(marker)) {
+        err(`${file} reads the environment/platform outside the resolver boundary: "${marker}"`);
+      }
+    }
+  }
+  // Forbidden capability markers everywhere in package source.
+  for (const marker of PROJECT_MEMORY_FORBIDDEN_EVERYWHERE) {
+    if (contents.includes(marker)) {
+      err(`${file} contains a forbidden project-memory capability marker: "${marker}"`);
+    }
+  }
+}
+// The package manifest is private, pinned, dependency-free, and adds no
+// postinstall. (validate-structure asserts fields too; this is the boundary-side
+// dependency guard so a dependency addition trips both validators.)
+if (trackedFiles.includes("project-memory/package.json")) {
+  const pkg = JSON.parse(readFileSync("project-memory/package.json", "utf8"));
+  if (pkg.private !== true) err("project-memory/package.json must set private: true");
+  if (pkg.version !== "0.2.0") err("project-memory/package.json must remain version 0.2.0");
+  for (const field of ["dependencies", "peerDependencies", "optionalDependencies", "devDependencies"]) {
+    if (pkg[field] && Object.keys(pkg[field]).length > 0) {
+      err(`project-memory/package.json must declare no ${field} (Node built-ins only)`);
+    }
+  }
+}
+// No other package may depend on @oh-my-pm/project-memory yet: it is groundwork
+// only, wired into no Runtime/CLI/MCP/Installer/Provider/Skill path.
+for (const file of trackedFiles) {
+  if (!/(^|\/)package\.json$/.test(file)) continue;
+  if (file === "project-memory/package.json") continue;
+  if (file.startsWith("node_modules/")) continue;
+  let pkg;
+  try {
+    pkg = JSON.parse(readFileSync(file, "utf8"));
+  } catch {
+    continue;
+  }
+  for (const field of ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"]) {
+    const deps = pkg && typeof pkg === "object" ? pkg[field] : undefined;
+    if (deps && typeof deps === "object" && "@oh-my-pm/project-memory" in deps) {
+      err(`${file} must not depend on @oh-my-pm/project-memory in Phase 2`);
+    }
+  }
+}
+// No package source outside project-memory may import the adapter package: the
+// persistence boundary stays isolated until a later phase wires it in.
+for (const file of trackedFiles) {
+  if (file.startsWith("project-memory/")) continue;
+  if (!/\.(ts|mjs|js)$/.test(file)) continue;
+  if (file.startsWith("contracts/generated/")) continue;
+  if (file === "tools/validate-boundaries.mjs" || file === "tools/validate-structure.mjs") continue;
+  if (file.startsWith("docs/")) continue;
+  const contents = readFileSync(file, "utf8");
+  if (contents.includes("@oh-my-pm/project-memory")) {
+    err(`${file} references @oh-my-pm/project-memory outside the isolated package`);
+  }
+}
+
 if (fail) {
   console.error("validate-boundaries: FAILED");
   process.exit(1);

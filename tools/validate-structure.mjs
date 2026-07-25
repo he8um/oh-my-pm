@@ -38,6 +38,7 @@ const REQUIRED_FOLDERS = [
   "examples",
   "mcp-server",
   "distribution",
+  "project-memory",
 ];
 
 const ALLOWED_TOP_FILES = [
@@ -856,6 +857,75 @@ if (existsSync(workflowsDir)) {
       if (contents.includes(marker)) {
         err(`workflow ${path} contains release marker "${marker}"`);
       }
+    }
+  }
+}
+
+// 8. v0.3 Phase 2 local project memory adapter. The private @oh-my-pm/project-
+// memory package is the explicit application-state persistence boundary. It must
+// be private, pinned to the canonical version, type: module, declare an explicit
+// files surface, carry NO dependencies or devDependencies of any kind, and ship
+// the expected source and test modules. It is intentionally NOT part of the v0.2
+// release bundle (the bundle references an explicit package list that excludes
+// it), so no release-inventory check needs to change.
+const PROJECT_MEMORY_DIR = "project-memory";
+if (existsSync(PROJECT_MEMORY_DIR)) {
+  const pkgJsonPath = join(PROJECT_MEMORY_DIR, "package.json");
+  if (!existsSync(pkgJsonPath)) {
+    err("project-memory/package.json missing");
+  } else {
+    const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf8"));
+    if (pkgJson.name !== "@oh-my-pm/project-memory") {
+      err('project-memory/package.json must be named "@oh-my-pm/project-memory"');
+    }
+    if (pkgJson.private !== true) err('project-memory/package.json must set "private": true');
+    if (pkgJson.version !== CANONICAL_VERSION) {
+      err(`project-memory/package.json must set "version": "${CANONICAL_VERSION}"`);
+    }
+    if (pkgJson.type !== "module") err('project-memory/package.json must set "type": "module"');
+    if (!Array.isArray(pkgJson.files) || pkgJson.files.length === 0) {
+      err('project-memory/package.json must declare a non-empty "files" array');
+    }
+    // The adapter must introduce no dependency of any kind — it is Node built-ins
+    // only. An empty object is allowed; any key is not.
+    for (const field of ["dependencies", "peerDependencies", "optionalDependencies", "devDependencies"]) {
+      const deps = pkgJson[field];
+      if (deps && typeof deps === "object" && Object.keys(deps).length > 0) {
+        err(`project-memory/package.json must declare no ${field}`);
+      }
+    }
+    if (pkgJson.scripts && typeof pkgJson.scripts.postinstall === "string") {
+      err("project-memory/package.json must not declare a postinstall script");
+    }
+  }
+  for (const file of [
+    "project-memory/tsconfig.json",
+    "project-memory/README.md",
+    "project-memory/src/index.ts",
+    "project-memory/src/types.ts",
+    "project-memory/src/errors.ts",
+    "project-memory/src/limits.ts",
+    "project-memory/src/canonical-json.ts",
+    "project-memory/src/integrity.ts",
+    "project-memory/src/data-location.ts",
+    "project-memory/src/path-safety.ts",
+    "project-memory/src/privacy.ts",
+    "project-memory/src/filesystem.ts",
+    "project-memory/src/manifest.ts",
+    "project-memory/src/migrations.ts",
+    "project-memory/src/lock.ts",
+    "project-memory/src/store.ts",
+    "project-memory/src/node-adapter.ts",
+  ]) {
+    if (!existsSync(file)) err(`project-memory source file missing: ${file}`);
+  }
+  // The store must remain free of a direct node:fs import: filesystem writes live
+  // only in the explicit node-adapter boundary.
+  const storePath = join(PROJECT_MEMORY_DIR, "src", "store.ts");
+  if (existsSync(storePath)) {
+    const store = readFileSync(storePath, "utf8");
+    if (/from\s+["']node:fs/.test(store) || /require\(\s*["']node:fs/.test(store)) {
+      err("project-memory/src/store.ts must not import node:fs (writes live in node-adapter.ts)");
     }
   }
 }

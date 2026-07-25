@@ -1,0 +1,233 @@
+// An in-memory FileSystem implementation for deterministic store tests. It
+// supports the full port surface, exclusive lock semantics, symlink-aware
+// entries, injected clock/liveness, and a single commit-point failure injection.
+// It is test-only and never shipped.
+
+import type {
+  CommitFailurePoint,
+  DirEntry,
+  FileSystem,
+  LockCreateResult,
+} from "../src/filesystem.js";
+
+interface Node {
+  kind: "file" | "dir" | "symlink";
+  content?: string;
+  /** For symlink nodes, the (unfollowed) target string. */
+  target?: string;
+}
+
+const SEP = "/";
+
+function normalize(path: string): string {
+  const parts: string[] = [];
+  for (const seg of path.split(SEP)) {
+    if (seg === "" || seg === ".") continue;
+    if (seg === "..") {
+      parts.pop();
+      continue;
+    }
+    parts.push(seg);
+  }
+  return SEP + parts.join(SEP);
+}
+
+function parent(path: string): string {
+  const norm = normalize(path);
+  const idx = norm.lastIndexOf(SEP);
+  return idx <= 0 ? SEP : norm.slice(0, idx);
+}
+
+function base(path: string): string {
+  const norm = normalize(path);
+  return norm.slice(norm.lastIndexOf(SEP) + 1);
+}
+
+export interface MemoryFsOptions {
+  readonly now?: () => string;
+  readonly isProcessAlive?: (pid: number) => boolean;
+  readonly pid?: number;
+  readonly failAt?: CommitFailurePoint;
+}
+
+export class MemoryFileSystem implements FileSystem {
+  readonly nodes = new Map<string, Node>();
+  readonly failAt: CommitFailurePoint | undefined;
+  private readonly nowFn: () => string;
+  private readonly aliveFn: (pid: number) => boolean;
+  private readonly pid: number;
+
+  constructor(options: MemoryFsOptions = {}) {
+    this.nowFn = options.now ?? (() => "2026-01-01T00:00:00.000Z");
+    this.aliveFn = options.isProcessAlive ?? (() => true);
+    this.pid = options.pid ?? 4242;
+    this.failAt = options.failAt;
+    this.nodes.set(SEP, { kind: "dir" });
+  }
+
+  /** Test helper: plant a symbolic link node at a path. */
+  plantSymlink(path: string, target: string): void {
+    const norm = normalize(path);
+    this.ensureDir(parent(norm));
+    this.nodes.set(norm, { kind: "symlink", target });
+  }
+
+  /** Test helper: read raw content directly (bypassing symlink guard). */
+  peek(path: string): string | undefined {
+    return this.nodes.get(normalize(path))?.content;
+  }
+
+  /** Test helper: overwrite raw content directly (to simulate tampering). */
+  poke(path: string, content: string): void {
+    const norm = normalize(path);
+    this.ensureDir(parent(norm));
+    this.nodes.set(norm, { kind: "file", content });
+  }
+
+  /** Test helper: snapshot of every file path -> content, for byte comparisons. */
+  snapshot(): Map<string, string> {
+    const out = new Map<string, string>();
+    for (const [path, node] of this.nodes) {
+      if (node.kind === "file") out.set(path, node.content ?? "");
+    }
+    return out;
+  }
+
+  private ensureDir(path: string): void {
+    const norm = normalize(path);
+    if (norm === SEP) return;
+    if (!this.nodes.has(norm)) {
+      this.ensureDir(parent(norm));
+      this.nodes.set(norm, { kind: "dir" });
+    }
+  }
+
+  async readFileIfExists(path: string): Promise<string | null> {
+    const node = this.nodes.get(normalize(path));
+    if (node === undefined || node.kind !== "file") return null;
+    return node.content ?? "";
+  }
+
+  async exists(path: string): Promise<boolean> {
+    return this.nodes.has(normalize(path));
+  }
+
+  async statKind(path: string): Promise<DirEntry | null> {
+    const node = this.nodes.get(normalize(path));
+    if (node === undefined) return null;
+    return {
+      name: base(path),
+      isDirectory: node.kind === "dir",
+      isFile: node.kind === "file",
+      isSymbolicLink: node.kind === "symlink",
+    };
+  }
+
+  async readDir(path: string): Promise<DirEntry[]> {
+    const norm = normalize(path);
+    if (!this.nodes.has(norm)) return [];
+    const out: DirEntry[] = [];
+    const prefix = norm === SEP ? SEP : norm + SEP;
+    for (const [p, node] of this.nodes) {
+      if (p === norm) continue;
+      if (!p.startsWith(prefix)) continue;
+      const rest = p.slice(prefix.length);
+      if (rest.includes(SEP)) continue; // only direct children
+      out.push({
+        name: rest,
+        isDirectory: node.kind === "dir",
+        isFile: node.kind === "file",
+        isSymbolicLink: node.kind === "symlink",
+      });
+    }
+    return out;
+  }
+
+  async mkdirp(path: string): Promise<void> {
+    this.ensureDir(normalize(path));
+  }
+
+  async writeFileAtomic(path: string, contents: string, _tmpName: string): Promise<void> {
+    const norm = normalize(path);
+    this.ensureDir(parent(norm));
+    this.nodes.set(norm, { kind: "file", content: contents });
+  }
+
+  async moveFile(from: string, to: string): Promise<void> {
+    const src = this.nodes.get(normalize(from));
+    if (src === undefined) throw enoent(from);
+    this.ensureDir(parent(normalize(to)));
+    this.nodes.set(normalize(to), src);
+    this.nodes.delete(normalize(from));
+  }
+
+  async syncDir(_path: string): Promise<void> {
+    return Promise.resolve();
+  }
+
+  async removeDir(path: string): Promise<void> {
+    const norm = normalize(path);
+    const prefix = norm + SEP;
+    for (const p of [...this.nodes.keys()]) {
+      if (p === norm || p.startsWith(prefix)) this.nodes.delete(p);
+    }
+  }
+
+  async moveDir(from: string, to: string): Promise<void> {
+    const src = normalize(from);
+    const dst = normalize(to);
+    const prefix = src + SEP;
+    const moves: [string, Node][] = [];
+    for (const [p, node] of this.nodes) {
+      if (p === src) moves.push([dst, node]);
+      else if (p.startsWith(prefix)) moves.push([dst + p.slice(src.length), node]);
+    }
+    if (moves.length === 0) throw enoent(from);
+    for (const p of [...this.nodes.keys()]) {
+      if (p === src || p.startsWith(prefix)) this.nodes.delete(p);
+    }
+    this.ensureDir(parent(dst));
+    for (const [p, node] of moves) this.nodes.set(p, node);
+  }
+
+  async copyFileTo(from: string, to: string): Promise<void> {
+    const src = this.nodes.get(normalize(from));
+    if (src === undefined || src.kind !== "file") throw enoent(from);
+    this.ensureDir(parent(normalize(to)));
+    this.nodes.set(normalize(to), { kind: "file", content: src.content ?? "" });
+  }
+
+  async createLockExclusive(path: string, contents: string): Promise<LockCreateResult> {
+    const norm = normalize(path);
+    if (this.nodes.has(norm)) return { acquired: false };
+    this.ensureDir(parent(norm));
+    this.nodes.set(norm, { kind: "file", content: contents });
+    return { acquired: true };
+  }
+
+  async readLock(path: string): Promise<string | null> {
+    return this.readFileIfExists(path);
+  }
+
+  async removeLock(path: string): Promise<void> {
+    this.nodes.delete(normalize(path));
+  }
+
+  referenceNow(): string {
+    return this.nowFn();
+  }
+
+  isProcessAlive(pid: number): boolean {
+    return this.aliveFn(pid);
+  }
+
+  currentPid(): number {
+    return this.pid;
+  }
+}
+
+function enoent(path: string): NodeJS.ErrnoException {
+  const err = new Error(`ENOENT: ${path}`) as NodeJS.ErrnoException;
+  err.code = "ENOENT";
+  return err;
+}

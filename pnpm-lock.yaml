@@ -143,6 +143,8 @@ importers:
         specifier: workspace:*
         version: link:../providers
 
+  project-memory: {}
+
   providers:
     dependencies:
       '@oh-my-pm/contracts':

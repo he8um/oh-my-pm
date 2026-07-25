@@ -149,7 +149,7 @@ in place (see Phase 5B).
 
 **v0.2 phase complete.** Governance (L3) is closed: the `github-release` environment had a required reviewer (`he8um`, type User) alongside its preserved custom `main` branch policy, and the stable publication run paused for and received a manual approval (no administrator bypass; `prevent_self_review` stays `false` so a single administrator can approve). Timeline events, aliases/profiles, and write-back remain deferred beyond v0.2.
 
-- **v0.2.x — maintenance only.** The line is bug-fix / security / packaging / docs / CI-reliability only; new features, providers, MCP tools, and v0.3 architecture require a separate, explicit approval. See docs/releases/v0.2.x-maintenance-policy.md. v0.3 development is limited to the approved, non-user-facing Kernel foundation (Phases 0 and 1); no v0.3 product is shipped and `version.json` stays `0.2.0`.
+- **v0.2.x — maintenance only.** The line is bug-fix / security / packaging / docs / CI-reliability only; new features, providers, MCP tools, and v0.3 architecture require a separate, explicit approval. See docs/releases/v0.2.x-maintenance-policy.md. v0.3 development is limited to the approved, non-user-facing foundation (Phases 0, 1, and 2); no v0.3 product is shipped and `version.json` stays `0.2.0`.
 
 ## Phase 5C — v0.3 discovery and architecture gate
 
@@ -181,11 +181,26 @@ in place (see Phase 5B).
   `0.2.0`, the MCP surface stays exactly ten tools, the Kernel WASM exports and
   `KernelApi` methods are unchanged, and no v0.2 behavior changed. See
   [phase-1-kernel.md](v0.3/phase-1-kernel.md).
-- **v0.3 Phases 2–6: not started.** The Project Brain product is still not
-  user-accessible (no persistence, capture, compare orchestration, CLI, or MCP
-  exposure exists). Each remaining phase requires a separate, explicit approval;
-  the next authorized step would be Phase 2 (the local persistence interface and a
-  single explicit Node adapter only).
+- **v0.3 Phase 2 (local persistence adapter): implemented.** Under a separate,
+  explicit owner approval for Phase 2 only, the private, dependency-free
+  `@oh-my-pm/project-memory` package and one explicit Node filesystem adapter were
+  added: the finalized local JSON storage format (store format `1`), the
+  application-data location resolver, atomic temp-then-rename commits with the
+  manifest rename as the commit point, domain-separated SHA-256 manifest/record/
+  export integrity, immutable snapshot and evidence records, safe reads with
+  fail-safe corruption handling, single-writer locking, a migration mechanism
+  proven by a synthetic test-only `0 → 1` migration, export, and delete.
+  Filesystem writes exist only in the explicit Node adapter boundary. No public
+  CLI command, MCP tool, Runtime orchestration, or v0.2 release bundle invokes or
+  includes it; no project file is written; there is no network or telemetry. The
+  application-state adapter exists but the Project Brain remains user-inaccessible.
+  `version.json` stays `0.2.0`, the MCP surface stays exactly ten tools, and no
+  v0.2 behavior changed. See [phase-2-persistence.md](v0.3/phase-2-persistence.md).
+- **v0.3 Phases 3–6: not started.** The Project Brain product is still not
+  user-accessible (no Runtime capture/compare orchestration, CLI, or MCP exposure
+  exists). Each remaining phase requires a separate, explicit approval; the next
+  authorized step would be Phase 3 (provider-independent Runtime capture/compare
+  orchestration only).
 - **Selected North Star:** OH MY PM can capture a project observation locally,
   preserve minimized evidence, compare it with the previous observation, and
   return deterministic changes — without modifying the project or uploading its
