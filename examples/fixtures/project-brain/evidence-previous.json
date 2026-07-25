@@ -1,0 +1,38 @@
+[
+  {
+    "evidenceId": "evidence:e-fresh",
+    "projectId": "project:acme-atlas",
+    "sourceKind": "markdown",
+    "sourceIdentity": "docs/status.md#L10",
+    "observedAt": "2026-03-10T00:00:00Z",
+    "provenance": { "line": "10" },
+    "rawContentPolicy": "notStored",
+    "retentionState": "active",
+    "schemaVersion": 1,
+    "sourceUpdatedAt": "2026-03-09T00:00:00Z"
+  },
+  {
+    "evidenceId": "evidence:e-stale",
+    "projectId": "project:acme-atlas",
+    "sourceKind": "markdown",
+    "sourceIdentity": "docs/status.md#L20",
+    "observedAt": "2026-03-10T00:00:00Z",
+    "provenance": { "line": "20" },
+    "rawContentPolicy": "notStored",
+    "retentionState": "active",
+    "schemaVersion": 1,
+    "sourceUpdatedAt": "2026-02-01T00:00:00Z"
+  },
+  {
+    "evidenceId": "evidence:e-content-a",
+    "projectId": "project:acme-atlas",
+    "sourceKind": "githubIssue",
+    "sourceIdentity": "issues/77",
+    "observedAt": "2026-03-10T00:00:00Z",
+    "provenance": { "item": "77" },
+    "rawContentPolicy": "minimized",
+    "retentionState": "active",
+    "schemaVersion": 1,
+    "contentFingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+]

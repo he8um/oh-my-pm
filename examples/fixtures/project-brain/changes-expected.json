@@ -1,0 +1,330 @@
+{
+  "projectId": "project:acme-atlas",
+  "previousSnapshotId": "snapshot:657c0c4d550636ec9f515490a6225c0e9b8f8ba8a2e158e84327c09d016c8ed4",
+  "currentSnapshotId": "snapshot:4d79dd4a5858e17373d55089fc969ce7522e036f70b7805a54655318ca6f991f",
+  "comparedAt": "2026-03-25T12:00:00Z",
+  "changes": [
+    {
+      "category": "added",
+      "itemKind": "task",
+      "itemId": "t-added",
+      "evidenceRefs": [],
+      "currentValue": {
+        "kind": "task",
+        "id": "t-added",
+        "title": "Brand-new task",
+        "evidenceRefs": []
+      }
+    },
+    {
+      "category": "evidenceChanged",
+      "itemKind": "task",
+      "itemId": "t-evidence",
+      "evidenceRefs": [
+        "evidence:e-content-a",
+        "evidence:e-content-b"
+      ],
+      "previousValue": {
+        "kind": "task",
+        "id": "t-evidence",
+        "title": "Sync inventory",
+        "evidenceRefs": [
+          "evidence:e-content-a"
+        ]
+      },
+      "currentValue": {
+        "kind": "task",
+        "id": "t-evidence",
+        "title": "Sync inventory",
+        "evidenceRefs": [
+          "evidence:e-content-b"
+        ]
+      }
+    },
+    {
+      "category": "fresh",
+      "itemKind": "task",
+      "itemId": "t-fresh",
+      "evidenceRefs": [
+        "evidence:c-fresh",
+        "evidence:e-stale"
+      ],
+      "previousValue": {
+        "kind": "task",
+        "id": "t-fresh",
+        "title": "Refresh dashboard",
+        "evidenceRefs": [
+          "evidence:e-stale"
+        ]
+      },
+      "currentValue": {
+        "kind": "task",
+        "id": "t-fresh",
+        "title": "Refresh dashboard",
+        "evidenceRefs": [
+          "evidence:c-fresh"
+        ]
+      }
+    },
+    {
+      "category": "evidenceChanged",
+      "itemKind": "task",
+      "itemId": "t-fresh",
+      "evidenceRefs": [
+        "evidence:c-fresh",
+        "evidence:e-stale"
+      ],
+      "previousValue": {
+        "kind": "task",
+        "id": "t-fresh",
+        "title": "Refresh dashboard",
+        "evidenceRefs": [
+          "evidence:e-stale"
+        ]
+      },
+      "currentValue": {
+        "kind": "task",
+        "id": "t-fresh",
+        "title": "Refresh dashboard",
+        "evidenceRefs": [
+          "evidence:c-fresh"
+        ]
+      }
+    },
+    {
+      "category": "modified",
+      "itemKind": "task",
+      "itemId": "t-modified",
+      "evidenceRefs": [],
+      "previousValue": {
+        "kind": "task",
+        "id": "t-modified",
+        "title": "Old title",
+        "evidenceRefs": [],
+        "owner": "Ali",
+        "priority": "low"
+      },
+      "currentValue": {
+        "kind": "task",
+        "id": "t-modified",
+        "title": "New title",
+        "evidenceRefs": [],
+        "owner": "Sara",
+        "priority": "high"
+      }
+    },
+    {
+      "category": "becameOverdue",
+      "itemKind": "task",
+      "itemId": "t-overdue",
+      "evidenceRefs": [],
+      "previousValue": {
+        "kind": "task",
+        "id": "t-overdue",
+        "title": "Publish changelog",
+        "evidenceRefs": [],
+        "dueDate": "2026-03-20"
+      },
+      "currentValue": {
+        "kind": "task",
+        "id": "t-overdue",
+        "title": "Publish changelog",
+        "evidenceRefs": [],
+        "dueDate": "2026-03-20"
+      }
+    },
+    {
+      "category": "removed",
+      "itemKind": "task",
+      "itemId": "t-removed",
+      "evidenceRefs": [],
+      "previousValue": {
+        "kind": "task",
+        "id": "t-removed",
+        "title": "Obsolete cleanup",
+        "evidenceRefs": []
+      }
+    },
+    {
+      "category": "added",
+      "itemKind": "task",
+      "itemId": "t-rename-new",
+      "evidenceRefs": [],
+      "currentValue": {
+        "kind": "task",
+        "id": "t-rename-new",
+        "title": "Shared title",
+        "evidenceRefs": []
+      }
+    },
+    {
+      "category": "removed",
+      "itemKind": "task",
+      "itemId": "t-rename-old",
+      "evidenceRefs": [],
+      "previousValue": {
+        "kind": "task",
+        "id": "t-rename-old",
+        "title": "Shared title",
+        "evidenceRefs": []
+      }
+    },
+    {
+      "category": "reopened",
+      "itemKind": "task",
+      "itemId": "t-reopen",
+      "evidenceRefs": [],
+      "previousValue": {
+        "kind": "task",
+        "id": "t-reopen",
+        "title": "Fix logout bug",
+        "evidenceRefs": [],
+        "status": "done"
+      },
+      "currentValue": {
+        "kind": "task",
+        "id": "t-reopen",
+        "title": "Fix logout bug",
+        "evidenceRefs": [],
+        "status": "open"
+      }
+    },
+    {
+      "category": "resolved",
+      "itemKind": "task",
+      "itemId": "t-resolve",
+      "evidenceRefs": [
+        "evidence:e-content-a"
+      ],
+      "previousValue": {
+        "kind": "task",
+        "id": "t-resolve",
+        "title": "Wire login form",
+        "evidenceRefs": [
+          "evidence:e-content-a"
+        ],
+        "status": "in progress"
+      },
+      "currentValue": {
+        "kind": "task",
+        "id": "t-resolve",
+        "title": "Wire login form",
+        "evidenceRefs": [
+          "evidence:e-content-a"
+        ],
+        "status": "done"
+      }
+    },
+    {
+      "category": "stale",
+      "itemKind": "task",
+      "itemId": "t-stale",
+      "evidenceRefs": [
+        "evidence:c-stale",
+        "evidence:e-fresh"
+      ],
+      "previousValue": {
+        "kind": "task",
+        "id": "t-stale",
+        "title": "Rotate keys",
+        "evidenceRefs": [
+          "evidence:e-fresh"
+        ]
+      },
+      "currentValue": {
+        "kind": "task",
+        "id": "t-stale",
+        "title": "Rotate keys",
+        "evidenceRefs": [
+          "evidence:c-stale"
+        ]
+      }
+    },
+    {
+      "category": "evidenceChanged",
+      "itemKind": "task",
+      "itemId": "t-stale",
+      "evidenceRefs": [
+        "evidence:c-stale",
+        "evidence:e-fresh"
+      ],
+      "previousValue": {
+        "kind": "task",
+        "id": "t-stale",
+        "title": "Rotate keys",
+        "evidenceRefs": [
+          "evidence:e-fresh"
+        ]
+      },
+      "currentValue": {
+        "kind": "task",
+        "id": "t-stale",
+        "title": "Rotate keys",
+        "evidenceRefs": [
+          "evidence:c-stale"
+        ]
+      }
+    },
+    {
+      "category": "noLongerOverdue",
+      "itemKind": "task",
+      "itemId": "t-unoverdue",
+      "evidenceRefs": [],
+      "previousValue": {
+        "kind": "task",
+        "id": "t-unoverdue",
+        "title": "Draft release notes",
+        "evidenceRefs": [],
+        "dueDate": "2026-03-05T00:00:00Z"
+      },
+      "currentValue": {
+        "kind": "task",
+        "id": "t-unoverdue",
+        "title": "Draft release notes",
+        "evidenceRefs": [],
+        "dueDate": "2026-04-01T00:00:00Z"
+      }
+    },
+    {
+      "category": "severityDecreased",
+      "itemKind": "risk",
+      "itemId": "r-sev-down",
+      "evidenceRefs": [],
+      "previousValue": {
+        "kind": "risk",
+        "id": "r-sev-down",
+        "title": "Slow query",
+        "evidenceRefs": [],
+        "severity": "critical"
+      },
+      "currentValue": {
+        "kind": "risk",
+        "id": "r-sev-down",
+        "title": "Slow query",
+        "evidenceRefs": [],
+        "severity": "low"
+      }
+    },
+    {
+      "category": "severityIncreased",
+      "itemKind": "risk",
+      "itemId": "r-sev-up",
+      "evidenceRefs": [],
+      "previousValue": {
+        "kind": "risk",
+        "id": "r-sev-up",
+        "title": "Data loss window",
+        "evidenceRefs": [],
+        "severity": "low"
+      },
+      "currentValue": {
+        "kind": "risk",
+        "id": "r-sev-up",
+        "title": "Data loss window",
+        "evidenceRefs": [],
+        "severity": "critical"
+      }
+    }
+  ],
+  "schemaVersion": 1
+}

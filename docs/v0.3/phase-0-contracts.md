@@ -1,10 +1,13 @@
 # v0.3 Phase 0 — Project Brain Contracts (implemented)
 
-> **Status: Phase 0 implemented and green.** Phase 1 not started. Source version
-> remains `0.2.0`. No persistence, no application-state write, no project write,
-> no network path, no new MCP tool, and no product behavior change was introduced.
-> The Project Brain **product** is **not** implemented — only its contract data
-> boundary. Implementation of Phase 1+ requires a separate, explicit approval.
+> **Status: Phase 0 implemented and green.** Phase 1 (the pure deterministic
+> Kernel) is implemented; see [phase-1-kernel.md](phase-1-kernel.md). Phase 2 is
+> not started. Source version remains `0.2.0`. No persistence, no
+> application-state write, no project write, no network path, no new MCP tool, and
+> no product behavior change was introduced. The Project Brain **product** is
+> **not** user-accessible — only its contract data boundary (Phase 0) and pure
+> Kernel logic (Phase 1). Implementation of Phase 2+ requires a separate, explicit
+> approval.
 
 This document records the implemented surface of v0.3 Phase 0: the six versioned
 Project Brain contract families, their deterministic cross-language generation,

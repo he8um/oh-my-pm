@@ -43,7 +43,7 @@ an explicit "no previous observation," not an error.
 > generation, contract tests, and boundary guards are in place with no
 > persistence and no behavior change. Source version remains `0.2.0` and the
 > MCP surface remains exactly ten tools. See
-> [phase-0-contracts.md](phase-0-contracts.md). Phase 1 is **not started**.
+> [phase-0-contracts.md](phase-0-contracts.md). Phase 1 is **implemented**.
 
 - **Objective:** define the six versioned contracts and the guardrails, with no
   persistence and no behavior.
@@ -61,7 +61,16 @@ an explicit "no previous observation," not an error.
   project write → stop and escalate.
 - **Dependencies:** none.
 
-## Phase 1 — Deterministic kernel state and diff logic · complexity L
+## Phase 1 — Deterministic kernel state and diff logic · complexity L · **implemented**
+
+> **Implemented and green.** The pure Kernel module under
+> `kernel/crate/src/projectbrain/**` provides normalization, network-free
+> identifiers, canonical serialization, SHA-256 fingerprints, freshness
+> derivation, and deterministic diff, with golden fixtures under
+> `examples/fixtures/project-brain/**`. No I/O, no persistence, no
+> application-state write, and no binding/CLI/MCP surface change. Source version
+> remains `0.2.0` and the MCP surface remains exactly ten tools. See
+> [phase-1-kernel.md](phase-1-kernel.md). Phase 2 is **not started**.
 
 - **Objective:** pure normalization, stable matching, change classification, and
   freshness rules in the kernel.

@@ -1,0 +1,116 @@
+{
+  "snapshotId": "PLACEHOLDER-IGNORED",
+  "projectId": "project:acme-atlas",
+  "capturedAt": "2026-03-25T00:00:00Z",
+  "sourceBoundaries": [
+    { "sourceIdentity": "issues/open", "includedScope": "open issues", "coverageState": "complete" },
+    { "sourceIdentity": "docs/status.md", "includedScope": "full", "coverageState": "complete" }
+  ],
+  "state": {
+    "identity": { "id": "project:acme-atlas", "kind": "explicit", "schemaVersion": 1 },
+    "observedAt": "2026-03-25T00:00:00Z",
+    "sources": [
+      { "sourceKind": "markdown", "sourceIdentity": "docs/status.md" }
+    ],
+    "statusSummary": { "open": 3 },
+    "evidenceRefs": ["evidence:c-fresh", "evidence:c-stale", "evidence:e-content-b"],
+    "freshness": {
+      "observationFreshness": { "status": "known", "ageSeconds": 0, "referenceTimestamp": "2026-03-25T00:00:00Z" },
+      "sourceFreshness": { "status": "unknown" },
+      "evidenceFreshness": { "status": "unknown" },
+      "derivedStateFreshness": { "status": "unknown" },
+      "coverageComplete": true,
+      "coverageGaps": [],
+      "schemaVersion": 1
+    },
+    "schemaVersion": 1,
+    "stateFingerprint": "PLACEHOLDER-IGNORED",
+    "tasks": [
+      {
+        "kind": "task",
+        "id": "t-resolve",
+        "title": "Wire login form",
+        "evidenceRefs": ["evidence:e-content-a"],
+        "status": "done"
+      },
+      {
+        "kind": "task",
+        "id": "t-reopen",
+        "title": "Fix logout bug",
+        "evidenceRefs": [],
+        "status": "open"
+      },
+      {
+        "kind": "task",
+        "id": "t-overdue",
+        "title": "Publish changelog",
+        "evidenceRefs": [],
+        "dueDate": "2026-03-20"
+      },
+      {
+        "kind": "task",
+        "id": "t-unoverdue",
+        "title": "Draft release notes",
+        "evidenceRefs": [],
+        "dueDate": "2026-04-01T00:00:00Z"
+      },
+      {
+        "kind": "task",
+        "id": "t-modified",
+        "title": "New title",
+        "evidenceRefs": [],
+        "owner": "Sara",
+        "priority": "high"
+      },
+      {
+        "kind": "task",
+        "id": "t-fresh",
+        "title": "Refresh dashboard",
+        "evidenceRefs": ["evidence:c-fresh"]
+      },
+      {
+        "kind": "task",
+        "id": "t-stale",
+        "title": "Rotate keys",
+        "evidenceRefs": ["evidence:c-stale"]
+      },
+      {
+        "kind": "task",
+        "id": "t-evidence",
+        "title": "Sync inventory",
+        "evidenceRefs": ["evidence:e-content-b"]
+      },
+      {
+        "kind": "task",
+        "id": "t-added",
+        "title": "Brand-new task",
+        "evidenceRefs": []
+      },
+      {
+        "kind": "task",
+        "id": "t-rename-new",
+        "title": "Shared title",
+        "evidenceRefs": []
+      }
+    ],
+    "risks": [
+      {
+        "kind": "risk",
+        "id": "r-sev-up",
+        "title": "Data loss window",
+        "evidenceRefs": [],
+        "severity": "critical"
+      },
+      {
+        "kind": "risk",
+        "id": "r-sev-down",
+        "title": "Slow query",
+        "evidenceRefs": [],
+        "severity": "low"
+      }
+    ]
+  },
+  "evidenceRefs": ["evidence:c-fresh", "evidence:c-stale", "evidence:e-content-b"],
+  "schemaVersion": 1,
+  "fingerprint": "PLACEHOLDER-IGNORED"
+}

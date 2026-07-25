@@ -4,6 +4,7 @@
 //! environment, clock, or randomness. All data arrives as function input.
 
 pub mod errors;
+pub mod projectbrain;
 pub mod registry;
 pub mod state;
 pub mod update_guard;

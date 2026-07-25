@@ -1679,13 +1679,15 @@ for (const file of generatedTracked) {
   }
 }
 
-// 5b. v0.3 Project Brain (Phase 0) boundary guards. Phase 0 introduces the six
-// versioned contracts and their guards only: no persistence, no application-state
-// write, no project write, no network path, and no new MCP tool. The projectbrain
-// surface must live entirely under contracts/**; any projectbrain-named runtime
-// source, or any forbidden capability marker inside a projectbrain file, means a
-// later phase leaked into Phase 0. (This validator is the detector, so its own
-// marker strings never trip these scans: it carries no "projectbrain" filename.)
+// 5b. v0.3 Project Brain (Phase 1) boundary guards. Phase 1 adds a PURE,
+// deterministic Kernel module for the Phase 0 contracts: normalization,
+// identifiers, canonical serialization, fingerprints, freshness, and diff. It
+// adds NO persistence, application-state write, project write, network path,
+// clock read, environment read, randomness, Runtime orchestration, CLI memory
+// command, or MCP tool. The projectbrain surface may now live under the narrowly
+// allowed Phase 1 locations below and nowhere else. (This validator is the
+// detector, so its own marker strings never trip these scans: it carries no
+// "projectbrain" filename.)
 if (!trackedFiles.includes("contracts/schema/projectbrain.schema.json")) {
   err("contracts/schema/projectbrain.schema.json is missing (Phase 0 contract domain)");
 }
@@ -1707,25 +1709,36 @@ if (trackedFiles.includes("contracts/generated/rust/mod.rs")) {
     err("contracts/generated/rust/mod.rs must declare pub mod projectbrain");
   }
 }
-// Phase 0 is contracts-only. A projectbrain-named source or test file living
-// outside contracts/** (or the single permitted kernel serde round-trip test)
-// signals premature Phase 1+ implementation (persistence, capture, memory store).
-const PROJECT_BRAIN_ALLOWED_OUTSIDE_CONTRACTS = new Set([
-  "kernel/crate/tests/projectbrain_contracts.rs",
+// Phase 1 allowlist. A projectbrain-named source, test, fixture, or doc file must
+// live under one of these locations. Anything else signals a premature Phase 2+
+// leak (persistence, capture orchestration, memory store, CLI/MCP exposure).
+const PROJECT_BRAIN_ALLOWED_PREFIXES = [
+  "contracts/", // Phase 0 contract surface
+  "kernel/crate/src/projectbrain/", // Phase 1 pure Kernel module
+  "examples/fixtures/project-brain/", // golden fixtures
+  "docs/", // documentation may name any phase
+];
+const PROJECT_BRAIN_ALLOWED_FILES = new Set([
+  "kernel/crate/tests/projectbrain_contracts.rs", // Phase 0 serde round-trip
 ]);
+// Phase 1 kernel integration tests: kernel/crate/tests/projectbrain_*.rs.
+const PROJECT_BRAIN_TEST_RE = /^kernel\/crate\/tests\/projectbrain_[a-z_]+\.rs$/;
 const projectBrainFiles = trackedFiles.filter(
-  (f) => /projectbrain/i.test(f) && /\.(ts|mjs|js|rs)$/.test(f),
+  (f) => /project[-_]?brain/i.test(f) && /\.(ts|mjs|js|rs|json)$/.test(f),
 );
 for (const file of projectBrainFiles) {
-  if (file.startsWith("contracts/")) continue;
-  if (PROJECT_BRAIN_ALLOWED_OUTSIDE_CONTRACTS.has(file)) continue;
-  err(`Phase 0 projectbrain surface must live under contracts/; unexpected file: ${file}`);
+  if (PROJECT_BRAIN_ALLOWED_PREFIXES.some((p) => file.startsWith(p))) continue;
+  if (PROJECT_BRAIN_ALLOWED_FILES.has(file)) continue;
+  if (PROJECT_BRAIN_TEST_RE.test(file)) continue;
+  err(`Phase 1 projectbrain surface is not in an allowed location: ${file}`);
 }
-// No projectbrain file may introduce a write, network, persistence, or database
-// capability in Phase 0. Substring markers mirror the existing forbidden-API
-// idiom used elsewhere in this validator.
-const PROJECT_BRAIN_PHASE0_FORBIDDEN = [
-  "writeFile",
+// The pure Kernel module (Rust) and any projectbrain JS/TS surface must introduce
+// no write, network, persistence, database, clock, environment, or randomness
+// capability. These markers cover both the JS idiom used elsewhere in this
+// validator and the Rust standard-library / crate impurity forms.
+const PROJECT_BRAIN_PHASE1_FORBIDDEN = [
+  // JS/Node I/O and persistence.
+  "writeFileSync",
   "appendFile",
   "createWriteStream",
   "mkdirSync",
@@ -1739,45 +1752,178 @@ const PROJECT_BRAIN_PHASE0_FORBIDDEN = [
   "node:http",
   "node:https",
   "node:net",
+  "node:fs",
   "better-sqlite3",
   "PRAGMA",
   "CREATE TABLE",
   "PersistenceAdapter",
   "MemoryStore",
   "SnapshotStore",
+  // Rust impurity: filesystem, network, environment, clock, process, randomness.
+  "std::fs",
+  "std::net",
+  "std::env",
+  "std::process",
+  "SystemTime",
+  "now_utc",
+  "Instant::now",
+  "thread::sleep",
+  "Command::new",
+  "rand::",
+  "thread_rng",
+  "getrandom",
+  "reqwest",
 ];
+// The purity test itself enumerates the impurity markers as detection strings,
+// exactly as this validator does; it is the behavioral counterpart to this scan
+// and is exempted from the capability scan (its own assertions enforce purity).
+const PROJECT_BRAIN_MARKER_DETECTORS = new Set([
+  "kernel/crate/tests/projectbrain_purity.rs",
+]);
 for (const file of projectBrainFiles) {
-  const contents = readFileSync(file, "utf8");
-  for (const marker of PROJECT_BRAIN_PHASE0_FORBIDDEN) {
+  if (PROJECT_BRAIN_MARKER_DETECTORS.has(file)) continue;
+  const raw = readFileSync(file, "utf8");
+  // Strip Rust comment lines and JS line comments so prose that documents what
+  // the code does NOT do (e.g. "never calls now_utc") is not counted. The test
+  // helper (tests/common/mod.rs) legitimately reads fixtures via std::fs; the
+  // Kernel module and its integration tests do not, which is what these guards
+  // protect. Test files that read fixtures are exempted from the fs marker only.
+  const contents = raw
+    .split("\n")
+    .filter((line) => {
+      const t = line.trimStart();
+      return !(t.startsWith("//") || t.startsWith("*") || t.startsWith("/*"));
+    })
+    .join("\n");
+  const isTest = PROJECT_BRAIN_TEST_RE.test(file) || file === "kernel/crate/tests/common/mod.rs";
+  for (const marker of PROJECT_BRAIN_PHASE1_FORBIDDEN) {
+    // Integration tests may read fixtures from disk via std::fs; the Kernel
+    // module proper may not. All other markers still apply everywhere.
+    if (isTest && marker === "std::fs") continue;
     if (contents.includes(marker)) {
-      err(`${file} introduces a forbidden Phase 0 projectbrain capability: "${marker}"`);
+      err(`${file} introduces a forbidden projectbrain capability: "${marker}"`);
+    }
+  }
+}
+// The pure Kernel module itself (kernel/crate/src/projectbrain/**) may NEVER read
+// the filesystem, not even in a test-exempt way: assert std::fs is absent there.
+const projectBrainModuleFiles = trackedFiles.filter((f) =>
+  f.startsWith("kernel/crate/src/projectbrain/"),
+);
+if (projectBrainModuleFiles.length === 0) {
+  err("Phase 1 kernel projectbrain module is missing under kernel/crate/src/projectbrain/");
+}
+for (const file of projectBrainModuleFiles) {
+  const contents = readFileSync(file, "utf8")
+    .split("\n")
+    .filter((line) => {
+      const t = line.trimStart();
+      return !(t.startsWith("//") || t.startsWith("*") || t.startsWith("/*"));
+    })
+    .join("\n");
+  for (const marker of ["std::fs", "std::net", "std::env", "SystemTime", "now_utc"]) {
+    if (contents.includes(marker)) {
+      err(`${file} (pure Kernel module) must never contain "${marker}"`);
     }
   }
 }
 // No unapproved persistence/store/memory-command source may appear anywhere as a
-// tracked file in Phase 0 (memory-store, snapshot-store, persistence-adapter).
-const PHASE1_PLUS_FILE_MARKERS = [
+// tracked file (memory-store, snapshot-store, persistence-adapter). Phase 1 adds
+// pure logic only; no store surface is introduced.
+const PHASE2_PLUS_FILE_MARKERS = [
   "memory-store",
   "snapshot-store",
   "persistence-adapter",
 ];
 for (const file of trackedFiles) {
   if (file.startsWith("docs/")) continue; // documentation may name deferred phases
-  for (const marker of PHASE1_PLUS_FILE_MARKERS) {
+  for (const marker of PHASE2_PLUS_FILE_MARKERS) {
     if (file.toLowerCase().includes(marker)) {
-      err(`Phase 0 forbids premature persistence source: ${file}`);
+      err(`Phase 1 forbids premature persistence source: ${file}`);
     }
   }
 }
-// The MCP server must not register a projectbrain tool in Phase 0 (the ten-tool
+// The MCP server must not register a projectbrain tool in Phase 1 (the ten-tool
 // set is unchanged; no project_changes / memory projection is added yet).
 if (trackedFiles.includes("mcp-server/src/server.ts")) {
   const server = readFileSync("mcp-server/src/server.ts", "utf8");
   if (/projectbrain|project_changes|memory/i.test(server)) {
-    err("mcp-server/src/server.ts must not add a projectbrain/memory MCP tool in Phase 0");
+    err("mcp-server/src/server.ts must not add a projectbrain/memory MCP tool in Phase 1");
   }
 }
-// Phase 0 privacy invariants on the generated projectbrain contracts: identity
+// The Kernel WASM binding and the KernelApi surface must NOT gain a projectbrain
+// method in Phase 1: the binding surface is frozen until Phase 3. The Rust crate
+// may re-export pure functions, but no new WASM js_name export or KernelApi
+// method may appear.
+if (trackedFiles.includes("kernel/crate/src/wasm.rs")) {
+  const wasm = readFileSync("kernel/crate/src/wasm.rs", "utf8");
+  const exportCount = (wasm.match(/js_name\s*=/g) || []).length;
+  if (exportCount !== 4) {
+    err(`kernel/crate/src/wasm.rs must expose exactly 4 WASM exports in Phase 1 (found ${exportCount})`);
+  }
+  if (/projectbrain|projectBrain|projectState|projectSnapshot|changeSet/i.test(wasm)) {
+    err("kernel/crate/src/wasm.rs must not expose a Project Brain WASM export in Phase 1");
+  }
+}
+if (trackedFiles.includes("kernel/binding/src/index.ts")) {
+  const binding = readFileSync("kernel/binding/src/index.ts", "utf8");
+  if (/projectbrain|projectBrain|finalizeProjectState|diffProjectSnapshots/i.test(binding)) {
+    err("kernel/binding/src/index.ts must not add a Project Brain method in Phase 1");
+  }
+}
+// Phase 1 dependency guard: only sha2 and time may be newly added to the Kernel
+// crate manifest, and no other package manifest may change its dependency set for
+// Project Brain. Assert the Kernel manifest declares exactly the approved
+// dependency set (serde, serde_json, wasm-bindgen, sha2, time) and nothing else.
+if (trackedFiles.includes("kernel/crate/Cargo.toml")) {
+  const cargo = readFileSync("kernel/crate/Cargo.toml", "utf8");
+  const depSection = cargo.split(/^\[dependencies\]/m)[1] || "";
+  const depBlock = depSection.split(/^\[/m)[0];
+  const declared = [...depBlock.matchAll(/^([a-zA-Z0-9_-]+)\s*=/gm)].map((m) => m[1]).sort();
+  const approved = ["serde", "serde_json", "sha2", "time", "wasm-bindgen"];
+  if (JSON.stringify(declared) !== JSON.stringify(approved)) {
+    err(
+      `kernel/crate/Cargo.toml dependencies must be exactly ${approved.join(", ")} in Phase 1 (found ${declared.join(", ")})`,
+    );
+  }
+  // Forbidden heavy/impure dependencies must never appear.
+  for (const forbidden of ["chrono", "rand", "uuid", "reqwest", "rusqlite", "tokio", "getrandom"]) {
+    if (new RegExp(`^${forbidden}\\s*=`, "m").test(depBlock)) {
+      err(`kernel/crate/Cargo.toml must not add the forbidden dependency "${forbidden}"`);
+    }
+  }
+}
+// Phase 1 version guard: version.json and every package version stay 0.2.0.
+if (trackedFiles.includes("version.json")) {
+  const version = JSON.parse(readFileSync("version.json", "utf8")).version;
+  if (version !== "0.2.0") {
+    err(`version.json must remain 0.2.0 in Phase 1 (found ${version})`);
+  }
+}
+// Golden fixtures must carry no absolute path, credential, or raw body.
+const PROJECT_BRAIN_FIXTURE_FILES = trackedFiles.filter((f) =>
+  f.startsWith("examples/fixtures/project-brain/"),
+);
+const FIXTURE_FORBIDDEN = [
+  "/Users/",
+  "/home/",
+  "BEGIN PRIVATE KEY",
+  "BEGIN CERTIFICATE",
+  "Authorization:",
+  "Bearer ",
+];
+for (const file of PROJECT_BRAIN_FIXTURE_FILES) {
+  const contents = readFileSync(file, "utf8");
+  for (const marker of FIXTURE_FORBIDDEN) {
+    if (contents.includes(marker)) {
+      err(`${file} fixture contains a forbidden value: "${marker}"`);
+    }
+  }
+  if (/[A-Z]:\\\\/.test(contents)) {
+    err(`${file} fixture embeds a Windows absolute path`);
+  }
+}
+// Phase 0/1 privacy invariants on the generated projectbrain contracts: identity
 // stores no absolute path; evidence stores no credential or raw body. Match field
 // declarations only (doc-comment prose legitimately mentions bodies/tokens).
 for (const gen of Object.keys({
@@ -1802,7 +1948,7 @@ for (const gen of Object.keys({
         [/^\s*pub body:/m, "raw-body field"],
       ];
   for (const [re, why] of forbiddenDecls) {
-    if (re.test(contents)) err(`${gen} must not declare a ${why} (Phase 0 privacy invariant)`);
+    if (re.test(contents)) err(`${gen} must not declare a ${why} (privacy invariant)`);
   }
 }
 

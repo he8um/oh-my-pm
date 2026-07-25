@@ -1,0 +1,116 @@
+{
+  "snapshotId": "PLACEHOLDER-IGNORED",
+  "projectId": "project:acme-atlas",
+  "capturedAt": "2026-03-10T00:00:00Z",
+  "sourceBoundaries": [
+    { "sourceIdentity": "docs/status.md", "includedScope": "full", "coverageState": "complete" },
+    { "sourceIdentity": "issues/open", "includedScope": "open issues", "coverageState": "partial", "gapReason": "rate limited" }
+  ],
+  "state": {
+    "identity": { "id": "project:acme-atlas", "kind": "explicit", "schemaVersion": 1 },
+    "observedAt": "2026-03-10T00:00:00Z",
+    "sources": [
+      { "sourceKind": "markdown", "sourceIdentity": "docs/status.md" }
+    ],
+    "statusSummary": { "open": 4 },
+    "evidenceRefs": ["evidence:e-fresh", "evidence:e-stale", "evidence:e-content-a"],
+    "freshness": {
+      "observationFreshness": { "status": "known", "ageSeconds": 0, "referenceTimestamp": "2026-03-10T00:00:00Z" },
+      "sourceFreshness": { "status": "unknown" },
+      "evidenceFreshness": { "status": "unknown" },
+      "derivedStateFreshness": { "status": "unknown" },
+      "coverageComplete": true,
+      "coverageGaps": [],
+      "schemaVersion": 1
+    },
+    "schemaVersion": 1,
+    "stateFingerprint": "PLACEHOLDER-IGNORED",
+    "tasks": [
+      {
+        "kind": "task",
+        "id": "t-resolve",
+        "title": "Wire login form",
+        "evidenceRefs": ["evidence:e-content-a"],
+        "status": "in progress"
+      },
+      {
+        "kind": "task",
+        "id": "t-reopen",
+        "title": "Fix logout bug",
+        "evidenceRefs": [],
+        "status": "done"
+      },
+      {
+        "kind": "task",
+        "id": "t-overdue",
+        "title": "Publish changelog",
+        "evidenceRefs": [],
+        "dueDate": "2026-03-20"
+      },
+      {
+        "kind": "task",
+        "id": "t-unoverdue",
+        "title": "Draft release notes",
+        "evidenceRefs": [],
+        "dueDate": "2026-03-05T00:00:00Z"
+      },
+      {
+        "kind": "task",
+        "id": "t-modified",
+        "title": "Old title",
+        "evidenceRefs": [],
+        "owner": "Ali",
+        "priority": "low"
+      },
+      {
+        "kind": "task",
+        "id": "t-fresh",
+        "title": "Refresh dashboard",
+        "evidenceRefs": ["evidence:e-stale"]
+      },
+      {
+        "kind": "task",
+        "id": "t-stale",
+        "title": "Rotate keys",
+        "evidenceRefs": ["evidence:e-fresh"]
+      },
+      {
+        "kind": "task",
+        "id": "t-evidence",
+        "title": "Sync inventory",
+        "evidenceRefs": ["evidence:e-content-a"]
+      },
+      {
+        "kind": "task",
+        "id": "t-removed",
+        "title": "Obsolete cleanup",
+        "evidenceRefs": []
+      },
+      {
+        "kind": "task",
+        "id": "t-rename-old",
+        "title": "Shared title",
+        "evidenceRefs": []
+      }
+    ],
+    "risks": [
+      {
+        "kind": "risk",
+        "id": "r-sev-up",
+        "title": "Data loss window",
+        "evidenceRefs": [],
+        "severity": "low"
+      },
+      {
+        "kind": "risk",
+        "id": "r-sev-down",
+        "title": "Slow query",
+        "evidenceRefs": [],
+        "severity": "critical"
+      }
+    ]
+  },
+  "evidenceRefs": ["evidence:e-fresh", "evidence:e-stale", "evidence:e-content-a"],
+  "schemaVersion": 1,
+  "fingerprint": "PLACEHOLDER-IGNORED"
+}

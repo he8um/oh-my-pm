@@ -1,16 +1,19 @@
 # OH MY PM — v0.3 Project Brain Foundation
 
 > **Status: discovery and architecture gate — complete. Phase 0 (contracts and
-> guards) — implemented.**
-> **v0.3 product: not implemented; Phase 1 not started.** Phase 0 added the six
-> versioned Project Brain contracts, their deterministic TS/Rust generation,
-> contract tests, and architecture guards only — no persistence, no behavior, and
-> no user-visible change. `version.json` remains `0.2.0` and `v0.2.x` stays
+> guards) — implemented. Phase 1 (deterministic Kernel) — implemented.**
+> **v0.3 product: not implemented; not user-accessible. Phase 2 not started.**
+> Phase 0 added the six versioned Project Brain contracts, their deterministic
+> TS/Rust generation, contract tests, and architecture guards. Phase 1 added the
+> pure, deterministic Kernel module (normalization, identifiers, canonical
+> serialization, fingerprints, freshness, and diff) with golden fixtures — no
+> persistence, no application-state write, no project write, and no
+> Runtime/CLI/MCP behavior. `version.json` remains `0.2.0` and `v0.2.x` stays
 > maintenance-only (see
 > [the v0.2.x maintenance policy](../releases/v0.2.x-maintenance-policy.md)).
-> Phases 1–6 remain unstarted; each requires a separate, explicit approval. See
-> [phase-0-contracts.md](phase-0-contracts.md) for the implemented contract
-> surface.
+> Phases 2–6 remain unstarted; each requires a separate, explicit approval. See
+> [phase-0-contracts.md](phase-0-contracts.md) for the contract surface and
+> [phase-1-kernel.md](phase-1-kernel.md) for the implemented Kernel.
 
 ## What this is
 
@@ -56,6 +59,7 @@ changed.
 | 8 | [acceptance-gates.md](acceptance-gates.md) | Hard gates G1–G14 with measurable evidence. |
 | 9 | [scope-decision.md](scope-decision.md) | The formal GO decision and its required contents. |
 | 10 | [phase-0-contracts.md](phase-0-contracts.md) | The **implemented** Phase 0 contract surface: the six contracts, generation, tests, and guards. |
+| 11 | [phase-1-kernel.md](phase-1-kernel.md) | The **implemented** Phase 1 pure Kernel: normalization, identifiers, fingerprints, freshness, diff, and golden fixtures. |
 
 ## Invariants this plan will not cross
 

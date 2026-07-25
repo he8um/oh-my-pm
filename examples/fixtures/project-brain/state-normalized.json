@@ -1,0 +1,142 @@
+{
+  "identity": {
+    "id": "project:acme-atlas",
+    "kind": "explicit",
+    "schemaVersion": 1,
+    "displayName": "Atlas Platform",
+    "rootHint": "acme/atlas"
+  },
+  "observedAt": "2026-03-01T10:00:00Z",
+  "sources": [
+    {
+      "sourceKind": "githubIssue",
+      "sourceIdentity": "issues/42"
+    },
+    {
+      "sourceKind": "markdown",
+      "sourceIdentity": "docs/risks.md"
+    },
+    {
+      "sourceKind": "markdown",
+      "sourceIdentity": "docs/status.md"
+    }
+  ],
+  "statusSummary": {
+    "done": 1,
+    "open": 3
+  },
+  "evidenceRefs": [
+    "evidence:alpha",
+    "evidence:beta"
+  ],
+  "freshness": {
+    "observationFreshness": {
+      "status": "known",
+      "ageSeconds": 3600,
+      "referenceTimestamp": "2026-03-01T11:00:00Z"
+    },
+    "sourceFreshness": {
+      "status": "unknown"
+    },
+    "evidenceFreshness": {
+      "status": "known",
+      "ageSeconds": 7200,
+      "referenceTimestamp": "2026-03-01T11:00:00Z"
+    },
+    "derivedStateFreshness": {
+      "status": "known",
+      "ageSeconds": 7200,
+      "referenceTimestamp": "2026-03-01T11:00:00Z"
+    },
+    "coverageComplete": false,
+    "coverageGaps": [
+      "docs/archive نادیده",
+      "issues/labels تحلیل‌نشده"
+    ],
+    "schemaVersion": 1
+  },
+  "schemaVersion": 1,
+  "stateFingerprint": "sha256:7f2015b8cb4f9c9c7bf4476aecbea8ef630495040ad9a0dc20cb7028a0ce9bd3",
+  "objective": "Ship the Atlas MVP",
+  "milestones": [
+    {
+      "kind": "milestone",
+      "id": "m-1",
+      "title": "Private alpha",
+      "evidenceRefs": [
+        "evidence:alpha"
+      ],
+      "status": "done"
+    },
+    {
+      "kind": "milestone",
+      "id": "m-2",
+      "title": "Public beta",
+      "evidenceRefs": [
+        "evidence:alpha"
+      ],
+      "status": "open"
+    }
+  ],
+  "tasks": [
+    {
+      "kind": "task",
+      "id": "t-10",
+      "title": "پیاده‌سازی ورود",
+      "evidenceRefs": [
+        "evidence:alpha",
+        "evidence:beta"
+      ],
+      "status": "in progress",
+      "owner": "Sara",
+      "dueDate": "2026-03-15",
+      "priority": "high"
+    }
+  ],
+  "risks": [
+    {
+      "kind": "risk",
+      "id": "r-1",
+      "title": "Auth latency spike",
+      "evidenceRefs": [
+        "evidence:beta"
+      ],
+      "status": "open",
+      "severity": "high",
+      "metadata": {
+        "area": "auth"
+      }
+    }
+  ],
+  "decisions": [
+    {
+      "kind": "decision",
+      "id": "d-1",
+      "title": "Adopt OAuth2",
+      "evidenceRefs": [
+        "evidence:alpha"
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "kind": "dependency",
+      "id": "dep-1",
+      "title": "Identity service",
+      "evidenceRefs": [
+        "evidence:beta"
+      ]
+    }
+  ],
+  "blockers": [
+    {
+      "kind": "blocker",
+      "id": "b-1",
+      "title": "Missing TLS certificate",
+      "evidenceRefs": [
+        "evidence:beta"
+      ],
+      "severity": "critical"
+    }
+  ]
+}

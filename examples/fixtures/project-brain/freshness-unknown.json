@@ -1,0 +1,19 @@
+{
+  "input": {
+    "observationAt": "2026-03-25T00:00:00Z",
+    "sourceUpdatedAts": [null, null],
+    "evidenceChangedAts": [null],
+    "referenceAt": "2026-03-25T12:00:00Z",
+    "coverageGaps": ["issues/labels تحلیل‌نشده", "  docs/archive  نادیده  ", "issues/labels تحلیل‌نشده"]
+  },
+  "policy": { "maxFutureSkewSeconds": 300 },
+  "expected": {
+    "observationFreshness": { "status": "known", "ageSeconds": 43200, "referenceTimestamp": "2026-03-25T12:00:00Z" },
+    "sourceFreshness": { "status": "unknown" },
+    "evidenceFreshness": { "status": "unknown" },
+    "derivedStateFreshness": { "status": "unknown" },
+    "coverageComplete": false,
+    "coverageGaps": ["docs/archive نادیده", "issues/labels تحلیل‌نشده"],
+    "schemaVersion": 1
+  }
+}

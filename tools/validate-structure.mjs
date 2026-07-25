@@ -710,6 +710,108 @@ if (existsSync(PROJECT_BRAIN_GENERATED.ts) && existsSync(PROJECT_BRAIN_GENERATED
   }
 }
 
+// 8c. v0.3 Project Brain (Phase 1) pure Kernel surface. Phase 1 adds the pure,
+// deterministic Kernel module, its integration tests, golden fixtures, and the
+// Phase 1 report. These files must exist; the version stays 0.2.0 (enforced via
+// CANONICAL_VERSION above); the MCP surface stays exactly ten tools; and the
+// binding surface (WASM exports, KernelApi) stays frozen (enforced in
+// validate-boundaries.mjs). No persistence, no application-state write.
+const PROJECT_BRAIN_KERNEL_SOURCES = [
+  "kernel/crate/src/projectbrain/mod.rs",
+  "kernel/crate/src/projectbrain/error.rs",
+  "kernel/crate/src/projectbrain/limits.rs",
+  "kernel/crate/src/projectbrain/normalize.rs",
+  "kernel/crate/src/projectbrain/canonical.rs",
+  "kernel/crate/src/projectbrain/identifiers.rs",
+  "kernel/crate/src/projectbrain/fingerprint.rs",
+  "kernel/crate/src/projectbrain/freshness.rs",
+  "kernel/crate/src/projectbrain/time.rs",
+  "kernel/crate/src/projectbrain/diff.rs",
+];
+for (const file of PROJECT_BRAIN_KERNEL_SOURCES) {
+  if (!existsSync(file)) err(`project brain Phase 1 kernel source missing: ${file}`);
+}
+// lib.rs must expose the pure module.
+if (existsSync("kernel/crate/src/lib.rs")) {
+  const lib = readFileSync("kernel/crate/src/lib.rs", "utf8");
+  if (!lib.includes("pub mod projectbrain;")) {
+    err("kernel/crate/src/lib.rs must declare pub mod projectbrain (Phase 1)");
+  }
+}
+const PROJECT_BRAIN_TEST_SOURCES = [
+  "kernel/crate/tests/projectbrain_normalization.rs",
+  "kernel/crate/tests/projectbrain_identifiers.rs",
+  "kernel/crate/tests/projectbrain_fingerprints.rs",
+  "kernel/crate/tests/projectbrain_freshness.rs",
+  "kernel/crate/tests/projectbrain_diff.rs",
+  "kernel/crate/tests/projectbrain_purity.rs",
+];
+for (const file of PROJECT_BRAIN_TEST_SOURCES) {
+  if (!existsSync(file)) err(`project brain Phase 1 test missing: ${file}`);
+}
+const PROJECT_BRAIN_FIXTURES = [
+  "examples/fixtures/project-brain/state-unordered.json",
+  "examples/fixtures/project-brain/state-normalized.json",
+  "examples/fixtures/project-brain/state-fingerprint.txt",
+  "examples/fixtures/project-brain/snapshot-previous.json",
+  "examples/fixtures/project-brain/snapshot-current.json",
+  "examples/fixtures/project-brain/evidence-previous.json",
+  "examples/fixtures/project-brain/evidence-current.json",
+  "examples/fixtures/project-brain/changes-expected.json",
+  "examples/fixtures/project-brain/freshness-known.json",
+  "examples/fixtures/project-brain/freshness-unknown.json",
+];
+for (const file of PROJECT_BRAIN_FIXTURES) {
+  if (!existsSync(file)) err(`project brain Phase 1 fixture missing: ${file}`);
+}
+if (!existsSync("docs/v0.3/phase-1-kernel.md")) {
+  err("docs/v0.3/phase-1-kernel.md (Phase 1 report) missing");
+}
+// The Kernel crate manifest must remain pinned to the canonical version.
+if (existsSync("kernel/crate/Cargo.toml")) {
+  const cargo = readFileSync("kernel/crate/Cargo.toml", "utf8");
+  if (!new RegExp(`^version = "${CANONICAL_VERSION.replace(/\./g, "\\.")}"`, "m").test(cargo)) {
+    err(`kernel/crate/Cargo.toml version must remain ${CANONICAL_VERSION}`);
+  }
+}
+// The MCP server must declare exactly the ten approved tools, in order. This is a
+// static count/ordering guard complementing the runtime mcp:smoke assertion.
+const MCP_TEN_TOOLS = [
+  "project_brief",
+  "project_risks",
+  "project_next",
+  "project_handoff",
+  "github_project_brief",
+  "github_project_risks",
+  "github_project_next",
+  "github_project_handoff",
+  "provider_status",
+  "github_provider_diagnostics",
+];
+if (existsSync("mcp-server/src/server.ts")) {
+  const server = readFileSync("mcp-server/src/server.ts", "utf8");
+  // Every approved tool name must appear as a quoted string literal (tools are
+  // registered with heterogeneous styles: bare-string first-arg for local tools,
+  // `name: "..."` for GitHub tools). The authoritative ordering assertion is the
+  // runtime mcp:smoke check; here we assert presence and reject any extra
+  // project_*/github_* tool literal that is not in the approved set.
+  for (const name of MCP_TEN_TOOLS) {
+    if (!server.includes(`"${name}"`)) {
+      err(`mcp-server/src/server.ts must register the tool "${name}"`);
+    }
+  }
+  const toolLiterals = new Set(
+    [...server.matchAll(/"((?:project|github)_[a-z_]+)"/g)].map((m) => m[1]),
+  );
+  for (const literal of toolLiterals) {
+    // Ignore stable error/reason identifiers that share the prefix but are not
+    // tool names (they carry a suffix like "_failed"/"_invalid").
+    if (MCP_TEN_TOOLS.includes(literal)) continue;
+    if (/_(failed|invalid|error|required|missing|unavailable)/.test(literal)) continue;
+    err(`mcp-server/src/server.ts registers an unexpected tool literal "${literal}" (Phase 1 keeps exactly ten tools)`);
+  }
+}
+
 // 9 + 10. CI workflow exists. The only release-publishing workflows allowed are
 // the dedicated, manually gated release-v0.1.yml (historical, immutable v0.1.0),
 // release-v0.2-rc.yml (manually gated v0.2 release candidate), and
