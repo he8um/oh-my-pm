@@ -1,17 +1,26 @@
 # Publishing OH MY PM v0.2.0 (stable)
 
+> **Completed — retained as a historical runbook.** Stable `v0.2.0` was
+> published on `2026-07-25T01:04:55Z` through this procedure
+> ([Release v0.2 Stable run 30137413934](https://github.com/he8um/oh-my-pm/actions/runs/30137413934))
+> and is the latest stable release. This guide is preserved as the record of how
+> that publication was performed and as the runbook for future gated releases; it
+> no longer describes a pending action. See
+> [the post-stable closure report](v0.2.0-post-stable-closure.md).
+
 This describes how to publish the **stable** `v0.2.0` release through the
 manually gated `Release v0.2 Stable` workflow
 ([`.github/workflows/release-v0.2.yml`](../../.github/workflows/release-v0.2.yml)).
 
 > **Nothing stable is published by preparing it.** The preparation commit
-> (`chore: prepare v0.2.0 stable`) only promotes the version from `0.2.0-rc.1` to
-> `0.2.0`, finalizes documentation, and adds the gated stable workflow and its
-> static validator. It creates **no** stable tag, GitHub Release, or asset, and
-> publishes to **no** registry. The currently published release remains the
-> `v0.2.0-rc.1` **prerelease**, and the latest **stable** release remains
-> `v0.1.0` until an operator explicitly runs the workflow with `publish=true`,
-> types the exact confirmation, and approves the protected environment.
+> (`chore: prepare v0.2.0 stable`) only promoted the version from `0.2.0-rc.1` to
+> `0.2.0`, finalized documentation, and added the gated stable workflow and its
+> static validator. It created **no** stable tag, GitHub Release, or asset, and
+> published to **no** registry. Until an operator explicitly ran the workflow with
+> `publish=true`, typed the exact confirmation, and approved the protected
+> environment, the published release remained the `v0.2.0-rc.1` **prerelease** and
+> the latest **stable** release remained `v0.1.0`. (That publication has since
+> occurred — see the completion note above.)
 
 ## Purpose
 
@@ -113,6 +122,14 @@ other version is rejected.
 When the publish job starts, it waits in the `github-release` environment for the
 required reviewer to approve the deployment. Approve only after the dry-run
 artifact has been inspected and the checksums independently verified.
+
+> **Runbook note — approving via the REST API.** When approving through the
+> pending-deployments endpoint
+> (`POST /repos/{owner}/{repo}/actions/runs/{run_id}/pending_deployments`),
+> `environment_ids` must be supplied as a **JSON integer array** through
+> `--input`. A form-encoded `environment_ids[]` parameter may silently perform no
+> approval. Stable `v0.2.0` was approved through the normal required-reviewer
+> flow with no administrator bypass.
 
 ## Stable tag/release verification
 

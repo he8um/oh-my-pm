@@ -2,12 +2,12 @@
 
 ## What this version is
 
-This is the `v0.2` line of OH MY PM; the source tree is at version `0.2.0`. Stable `v0.2.0` is prepared but **not yet published** — the currently published, validated prerelease is `v0.2.0-rc.1`, and `v0.1.0` remains the latest **stable** release until `v0.2.0` is published through the manually gated `Release v0.2 Stable` workflow (a separate approval). It is installed from the repository or a release archive, not from a package registry — the workspace packages remain private and unpublished. Installed release archives require only **Node.js 20+**. The CLI and the MCP server are both read-only: they analyze local Markdown project documents (and, only on explicit opt-in, read-only GitHub context) and never modify project files. No project context is uploaded and no telemetry is emitted.
+This is the `v0.2` line of OH MY PM; the source tree is at version `0.2.0`. Stable **`v0.2.0` is published and is the latest stable release** — `v0.2.0-rc.1` is a preserved historical prerelease and `v0.1.0` a preserved historical stable. The `v0.2.0` line is closed and `v0.2.x` is maintenance-only (see [the maintenance policy](releases/v0.2.x-maintenance-policy.md)). It is installed from the repository or a release archive, not from a package registry — the workspace packages remain private and unpublished. Installed release archives require only **Node.js 20+**. The CLI and the MCP server are both read-only: they analyze local Markdown project documents (and, only on explicit opt-in, read-only GitHub context) and never modify project files. No project context is uploaded and no telemetry is emitted.
 
 There are two ways to run OH MY PM:
 
 1. **Repository development installation** — clone, build, and install command shims from the repository (below).
-2. **Stable release archive** — download the published [`v0.1.0`](#installing-the-stable-v010-release) bundle that needs only Node.js 20+. Contributors can also [build a development bundle from `main`](#building-a-development-bundle-from-main).
+2. **Stable release archive** — download the published [`v0.2.0`](#installing-the-stable-v020-release) bundle that needs only Node.js 20+. Contributors can also [build a development bundle from `main`](#building-a-development-bundle-from-main).
 
 ## Requirements
 
@@ -204,30 +204,35 @@ A GitHub tool takes a repository and an optional limit:
 { "repository": "owner/repository", "limit": 50 }
 ```
 
-## Installing the stable v0.1.0 release
+## Installing the stable v0.2.0 release
 
-The stable release is published at:
+The latest stable release is published at:
 
 ```text
-https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0
+https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0
 ```
 
-Stable archive users need only **Node.js 20+** (no Rust or pnpm). Download the three assets, verify the checksums, extract, and run:
+Stable archive users need only **Node.js 20+** (no Rust or pnpm). Download the three assets, verify the checksums, extract, then use the preview-first installer:
 
 ```bash
-sha256sum -c oh-my-pm-v0.1.0-SHA256SUMS.txt   # checksum verification is required
+sha256sum -c oh-my-pm-v0.2.0-SHA256SUMS.txt   # checksum verification is required
 
-tar -xzf oh-my-pm-v0.1.0.tar.gz               # or: unzip oh-my-pm-v0.1.0.zip
-node ./oh-my-pm-v0.1.0/bin/oh-my-pm.mjs status
-node ./oh-my-pm-v0.1.0/bin/oh-my-pm.mjs brief ./project --markdown
-node ./oh-my-pm-v0.1.0/bin/oh-my-pm-mcp.mjs
+tar -xzf oh-my-pm-v0.2.0.tar.gz               # or: unzip oh-my-pm-v0.2.0.zip
+
+# Preview writes nothing and requires an explicit --prefix.
+node ./oh-my-pm-v0.2.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local"
+# Apply installs a versioned, source-independent copy under the prefix.
+node ./oh-my-pm-v0.2.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local" --apply
+
+export PATH="$HOME/.local/bin:$PATH"           # add it yourself; the installer never edits PATH
+oh-my-pm status                                # reports version 0.2.0, kernel 0.2.0
 ```
 
-Each archive expands to a single `oh-my-pm-v0.1.0/` directory. See [the v0.1.0 release notes](releases/v0.1.0.md).
+Each archive expands to a single `oh-my-pm-v0.2.0/` directory. See [the v0.2.0 release notes](releases/v0.2.0.md), [the post-stable closure report](releases/v0.2.0-post-stable-closure.md), and [the v0.2.x maintenance policy](releases/v0.2.x-maintenance-policy.md). The [full self-installer walkthrough](#self-installing-a-v02-development-bundle) covers preview/apply/force semantics and the installed layout. The earlier [`v0.1.0` release](releases/v0.1.0.md) remains available as a preserved historical stable.
 
 ## Building a development bundle from main
 
-The `v0.2` scope is frozen and the source version is `0.2.0` (stable prepared, not yet published; the currently published prerelease is `v0.2.0-rc.1`). Contributors can assemble a self-contained, versioned bundle whose name is derived from `version.json`:
+The `v0.2` scope is frozen and the source version is `0.2.0` (published as the latest stable; the `v0.2.x` line is maintenance-only). Contributors can assemble a self-contained, versioned bundle whose name is derived from `version.json`:
 
 ```bash
 pnpm build
@@ -251,7 +256,7 @@ pnpm release:archives -- --bundle .release/oh-my-pm-v0.2.0 --output .release --a
 pnpm release:archives:check -- --assets .release
 ```
 
-Stable `0.2.0` is not published yet; its assets are prepared locally and published only through the manually gated `Release v0.2 Stable` workflow after a separate approval — see [the stable publishing guide](releases/publishing-v0.2.0.md). The currently published prerelease is `v0.2.0-rc.1`; `v0.1.0` remains the latest stable release with public downloads until then.
+Stable `0.2.0` is published as the latest stable release; these locally assembled bundles produce the same artifact shape. Publication was performed through the manually gated `Release v0.2 Stable` workflow after a separate approval — see [the stable publishing guide](releases/publishing-v0.2.0.md) and [the post-stable closure report](releases/v0.2.0-post-stable-closure.md).
 
 > **Temporary-workspace safety.** Development and verification commands must clean only a uniquely created OH MY PM workspace. Never delete the parent of an installation prefix or the shared system temporary directory. When scripting an end-to-end check, create one owned root (for example `mktemp -d "${TMPDIR:-/tmp}/oh-my-pm-e2e.XXXXXX"`), place every generated path beneath it, and remove only that exact root. Deleting the inferred parent of a generated prefix is unsafe: when the prefix sits directly under the system temp directory, its parent is the shared temp root.
 
@@ -259,7 +264,7 @@ Stable `0.2.0` is not published yet; its assets are prepared locally and publish
 
 There are three distinct ways to run OH MY PM, in increasing independence from a repository checkout:
 
-1. **Stable v0.1.0 manual archive** — download, verify checksums, extract, and run `node ./oh-my-pm-v0.1.0/bin/*.mjs` directly (see above). v0.1 has no installer; its immutable archive predates this feature.
+1. **Stable v0.2.0 archive** — download, verify checksums, extract, and run the shipped preview-first installer (see [Installing the stable v0.2.0 release](#installing-the-stable-v020-release)). The earlier v0.1.0 archive has no installer; run its `node ./oh-my-pm-v0.1.0/bin/*.mjs` entrypoints directly.
 2. **Repository-development install** — from a checkout, `pnpm local:install -- --prefix <prefix> --apply` writes four shims that point back into the repository (see [Apply local installation](#apply-local-installation)).
 3. **v0.2 bundle self-installation** — extract a portable `0.2.0` bundle and run its own installer, which copies a complete, versioned, source-independent installation into an explicit prefix.
 

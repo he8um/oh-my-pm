@@ -4,11 +4,10 @@
 
 It is designed for teams that want clearer delivery context, safer execution boundaries, and repeatable validation around project work.
 
-> **Latest stable release:** [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0)
-> **Currently published prerelease:** [`v0.2.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0-rc.1) (validated)
-> **Source version:** `0.2.0` (stable prepared, not yet published)
+> **Latest stable release:** [`v0.2.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0)
+> **Source version:** `0.2.0` (published; maintenance line `v0.2.x`)
 >
-> The stable `v0.2.0` is prepared on `main`: the source tree is at version `0.2.0` and the stable assets are rehearsed locally, but **no stable `v0.2.0` tag or GitHub Release has been created**. The currently published, post-publication-validated prerelease is `v0.2.0-rc.1`, and `v0.1.0` remains the latest **stable** release until `v0.2.0` is explicitly published through the manually gated `Release v0.2 Stable` workflow (a separate approval). Node.js 20+ is the only runtime requirement for installed archives. Packages remain private; there is no npm package.
+> `v0.2.0` is the latest **stable** release — a non-draft, non-prerelease GitHub Release marked latest, targeting `2bac37a…`, carrying exactly three assets, published through the manually gated `Release v0.2 Stable` workflow after a separate owner approval. [`v0.2.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0-rc.1) remains a preserved historical prerelease and [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) remains a preserved historical stable. The `v0.2.0` line is closed and `v0.2.x` is maintenance-only; see [the post-stable closure report](docs/releases/v0.2.0-post-stable-closure.md) and [the v0.2.x maintenance policy](docs/releases/v0.2.x-maintenance-policy.md). Node.js 20+ is the only runtime requirement for installed archives. Packages remain private; there is no npm package.
 
 ---
 
@@ -126,7 +125,7 @@ The current next-task workflow extracts explicit unchecked Markdown checklist it
 
 ## Getting started locally
 
-The packages are private and repository-based — there is no published release yet. See [the getting-started guide](docs/getting-started.md) for the full walkthrough. The short path is:
+The packages are private and repository-based (there is no registry package), and the latest stable release is [`v0.2.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0). To build from a checkout, see [the getting-started guide](docs/getting-started.md) for the full walkthrough. The short path is:
 
 ```bash
 rustup target add wasm32-unknown-unknown
@@ -148,17 +147,17 @@ oh-my-pm handoff ./project --markdown
 
 Local MCP onboarding is available too — generate a generic stdio client configuration with `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the `0.2.0` source line; installed release archives require only Node.js 20+.
 
-### Latest stable release (v0.1.0)
+### Latest stable release (v0.2.0)
 
-The stable [`v0.1.0` release](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) ships three assets:
+The latest stable [`v0.2.0` release](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0) ships three assets:
 
 ```text
-oh-my-pm-v0.1.0.tar.gz
-oh-my-pm-v0.1.0.zip
-oh-my-pm-v0.1.0-SHA256SUMS.txt
+oh-my-pm-v0.2.0.tar.gz
+oh-my-pm-v0.2.0.zip
+oh-my-pm-v0.2.0-SHA256SUMS.txt
 ```
 
-Stable archive users need only Node.js 20+ (no Rust or pnpm). Download, verify the checksums, extract, and run — see [the v0.1.0 release notes](docs/releases/v0.1.0.md).
+Stable archive users need only Node.js 20+ (no Rust or pnpm). Download, verify the checksums, extract, then use the preview-first installer (see [Self-installation from a v0.2 bundle](#self-installation-from-a-v02-bundle)) — see [the v0.2.0 release notes](docs/releases/v0.2.0.md). The earlier [`v0.1.0` release](docs/releases/v0.1.0.md) remains available as a preserved historical stable.
 
 ### Portable release bundle (development)
 
@@ -171,7 +170,7 @@ node .release/oh-my-pm-v0.2.0/bin/oh-my-pm.mjs status
 node .release/oh-my-pm-v0.2.0/bin/oh-my-pm-mcp.mjs
 ```
 
-The bundle contains the compiled packages, the real Rust/WASM Kernel, the four CLI workflows, the ten read-only MCP tools, deterministic `RELEASE.json` metadata, and `SHA256SUMS`. Stable `v0.2.0` is prepared but not yet published; the stable tag and GitHub Release are created only by the manually gated `Release v0.2 Stable` workflow after a separate approval. The currently published prerelease is `v0.2.0-rc.1`.
+The bundle contains the compiled packages, the real Rust/WASM Kernel, the four CLI workflows, the ten read-only MCP tools, deterministic `RELEASE.json` metadata, and `SHA256SUMS`. This is the development-build path; the published stable `v0.2.0` release provides the same artifact shape and is the recommended install target for users.
 
 ### Deterministic release archives
 
@@ -183,7 +182,7 @@ pnpm release:archives:check -- --assets .release
 pnpm release:archives:repro -- --bundle .release/oh-my-pm-v0.2.0
 ```
 
-Both archives expand to a single `oh-my-pm-v<version>/` directory and re-pass the bundle verifier. The `v0.1.0` GitHub Release was published through the manually gated `Release v0.1` workflow; `v0.2.0-rc.1` was published as a prerelease through `Release v0.2 RC`. No stable `v0.2.0` release exists yet — it is published through `Release v0.2 Stable`; see [the stable publishing guide](docs/releases/publishing-v0.2.0.md).
+Both archives expand to a single `oh-my-pm-v<version>/` directory and re-pass the bundle verifier. The `v0.1.0` GitHub Release was published through the manually gated `Release v0.1` workflow; `v0.2.0-rc.1` was published as a prerelease through `Release v0.2 RC`; the stable `v0.2.0` release was published through `Release v0.2 Stable` — see [the stable publishing guide](docs/releases/publishing-v0.2.0.md) and [the post-stable closure report](docs/releases/v0.2.0-post-stable-closure.md).
 
 ### Self-installation from a v0.2 bundle
 
@@ -213,7 +212,7 @@ oh-my-pm github brief owner/repository --markdown
 "$HOME/.local/bin/oh-my-pm-mcp"
 ```
 
-Installation is preview-first and requires an explicit `--prefix`; `--apply` is required for any write, and `--force` replaces only the exact managed targets (it is not a version-policy engine). The installer never downloads anything, never edits your PATH, shell profiles, or MCP client configuration, and never writes to project files. After a successful apply the installation is independent of the extracted bundle — you may move or delete the archive and extraction directory, and the installed commands (and the whole prefix, if relocated) keep working. The optional `OH_MY_PM_GITHUB_TOKEN` stays environment-only. Until stable publication these `0.2.0` bundles are prepared, not released; the currently published prerelease is `v0.2.0-rc.1`, and stable `v0.1.0` remains manual extraction (its immutable archive predates this installer).
+Installation is preview-first and requires an explicit `--prefix`; `--apply` is required for any write, and `--force` replaces only the exact managed targets (it is not a version-policy engine). The installer never downloads anything, never edits your PATH, shell profiles, or MCP client configuration, and never writes to project files. After a successful apply the installation is independent of the extracted bundle — you may move or delete the archive and extraction directory, and the installed commands (and the whole prefix, if relocated) keep working. The optional `OH_MY_PM_GITHUB_TOKEN` stays environment-only. This is the recommended install path for the published stable `v0.2.0` release; the earlier `v0.1.0` stable is manual extraction (its immutable archive predates this installer).
 
 ## Local project configuration
 

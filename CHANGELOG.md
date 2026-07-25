@@ -2,14 +2,17 @@
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-07-24
+## [0.2.0] - 2026-07-25
 
 Stable `v0.2.0`, consolidating the validated `v0.2.0-rc.1` release candidate.
-Prepared on `main`; the stable tag and GitHub Release are created only by the
-manually gated `Release v0.2 Stable` workflow after a separate explicit
-approval. No feature, command, provider, Skill, MCP tool, Kernel, extraction,
-installer, archive, or runtime behavior changed relative to `v0.2.0-rc.1` — only
-the version string moved from `0.2.0-rc.1` to `0.2.0`.
+Published as the latest stable GitHub Release (tag `v0.2.0` at
+`2bac37a…`, `draft=false`, `prerelease=false`, marked latest, exactly three
+assets, no registry publication) through the manually gated `Release v0.2 Stable`
+workflow after a separate explicit owner approval. No feature, command, provider,
+Skill, MCP tool, Kernel, extraction, installer, archive, or runtime behavior
+changed relative to `v0.2.0-rc.1` — only the version string moved from
+`0.2.0-rc.1` to `0.2.0`. The release line is closed and `v0.2.x` is
+maintenance-only.
 
 ### Added
 
@@ -99,8 +102,9 @@ the version string moved from `0.2.0-rc.1` to `0.2.0`.
 
 - L1 — no conventional CLI `--help` surface (deferred beyond `v0.2.0`).
 - L2 — no installed MCP client-config generator (deferred to distribution/UX).
-- L3 — `github-release` environment required-reviewer governance (remediated as
-  a pre-publication gate; see the stable publishing guide).
+- L3 — `github-release` environment required-reviewer governance (closed:
+  the reviewer gate was exercised for the stable publication run, no
+  administrator bypass).
 - L4 — stale fixture-path reference corrected in current operational
   documentation to the shipped path `examples/markdown-project`.
 
