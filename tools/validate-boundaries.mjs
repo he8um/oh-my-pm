@@ -1353,6 +1353,7 @@ for (const file of trackedFiles) {
 // additional version-consistency gate, existence refusal, and no registry verb.
 const RELEASE_WORKFLOW = ".github/workflows/release-v0.1.yml";
 const RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.2-rc.yml";
+const STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.2.yml";
 
 /** Shared manual-gate policy applied to every dedicated release workflow. */
 function checkReleaseWorkflowCommon(path, confirmation) {
@@ -1432,6 +1433,100 @@ if (rcWf !== null) {
   }
 }
 
+// The v0.2 STABLE workflow adds stable-specific invariants. It is the mirror of
+// the RC workflow with three inversions: it gates on the exact stable version
+// 0.2.0 (never a prerelease suffix), publishes a non-prerelease "latest" release
+// (never --prerelease), and verifies the published release is stable and resolves
+// to releases/latest. It must also gate on the validated RC lineage and keep the
+// RC/v0.1 contracts intact. This static check must reject a stable workflow that
+// weakens any of these.
+const stableWf = checkReleaseWorkflowCommon(STABLE_RELEASE_WORKFLOW, "RELEASE v0.2.0");
+if (stableWf !== null) {
+  // Exact stable version gate on the input (0.2.0, not a prerelease suffix).
+  if (!stableWf.includes('!= "0.2.0"')) {
+    err(`${STABLE_RELEASE_WORKFLOW} must gate on the exact version 0.2.0`);
+  }
+  // It must never accept a different version confirmation string.
+  if (stableWf.includes("RELEASE v0.2.0-rc.1") || stableWf.includes("RELEASE v0.1.0")) {
+    err(`${STABLE_RELEASE_WORKFLOW} must use only the stable confirmation string RELEASE v0.2.0`);
+  }
+  // version.json must be checked against the input version.
+  if (
+    !stableWf.includes("require('./version.json').version") &&
+    !stableWf.includes('require("./version.json").version')
+  ) {
+    err(`${STABLE_RELEASE_WORKFLOW} must verify version.json equals the input version`);
+  }
+  // Stable, never prerelease: it must create the release with --latest and must
+  // never use --prerelease anywhere.
+  if (stableWf.includes("--prerelease")) {
+    err(`${STABLE_RELEASE_WORKFLOW} must never use --prerelease (it is a stable release)`);
+  }
+  if (!stableWf.includes("--latest")) {
+    err(`${STABLE_RELEASE_WORKFLOW} must create the stable release with --latest`);
+  }
+  // The published release must be verified stable (isPrerelease === false).
+  if (!/isPrerelease\s*!==\s*false/.test(stableWf)) {
+    err(`${STABLE_RELEASE_WORKFLOW} must verify the published release isPrerelease === false`);
+  }
+  // Latest-stable verification against releases/latest.
+  if (!stableWf.includes("releases/latest")) {
+    err(`${STABLE_RELEASE_WORKFLOW} must verify releases/latest resolves to the stable tag`);
+  }
+  // Existence refusal before creating tag/release.
+  if (!stableWf.includes("refusing to overwrite")) {
+    err(`${STABLE_RELEASE_WORKFLOW} must refuse when the tag or release already exists`);
+  }
+  // It must gate on the validated RC lineage (the GO decision evidence).
+  if (!stableWf.includes("GO FOR v0.2.0 STABLE PREPARATION")) {
+    err(`${STABLE_RELEASE_WORKFLOW} must gate on the recorded stable GO decision`);
+  }
+  // Exactly the three stable assets are created — and never an RC-named asset.
+  for (const asset of [
+    "oh-my-pm-v0.2.0.tar.gz",
+    "oh-my-pm-v0.2.0.zip",
+    "oh-my-pm-v0.2.0-SHA256SUMS.txt",
+  ]) {
+    if (!stableWf.includes(asset)) {
+      err(`${STABLE_RELEASE_WORKFLOW} must reference the stable asset: ${asset}`);
+    }
+  }
+  for (const rcAsset of [
+    "oh-my-pm-v0.2.0-rc.1.tar.gz",
+    "oh-my-pm-v0.2.0-rc.1.zip",
+    "oh-my-pm-v0.2.0-rc.1-SHA256SUMS.txt",
+  ]) {
+    if (stableWf.includes(rcAsset)) {
+      err(`${STABLE_RELEASE_WORKFLOW} must not publish an RC-named asset: ${rcAsset}`);
+    }
+  }
+  // contents: write must not be granted at the top level or in the prepare job;
+  // only the gated publish job may hold it. The top-level permissions gate is
+  // covered by the common check; here we assert the prepare job stays read-only
+  // by requiring the publish job to declare the sole contents: write permission
+  // key exactly once. Only indented YAML permission keys count — prose mentions
+  // in comments are ignored.
+  const writeKeyCount = (stableWf.match(/^\s+contents: write\s*$/gm) || []).length;
+  if (writeKeyCount !== 1) {
+    err(`${STABLE_RELEASE_WORKFLOW} must grant contents: write exactly once (publish job only)`);
+  }
+  // No registry publication verb of any kind.
+  for (const registryVerb of ["npm publish", "pnpm publish", "cargo publish", "yarn publish"]) {
+    if (stableWf.includes(registryVerb)) {
+      err(`${STABLE_RELEASE_WORKFLOW} must not contain a registry publish verb: "${registryVerb}"`);
+    }
+  }
+}
+
+// The v0.1 and RC workflow contracts must remain byte-stable against the audited
+// baseline: the stable workflow addition must not silently rewrite them. Their
+// confirmation strings and prerelease/latest posture are asserted above; here we
+// re-affirm the RC stays prerelease-only and v0.1 stays latest so the stable
+// workflow cannot be introduced by mutating them.
+if (rcWf !== null && !rcWf.includes("--prerelease")) {
+  err(`${RC_RELEASE_WORKFLOW} must remain a prerelease workflow (--prerelease)`);
+}
+
 // GitHub-Release / tag-publish verbs are confined to the release workflows, their
 // documentation, and their dedicated test/tool scope. No package or general tool
 // source may create tags or GitHub Releases.
@@ -1439,9 +1534,12 @@ const RELEASE_PUBLISH_MARKERS = ["gh release create", "softprops/action-gh-relea
 const RELEASE_PUBLISH_ALLOWED = new Set([
   RELEASE_WORKFLOW,
   RC_RELEASE_WORKFLOW,
+  STABLE_RELEASE_WORKFLOW,
   "docs/releases/publishing-v0.1.0.md",
   "docs/releases/publishing-v0.2.0-rc.1.md",
+  "docs/releases/publishing-v0.2.0.md",
   "docs/releases/v0.1.0.md",
+  "docs/releases/v0.2.0.md",
   "tools/validate-boundaries.mjs",
   "tools/validate-structure.mjs",
 ]);

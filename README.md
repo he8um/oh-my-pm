@@ -5,9 +5,10 @@
 It is designed for teams that want clearer delivery context, safer execution boundaries, and repeatable validation around project work.
 
 > **Latest stable release:** [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0)
-> **Current candidate version:** `0.2.0-rc.1` (prepared, not published)
+> **Currently published prerelease:** [`v0.2.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0-rc.1) (validated)
+> **Source version:** `0.2.0` (stable prepared, not yet published)
 >
-> The first `v0.2` release candidate `0.2.0-rc.1` has been prepared on `main`; the `v0.2` scope is frozen. Nothing is published yet — there is no `v0.2.0-rc.1` tag, GitHub Release, or download, and `v0.1.0` remains the latest stable release until the candidate is explicitly published. Packages remain private; there is no npm package.
+> The stable `v0.2.0` is prepared on `main`: the source tree is at version `0.2.0` and the stable assets are rehearsed locally, but **no stable `v0.2.0` tag or GitHub Release has been created**. The currently published, post-publication-validated prerelease is `v0.2.0-rc.1`, and `v0.1.0` remains the latest **stable** release until `v0.2.0` is explicitly published through the manually gated `Release v0.2 Stable` workflow (a separate approval). Node.js 20+ is the only runtime requirement for installed archives. Packages remain private; there is no npm package.
 
 ---
 
@@ -145,7 +146,7 @@ oh-my-pm next ./project --markdown
 oh-my-pm handoff ./project --markdown
 ```
 
-Local MCP onboarding is available too — generate a generic stdio client configuration with `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is a local alpha, not a public release.
+Local MCP onboarding is available too — generate a generic stdio client configuration with `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the `0.2.0` source line; installed release archives require only Node.js 20+.
 
 ### Latest stable release (v0.1.0)
 
@@ -161,52 +162,58 @@ Stable archive users need only Node.js 20+ (no Rust or pnpm). Download, verify t
 
 ### Portable release bundle (development)
 
-A maintainer can assemble a self-contained, versioned bundle from `main` that runs on Node.js 20+ with no Rust, pnpm, or repository checkout. The bundle name is derived from the canonical version in `version.json` (currently `0.2.0-rc.1`):
+A maintainer can assemble a self-contained, versioned bundle from `main` that runs on Node.js 20+ with no Rust, pnpm, or repository checkout. The bundle name is derived from the canonical version in `version.json` (currently `0.2.0`):
 
 ```bash
 pnpm build
-pnpm release:bundle -- --output .release --apply   # writes .release/oh-my-pm-v0.2.0-rc.1/
-node .release/oh-my-pm-v0.2.0-rc.1/bin/oh-my-pm.mjs status
-node .release/oh-my-pm-v0.2.0-rc.1/bin/oh-my-pm-mcp.mjs
+pnpm release:bundle -- --output .release --apply   # writes .release/oh-my-pm-v0.2.0/
+node .release/oh-my-pm-v0.2.0/bin/oh-my-pm.mjs status
+node .release/oh-my-pm-v0.2.0/bin/oh-my-pm-mcp.mjs
 ```
 
-The bundle contains the compiled packages, the real Rust/WASM Kernel, the four CLI workflows, the four read-only MCP tools, deterministic `RELEASE.json` metadata, and `SHA256SUMS`. `0.2.0-rc.1` bundles are not published until the candidate is explicitly released.
+The bundle contains the compiled packages, the real Rust/WASM Kernel, the four CLI workflows, the ten read-only MCP tools, deterministic `RELEASE.json` metadata, and `SHA256SUMS`. Stable `v0.2.0` is prepared but not yet published; the stable tag and GitHub Release are created only by the manually gated `Release v0.2 Stable` workflow after a separate approval. The currently published prerelease is `v0.2.0-rc.1`.
 
 ### Deterministic release archives
 
 The verified bundle can be packaged into two byte-reproducible archives plus a checksum file:
 
 ```bash
-pnpm release:archives -- --bundle .release/oh-my-pm-v0.2.0-rc.1 --output .release --apply
+pnpm release:archives -- --bundle .release/oh-my-pm-v0.2.0 --output .release --apply
 pnpm release:archives:check -- --assets .release
-pnpm release:archives:repro -- --bundle .release/oh-my-pm-v0.2.0-rc.1
+pnpm release:archives:repro -- --bundle .release/oh-my-pm-v0.2.0
 ```
 
-Both archives expand to a single `oh-my-pm-v<version>/` directory and re-pass the bundle verifier. The `v0.1.0` GitHub Release was published through the manually gated `Release v0.1` workflow; see [the release publication guide](docs/releases/publishing-v0.1.0.md). No `v0.2` release exists yet.
+Both archives expand to a single `oh-my-pm-v<version>/` directory and re-pass the bundle verifier. The `v0.1.0` GitHub Release was published through the manually gated `Release v0.1` workflow; `v0.2.0-rc.1` was published as a prerelease through `Release v0.2 RC`. No stable `v0.2.0` release exists yet — it is published through `Release v0.2 Stable`; see [the stable publishing guide](docs/releases/publishing-v0.2.0.md).
 
-### Self-installation from a v0.2 development bundle
+### Self-installation from a v0.2 bundle
 
-Every portable `0.2.0-rc.1` bundle ships a preview-first installer at `bin/oh-my-pm-install.mjs`. Extract a future `v0.2` archive, preview the installation, then apply it into an explicit prefix:
+Every portable `0.2.0` bundle ships a preview-first installer at `bin/oh-my-pm-install.mjs`. Download and verify the archive, extract it, preview the installation, then apply it into an explicit prefix:
 
 ```bash
-tar -xzf oh-my-pm-v0.2.0-rc.1.tar.gz
-# or: unzip oh-my-pm-v0.2.0-rc.1.zip
+# Verify checksums first (both archives):
+sha256sum --check oh-my-pm-v0.2.0-SHA256SUMS.txt
+
+tar -xzf oh-my-pm-v0.2.0.tar.gz
+# or: unzip oh-my-pm-v0.2.0.zip
 
 # Preview writes nothing.
-node ./oh-my-pm-v0.2.0-rc.1/bin/oh-my-pm-install.mjs --prefix "$HOME/.local"
+node ./oh-my-pm-v0.2.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local"
 
 # Apply installs a versioned, source-independent copy under the prefix.
-node ./oh-my-pm-v0.2.0-rc.1/bin/oh-my-pm-install.mjs --prefix "$HOME/.local" --apply
+node ./oh-my-pm-v0.2.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local" --apply
 
 # Add the prefix bin to PATH yourself — the installer never edits it.
 export PATH="$HOME/.local/bin:$PATH"
 
 oh-my-pm status
 oh-my-pm brief ./project --markdown
-oh-my-pm-mcp
+# GitHub opt-in (read-only, network only when invoked):
+oh-my-pm github brief owner/repository --markdown
+# Installed stdio MCP server (absolute command, ten tools):
+"$HOME/.local/bin/oh-my-pm-mcp"
 ```
 
-Installation is preview-first and requires an explicit `--prefix`; `--apply` is required for any write, and `--force` replaces only the exact managed targets (it is not a version-policy engine). The installer never downloads anything, never edits your PATH, shell profiles, or MCP client configuration, and never writes to project files. After a successful apply the installation is independent of the extracted bundle — you may move or delete the archive and extraction directory, and the installed commands (and the whole prefix, if relocated) keep working. This is unreleased development tooling, not a public release. Stable `v0.1.0` remains manual extraction (its immutable archive predates this installer).
+Installation is preview-first and requires an explicit `--prefix`; `--apply` is required for any write, and `--force` replaces only the exact managed targets (it is not a version-policy engine). The installer never downloads anything, never edits your PATH, shell profiles, or MCP client configuration, and never writes to project files. After a successful apply the installation is independent of the extracted bundle — you may move or delete the archive and extraction directory, and the installed commands (and the whole prefix, if relocated) keep working. The optional `OH_MY_PM_GITHUB_TOKEN` stays environment-only. Until stable publication these `0.2.0` bundles are prepared, not released; the currently published prerelease is `v0.2.0-rc.1`, and stable `v0.1.0` remains manual extraction (its immutable archive predates this installer).
 
 ## Local project configuration
 
@@ -294,7 +301,24 @@ client-config generator never inserts secrets. The server never modifies files,
 never uploads local project context, uses no telemetry, and exposes no HTTP
 endpoint.
 
-A generic local MCP client configuration:
+For an installed release, use the installed server's **absolute** command with
+empty `args` (this is the recommended form for release users):
+
+```json
+{
+  "mcpServers": {
+    "oh-my-pm": {
+      "command": "/absolute/path/to/prefix/bin/oh-my-pm-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+Replace the placeholder with your installed `<prefix>/bin/oh-my-pm-mcp` path. The
+optional `OH_MY_PM_GITHUB_TOKEN` is supplied only through the server process
+environment, never inside this configuration. For a repository build, run the
+server directly instead:
 
 ```json
 {
@@ -308,8 +332,6 @@ A generic local MCP client configuration:
   }
 }
 ```
-
-Replace the placeholder with your local repository path.
 
 ---
 

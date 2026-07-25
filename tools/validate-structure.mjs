@@ -638,19 +638,28 @@ for (const file of REQUIRED_GENERATED) {
 }
 
 // 9 + 10. CI workflow exists. The only release-publishing workflows allowed are
-// the dedicated, manually gated release-v0.1.yml (historical, immutable v0.1.0)
-// and release-v0.2-rc.yml (manually gated v0.2 release candidate). No other
-// workflow may contain npm-publish or GitHub-Release markers, and no other
-// workflow may be release-named.
+// the dedicated, manually gated release-v0.1.yml (historical, immutable v0.1.0),
+// release-v0.2-rc.yml (manually gated v0.2 release candidate), and
+// release-v0.2.yml (manually gated v0.2 stable). No other workflow may contain
+// npm-publish or GitHub-Release markers, and no other workflow may be
+// release-named.
 const workflowsDir = ".github/workflows";
 if (!existsSync(join(workflowsDir, "ci.yml"))) {
   err(".github/workflows/ci.yml missing");
 }
 const RELEASE_MARKERS = ["npm publish", "softprops/action-gh-release"];
-const ALLOWED_RELEASE_WORKFLOWS = new Set(["release-v0.1.yml", "release-v0.2-rc.yml"]);
+const ALLOWED_RELEASE_WORKFLOWS = new Set([
+  "release-v0.1.yml",
+  "release-v0.2-rc.yml",
+  "release-v0.2.yml",
+]);
 // The v0.2 RC release workflow must exist.
 if (!existsSync(join(workflowsDir, "release-v0.2-rc.yml"))) {
   err(".github/workflows/release-v0.2-rc.yml missing");
+}
+// The v0.2 stable release workflow must exist.
+if (!existsSync(join(workflowsDir, "release-v0.2.yml"))) {
+  err(".github/workflows/release-v0.2.yml missing");
 }
 if (existsSync(workflowsDir)) {
   for (const name of readdirSync(workflowsDir)) {

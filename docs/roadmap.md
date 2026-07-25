@@ -101,7 +101,7 @@
 - `handoff [root]`: local Markdown project directory to a deterministic project handoff (project title, Summary, Open Tasks, Risks, Decisions) through the createHandoff skill, with objective/active/milestone summary, unchecked-task, blocker/constraint risk, and decision extraction (in place)
 - Local project configuration: optional strict root-level `oh-my-pm.config.json` (JSON only, no upward search, no code execution, no environment reads), read through an explicit read-only Node boundary (in place)
 - Include/exclude document rules: dependency-free `*`/`?`/`**` glob subset with exclude precedence, case-sensitive matching, safety limits that may only lower loader defaults, and scanned/matched/excluded/loaded counts, shared by all four workflows (in place)
-- Example project fixture: public fictional Markdown project under `examples/fixtures/markdown-project`, with an example config and excluded sentinel documents (in place)
+- Example project fixture: public fictional Markdown project (source tree `examples/fixtures/markdown-project`, shipped in the release bundle at `examples/markdown-project`), with an example config and excluded sentinel documents (in place)
 - Read-only MCP stdio server: private `@oh-my-pm/mcp-server` package exposing `project_brief`, `project_risks`, `project_next`, and `project_handoff` over stdio, reusing the CLI config/loader/request/formatter surfaces and the Runtime/Planner/Skills/local-provider/real-WASM pipeline, with strict public structured-result projections and no HTTP, telemetry, or write tools (in place)
 - Local preview-first command installation: `tools/install-local.mjs` writes stable `oh-my-pm` and `oh-my-pm-mcp` shims (POSIX + `.cmd`) only under an explicit `<prefix>/bin`, preview by default, `--apply`/`--force` gated, atomic, with no PATH, shell-profile, or client-config edits (in place)
 - Local install verification: read-only `tools/check-local-install.mjs` exercises the installed CLI (status + fixture brief) and the installed MCP command over stdio (tool list + `project_brief`) (in place)
@@ -127,7 +127,7 @@ in place (see Phase 5B).
 
 ## Phase 5B — v0.2 development
 
-- development baseline opened at `0.2.0-alpha.0`; candidate version now `0.2.0-rc.1` (v0.2 scope frozen)
+- development baseline opened at `0.2.0-alpha.0`; candidate `0.2.0-rc.1` published and validated; source version now `0.2.0` (stable prepared, not yet published; v0.2 scope frozen)
 - self-describing version/bundle/archive verification (in place)
 - archive-native preview-first installation from an extracted verified release bundle (in place)
 - GitHub read-only provider (in place)
@@ -143,8 +143,9 @@ in place (see Phase 5B).
 - `0.2.0-rc.1` prepared: version promoted across manifests/runtime/Kernel, v0.2 scope frozen, RC release notes + publishing guide added, manually gated `Release v0.2 RC` workflow added, RC bundle/archives rehearsed locally
 - `0.2.0-rc.1` published: the manually gated `Release v0.2 RC` workflow was run at `fd03cce…` (dry run `publish=false`, then `publish=true` with the exact confirmation) to create the immutable GitHub **prerelease** (tag `v0.2.0-rc.1`, `draft=false`, `prerelease=true`, exactly three assets). Latest stable remains `v0.1.0`; no stable `v0.2.0` and no registry publication
 - `0.2.0-rc.1` post-publication validation: the published prerelease was validated from the public GitHub Release (artifact verification, installation UX, source independence and relocation, the four local workflows on three project shapes, the strict configuration matrix, tokenless live GitHub read-only flows, and all ten stdio MCP tools) — all passed with no Blocker/High/Medium defects. Decision: **GO for stable preparation** (Low-only findings, documented follow-up). See docs/releases/v0.2.0-rc.1-post-publication-validation.md
+- `0.2.0` stable prepared: version promoted from `0.2.0-rc.1` to `0.2.0` across `version.json`, all workspace manifests, runtime version constants, and the Rust/WASM Kernel (source diffs limited to version constants); stable release notes finalized (docs/releases/v0.2.0.md); a manually gated `Release v0.2 Stable` workflow (.github/workflows/release-v0.2.yml) and its static policy validator added; the stable bundle/archives/install were rehearsed locally (preview, apply, source removal, prefix relocation, installed ten-tool MCP). No Blocker/High/Medium findings. **The stable tag and GitHub Release are not created** — publication is a separate, explicitly approved step. L4 corrected (current operational docs use the shipped fixture path `examples/markdown-project`); L1 (no CLI `--help`) and L2 (no installed MCP config generator) deferred.
 
-Governance follow-up recommended before stable: add a required reviewer to the `github-release` environment (the RC publication run completed without a manual approval gate because none is configured). Next action: prepare stable `v0.2.0` only via separate, explicit approval. Timeline events, aliases/profiles, and write-back remain deferred beyond v0.2.
+Governance (L3): the `github-release` environment now has a required reviewer (`he8um`, type User) alongside its preserved custom `main` branch policy, so a stable publication run pauses for a manual approval gate. `prevent_self_review` stays `false` because a single administrator must be able to approve. This settings change created no repository commit. Next action: a stable workflow **dry run** (`Release v0.2 Stable`, `version: 0.2.0`, `publish: false`, empty confirmation) — only under a separate, explicit approval. Timeline events, aliases/profiles, and write-back remain deferred beyond v0.2.
 
 ## Phase 6 — Release lifecycle
 

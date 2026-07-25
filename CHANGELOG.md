@@ -2,9 +2,114 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-24
+
+Stable `v0.2.0`, consolidating the validated `v0.2.0-rc.1` release candidate.
+Prepared on `main`; the stable tag and GitHub Release are created only by the
+manually gated `Release v0.2 Stable` workflow after a separate explicit
+approval. No feature, command, provider, Skill, MCP tool, Kernel, extraction,
+installer, archive, or runtime behavior changed relative to `v0.2.0-rc.1` — only
+the version string moved from `0.2.0-rc.1` to `0.2.0`.
+
+### Added
+
+- Read-only, explicitly opt-in GitHub provider for repository metadata, issues,
+  and pull requests: `GET`-only against a fixed `api.github.com` origin, fixed
+  REST API version, single page per request, optional environment-only token.
+- GitHub-backed `brief`, `risks`, `next`, and `handoff` workflows in the CLI
+  (`github …`) and MCP (`github_project_*`).
+- Six explicit GitHub source modes: `overview`, `repository`, `issues`,
+  `pull-requests`, a single `item` (issue/PR with type auto-detection), and
+  repository-scoped `search`, each with `open`/`closed`/`all` state and search
+  `kind` filtering.
+- Bounded, default-disabled GitHub item comments for the `item` source
+  (`--include-comments`/`--comment-limit`, and `includeComments`/`commentLimit`
+  in MCP): one page of at most 50 ordinary issue/PR conversation comments.
+- Bounded, default-disabled pull-request review submissions and inline review
+  comments for a pull-request `item` (`--include-reviews`/`--review-limit`,
+  `--include-review-comments`/`--review-comment-limit`, and the corresponding
+  MCP options): one page of at most 20 each.
+- Source-aware, line-level deterministic risk, next-task, and decision
+  extraction for Markdown and GitHub context, with English and Persian headings
+  and markers.
+- Strict read-only provider configuration (`providers.json`) with optional
+  GitHub defaults and enable/disable control; offline `providers status` and an
+  explicitly confirmed `providers doctor` diagnostic.
+- MCP `provider_status` and `github_provider_diagnostics` tools, for an exact
+  ten-tool stdio surface.
+- Portable release bundles ship a preview-first self-installer that creates a
+  versioned, source-independent, relocatable local installation under an
+  explicit prefix.
+
+### Changed
+
+- GitHub CLI and MCP workflows route through a single strict source-selection
+  model while preserving the default `overview` + `open` behavior.
+- Provider, Runtime, CLI, and MCP execution boundaries are asynchronous to
+  support real read-only network providers; local workflows stay offline.
+- Risk and next-task output includes optional public provenance, ownership,
+  due-date, and priority metadata; GitHub item summaries report sanitized review
+  and review-comment metadata without exposing bodies, diff hunks, or commit
+  identifiers.
+- Live GitHub CLI and MCP workflows read the current time once at the
+  process/tool-call boundary; local workflows keep a fixed deterministic clock.
+- Centralized the GitHub list limit constants (minimum 1, default 50, maximum
+  100) into one canonical source; behavior-preserving.
+- Generalized version, bundle, and archive verification around self-describing
+  metadata.
+
+### Hardening and validation
+
+- Cross-platform release-install CI parity: the Windows release-install job
+  (like the POSIX job) verifies a release installation survives deleting the
+  extracted source bundle and moving the complete installed prefix, re-running
+  the installed CLI and read-only installed-state verification (which exercises
+  the installed MCP) after each operation.
+- Controlled, read-only live GitHub smoke through the installed portable
+  artifact: tokenless provider/CLI flows and the installed stdio MCP live
+  workflows (all four GitHub tools, exact ten-tool order) passed with bounded,
+  sanitized projections and no forbidden discussion data.
+- Post-publication validation of the published `v0.2.0-rc.1` prerelease from its
+  public assets passed with no Blocker/High/Medium defects and a GO decision for
+  stable preparation.
+
+### Fixed
+
+- Portable release bundle assembly stages the complete generated Kernel binding
+  consistently across Windows and POSIX, closing a Windows-only packaging gap
+  where the generated Node WASM glue file was omitted.
+- Release installation verification is platform-aware: POSIX executable-mode
+  bits are required on Linux and macOS but not on Windows, so Windows installs
+  no longer fail with `post_install_verification_failed`.
+- The read-only installed-state verifier launches the installed runtime safely
+  on Windows by invoking the `.mjs` entrypoints directly with the Node
+  executable (no shell), while POSIX continues to use the installed shims.
+
+### Security and privacy
+
+- No project file writes; no context upload; no telemetry; stdio-only MCP
+  transport; no HTTP MCP transport.
+- GitHub access is explicit, read-only, and `GET`-only; the optional token is
+  environment-only and never printed, persisted, or accepted as an argument.
+- No raw comment/review/review-comment bodies, diff hunks, or commit identifiers
+  are exposed through the MCP projections.
+- All packages remain private; no registry publication.
+
+### Known non-blocking follow-ups
+
+- L1 — no conventional CLI `--help` surface (deferred beyond `v0.2.0`).
+- L2 — no installed MCP client-config generator (deferred to distribution/UX).
+- L3 — `github-release` environment required-reviewer governance (remediated as
+  a pre-publication gate; see the stable publishing guide).
+- L4 — stale fixture-path reference corrected in current operational
+  documentation to the shipped path `examples/markdown-project`.
+
 ## [0.2.0-rc.1] - 2026-07-24
 
-First `v0.2` release candidate (prerelease). Prepared on `main`; not published.
+First `v0.2` release candidate. Prepared on `main` and subsequently published as
+an immutable GitHub prerelease (tag `v0.2.0-rc.1`, `draft=false`,
+`prerelease=true`); the latest stable release remained `v0.1.0` and no registry
+artifact was published.
 
 ### Added
 
@@ -73,5 +178,6 @@ First `v0.2` release candidate (prerelease). Prepared on `main`; not published.
 - No HTTP MCP transport
 - No external provider integration in v0.1.0
 
-[Unreleased]: https://github.com/he8um/oh-my-pm/compare/v0.2.0-rc.1...HEAD
+[Unreleased]: https://github.com/he8um/oh-my-pm/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/he8um/oh-my-pm/compare/v0.1.0...v0.2.0
 [0.2.0-rc.1]: https://github.com/he8um/oh-my-pm/compare/v0.1.0...v0.2.0-rc.1
