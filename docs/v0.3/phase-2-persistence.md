@@ -111,9 +111,26 @@ never persisted.
 The internal `ProjectStoreManifest` carries `storeFormatVersion`,
 `projectBrainSchemaVersion`, `projectId`, `projectKey`, `createdAt`,
 `updatedAt`, `latestSnapshotId`, `snapshotIds`, `evidenceIds`,
-`migrationHistory`, and `integrity`. Store format is `1`, Project Brain schema is
-`1`, the latest snapshot must exist in `snapshotIds`, timestamps are
-caller-provided RFC3339, and no project path, secret, or raw content is stored.
+`migrationHistory`, and `integrity`. As of the Phase 4.1 chronology correction
+the internal store format is **2**; the Project Brain schema stays `1`; the
+latest snapshot must exist in `snapshotIds`; timestamps are caller-provided
+RFC3339; and no project path, secret, or raw content is stored.
+
+Store format 2 adds an authoritative capture chronology — `snapshotHistory` (an
+oldest-first list of `{ snapshotId, capturedAt, sequence }` with a contiguous
+`sequence` `1..N`) and `snapshotChronologyOrigin` (`native` or `recoveredV1`) —
+both covered by the manifest integrity digest. `snapshotIds` remains a
+deterministic, lexically sorted **inventory** (used for inventory / integrity /
+export), never the chronology; `latestSnapshotId` must equal the final
+`snapshotHistory` entry. `listSnapshots` derives its order exclusively from
+`snapshotHistory`. See
+[phase-4-1-snapshot-chronology.md](phase-4-1-snapshot-chronology.md).
+
+A v2 manifest may reference immutable record envelopes written under store format
+1 or 2 (mixed-envelope compatibility): each envelope is integrity-verified under
+its own declared version/shape, an envelope newer than the reader is rejected,
+supported older envelopes are accepted, and no record payload is ever rewritten
+merely to change chronology.
 
 Each immutable record envelope carries `recordType` (`snapshot`/`evidence`),
 `storeFormatVersion`, `projectBrainSchemaVersion`, `projectId`, `recordId`,
@@ -193,13 +210,17 @@ followed.
 Migrations are ordered one-version steps under the project lock: the source is
 verified, a backup is taken (never auto-deleted), the target is committed
 atomically, the target is verified, and completed steps are recorded in the
-manifest history. `CURRENT_STORE_FORMAT_VERSION = 1` and
+manifest history. As of Phase 4.1, `CURRENT_STORE_FORMAT_VERSION = 2` and
 `SUPPORTED_PROJECT_BRAIN_SCHEMA_VERSION = 1`. Behavior: a missing store means no
-prior memory; version 1 is supported; version > 1 is unsupported-newer; version
-< 1 requires migration; a schema version != 1 is incompatible. No production
-migration is required for the first format; the mechanism is proven with a
-synthetic, test-only `0 → 1` migration. Format 0 is a test-only, never-released
-format. Migration never runs automatically during a read.
+prior memory; version 2 is supported; version > 2 is unsupported-newer; version
+< 2 requires migration; a schema version != 1 is incompatible. One real
+**production** migration `1 → 2` is registered (wired into the Node adapter's
+default registry); it recovers the best deterministic capture chronology a v1
+store can yield — see
+[phase-4-1-snapshot-chronology.md](phase-4-1-snapshot-chronology.md). The
+mechanism is additionally exercised by a synthetic, test-only `0 → 1` step
+(format 0 is a test-only, never-released format). Migration never runs
+automatically during a read.
 
 ## Export
 

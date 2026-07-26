@@ -18,10 +18,21 @@ import type {
   ProjectMemoryPort,
 } from "@oh-my-pm/runtime";
 
+/**
+ * A stored snapshot summary as the real Phase 2 store returns it — the runtime
+ * port's `MemorySnapshotSummary` plus the v2 chronology fields (`capturedAt`,
+ * `sequence`). Structurally assignable to the narrower runtime summary, so it
+ * flows through the preview port unchanged.
+ */
+export interface StoredSnapshotSummaryLike extends MemorySnapshotSummary {
+  readonly capturedAt: string;
+  readonly sequence: number;
+}
+
 /** The read subset of the real store this preview port delegates to. */
 export interface PreviewMemoryStoreReads {
   readManifest(projectId: string): Promise<MemoryManifest | null>;
-  listSnapshots(projectId: string): Promise<MemorySnapshotSummary[]>;
+  listSnapshots(projectId: string): Promise<StoredSnapshotSummaryLike[]>;
   readSnapshot(projectId: string, snapshotId: string): Promise<ProjectSnapshot>;
   readEvidence(projectId: string, evidenceId: string): Promise<EvidenceRecord>;
 }

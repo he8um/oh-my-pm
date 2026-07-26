@@ -2455,6 +2455,135 @@ if (trackedFiles.includes("tools/release-bundle-utils.mjs")) {
   }
 }
 
+// 9h. v0.3 Phase 4.1 snapshot-capture chronology guards. The correction adds an
+// authoritative capture chronology to the Project Memory manifest (store format
+// v2) and makes the default comparison use real capture order. These assertions
+// fail closed if the chronology invariants, the production migration, the
+// read-safety of migration, the capture-only --migrate-store scope, or the
+// removal of the Runtime lexical fallback are regressed.
+//
+// The internal store format version is exactly 2; the Project Brain schema stays 1.
+if (trackedFiles.includes("project-memory/src/types.ts")) {
+  const types = readFileSync("project-memory/src/types.ts", "utf8");
+  if (!/CURRENT_STORE_FORMAT_VERSION\s*=\s*2\s+as const;/.test(types)) {
+    err("project-memory/src/types.ts must set CURRENT_STORE_FORMAT_VERSION = 2 (Phase 4.1)");
+  }
+  if (!/SUPPORTED_PROJECT_BRAIN_SCHEMA_VERSION\s*=\s*1\s+as const;/.test(types)) {
+    err("project-memory/src/types.ts must keep SUPPORTED_PROJECT_BRAIN_SCHEMA_VERSION = 1");
+  }
+  // The manifest carries the chronology fields; snapshotIds stays inventory.
+  for (const needle of ["snapshotHistory", "snapshotChronologyOrigin", "SnapshotHistoryEntry"]) {
+    if (!types.includes(needle)) {
+      err(`project-memory/src/types.ts must declare the chronology surface "${needle}"`);
+    }
+  }
+}
+// The manifest integrity body must cover the chronology fields, and the store
+// commit must derive the chronology from the snapshot's own capturedAt (never a
+// system clock). The store's listSnapshots must derive from snapshotHistory, not
+// from the snapshotIds lexical order.
+if (trackedFiles.includes("project-memory/src/manifest.ts")) {
+  const manifest = readFileSync("project-memory/src/manifest.ts", "utf8");
+  if (!manifest.includes("snapshotHistory") || !manifest.includes("snapshotChronologyOrigin")) {
+    err("project-memory/src/manifest.ts integrity body must cover the chronology fields");
+  }
+  if (!manifest.includes("assertManifestChronology")) {
+    err("project-memory/src/manifest.ts must enforce the chronology invariants");
+  }
+}
+if (trackedFiles.includes("project-memory/src/store.ts")) {
+  const store = readFileSync("project-memory/src/store.ts", "utf8");
+  if (!/manifest\.snapshotHistory/.test(store)) {
+    err("project-memory/src/store.ts listSnapshots must derive order from snapshotHistory");
+  }
+  // The chronology capturedAt is the snapshot payload's own, never a clock read.
+  if (!store.includes("requireSnapshotCapturedAt")) {
+    err("project-memory/src/store.ts must take the chronology capturedAt from the snapshot payload");
+  }
+  for (const marker of ["Date.now", "new Date(", "referenceNow(", "this.fs.referenceNow"]) {
+    if (store.includes(marker)) {
+      err(`project-memory/src/store.ts must not read a system clock for chronology ("${marker}")`);
+    }
+  }
+}
+// A real production migration 1 -> 2 exists and is registered in the default
+// production registry; the migration transform re-derives the recovered
+// chronology deterministically.
+if (trackedFiles.includes("project-memory/src/migrations.ts")) {
+  const migrations = readFileSync("project-memory/src/migrations.ts", "utf8");
+  if (!migrations.includes("migration1to2") || !migrations.includes("defaultMigrationRegistry")) {
+    err("project-memory/src/migrations.ts must export migration1to2 and defaultMigrationRegistry");
+  }
+  if (!/fromStoreFormatVersion:\s*1[\s\S]{0,60}toStoreFormatVersion:\s*2/.test(migrations)) {
+    err("project-memory/src/migrations.ts must register a 1 -> 2 production migration");
+  }
+  if (!migrations.includes("recoveredV1")) {
+    err("project-memory/src/migrations.ts 1 -> 2 migration must mark the origin recoveredV1");
+  }
+}
+// The default production registry is wired into the Node adapter (so a real v1
+// store can be migrated), but migration is NEVER triggered by a read path.
+if (trackedFiles.includes("project-memory/src/node-adapter.ts")) {
+  const adapter = readFileSync("project-memory/src/node-adapter.ts", "utf8");
+  if (!adapter.includes("defaultMigrationRegistry")) {
+    err("project-memory/src/node-adapter.ts must wire the default production migration registry");
+  }
+}
+// Read paths must not call migrateProject: migration is explicit only. readManifest,
+// listSnapshots, readSnapshot, readEvidence, inspect, and verify never migrate.
+if (trackedFiles.includes("project-memory/src/store.ts")) {
+  const store = readFileSync("project-memory/src/store.ts", "utf8");
+  const readBodies = [
+    "async readManifest(",
+    "async listSnapshots(",
+    "async readSnapshot(",
+    "async readEvidence(",
+    "async inspect(",
+    "async verify(",
+  ];
+  for (const head of readBodies) {
+    const start = store.indexOf(head);
+    if (start === -1) continue;
+    // Scan a bounded slice of each read method body for a migration trigger.
+    const slice = store.slice(start, start + 2400);
+    if (/\bawait this\.(migrateProject|applyMigrationPlan)\(/.test(slice)) {
+      err(`project-memory/src/store.ts read method "${head.trim()}" must not trigger a migration`);
+    }
+  }
+}
+// --migrate-store exists ONLY on memory capture. The parser gates it to capture;
+// no other subcommand accepts it.
+if (trackedFiles.includes("cli/src/memory-parser.ts")) {
+  const parser = readFileSync("cli/src/memory-parser.ts", "utf8");
+  if (!parser.includes("--migrate-store")) {
+    err("cli/src/memory-parser.ts must define the --migrate-store option");
+  }
+  if (!/--migrate-store is only valid for capture/.test(parser)) {
+    err("cli/src/memory-parser.ts must gate --migrate-store to capture only");
+  }
+}
+if (trackedFiles.includes("cli/src/memory-types.ts")) {
+  const memTypes = readFileSync("cli/src/memory-types.ts", "utf8");
+  // migrateStore lives on the capture command shape only.
+  if (!/MemoryCaptureCommand\s*=\s*[\s\S]{0,900}migrateStore/.test(memTypes)) {
+    err("cli/src/memory-types.ts must carry migrateStore on the capture command only");
+  }
+}
+// The Runtime default compare must NOT contain a lexical-order fallback and must
+// use the memory chronology (listSnapshots), selecting the immediate predecessor.
+if (trackedFiles.includes("runtime/src/projectbrain/compare.ts")) {
+  const compare = readFileSync("runtime/src/projectbrain/compare.ts", "utf8");
+  if (/lexical/i.test(compare) && !/NOT a lexical|not a lexical|no lexical-order fallback/i.test(compare)) {
+    err("runtime/src/projectbrain/compare.ts must not reintroduce a lexical-order selection");
+  }
+  if (/Fall back to the last two ids in stored order/.test(compare)) {
+    err("runtime/src/projectbrain/compare.ts must not keep the lexical-order fallback heuristic");
+  }
+  if (!compare.includes("listSnapshots")) {
+    err("runtime/src/projectbrain/compare.ts default selection must use the capture chronology");
+  }
+}
+
 if (fail) {
   console.error("validate-boundaries: FAILED");
   process.exit(1);

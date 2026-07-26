@@ -100,7 +100,29 @@ oh-my-pm memory history . --data-dir ./.oh-my-pm-data --limit 20
 ```
 
 `status` reports `healthy` (or `noPriorMemory`, `corrupt`, …) with snapshot and
-evidence counts. `history` lists snapshots newest-first, marking the latest.
+evidence counts. `history` lists snapshots **newest capture first** — real
+capture order (each record carries its `capturedAt` and a 1-based `sequence`),
+not a content-derived ID order — marking the latest and reporting the store's
+`chronologyOrigin` (`native`, or `recoveredV1` for a migrated store). See
+[phase-4-1-snapshot-chronology.md](phase-4-1-snapshot-chronology.md).
+
+### Migrating an older store
+
+A store written before the chronology correction (internal store format 1) must
+be migrated to format 2 before a capture. Migration is explicit and never runs on
+a read:
+
+```
+# Preview only — reports that a v1 store would migrate; writes nothing:
+oh-my-pm memory capture . --data-dir ./.oh-my-pm-data --migrate-store
+
+# Migrate once, then capture once:
+oh-my-pm memory capture . --data-dir ./.oh-my-pm-data --apply --migrate-store
+```
+
+`memory capture --apply` against a v1 store without `--migrate-store` exits `4`
+(migration required) and writes nothing. `--migrate-store` is valid only for
+`capture`.
 
 ## 6. Compare the latest two snapshots
 

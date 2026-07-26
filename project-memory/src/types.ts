@@ -16,8 +16,16 @@ export type JsonValue =
 /** A JSON object the store may persist. */
 export type JsonObject = { readonly [key: string]: JsonValue };
 
-/** Current on-disk store format version. Distinct from the Project Brain schema. */
-export const CURRENT_STORE_FORMAT_VERSION = 1 as const;
+/**
+ * Current on-disk store format version. Distinct from the Project Brain schema.
+ *
+ * v2 adds an authoritative capture chronology to the manifest (see
+ * `SnapshotHistoryEntry` and `ProjectStoreManifest.snapshotHistory`). Store
+ * format 1 manifests carry no chronology; they are migrated to v2 through the
+ * explicit production `1 -> 2` migration and never on a read. The application-
+ * data directory namespace/path is unchanged by this format advance.
+ */
+export const CURRENT_STORE_FORMAT_VERSION = 2 as const;
 
 /** The only supported Project Brain schema version in this store format. */
 export const SUPPORTED_PROJECT_BRAIN_SCHEMA_VERSION = 1 as const;
@@ -52,6 +60,30 @@ export type RecordType = "snapshot" | "evidence";
 /** An integrity descriptor: `sha256:<64 lowercase hex>`. */
 export type IntegrityDigest = string;
 
+/**
+ * One authoritative capture-chronology entry (store format v2). Entries are
+ * ordered oldest capture first with a contiguous `sequence` starting at 1. The
+ * `capturedAt` mirrors the persisted Snapshot payload's own `capturedAt`; the
+ * authoritative order is `sequence`, never a lexical id order and never a fresh
+ * clock read.
+ */
+export interface SnapshotHistoryEntry {
+  readonly snapshotId: string;
+  /** Must equal the persisted Snapshot payload's capturedAt (caller-injected). */
+  readonly capturedAt: string;
+  /** Contiguous 1-based capture ordinal; the authoritative chronology. */
+  readonly sequence: number;
+}
+
+/**
+ * How a manifest's chronology came to be. `native` for a store created under
+ * store format v2. `recoveredV1` for a store migrated from v1, where the exact
+ * relative order of older captures could not always be reconstructed; the flag
+ * remains `recoveredV1` for the life of the store, including after later v2
+ * captures append exact entries.
+ */
+export type SnapshotChronologyOrigin = "native" | "recoveredV1";
+
 /** One recorded migration step in a project's history. */
 export interface MigrationHistoryEntry {
   readonly fromStoreFormatVersion: number;
@@ -76,10 +108,30 @@ export interface ProjectStoreManifest {
   readonly projectKey: string;
   readonly createdAt: string;
   readonly updatedAt: string;
-  /** Latest snapshot id; must appear in snapshotIds. Null before any commit. */
+  /**
+   * Latest snapshot id; must appear in snapshotIds. Null before any commit.
+   * In store format v2 it must equal the final `snapshotHistory` entry, and is
+   * null only when `snapshotHistory` is empty.
+   */
   readonly latestSnapshotId: string | null;
+  /**
+   * Deterministic inventory of unique committed Snapshot ids. May remain
+   * lexicographically sorted for inventory/integrity/export behavior. NOT the
+   * chronology — see `snapshotHistory`.
+   */
   readonly snapshotIds: readonly string[];
   readonly evidenceIds: readonly string[];
+  /**
+   * Authoritative capture chronology (store format v2). Oldest capture first,
+   * contiguous `sequence` 1..N. Absent on a store format v1 manifest (read only
+   * during migration); always present on a v2 manifest.
+   */
+  readonly snapshotHistory?: readonly SnapshotHistoryEntry[];
+  /**
+   * Chronology provenance (store format v2). Absent on a v1 manifest; always
+   * present on a v2 manifest.
+   */
+  readonly snapshotChronologyOrigin?: SnapshotChronologyOrigin;
   readonly migrationHistory: readonly MigrationHistoryEntry[];
   /** Integrity over the canonicalized manifest body (all fields except this). */
   readonly integrity: IntegrityDigest;
@@ -99,9 +151,17 @@ export interface RecordEnvelope {
   readonly integrity: IntegrityDigest;
 }
 
-/** Summary of a stored snapshot, returned by listSnapshots. */
+/**
+ * Summary of a stored snapshot, returned by listSnapshots in capture
+ * chronology (oldest first). Derived exclusively from verified
+ * `snapshotHistory`, never from `snapshotIds` lexical order.
+ */
 export interface StoredSnapshotSummary {
   readonly snapshotId: string;
+  /** The capture time from the authoritative history entry. */
+  readonly capturedAt: string;
+  /** The contiguous 1-based capture ordinal. */
+  readonly sequence: number;
   readonly isLatest: boolean;
 }
 
@@ -231,4 +291,11 @@ export interface ProjectMemoryStore {
   commitSnapshotBundle(input: CommitSnapshotBundleInput): Promise<CommitResult>;
   exportProject(input: ExportProjectMemoryInput): Promise<ExportResult>;
   deleteProject(input: DeleteProjectMemoryInput): Promise<DeleteResult>;
+  /**
+   * Run the registered migration path for a project up to the current store
+   * format version. Explicit only — never triggered by a read. Requires the
+   * project lock; verifies source, backs up, commits atomically, verifies, and
+   * records history.
+   */
+  migrateProject(projectId: string, operationId: string, occurredAt: string): Promise<void>;
 }

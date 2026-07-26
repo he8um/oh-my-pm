@@ -4,6 +4,7 @@
 > guards) — implemented. Phase 1 (deterministic Kernel) — implemented. Phase 2
 > (local persistence adapter) — implemented. Phase 3 (Runtime capture and
 > compare) — implemented. Phase 4 (minimal preview-first CLI memory surface) —
+> implemented. Phase 4.1 (snapshot capture chronology correction) —
 > implemented.**
 > **v0.3 memory commands run from the source/workspace CLI only; they are not
 > available in the published v0.2 artifacts. No MCP surface invokes the Project
@@ -33,8 +34,11 @@
 > [phase-0-contracts.md](phase-0-contracts.md) for the contract surface,
 > [phase-1-kernel.md](phase-1-kernel.md) for the Kernel,
 > [phase-2-persistence.md](phase-2-persistence.md) for the adapter,
-> [phase-3-runtime.md](phase-3-runtime.md) for the Runtime orchestration, and
-> [phase-4-cli.md](phase-4-cli.md) for the CLI memory surface.
+> [phase-3-runtime.md](phase-3-runtime.md) for the Runtime orchestration,
+> [phase-4-cli.md](phase-4-cli.md) for the CLI memory surface, and
+> [phase-4-1-snapshot-chronology.md](phase-4-1-snapshot-chronology.md) for the
+> snapshot capture chronology correction (internal store format 2; the default
+> comparison and history now use real capture order).
 
 ## What this is
 

@@ -977,6 +977,23 @@ for (const file of PHASE3_SOURCES) {
   if (!existsSync(file)) err(`Phase 3 file missing: ${file}`);
 }
 
+// 10. v0.3 Phase 4.1 snapshot-capture chronology correction. The correction
+// adds the store-format v2 capture chronology, its production migration, the
+// CLI --migrate-store preview/apply flow, the Runtime chronology-based default
+// compare, focused tests across those layers, and the Phase 4.1 report. These
+// files must exist; the source version stays 0.2.0 (enforced above) and the MCP
+// surface stays exactly ten tools (enforced above).
+const PHASE_4_1_SOURCES = [
+  "project-memory/test/chronology.test.ts",
+  "project-memory/test/migration-chronology.test.ts",
+  "runtime/test/projectbrain-compare-chronology.test.ts",
+  "cli/test/memory-chronology.test.ts",
+  "docs/v0.3/phase-4-1-snapshot-chronology.md",
+];
+for (const file of PHASE_4_1_SOURCES) {
+  if (!existsSync(file)) err(`Phase 4.1 file missing: ${file}`);
+}
+
 if (fail) {
   console.error("validate-structure: FAILED");
   process.exit(1);

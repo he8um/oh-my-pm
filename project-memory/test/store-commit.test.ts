@@ -34,7 +34,16 @@ describe("first commit", () => {
     expect(evidence.evidenceId).toBe("ev-1");
 
     const summaries = await store.listSnapshots(PID);
-    expect(summaries).toEqual([{ snapshotId: "snap-1", isLatest: true }]);
+    // v2 chronology: oldest-first summaries carry the capture time and a
+    // contiguous 1-based sequence.
+    expect(summaries).toEqual([
+      {
+        snapshotId: "snap-1",
+        capturedAt: "2026-01-01T00:00:00.000Z",
+        sequence: 1,
+        isLatest: true,
+      },
+    ]);
   });
 
   it("removes staging after a successful commit", async () => {

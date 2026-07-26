@@ -148,9 +148,22 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
   async listSnapshots(projectId: string): Promise<StoredSnapshotSummary[]> {
     const manifest = await this.readManifest(projectId);
     if (manifest === null) return [];
-    return manifest.snapshotIds.map((snapshotId) => ({
-      snapshotId,
-      isLatest: manifest.latestSnapshotId === snapshotId,
+    // Chronology is the ONLY source of order: oldest capture first. A readable
+    // (current-format) manifest always carries a verified snapshotHistory;
+    // parseAndVerifyManifest already rejected any that violated the invariants.
+    const history = manifest.snapshotHistory;
+    if (history === undefined) {
+      // Unreachable for a current-format store (readManifest gates the version
+      // and parse verifies chronology); treat a missing chronology defensively
+      // as controlled corruption rather than silently falling back to lexical.
+      throw corruption("a readable store is missing its chronology", "the store may be corrupt");
+    }
+    const latest = manifest.latestSnapshotId;
+    return history.map((entry) => ({
+      snapshotId: entry.snapshotId,
+      capturedAt: entry.capturedAt,
+      sequence: entry.sequence,
+      isLatest: latest === entry.snapshotId,
     }));
   }
 
@@ -208,9 +221,27 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
     }
     const verifiedSnapshotIds: string[] = [];
     const verifiedEvidenceIds: string[] = [];
+    // Map each snapshot to its chronology capturedAt so the record's own
+    // capturedAt can be cross-checked against the authoritative capture time.
+    const capturedAtByHistory = new Map<string, string>();
+    for (const entry of manifest.snapshotHistory ?? []) {
+      capturedAtByHistory.set(entry.snapshotId, entry.capturedAt);
+    }
     for (const snapshotId of manifest.snapshotIds) {
       try {
-        await this.readEnvelope(projectId, "snapshot", snapshotId);
+        const envelope = await this.readEnvelope(projectId, "snapshot", snapshotId);
+        // A v2 store's chronology capturedAt must equal the persisted payload's.
+        const expectedCapturedAt = capturedAtByHistory.get(snapshotId);
+        if (expectedCapturedAt !== undefined) {
+          const payloadCapturedAt = (envelope.payload as { capturedAt?: unknown }).capturedAt;
+          if (payloadCapturedAt !== expectedCapturedAt) {
+            issues.push({
+              kind: "integrityFailure",
+              detail: "snapshot: chronology capturedAt does not match the record",
+            });
+            continue;
+          }
+        }
         verifiedSnapshotIds.push(snapshotId);
       } catch (err) {
         issues.push({ kind: classifyIssue(err), detail: `snapshot: ${describeError(err)}` });
@@ -573,78 +604,26 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
   async migrateProject(projectId: string, operationId: string, occurredAt: string): Promise<void> {
     assertNonEmptyId(projectId, "projectId");
     assertOperationId(operationId);
-    if (this.migrations === undefined) {
-      throw migrationRequired("no migration registry is configured");
-    }
+    const source = await this.loadMigrationSource(projectId);
+
     const projectKey = deriveProjectKey(projectId);
     const manifestPath = manifestPathFor(this.layout, projectKey);
-    const raw = await this.fs.readFileIfExists(manifestPath);
-    if (raw === null) throw migrationRequired("no store exists to migrate");
-    // Read the source format WITHOUT the readable-version gate (older is allowed
-    // here precisely because we are migrating it).
-    const sourceManifest = parseAndVerifyManifest(raw);
-    this.assertManifestOwnership(sourceManifest, projectId, projectKey);
-    const sourceVersion = sourceManifest.storeFormatVersion;
-    if (sourceVersion >= CURRENT_STORE_FORMAT_VERSION) {
-      throw invalidInput("the store is already at or above the current format");
-    }
-
-    const plan = planMigration(this.migrations, sourceVersion);
     const projectDir = projectDirFor(this.layout, projectKey);
     const lockPath = lockPathFor(this.layout, projectKey);
     await this.fs.mkdirp(this.layout.locksDir);
     const lock = await acquireLock(this.fs, lockPath, projectKey, operationId);
     try {
-      // Load source records verbatim (payload only; older records validate under
-      // their own format so we read them as raw envelopes, integrity-checked).
-      let snapshots = await this.loadRawPayloads(projectDir, SNAPSHOTS_DIRNAME);
-      let evidence = await this.loadRawPayloads(projectDir, EVIDENCE_DIRNAME);
-      let manifest: JsonObject = JSON.parse(raw) as JsonObject;
-
       // Backup before mutation (never auto-deleted).
       const backupDir = `${projectDir}/${BACKUPS_DIRNAME}/${operationId}`;
       await this.fs.mkdirp(backupDir);
       await this.fs.copyFileTo(manifestPath, `${backupDir}/${MANIFEST_FILENAME}`);
 
-      let current = sourceVersion;
-      for (const step of plan.steps) {
-        const target = step.migrate({
-          storeFormatVersion: current,
-          manifest,
-          snapshots,
-          evidence,
-        });
-        manifest = target.manifest;
-        snapshots = [...target.snapshots];
-        evidence = [...target.evidence];
-        current = step.toStoreFormatVersion;
-      }
+      // Pure, deterministic transform + rebuild. buildManifest re-validates every
+      // chronology invariant, so a transform that produced an inconsistent
+      // chronology fails closed here BEFORE the atomic commit, leaving the backup
+      // and original intact.
+      const rebuilt = this.applyMigrationPlan(source, projectId, projectKey, operationId, occurredAt);
 
-      // Rebuild the manifest with recorded history and a fresh integrity digest,
-      // then atomically commit it as the target.
-      const migrationEntry = {
-        fromStoreFormatVersion: sourceVersion,
-        toStoreFormatVersion: current,
-        migratedAt: occurredAt,
-        operationId,
-        backupKey: `${BACKUPS_DIRNAME}/${operationId}`,
-      };
-      const rebuilt = buildManifest({
-        storeFormatVersion: current,
-        projectBrainSchemaVersion: SUPPORTED_PROJECT_BRAIN_SCHEMA_VERSION,
-        projectId,
-        projectKey,
-        createdAt: String((manifest as Record<string, unknown>)["createdAt"] ?? occurredAt),
-        updatedAt: occurredAt,
-        latestSnapshotId:
-          (manifest as Record<string, unknown>)["latestSnapshotId"] as string | null,
-        snapshotIds: ((manifest as Record<string, unknown>)["snapshotIds"] as string[]) ?? [],
-        evidenceIds: ((manifest as Record<string, unknown>)["evidenceIds"] as string[]) ?? [],
-        migrationHistory: [
-          ...(((sourceManifest.migrationHistory as unknown[]) ?? []) as never[]),
-          migrationEntry,
-        ],
-      });
       await this.fs.writeFileAtomic(
         manifestPath,
         serializeManifest(rebuilt),
@@ -661,6 +640,152 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
     } finally {
       await lock.release();
     }
+  }
+
+  /**
+   * Project the migrated (target-format) manifest WITHOUT writing anything: no
+   * lock, no backup, no manifest/record write. This is the read-only preview
+   * counterpart of `migrateProject`, used by the CLI capture preview so a v1
+   * store's `--migrate-store` preview can show the exact recovered chronology.
+   * Throws the same controlled errors as `migrateProject` when no store exists,
+   * no migration path is registered, or the source is already current.
+   */
+  async previewMigratedManifest(
+    projectId: string,
+    occurredAt: string,
+  ): Promise<ProjectStoreManifest> {
+    return (await this.previewMigration(projectId, occurredAt)).manifest;
+  }
+
+  /**
+   * Project the migrated store view WITHOUT writing anything: the target-format
+   * manifest plus the immutable snapshot and evidence payloads keyed by id (read
+   * verbatim from disk). No lock, no backup, no write. This backs the CLI
+   * capture preview over a v1 store so `--migrate-store` preview shows the exact
+   * recovered chronology and projects the new capture with parity.
+   */
+  async previewMigration(
+    projectId: string,
+    occurredAt: string,
+  ): Promise<{
+    readonly manifest: ProjectStoreManifest;
+    readonly snapshots: ReadonlyMap<string, JsonObject>;
+    readonly evidence: ReadonlyMap<string, JsonObject>;
+  }> {
+    assertNonEmptyId(projectId, "projectId");
+    const source = await this.loadMigrationSource(projectId);
+    const projectKey = deriveProjectKey(projectId);
+    // A stable, safe operation id for the projected migration-history entry; the
+    // preview never writes it anywhere.
+    const manifest = this.applyMigrationPlan(source, projectId, projectKey, "preview", occurredAt);
+    const snapshots = new Map<string, JsonObject>();
+    for (const payload of source.snapshots) {
+      const id = (payload as { snapshotId?: unknown }).snapshotId;
+      if (typeof id === "string") snapshots.set(id, payload);
+    }
+    const evidence = new Map<string, JsonObject>();
+    for (const payload of source.evidence) {
+      const id = (payload as { evidenceId?: unknown }).evidenceId;
+      if (typeof id === "string") evidence.set(id, payload);
+    }
+    return { manifest, snapshots, evidence };
+  }
+
+  /**
+   * Read and validate the migration source material (manifest + raw payloads)
+   * WITHOUT the readable-version gate (older is allowed precisely because it is
+   * being migrated). Performs no write and holds no lock.
+   */
+  private async loadMigrationSource(projectId: string): Promise<{
+    readonly sourceManifest: ProjectStoreManifest;
+    readonly sourceVersion: number;
+    readonly manifest: JsonObject;
+    readonly snapshots: readonly JsonObject[];
+    readonly evidence: readonly JsonObject[];
+  }> {
+    if (this.migrations === undefined) {
+      throw migrationRequired("no migration registry is configured");
+    }
+    const projectKey = deriveProjectKey(projectId);
+    const manifestPath = manifestPathFor(this.layout, projectKey);
+    const raw = await this.fs.readFileIfExists(manifestPath);
+    if (raw === null) throw migrationRequired("no store exists to migrate");
+    const sourceManifest = parseAndVerifyManifest(raw);
+    this.assertManifestOwnership(sourceManifest, projectId, projectKey);
+    const sourceVersion = sourceManifest.storeFormatVersion;
+    if (sourceVersion >= CURRENT_STORE_FORMAT_VERSION) {
+      throw invalidInput("the store is already at or above the current format");
+    }
+    const projectDir = projectDirFor(this.layout, projectKey);
+    return {
+      sourceManifest,
+      sourceVersion,
+      manifest: JSON.parse(raw) as JsonObject,
+      snapshots: await this.loadRawPayloads(projectDir, SNAPSHOTS_DIRNAME),
+      evidence: await this.loadRawPayloads(projectDir, EVIDENCE_DIRNAME),
+    };
+  }
+
+  /**
+   * Run the registered migration plan over the source material and rebuild the
+   * target manifest with a recorded history entry and fresh integrity. Pure:
+   * performs no I/O. The chronology invariants are re-validated by buildManifest.
+   */
+  private applyMigrationPlan(
+    source: {
+      readonly sourceManifest: ProjectStoreManifest;
+      readonly sourceVersion: number;
+      readonly manifest: JsonObject;
+      readonly snapshots: readonly JsonObject[];
+      readonly evidence: readonly JsonObject[];
+    },
+    projectId: string,
+    projectKey: string,
+    operationId: string,
+    occurredAt: string,
+  ): ProjectStoreManifest {
+    const plan = planMigration(this.migrations as MigrationRegistry, source.sourceVersion);
+    let manifest: JsonObject = source.manifest;
+    let snapshots = [...source.snapshots];
+    let evidence = [...source.evidence];
+    let current = source.sourceVersion;
+    for (const step of plan.steps) {
+      const target = step.migrate({ storeFormatVersion: current, manifest, snapshots, evidence });
+      manifest = target.manifest;
+      snapshots = [...target.snapshots];
+      evidence = [...target.evidence];
+      current = step.toStoreFormatVersion;
+    }
+
+    const migrationEntry = {
+      fromStoreFormatVersion: source.sourceVersion,
+      toStoreFormatVersion: current,
+      migratedAt: occurredAt,
+      operationId,
+      backupKey: `${BACKUPS_DIRNAME}/${operationId}`,
+    };
+    const migrated = manifest as Record<string, unknown>;
+    const migratedHistory = migrated["snapshotHistory"];
+    const migratedOrigin = migrated["snapshotChronologyOrigin"];
+    return buildManifest({
+      storeFormatVersion: current,
+      projectBrainSchemaVersion: SUPPORTED_PROJECT_BRAIN_SCHEMA_VERSION,
+      projectId,
+      projectKey,
+      createdAt: String(migrated["createdAt"] ?? occurredAt),
+      updatedAt: occurredAt,
+      latestSnapshotId: migrated["latestSnapshotId"] as string | null,
+      snapshotIds: (migrated["snapshotIds"] as string[]) ?? [],
+      evidenceIds: (migrated["evidenceIds"] as string[]) ?? [],
+      ...(migratedHistory !== undefined ? { snapshotHistory: migratedHistory as never } : {}),
+      ...(migratedOrigin !== undefined
+        ? { snapshotChronologyOrigin: migratedOrigin as never }
+        : {}),
+      migrationHistory: [
+        ...(((source.sourceManifest.migrationHistory as unknown[]) ?? []) as never[]),
+        migrationEntry,
+      ],
+    });
   }
 
   // ---- Internal helpers ----------------------------------------------------
@@ -881,6 +1006,30 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
       throw limitExceeded("evidence per project exceeds the maximum");
     }
 
+    // The history entry's capturedAt is the persisted Snapshot payload's own
+    // capturedAt, never a fresh clock read. Validate it here so a commit can
+    // never write a chronology entry that disagrees with the record.
+    const capturedAt = this.requireSnapshotCapturedAt(input.snapshot);
+
+    // Append exactly one chronology entry for a new snapshot; a pre-existing id
+    // never reaches here (reconcileExisting returns idempotent before this).
+    // A v1 store never reaches this path either: it must be migrated to v2
+    // before a commit (readManifest gates an un-migrated store as
+    // migrationRequired). So `existing` is either null or a v2 store.
+    const existingHistory = existing?.snapshotHistory ?? [];
+    const nextSequence =
+      existingHistory.length === 0
+        ? 1
+        : (existingHistory[existingHistory.length - 1]?.sequence ?? existingHistory.length) + 1;
+    const snapshotHistory = [
+      ...existingHistory,
+      { snapshotId: input.snapshot.snapshotId, capturedAt, sequence: nextSequence },
+    ];
+    // A new store is native; an existing store's origin is preserved verbatim
+    // (a migrated `recoveredV1` store stays recoveredV1 across later commits).
+    const snapshotChronologyOrigin: "native" | "recoveredV1" =
+      existing?.snapshotChronologyOrigin ?? "native";
+
     return buildManifest({
       storeFormatVersion: CURRENT_STORE_FORMAT_VERSION,
       projectBrainSchemaVersion: SUPPORTED_PROJECT_BRAIN_SCHEMA_VERSION,
@@ -891,8 +1040,22 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
       latestSnapshotId: input.snapshot.snapshotId,
       snapshotIds: [...snapshotIds].sort(),
       evidenceIds: [...evidenceIds].sort(),
+      snapshotHistory,
+      snapshotChronologyOrigin,
       migrationHistory: existing?.migrationHistory ?? [],
     });
+  }
+
+  /**
+   * Read and validate the finalized snapshot's own `capturedAt`. It is the
+   * source of the chronology entry's capture time; a system clock is never used.
+   */
+  private requireSnapshotCapturedAt(snapshot: FinalizedProjectSnapshot): string {
+    const capturedAt = (snapshot as { capturedAt?: unknown }).capturedAt;
+    if (typeof capturedAt !== "string" || capturedAt.length === 0) {
+      throw invalidInput("snapshot.capturedAt must be a non-empty string");
+    }
+    return capturedAt;
   }
 
   private commitResultFrom(

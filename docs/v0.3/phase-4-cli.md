@@ -46,7 +46,7 @@ feature; and any seventh memory subcommand.
 ## Command Grammar
 
 ```
-oh-my-pm memory capture  [project-root] [--project-id <id>] [--data-dir <path>] [--locale en|fa] [--apply] [--json|--markdown]
+oh-my-pm memory capture  [project-root] [--project-id <id>] [--data-dir <path>] [--locale en|fa] [--apply] [--migrate-store] [--json|--markdown]
 oh-my-pm memory changes  [project-root] [--project-id <id>] [--data-dir <path>] [--previous <id> --current <id>] [--stale-after <seconds>] [--json|--markdown]
 oh-my-pm memory status   [project-root] [--project-id <id>] [--data-dir <path>] [--json|--markdown]
 oh-my-pm memory history  [project-root] [--project-id <id>] [--data-dir <path>] [--limit <N>] [--json|--markdown]
@@ -122,7 +122,9 @@ path, document absolute paths, and raw document bodies are never persisted.
 process-boundary clock as `comparedAt`, the `--stale-after` value (default
 604800s, bounds 0..31536000) as `evidenceStaleAfterSeconds`, and the documented
 safe `maxFutureSkewSeconds` default. `--previous`/`--current` must be supplied
-together and must differ; omitting them compares the latest two snapshots. The
+together and must differ; omitting them compares the latest committed capture
+with the capture committed **immediately before it** in real capture order (the
+Phase 4.1 chronology correction — no longer a content-derived ID order). The
 Runtime statuses `compared`, `noPriorMemory`, `insufficientHistory`, and `failed`
 are preserved; the Kernel `ChangeSet` is never reordered or reclassified. Brief
 output summarizes counts while JSON and Markdown preserve the complete bounded
@@ -140,12 +142,33 @@ migrates, repairs, or cleans up, and never prints an absolute path.
 
 ## History
 
-`history` reads the verified manifest, selects at most `--limit` snapshots
-(default 20, bounds 1..100), and returns newest-first presentation records — the
-latest snapshot first, then the remaining ids in the store's stable, content-
-derived order. Each record carries the snapshot id and an `isLatest` flag. It
-never returns the full `ProjectState`, evidence payloads, raw titles, or absolute
-paths, and never writes or locks.
+`history` reads the verified manifest and returns **newest-capture-first**
+presentation records derived from the store's authoritative capture chronology
+(the Phase 4.1 correction), bounded by `--limit` (default 20, bounds 1..100).
+Each record carries the snapshot id, its `capturedAt`, a 1-based `sequence`, and
+an `isLatest` flag; the result also reports the store's `chronologyOrigin`
+(`native` or `recoveredV1`). It never returns the full `ProjectState`, evidence
+payloads, raw titles, or absolute paths, and never writes or locks.
+
+## Store migration (`--migrate-store`)
+
+A store written before the chronology correction (internal store format 1) must
+be migrated to format 2 before a capture. The capture command carries one
+capture-only option, `--migrate-store`, used through the existing preview/apply
+boundary — no seventh subcommand is added:
+
+- `memory capture --migrate-store` — preview only; reports `wouldMigrateStore`
+  and writes nothing (zero writes, zero locks).
+- `memory capture --apply --migrate-store` — migrates `1 → 2` exactly once, then
+  captures once (reports `storeMigrated`).
+- `memory capture --apply` against a v1 store **without** `--migrate-store` exits
+  `4` (migration required) and writes nothing.
+
+`--migrate-store` is rejected on every other subcommand. Read-only commands on a
+v1 store report `migrationRequired` and never auto-migrate. If migration succeeds
+but the capture then fails, the structured output reports the sanitized failure
+and `storeMigrated: true`, never implying the capture succeeded. See
+[phase-4-1-snapshot-chronology.md](phase-4-1-snapshot-chronology.md).
 
 ## Export
 

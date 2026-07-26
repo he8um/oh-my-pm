@@ -24,6 +24,7 @@ import type {
   CaptureProjectResult,
   CompareProjectResult,
   MemoryCommitInput,
+  MemoryManifest,
   ProjectMemoryPort,
   ProjectObservationRequest,
 } from "@oh-my-pm/runtime";
@@ -77,7 +78,25 @@ export type MemoryStore = PreviewMemoryStoreReads & {
   commitSnapshotBundle(input: MemoryCommitInput): Promise<CommitResultLike>;
   exportProject(input: ExportInputLike): Promise<ExportResultLike>;
   deleteProject(input: DeleteInputLike): Promise<DeleteResultLike>;
+  /** Explicit store-format migration to the current version (never on read). */
+  migrateProject(projectId: string, operationId: string, occurredAt: string): Promise<void>;
+  /** Read-only projected migrated view (no write) backing the capture preview. */
+  previewMigration(
+    projectId: string,
+    occurredAt: string,
+  ): Promise<{
+    manifest: MemoryManifest & {
+      snapshotHistory?: readonly { snapshotId: string; capturedAt: string; sequence: number }[];
+      snapshotChronologyOrigin?: "native" | "recoveredV1";
+    };
+    snapshots: ReadonlyMap<string, ProjectSnapshotLike>;
+    evidence: ReadonlyMap<string, EvidenceRecordLike>;
+  }>;
 };
+
+/** Structural mirrors of the opaque record payloads the preview reads. */
+type ProjectSnapshotLike = { snapshotId: string; [key: string]: unknown };
+type EvidenceRecordLike = { evidenceId: string; [key: string]: unknown };
 
 // Structural mirrors of the Phase 2 result types the boundary reads (kept local
 // so this module needs no type-level dependency on @oh-my-pm/project-memory).
@@ -270,49 +289,63 @@ async function runCapture(
     localMarkdownObservationRequest(),
   );
 
+  // Classify the on-disk store format before doing anything. A store format v1
+  // store must be explicitly migrated to v2 before a capture; this is the write
+  // boundary where that decision is made.
+  const inspection = await store.inspect(identity.projectId);
+  const needsMigration = inspection.exists && inspection.versionState === "migrationRequired";
+
   if (!command.apply) {
-    // Preview: reads delegate to the real store; commit is an in-memory
-    // projection with zero writes, zero locks, and no data-directory creation.
-    const preview = createPreviewMemoryPort(store);
-    const runtime = createProjectBrainRuntime({
-      kernel: createNodeWasmProjectBrainKernelApi(),
-      memory: preview.port,
+    return runCapturePreview(
+      command,
+      store,
+      identity.projectId,
       observation,
-      deriver: DERIVER,
-    });
-    let result: CaptureProjectResult;
-    try {
-      result = await runtime.capture(captureInputBase);
-    } catch (err) {
-      return captureThrowFailure(err);
-    }
-    if (!result.ok) {
-      return captureResultFailure(result);
-    }
-    const projection = preview.projection();
-    return {
-      command: "memory.capture",
-      ok: true,
-      mode: "preview",
-      wouldWrite: false,
-      wouldCreateSnapshot: projection?.wouldCreateSnapshot ?? true,
-      wouldBeIdempotent: projection?.wouldBeIdempotent ?? false,
-      projectId: identity.projectId,
-      snapshotId: result.snapshotId ?? "",
-      stateFingerprint: result.stateFingerprint ?? "",
-      snapshotFingerprint: result.snapshotFingerprint ?? "",
-      itemCount: result.itemCount ?? 0,
-      evidenceCount: result.evidenceCount ?? 0,
-      snapshotCount: projection?.projectedSnapshotCount ?? 0,
-      coverageComplete: result.coverageComplete ?? false,
-      coverage: mapCoverage(result),
-    };
+      captureInputBase,
+      now,
+      needsMigration,
+    );
   }
 
-  // Apply: the real Phase 2 adapter commits exactly once.
+  return runCaptureApply(
+    command,
+    store,
+    identity.projectId,
+    observation,
+    captureInputBase,
+    now,
+    pid,
+    needsMigration,
+  );
+}
+
+/** Run a capture PREVIEW: zero writes, zero locks, no data-directory creation. */
+async function runCapturePreview(
+  command: MemoryCaptureCommand,
+  store: MemoryStore,
+  projectId: string,
+  observation: ReturnType<typeof createProviderRegistryObservationPort>,
+  captureInputBase: ReturnType<typeof buildCaptureInput>,
+  now: string,
+  needsMigration: boolean,
+): Promise<MemoryCommandOutcome> {
+  if (needsMigration && !command.migrateStore) {
+    // A read-only capture preview over a v1 store reports migrationRequired and
+    // never auto-migrates; the user must pass --migrate-store to project across
+    // the migration. Exit 4 (operational, no write).
+    return fail("capture", "OMP-MEM-1007", "store migration required", 4);
+  }
+
+  // Reads delegate to the real store; a migrating preview instead delegates to
+  // the projected recovered v2 view (computed read-only, zero writes).
+  const reads: PreviewMemoryStoreReads =
+    needsMigration && command.migrateStore
+      ? await migratedPreviewReads(store, projectId, now)
+      : store;
+  const preview = createPreviewMemoryPort(reads);
   const runtime = createProjectBrainRuntime({
     kernel: createNodeWasmProjectBrainKernelApi(),
-    memory: realMemoryPort(store),
+    memory: preview.port,
     observation,
     deriver: DERIVER,
   });
@@ -325,15 +358,81 @@ async function runCapture(
   if (!result.ok) {
     return captureResultFailure(result);
   }
+  const projection = preview.projection();
+  return {
+    command: "memory.capture",
+    ok: true,
+    mode: "preview",
+    wouldWrite: false,
+    wouldCreateSnapshot: projection?.wouldCreateSnapshot ?? true,
+    wouldBeIdempotent: projection?.wouldBeIdempotent ?? false,
+    ...(needsMigration && command.migrateStore ? { wouldMigrateStore: true } : {}),
+    projectId,
+    snapshotId: result.snapshotId ?? "",
+    stateFingerprint: result.stateFingerprint ?? "",
+    snapshotFingerprint: result.snapshotFingerprint ?? "",
+    itemCount: result.itemCount ?? 0,
+    evidenceCount: result.evidenceCount ?? 0,
+    snapshotCount: projection?.projectedSnapshotCount ?? 0,
+    coverageComplete: result.coverageComplete ?? false,
+    coverage: mapCoverage(result),
+  };
+}
+
+/** Run a capture APPLY: migrate a v1 store once (if requested), then commit once. */
+async function runCaptureApply(
+  command: MemoryCaptureCommand,
+  store: MemoryStore,
+  projectId: string,
+  observation: ReturnType<typeof createProviderRegistryObservationPort>,
+  captureInputBase: ReturnType<typeof buildCaptureInput>,
+  now: string,
+  pid: number,
+  needsMigration: boolean,
+): Promise<MemoryCommandOutcome> {
+  let storeMigrated = false;
+  if (needsMigration) {
+    if (!command.migrateStore) {
+      // Apply over a v1 store WITHOUT --migrate-store: exit 4, write nothing.
+      return fail("capture", "OMP-MEM-1007", "store migration required", 4);
+    }
+    // Explicitly migrate v1 -> v2 exactly once before the capture.
+    try {
+      await store.migrateProject(projectId, deriveOperationId("capture", now, pid), now);
+      storeMigrated = true;
+    } catch (err) {
+      const code = sanitizedErrorCode(err, "OMP-C-3003");
+      return fail("capture", code, "store migration failed", memoryErrorExitCode(code));
+    }
+  }
+
+  const runtime = createProjectBrainRuntime({
+    kernel: createNodeWasmProjectBrainKernelApi(),
+    memory: realMemoryPort(store),
+    observation,
+    deriver: DERIVER,
+  });
+  let result: CaptureProjectResult;
+  try {
+    result = await runtime.capture(captureInputBase);
+  } catch (err) {
+    return captureThrowFailure(err, storeMigrated);
+  }
+  if (!result.ok) {
+    // Migration may have completed even though the subsequent capture failed;
+    // never claim the capture succeeded, but surface that the store migrated.
+    return captureResultFailure(result, storeMigrated);
+  }
   // Read the committed snapshot count for the applied summary.
-  const inspection = await store.inspect(identity.projectId);
+  const inspection = await store.inspect(projectId);
   return {
     command: "memory.capture",
     ok: true,
     mode: "applied",
     written: true,
     idempotent: result.idempotent ?? false,
-    projectId: identity.projectId,
+    ...(storeMigrated ? { storeMigrated: true } : {}),
+    projectId,
     snapshotId: result.snapshotId ?? "",
     stateFingerprint: result.stateFingerprint ?? "",
     snapshotFingerprint: result.snapshotFingerprint ?? "",
@@ -342,6 +441,46 @@ async function runCapture(
     snapshotCount: inspection.snapshotCount,
     coverageComplete: result.coverageComplete ?? false,
     coverage: mapCoverage(result),
+  };
+}
+
+/**
+ * Build a read-only preview view over the projected recovered v2 store. Reads
+ * come from the in-memory migration projection (`previewMigration`), so the
+ * capture preview projects the recovered chronology plus the new capture with
+ * ZERO writes, locks, or data-directory creation.
+ */
+async function migratedPreviewReads(
+  store: MemoryStore,
+  projectId: string,
+  now: string,
+): Promise<PreviewMemoryStoreReads> {
+  const projected = await store.previewMigration(projectId, now);
+  const manifest = projected.manifest;
+  return {
+    async readManifest() {
+      return manifest;
+    },
+    async listSnapshots() {
+      const history: readonly { snapshotId: string; capturedAt: string; sequence: number }[] =
+        manifest.snapshotHistory ?? [];
+      return history.map((entry) => ({
+        snapshotId: entry.snapshotId,
+        capturedAt: entry.capturedAt,
+        sequence: entry.sequence,
+        isLatest: manifest.latestSnapshotId === entry.snapshotId,
+      }));
+    },
+    async readSnapshot(_projectId, snapshotId) {
+      const payload = projected.snapshots.get(snapshotId);
+      if (payload === undefined) throw new Error("snapshot not found in projected view");
+      return payload as never;
+    },
+    async readEvidence(_projectId, evidenceId) {
+      const payload = projected.evidence.get(evidenceId);
+      if (payload === undefined) throw new Error("evidence not found in projected view");
+      return payload as never;
+    },
   };
 }
 
@@ -373,17 +512,21 @@ function mapCoverage(result: CaptureProjectResult): MemoryCoverageEntry[] {
   }));
 }
 
-function captureThrowFailure(err: unknown): MemoryFailureOutcome {
-  if (isProjectBrainRuntimeError(err)) {
-    return fail("capture", err.code, "capture failed", 1);
-  }
-  return fail("capture", "OMP-C-3003", "capture failed", 1);
+function captureThrowFailure(err: unknown, storeMigrated = false): MemoryFailureOutcome {
+  const base = isProjectBrainRuntimeError(err)
+    ? fail("capture", err.code, "capture failed", 1)
+    : fail("capture", "OMP-C-3003", "capture failed", 1);
+  return storeMigrated ? { ...base, storeMigrated: true } : base;
 }
 
-function captureResultFailure(result: CaptureProjectResult): MemoryFailureOutcome {
+function captureResultFailure(
+  result: CaptureProjectResult,
+  storeMigrated = false,
+): MemoryFailureOutcome {
   const code = result.error?.code ?? "OMP-R-PB-6006";
   // A required-source failure is operational (exit 1).
-  return fail("capture", code, "capture failed", 1);
+  const base = fail("capture", code, "capture failed", 1);
+  return storeMigrated ? { ...base, storeMigrated: true } : base;
 }
 
 // --- changes (compare) -----------------------------------------------------
@@ -544,21 +687,30 @@ async function runHistory(
   if (!identity.ok) return identity.failure;
 
   const store = await loadStore(options, command.dataDir, now);
+  // listSnapshots returns the authoritative capture chronology oldest-first.
+  // History presents newest capture first: reverse for presentation only,
+  // bounded by the requested limit. The order is real capture order (sequence),
+  // never a lexical id order.
   const summaries = await store.listSnapshots(identity.projectId);
-  // The Phase 2 manifest stores snapshot ids in a stable, content-derived sorted
-  // order (not raw commit order), and marks exactly one as latest. For
-  // presentation we surface the latest snapshot first, then the remaining ids in
-  // their stable order, bounded by the requested limit.
-  const latest = summaries.filter((s) => s.isLatest);
-  const rest = summaries.filter((s) => !s.isLatest);
-  const presented = [...latest, ...rest].slice(0, command.limit);
+  const newestFirst = [...summaries].reverse().slice(0, command.limit);
+  // Surface the chronology provenance at the command/result level.
+  const manifest = await store.readManifest(identity.projectId);
+  const chronologyOrigin = (
+    manifest as (MemoryManifest & { snapshotChronologyOrigin?: "native" | "recoveredV1" }) | null
+  )?.snapshotChronologyOrigin;
   return {
     command: "memory.history",
     ok: true,
     projectId: identity.projectId,
     limit: command.limit,
     snapshotCount: summaries.length,
-    records: presented.map((s) => ({ snapshotId: s.snapshotId, isLatest: s.isLatest })),
+    ...(chronologyOrigin !== undefined ? { chronologyOrigin } : {}),
+    records: newestFirst.map((s) => ({
+      snapshotId: s.snapshotId,
+      capturedAt: s.capturedAt,
+      sequence: s.sequence,
+      isLatest: s.isLatest,
+    })),
   };
 }
 

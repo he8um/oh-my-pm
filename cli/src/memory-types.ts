@@ -37,12 +37,19 @@ export type MemoryCommonOptions = {
   outputMode: CliOutputMode;
 };
 
-/** `memory capture [root] [--locale] [--apply]`. */
+/** `memory capture [root] [--locale] [--apply] [--migrate-store]`. */
 export type MemoryCaptureCommand = MemoryCommonOptions & {
   subcommand: "capture";
   projectRoot: string;
   locale: MemoryLocale;
   apply: boolean;
+  /**
+   * Opt in to the explicit store-format `1 -> 2` migration (Phase 4.1). Preview
+   * (`--migrate-store` without `--apply`) reports that a v1 store would migrate
+   * and writes nothing. Apply (`--apply --migrate-store`) migrates a v1 store
+   * once and then performs the requested capture once. Valid only for capture.
+   */
+  migrateStore: boolean;
 };
 
 /** `memory changes [root] [--previous --current] [--stale-after]`. Read-only. */
@@ -142,6 +149,13 @@ export type MemoryCaptureOutcome = {
   wouldCreateSnapshot?: boolean;
   wouldBeIdempotent?: boolean;
   idempotent?: boolean;
+  /** Preview-only: a v1 store would be migrated to v2 before this capture. */
+  wouldMigrateStore?: boolean;
+  /**
+   * Apply-only: the store-format `1 -> 2` migration actually completed as part
+   * of this invocation. Reported independently of capture success.
+   */
+  storeMigrated?: boolean;
   projectId: string;
   snapshotId: string;
   stateFingerprint: string;
@@ -192,16 +206,22 @@ export type MemoryStatusOutcome = {
 /** One history record (newest-first presentation). */
 export type MemoryHistoryRecord = {
   snapshotId: string;
+  /** The capture time from the authoritative chronology. */
+  capturedAt: string;
+  /** The contiguous 1-based capture ordinal (chronology, not lexical order). */
+  sequence: number;
   isLatest: boolean;
 };
 
-/** History outcome. Read-only. */
+/** History outcome. Read-only. Presents newest capture first. */
 export type MemoryHistoryOutcome = {
   command: "memory.history";
   ok: true;
   projectId: string;
   limit: number;
   snapshotCount: number;
+  /** The store's chronology provenance ("native" or "recoveredV1"), if known. */
+  chronologyOrigin?: "native" | "recoveredV1";
   records: MemoryHistoryRecord[];
 };
 
@@ -242,6 +262,13 @@ export type MemoryFailureOutcome = {
   message: string;
   /** The stable exit code for this failure (1/2/3/4). */
   exitCode: 1 | 2 | 3 | 4;
+  /**
+   * Set only when a store-format migration completed as part of this
+   * invocation but the subsequent operation then failed. The failure never
+   * implies the operation (capture) succeeded; this flag records the migration
+   * fact so the outcome is not misread.
+   */
+  storeMigrated?: boolean;
 };
 
 /** The union of every possible memory command outcome. */

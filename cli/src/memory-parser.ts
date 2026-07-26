@@ -126,6 +126,7 @@ export function parseMemoryCommand(rest: readonly string[]): MemoryCliParseResul
   let destination: string | null = null;
   let confirm: string | null = null;
   let forceCorruptDelete = false;
+  let migrateStore = false;
 
   for (let i = 0; i < rest.length; i += 1) {
     const arg = rest[i] as string;
@@ -165,6 +166,17 @@ export function parseMemoryCommand(rest: readonly string[]): MemoryCliParseResul
       }
       if (forceCorruptDelete) return fail("duplicate --force-corrupt-delete");
       forceCorruptDelete = true;
+      continue;
+    }
+    if (arg === "--migrate-store") {
+      // Explicit store-format 1 -> 2 migration opt-in. Valid ONLY for capture
+      // (the existing preview/apply write boundary); rejected on every other
+      // subcommand and before the subcommand is known, so misuse fails closed.
+      if (subcommand !== "capture") {
+        return fail("--migrate-store is only valid for capture");
+      }
+      if (migrateStore) return fail("duplicate --migrate-store");
+      migrateStore = true;
       continue;
     }
     if (arg === "--confirm") {
@@ -293,6 +305,7 @@ export function parseMemoryCommand(rest: readonly string[]): MemoryCliParseResul
         projectRoot,
         locale: locale ?? MEMORY_DEFAULT_LOCALE,
         apply,
+        migrateStore,
         ...commonFields,
       };
       break;

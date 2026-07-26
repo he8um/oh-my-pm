@@ -23,6 +23,8 @@ export type {
   ProjectStoreManifest,
   RecordEnvelope,
   RecordType,
+  SnapshotChronologyOrigin,
+  SnapshotHistoryEntry,
   StoreInspection,
   StoreInspectionIssue,
   StoredSnapshotSummary,
@@ -76,13 +78,18 @@ export type { StoreLayout } from "./path-safety.js";
 export { assertNoForbiddenKeys, FORBIDDEN_KEY_NORMALIZED, normalizeKey } from "./privacy.js";
 
 export {
+  assertManifestChronology,
   buildEnvelope,
   buildManifest,
   parseAndVerifyEnvelope,
   parseAndVerifyManifest,
+  serializeEnvelope,
+  serializeManifest,
 } from "./manifest.js";
 
 export {
+  defaultMigrationRegistry,
+  migration1to2,
   MigrationRegistry,
   planMigration,
 } from "./migrations.js";

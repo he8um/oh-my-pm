@@ -25,6 +25,7 @@ import process from "node:process";
 import { resolveDataRoot } from "./data-location.js";
 import type { DirEntry, FileSystem, LockCreateResult } from "./filesystem.js";
 import { DependencyInjectedStore } from "./store.js";
+import { defaultMigrationRegistry } from "./migrations.js";
 import type { MigrationRegistry } from "./migrations.js";
 import type { ProjectMemoryStore } from "./types.js";
 
@@ -267,11 +268,13 @@ export function createNodeProjectMemoryStore(
 ): ProjectMemoryStore {
   const dataRoot = resolveNodeDataRoot(options.dataRootOverride);
   const fs = new NodeFileSystem(options.filesystem ?? {});
-  return new DependencyInjectedStore({
-    fs,
-    dataRoot,
-    ...(options.migrations !== undefined ? { migrations: options.migrations } : {}),
-  });
+  // A real v1 store on disk must be migratable to v2 (Phase 4.1). Wire the
+  // default production migration registry (the `1 -> 2` chronology recovery)
+  // unless the caller injected its own. Registering the registry does NOT
+  // migrate anything — migration is always explicit and never triggered by a
+  // read.
+  const migrations = options.migrations ?? defaultMigrationRegistry();
+  return new DependencyInjectedStore({ fs, dataRoot, migrations });
 }
 
 /** Export constants for callers that need the resolved-root semantics in tests. */

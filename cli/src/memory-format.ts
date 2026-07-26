@@ -108,9 +108,11 @@ function captureBrief(o: MemoryCaptureOutcome): string {
     lines.push(`would write: ${o.wouldWrite === false ? "no" : "yes"}`);
     lines.push(`would create snapshot: ${o.wouldCreateSnapshot ? "yes" : "no"}`);
     lines.push(`would be idempotent: ${o.wouldBeIdempotent ? "yes" : "no"}`);
+    if (o.wouldMigrateStore) lines.push("would migrate store: yes");
   } else {
     lines.push(`written: ${o.written ? "yes" : "no"}`);
     lines.push(`idempotent: ${o.idempotent ? "yes" : "no"}`);
+    if (o.storeMigrated) lines.push("store migrated: yes");
   }
   lines.push(`project: ${o.projectId}`);
   lines.push(`snapshot: ${o.snapshotId}`);
@@ -161,8 +163,11 @@ function statusBrief(o: MemoryStatusOutcome): string {
 function historyBrief(o: MemoryHistoryOutcome): string {
   const lines = [`OH MY PM memory history: ${o.records.length} of ${o.snapshotCount}`];
   lines.push(`project: ${o.projectId}`);
+  if (o.chronologyOrigin !== undefined) lines.push(`chronology: ${o.chronologyOrigin}`);
   for (const record of o.records) {
-    lines.push(`- ${record.snapshotId}${record.isLatest ? " (latest)" : ""}`);
+    lines.push(
+      `- #${record.sequence} ${record.snapshotId} @ ${record.capturedAt}${record.isLatest ? " (latest)" : ""}`,
+    );
   }
   lines.push("");
   return lines.join("\n");
@@ -225,6 +230,8 @@ function captureMarkdown(o: MemoryCaptureOutcome): string {
       ? `- Would create snapshot: ${o.wouldCreateSnapshot ? "yes" : "no"}`
       : `- Idempotent: ${o.idempotent ? "yes" : "no"}`,
     o.mode === "preview" ? `- Would be idempotent: ${o.wouldBeIdempotent ? "yes" : "no"}` : "",
+    o.mode === "preview" && o.wouldMigrateStore ? "- Would migrate store: yes" : "",
+    o.mode === "applied" && o.storeMigrated ? "- Store migrated: yes" : "",
     `- Project: \`${o.projectId}\``,
     `- Snapshot: \`${o.snapshotId}\``,
     `- State fingerprint: \`${o.stateFingerprint}\``,
@@ -279,6 +286,7 @@ function historyMarkdown(o: MemoryHistoryOutcome): string {
     "",
     `- Project: \`${o.projectId}\``,
     `- Shown: ${o.records.length} of ${o.snapshotCount}`,
+    ...(o.chronologyOrigin !== undefined ? [`- Chronology: ${o.chronologyOrigin}`] : []),
     "",
     "## Snapshots",
     "",
@@ -287,7 +295,9 @@ function historyMarkdown(o: MemoryHistoryOutcome): string {
     lines.push("- none");
   } else {
     for (const record of o.records) {
-      lines.push(`- \`${record.snapshotId}\`${record.isLatest ? " (latest)" : ""}`);
+      lines.push(
+        `- #${record.sequence} \`${record.snapshotId}\` @ ${record.capturedAt}${record.isLatest ? " (latest)" : ""}`,
+      );
     }
   }
   lines.push("");

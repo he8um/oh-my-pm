@@ -184,6 +184,42 @@ an explicit "no previous observation," not an error.
   without preview/confirmation → stop.
 - **Dependencies:** Phase 3.
 
+## Phase 4.1 — Snapshot capture chronology correction · complexity M · **implemented**
+
+> **Implemented and green.** Corrects a semantic defect in the Phase 4 baseline:
+> `memory history` and the default `memory changes` used a content-derived,
+> lexically sorted Snapshot-ID order instead of real capture order. The manifest
+> gains an authoritative capture chronology (internal store format **2**;
+> `snapshotHistory` + `snapshotChronologyOrigin`, integrity-protected);
+> `snapshotIds` stays a sorted inventory. A production `1 → 2` migration recovers
+> the best deterministic chronology a v1 store can yield (older captures by
+> `capturedAt` then id, the known latest pinned last, origin `recoveredV1`),
+> reached explicitly through `memory capture --migrate-store` (preview) /
+> `--apply --migrate-store`; a v1 `--apply` without it exits 4. The Runtime
+> default compare uses `listSnapshots` chronology (no lexical fallback). No new
+> subcommand, no MCP change, no contract/Kernel/provider change, no project
+> write, no version bump. `version.json` stays `0.2.0`, the Project Brain schema
+> stays 1, and the MCP surface stays exactly ten tools. See
+> [phase-4-1-snapshot-chronology.md](phase-4-1-snapshot-chronology.md). Phase 5 is
+> **not started** and remains blocked until this correction is reviewed.
+
+- **Objective:** history and default comparison use actual capture order.
+- **Allowed files/packages:** `project-memory/src/**` (+ default registry wiring),
+  `runtime/src/projectbrain/compare.ts`, `cli/src/memory-*`, their tests, the
+  narrow validators, and the Phase 4.1 docs.
+- **Deliverables:** manifest v2 chronology, the `1 → 2` production migration, the
+  capture-only `--migrate-store` flow, chronological history/default-compare, and
+  focused chronology/migration/corruption/CLI tests.
+- **Tests:** native chronology with a lexical/capture mismatch; idempotency;
+  migration recovery + failure recovery + read-safety; every corruption shape;
+  CLI migrate-store preview/apply and exit codes.
+- **Acceptance:** history is real capture order; default changes uses the
+  immediate predecessor; old stores migrate safely; Phase 2/3/4 guarantees
+  preserved.
+- **Stop conditions:** any Phase 5 work, a seventh subcommand, a contract/Kernel
+  semantic change, or a version bump → stop.
+- **Dependencies:** Phase 4.
+
 ## Phase 5 — Minimal read-only MCP exposure · complexity M
 
 - **Objective:** bounded, sanitized, read-only projection over captured state —

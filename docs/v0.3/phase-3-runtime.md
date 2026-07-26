@@ -213,6 +213,15 @@ one snapshot: insufficientHistory
 
 No-history outcomes are controlled statuses, not corruption.
 
+**Phase 4.1 chronology correction.** The default pair is derived from the memory
+port's authoritative capture chronology (`listSnapshots`, oldest first): `current`
+is the final chronological entry (which must equal `manifest.latestSnapshotId`, or
+the compare fails safely as a stored-record error) and `previous` is the entry
+immediately before it. The former lexical-order fallback heuristic is removed —
+selection follows real capture order, never a content-derived ID order. Explicit
+`--previous/--current` selection is unchanged. See
+[phase-4-1-snapshot-chronology.md](phase-4-1-snapshot-chronology.md).
+
 ## Error Model
 
 Stable Phase 3 codes: `OMP-R-PB-6001` invalid input, `6002` dependency

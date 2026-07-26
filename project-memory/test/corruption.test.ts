@@ -92,10 +92,11 @@ describe("corruption handling", () => {
   it("refuses an unsupported newer store format", async () => {
     const fs = new MemoryFileSystem();
     await seed(fs);
-    // Rebuild a manifest claiming a newer store format with valid integrity.
+    // Rebuild a manifest claiming a store format NEWER than the current v2 with
+    // valid integrity. (v2 is now the current supported format; v3 is newer.)
     const { buildManifest, serializeManifest } = await import("../src/manifest.js");
     const newer = buildManifest({
-      storeFormatVersion: 2,
+      storeFormatVersion: 3,
       projectBrainSchemaVersion: 1,
       projectId: PID,
       projectKey: deriveProjectKey(PID),

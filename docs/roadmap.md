@@ -225,6 +225,20 @@ in place (see Phase 5B).
   the published v0.2 artifacts; installed-artifact qualification is deferred to
   Phase 6. `version.json` stays `0.2.0`, the MCP surface stays exactly ten tools,
   and no v0.2 behavior changed. See [phase-4-cli.md](v0.3/phase-4-cli.md).
+- **v0.3 Phase 4.1 — snapshot capture chronology correction: implemented.** With
+  a separate, explicit owner approval for Phase 4.1 only, a semantic defect in the
+  Phase 4 baseline was corrected: `memory history` and the default `memory changes`
+  comparison used a content-derived, lexically sorted Snapshot-ID order rather than
+  actual capture order. The Project Memory manifest gained an authoritative capture
+  chronology (internal store format 2; `snapshotHistory` + `snapshotChronologyOrigin`,
+  integrity-protected), `snapshotIds` stays a sorted inventory, and a production
+  `1 → 2` migration recovers the best deterministic chronology a v1 store can yield
+  (reached explicitly through `memory capture --migrate-store`, never on a read).
+  The Runtime default comparison now uses real capture order with no lexical
+  fallback. No new subcommand, MCP change, contract/Kernel/provider change, project
+  write, or version bump; `version.json` stays `0.2.0`, the Project Brain schema
+  stays `1`, and the MCP surface stays exactly ten tools. See
+  [phase-4-1-snapshot-chronology.md](v0.3/phase-4-1-snapshot-chronology.md).
 - **v0.3 Phases 5–6: not started.** No MCP exposure of the Project Brain exists
   (the ten-tool surface is unchanged) and the memory commands are not yet
   release-qualified on installed artifacts. Each remaining phase requires a

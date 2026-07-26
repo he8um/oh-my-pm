@@ -79,25 +79,25 @@ async function selectPair(
     };
   }
 
-  // Default: current = latest committed; previous = immediately preceding.
+  // Default: current = the latest committed capture; previous = the capture
+  // committed immediately before it. The authoritative order is the memory
+  // port's capture chronology (listSnapshots, oldest first) — NOT a lexical id
+  // order and NOT a fresh clock read. There is no lexical-order fallback.
   if (snapshotIds.length === 0 || manifest.latestSnapshotId === null) {
     return { kind: "noPriorMemory" };
   }
   const summaries = await deps.memory.listSnapshots(input.projectId);
   const ordered = summaries.map((s) => s.snapshotId);
   if (ordered.length < 2) return { kind: "insufficientHistory" };
-  const latest = manifest.latestSnapshotId;
-  const latestIndex = ordered.indexOf(latest);
-  if (latestIndex <= 0) {
-    // Latest is first or missing in the ordered list: no strict predecessor.
-    // Fall back to the last two ids in stored order.
-    const current = ordered[ordered.length - 1]!;
-    const previous = ordered[ordered.length - 2]!;
-    if (current === previous) return { kind: "insufficientHistory" };
-    return { kind: "pair", pair: { previousSnapshotId: previous, currentSnapshotId: current } };
+  // The final chronological entry is the current capture and must match the
+  // manifest's latest pointer; any disagreement is a stored-record error, never
+  // a silent fallback.
+  const current = ordered[ordered.length - 1]!;
+  if (current !== manifest.latestSnapshotId) {
+    throw storedRecordReadFailed("the store chronology disagrees with the latest pointer");
   }
-  const previous = ordered[latestIndex - 1]!;
-  return { kind: "pair", pair: { previousSnapshotId: previous, currentSnapshotId: latest } };
+  const previous = ordered[ordered.length - 2]!;
+  return { kind: "pair", pair: { previousSnapshotId: previous, currentSnapshotId: current } };
 }
 
 /** Read a snapshot and its referenced evidence, verifying every record exists. */
