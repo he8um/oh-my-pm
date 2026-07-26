@@ -20,6 +20,9 @@ import { createRuntime } from "@oh-my-pm/runtime";
 import { createDefaultSkillRegistry } from "@oh-my-pm/skills";
 import { runCli } from "./cli.js";
 import { readGitHubTokenFromEnvironment } from "./github-token.js";
+import { formatMemoryOutcome, memoryOutcomeExitCode } from "./memory-format.js";
+import { runMemoryProcess } from "./memory-process.js";
+import type { MemoryProcessOptions } from "./memory-process.js";
 import { loadConfiguredMarkdownProjectDocuments } from "./project-config.js";
 import { parseCliArgs } from "./parser.js";
 import { loadProviderConfig } from "./provider-config.js";
@@ -71,6 +74,16 @@ export type LocalCliProcessOptions = {
    * no provider-config file is read; used by offline unit tests.
    */
   providerConfig?: ResolvedProviderConfig;
+  /**
+   * Process id used to derive the memory operation id. Injected in tests for
+   * determinism; production reads the real process id at this boundary.
+   */
+  processId?: number;
+  /**
+   * Injected memory store factory (offline tests). When set, the memory command
+   * uses it instead of dynamically importing the Node Project Memory adapter.
+   */
+  memoryStoreFactory?: MemoryProcessOptions["storeFactory"];
 };
 
 // Default local runtime identity. Deterministic: no real clock, no randomness.
@@ -325,6 +338,30 @@ export async function runLocalCliProcess(
   // diagnostics, and formatting. It never routes through runCli.
   if (parsed.ok && parsed.command === "providers") {
     return runProvidersCommand(parsed, options, version);
+  }
+
+  // The memory command is handled entirely here: identity/data-dir resolution,
+  // local Markdown observation, Project Brain Runtime composition, the Phase 2
+  // store (lazily imported on this path only), and formatting. It never routes
+  // through runCli. Successful results go to stdout; failures to stderr.
+  if (parsed.ok && parsed.command === "memory") {
+    const memoryOptions: MemoryProcessOptions = {
+      ...(options?.now !== undefined ? { now: options.now } : {}),
+      ...(options?.clock !== undefined ? { clock: options.clock } : {}),
+      ...(options?.processId !== undefined ? { processId: options.processId } : {}),
+      ...(options?.memoryStoreFactory !== undefined
+        ? { storeFactory: options.memoryStoreFactory }
+        : {}),
+    };
+    const outcome = await runMemoryProcess(parsed.memory, memoryOptions);
+    const exitCode = memoryOutcomeExitCode(outcome);
+    const rendered = formatMemoryOutcome(outcome, parsed.outputMode);
+    // No partial stdout before a failed mutating operation: a failure renders to
+    // stderr only; a success renders to stdout only.
+    if (outcome.ok) {
+      return { exitCode, stdout: rendered, stderr: "" };
+    }
+    return { exitCode, stdout: "", stderr: rendered };
   }
 
   let providerItems: LocalProviderItemInput[] = [...SEED_ITEMS];

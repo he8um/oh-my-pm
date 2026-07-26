@@ -19,6 +19,7 @@ import type {
   GitHubSourceMode,
   GitHubSourceState,
 } from "@oh-my-pm/providers";
+import { parseMemoryCommand } from "./memory-parser.js";
 import type {
   CliCommand,
   CliParseResult,
@@ -68,6 +69,7 @@ const COMMANDS: readonly CliCommand[] = [
   "install-preview",
   "github",
   "providers",
+  "memory",
 ];
 
 /**
@@ -491,8 +493,23 @@ export function parseCliArgs(args: readonly string[]): CliParseResult {
   if (args.length > 0 && args[0] === "providers") {
     return parseProvidersCommand(args.slice(1));
   }
+  // The memory command has its own nested grammar (six subcommands + identity/
+  // data-dir/output/mutation options). It is handled at the process boundary;
+  // runCli fails closed on it. Adapt the nested result to the flat union.
+  if (args.length > 0 && args[0] === "memory") {
+    const memory = parseMemoryCommand(args.slice(1));
+    if (!memory.ok) {
+      return { ok: false, code: memory.code, message: memory.message };
+    }
+    return {
+      ok: true,
+      command: "memory",
+      memory: memory.command,
+      outputMode: memory.command.outputMode,
+    };
+  }
 
-  let command: Exclude<CliCommand, "github" | "providers"> | null = null;
+  let command: Exclude<CliCommand, "github" | "providers" | "memory"> | null = null;
   let outputMode: CliOutputMode = "brief";
   const planTokens: string[] = [];
   let projectRoot: string | null = null;
@@ -509,9 +526,10 @@ export function parseCliArgs(args: readonly string[]): CliParseResult {
       return { ok: false, code: OMP_C_INVALID_OPTION, message: `unsupported option: ${arg}` };
     }
     if (command === null) {
-      if (!isCliCommand(arg) || arg === "github" || arg === "providers") {
-        // github and providers are handled by their nested parsers before this
-        // loop; if they appear anywhere but first they are unsupported here.
+      if (!isCliCommand(arg) || arg === "github" || arg === "providers" || arg === "memory") {
+        // github, providers, and memory are handled by their nested parsers
+        // before this loop; if they appear anywhere but first they are
+        // unsupported here.
         return { ok: false, code: OMP_C_INVALID_COMMAND, message: `unsupported command: ${arg}` };
       }
       command = arg;

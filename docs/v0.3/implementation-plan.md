@@ -154,7 +154,21 @@ an explicit "no previous observation," not an error.
   read-only acquisition only).
 - **Dependencies:** Phases 1 and 2.
 
-## Phase 4 — Minimal CLI surface · complexity M
+## Phase 4 — Minimal CLI surface · complexity M · **implemented**
+
+> **Implemented and green.** Phase 4 exposes the Project Brain vertical slice
+> through the CLI as one new `memory` namespace with exactly six preview-first
+> subcommands (`capture`, `changes`, `status`, `history`, `export`, `delete`).
+> Mutations default to a zero-write preview and require `--apply`;
+> `delete --apply` also requires an exact `--confirm <project-id>`. The surface
+> is non-interactive, uses explicit project identity only, supports
+> `--json`/`--markdown` with stable exit codes, composes the Phase 3 Runtime, and
+> lazily constructs the Phase 2 adapter on the memory path only. It adds **no**
+> MCP tool, **no** provider change, **no** project or config write, and **no**
+> version bump; `@oh-my-pm/project-memory` stays excluded from the v0.2 release
+> bundle. `version.json` remains `0.2.0` and the MCP surface remains exactly ten
+> tools. See [phase-4-cli.md](phase-4-cli.md). Phase 5 is **not started**;
+> installed-artifact qualification is deferred to Phase 6.
 
 - **Objective:** the explicit `memory` commands with preview and structured output.
 - **Allowed files/packages:** `cli/src/**`, `cli/bin/**`, CLI tests, getting-

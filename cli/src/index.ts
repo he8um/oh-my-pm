@@ -105,6 +105,42 @@ export type {
   LocalCliProcessResult,
 } from "./local-process.js";
 export {
+  MEMORY_DEFAULT_HISTORY_LIMIT,
+  MEMORY_DEFAULT_LOCALE,
+  MEMORY_DEFAULT_STALE_AFTER_SECONDS,
+  MEMORY_MAX_FUTURE_SKEW_SECONDS,
+  MEMORY_MAX_HISTORY_LIMIT,
+  MEMORY_MAX_STALE_AFTER_SECONDS,
+  MEMORY_MIN_HISTORY_LIMIT,
+  MEMORY_MIN_STALE_AFTER_SECONDS,
+  MEMORY_SUBCOMMANDS,
+} from "./memory-types.js";
+export type {
+  MemoryCliCommand,
+  MemoryCliParseResult,
+  MemoryCommandOutcome,
+  MemoryStoreStatus,
+  MemorySubcommand,
+} from "./memory-types.js";
+export { parseMemoryCommand } from "./memory-parser.js";
+export { formatMemoryOutcome, memoryOutcomeExitCode } from "./memory-format.js";
+export { runMemoryProcess } from "./memory-process.js";
+export type { MemoryProcessOptions, MemoryStore } from "./memory-process.js";
+export { createPreviewMemoryPort } from "./memory-preview.js";
+export type {
+  PreviewCommitProjection,
+  PreviewMemoryStoreReads,
+} from "./memory-preview.js";
+export {
+  loadMemoryProjectDocuments,
+  localMarkdownObservationRequest,
+  resolveExplicitProjectId,
+} from "./memory-project.js";
+export {
+  MAX_PROJECT_ID_BYTES,
+  validateProjectId,
+} from "./project-document-rules.js";
+export {
   createGitHubRuntimeRequest,
   createRuntimeRequest,
 } from "./request.js";

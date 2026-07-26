@@ -2232,9 +2232,14 @@ if (trackedFiles.includes("project-memory/package.json")) {
 }
 // Project-memory dependency policy. No package may take a PRODUCTION dependency
 // on @oh-my-pm/project-memory: the Phase 3 Runtime reaches persistence only
-// through its structural port. The single exception is the Runtime's test-only
-// devDependency, used by the e2e integration test to compose the real adapter.
-const PROJECT_MEMORY_DEV_DEP_ALLOWED = new Set(["runtime/package.json"]);
+// through its structural port. Two packages may devDepend on it: the Runtime's
+// e2e integration test, and (Phase 4) the CLI — a dev/build-time-only dependency
+// so TypeScript resolves the lazily dynamic-imported memory command path; it is
+// never a production dependency and stays excluded from the v0.2 release bundle.
+const PROJECT_MEMORY_DEV_DEP_ALLOWED = new Set([
+  "runtime/package.json",
+  "cli/package.json",
+]);
 for (const file of trackedFiles) {
   if (!/(^|\/)package\.json$/.test(file)) continue;
   if (file === "project-memory/package.json") continue;
@@ -2262,8 +2267,13 @@ for (const file of trackedFiles) {
   }
 }
 // Only test files (and the two validators) may reference the adapter package by
-// name: the persistence boundary is reached in production source only through
-// the structural port. A PRODUCTION source referencing it is a leak.
+// name in a STATIC import: the persistence boundary is reached in production
+// source only through the structural port. The single Phase 4 exception is the
+// CLI memory process boundary, which may reference the package name ONLY inside
+// a dynamic `import("@oh-my-pm/project-memory")` (lazy load on the memory path
+// only) and must never statically import it. Any other production reference, or
+// a static import in the CLI boundary, is a leak.
+const PROJECT_MEMORY_CLI_LAZY_BOUNDARY = "cli/src/memory-process.ts";
 for (const file of trackedFiles) {
   if (file.startsWith("project-memory/")) continue;
   if (!/\.(ts|mjs|js)$/.test(file)) continue;
@@ -2274,9 +2284,19 @@ for (const file of trackedFiles) {
   if (/\.test\.(ts|mjs|js)$/.test(file)) continue;
   if (file.startsWith("runtime/test/") || file.includes("/test/")) continue;
   const contents = readFileSync(file, "utf8");
-  if (contents.includes("@oh-my-pm/project-memory")) {
-    err(`${file} references @oh-my-pm/project-memory in production source (use the structural port)`);
+  if (!contents.includes("@oh-my-pm/project-memory")) continue;
+  if (file === PROJECT_MEMORY_CLI_LAZY_BOUNDARY) {
+    // The CLI boundary must reach the adapter ONLY via a dynamic import and
+    // must never statically import it (which would defeat the lazy-load rule).
+    if (!contents.includes('import("@oh-my-pm/project-memory")')) {
+      err(`${file} must load @oh-my-pm/project-memory via a dynamic import`);
+    }
+    if (/from\s+["']@oh-my-pm\/project-memory["']/.test(contents)) {
+      err(`${file} must not statically import @oh-my-pm/project-memory (lazy import only)`);
+    }
+    continue;
   }
+  err(`${file} references @oh-my-pm/project-memory in production source (use the structural port)`);
 }
 
 // 9. v0.3 Phase 3 exact guards. Phase 3 wires capture/compare below the CLI
@@ -2337,13 +2357,80 @@ if (trackedFiles.includes("skills/src/project-brain-state.ts")) {
     err("skills/src/project-brain-state.ts must not declare or register a Skill");
   }
 }
-// 9e. CLI has no memory/capture/compare command. The parser and command surface
-// must not learn a Project Brain command in Phase 3.
-for (const cliFile of ["cli/src/parser.ts", "cli/src/cli.ts", "cli/src/request.ts"]) {
-  if (!trackedFiles.includes(cliFile)) continue;
-  const contents = readFileSync(cliFile, "utf8");
-  if (/"memory"|"capture"|"compare"|projectBrain|project_brain/i.test(contents)) {
-    err(`${cliFile} must not add a Project Brain / memory CLI command in Phase 3`);
+// 9e. v0.3 Phase 4 CLI memory surface guards. Phase 4 adds exactly one new
+// top-level command namespace (`memory`) with exactly six subcommands, handled
+// at the Node process boundary and never through the legacy Runtime request
+// contract. The legacy Runtime request builder must stay memory-free (memory
+// never routes through Runtime.handle), and runCli must fail closed on a memory
+// command. These assertions fail closed if a seventh subcommand, a Runtime-
+// routed memory request, a mutation without preview/apply, or an interactive
+// confirmation is introduced.
+//
+// The legacy Runtime request builder must never learn a Project Brain / memory
+// request kind (memory is handled at the process boundary, not via Runtime).
+if (trackedFiles.includes("cli/src/request.ts")) {
+  const request = readFileSync("cli/src/request.ts", "utf8");
+  if (/"memory"|"capture"|"compare"|projectBrain|project_brain/i.test(request)) {
+    err("cli/src/request.ts must stay memory-free (memory never routes through the Runtime)");
+  }
+}
+// The nested memory parser must accept EXACTLY the six approved subcommands and
+// no seventh. The canonical list is the MEMORY_SUBCOMMANDS constant in
+// memory-types.ts; assert it is exactly these six in order.
+if (trackedFiles.includes("cli/src/memory-types.ts")) {
+  const memoryTypes = readFileSync("cli/src/memory-types.ts", "utf8");
+  const listMatch = memoryTypes.match(/MEMORY_SUBCOMMANDS[^=]*=\s*\[([^\]]*)\]/);
+  if (listMatch === null) {
+    err("cli/src/memory-types.ts must declare the MEMORY_SUBCOMMANDS allowlist");
+  } else {
+    const subs = [...listMatch[1].matchAll(/"([a-z]+)"/g)].map((m) => m[1]);
+    const expected = ["capture", "changes", "status", "history", "export", "delete"];
+    if (JSON.stringify(subs) !== JSON.stringify(expected)) {
+      err(`MEMORY_SUBCOMMANDS must be exactly ${expected.join(", ")} in order (found ${subs.join(", ")})`);
+    }
+    // No forbidden seventh subcommand may be smuggled in.
+    for (const forbidden of ["init", "import", "repair", "migrate", "prune", "config", "sync", "watch", "serve"]) {
+      if (subs.includes(forbidden)) {
+        err(`MEMORY_SUBCOMMANDS must not include the forbidden subcommand "${forbidden}"`);
+      }
+    }
+  }
+}
+// The memory parser must gate --apply to capture/export/delete only, require an
+// exact confirmation for delete --apply, and use no interactive prompt.
+if (trackedFiles.includes("cli/src/memory-parser.ts")) {
+  const memoryParser = readFileSync("cli/src/memory-parser.ts", "utf8");
+  if (!memoryParser.includes("APPLY_SUBCOMMANDS")) {
+    err("cli/src/memory-parser.ts must restrict --apply to an explicit subcommand allowlist");
+  }
+  if (!/delete\s+--apply\s+requires\s+--confirm/.test(memoryParser)) {
+    err("cli/src/memory-parser.ts must require --confirm for delete --apply");
+  }
+  for (const marker of ["prompt(", "readline", "createInterface", "question("]) {
+    if (memoryParser.includes(marker)) {
+      err(`cli/src/memory-parser.ts must not add an interactive prompt ("${marker}")`);
+    }
+  }
+}
+// runCli must fail closed on a memory command (handled at the process boundary).
+if (trackedFiles.includes("cli/src/cli.ts")) {
+  const cli = readFileSync("cli/src/cli.ts", "utf8");
+  if (!/parsed\.command\s*===\s*"memory"/.test(cli)) {
+    err("cli/src/cli.ts must fail closed on the memory command");
+  }
+  if (!cli.includes("memory command must be handled at the process boundary")) {
+    err("cli/src/cli.ts must reject a memory command reaching runCli directly");
+  }
+}
+// The memory process boundary and its collaborators must add no interactive
+// prompt anywhere in the memory command path.
+for (const file of trackedFiles) {
+  if (!file.startsWith("cli/src/memory-") || !file.endsWith(".ts")) continue;
+  const contents = readFileSync(file, "utf8");
+  for (const marker of ["readline", "createInterface", "prompt("]) {
+    if (contents.includes(marker)) {
+      err(`${file} must not add an interactive prompt ("${marker}") to the memory path`);
+    }
   }
 }
 // 9f. The Runtime observation adapter is the only bridge from providers to

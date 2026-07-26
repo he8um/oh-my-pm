@@ -3,9 +3,11 @@
 > **Status: discovery and architecture gate — complete. Phase 0 (contracts and
 > guards) — implemented. Phase 1 (deterministic Kernel) — implemented. Phase 2
 > (local persistence adapter) — implemented. Phase 3 (Runtime capture and
-> compare) — implemented.**
-> **v0.3 product: not user-accessible. Capture/compare work only programmatically
-> below the CLI; no CLI or MCP surface invokes them. Phase 4 not started.**
+> compare) — implemented. Phase 4 (minimal preview-first CLI memory surface) —
+> implemented.**
+> **v0.3 memory commands run from the source/workspace CLI only; they are not
+> available in the published v0.2 artifacts. No MCP surface invokes the Project
+> Brain. Phase 5 not started.**
 > Phase 0 added the six versioned Project Brain contracts, their deterministic
 > TS/Rust generation, contract tests, and architecture guards. Phase 1 added the
 > pure, deterministic Kernel module (normalization, identifiers, canonical
@@ -18,15 +20,21 @@
 > finalization → one Phase 2 memory transaction → Phase 1 deterministic diff. It
 > added the minimal Kernel WASM/TypeScript binding for the seven pure Phase 1
 > functions, a pure Skills derivation module, and the orchestration under
-> `runtime/src/projectbrain/**` — with **no** CLI memory command, **no** MCP tool,
-> **no** provider change, **no** project write, and an unchanged `Runtime.handle()`.
-> `version.json` remains `0.2.0` and `v0.2.x` stays maintenance-only (see
+> `runtime/src/projectbrain/**` — with an unchanged `Runtime.handle()`. Phase 4
+> exposed that slice through the CLI as one new `memory` namespace with exactly
+> six preview-first subcommands (`capture`, `changes`, `status`, `history`,
+> `export`, `delete`), composing the Phase 3 Runtime and lazily constructing the
+> Phase 2 adapter on the memory path only — with **no** MCP tool, **no** provider
+> change, **no** project or config write, **no** version bump, and the Project
+> Memory package still excluded from the v0.2 release bundle. `version.json`
+> remains `0.2.0` and `v0.2.x` stays maintenance-only (see
 > [the v0.2.x maintenance policy](../releases/v0.2.x-maintenance-policy.md)).
-> Phases 4–6 remain unstarted; each requires a separate, explicit approval. See
+> Phases 5–6 remain unstarted; each requires a separate, explicit approval. See
 > [phase-0-contracts.md](phase-0-contracts.md) for the contract surface,
 > [phase-1-kernel.md](phase-1-kernel.md) for the Kernel,
-> [phase-2-persistence.md](phase-2-persistence.md) for the adapter, and
-> [phase-3-runtime.md](phase-3-runtime.md) for the Runtime orchestration.
+> [phase-2-persistence.md](phase-2-persistence.md) for the adapter,
+> [phase-3-runtime.md](phase-3-runtime.md) for the Runtime orchestration, and
+> [phase-4-cli.md](phase-4-cli.md) for the CLI memory surface.
 
 ## What this is
 
@@ -75,6 +83,8 @@ changed.
 | 11 | [phase-1-kernel.md](phase-1-kernel.md) | The **implemented** Phase 1 pure Kernel: normalization, identifiers, fingerprints, freshness, diff, and golden fixtures. |
 | 12 | [phase-2-persistence.md](phase-2-persistence.md) | The **implemented** Phase 2 local persistence adapter: format, layout, atomic commit, locking, integrity, migration, export, delete, and privacy. |
 | 13 | [phase-3-runtime.md](phase-3-runtime.md) | The **implemented** Phase 3 Runtime capture/compare orchestration, the minimal Kernel binding, the pure Skills deriver, evidence minimization, and the below-CLI e2e slice. |
+| 14 | [phase-4-cli.md](phase-4-cli.md) | The **implemented** Phase 4 preview-first `memory` CLI surface: command grammar, explicit identity, preview/apply, output modes, exit codes, privacy, and the source-workspace qualification. |
+| 15 | [getting-started-memory.md](getting-started-memory.md) | A hands-on walkthrough of the `memory` commands from the source/workspace CLI (unreleased; not in published v0.2 artifacts). |
 
 ## Invariants this plan will not cross
 

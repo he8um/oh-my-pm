@@ -31,5 +31,8 @@
     "@oh-my-pm/runtime": "workspace:*",
     "@oh-my-pm/providers": "workspace:*",
     "@oh-my-pm/skills": "workspace:*"
+  },
+  "devDependencies": {
+    "@oh-my-pm/project-memory": "workspace:*"
   }
 }

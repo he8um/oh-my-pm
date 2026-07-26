@@ -197,6 +197,18 @@ const CLI_SOURCES = [
   "cli/test/project-document-rules.test.ts",
   "cli/src/project-config.ts",
   "cli/test/project-config.test.ts",
+  // v0.3 Phase 4: the preview-first `memory` CLI surface.
+  "cli/src/memory-types.ts",
+  "cli/src/memory-parser.ts",
+  "cli/src/memory-preview.ts",
+  "cli/src/memory-project.ts",
+  "cli/src/memory-process.ts",
+  "cli/src/memory-format.ts",
+  "cli/test/memory-parser.test.ts",
+  "cli/test/memory-project-config.test.ts",
+  "cli/test/memory-process.test.ts",
+  "cli/test/memory-boundary.test.ts",
+  "cli/test/memory-e2e.test.ts",
 ];
 for (const file of CLI_SOURCES) {
   if (!existsSync(file)) err(`cli foundation file missing: ${file}`);

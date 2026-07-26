@@ -80,6 +80,23 @@ export async function runCli(
     };
   }
 
+  // The memory command is handled entirely at the Node process boundary
+  // (identity/data-dir resolution, document observation, Project Brain Runtime
+  // composition, the Phase 2 store, and formatting); it never reaches runCli. If
+  // it somehow does, fail closed rather than routing it to the Runtime.
+  if (parsed.command === "memory") {
+    return {
+      ok: false,
+      exitCode: 1,
+      stdout: "",
+      stderr: formatCliError(
+        OMP_C_RUNTIME_FAILED,
+        "memory command must be handled at the process boundary",
+        parsed.outputMode,
+      ),
+    };
+  }
+
   // github routes through the same Runtime with a provider-backed request. The
   // runtime supplied by the process adapter carries the GitHub provider; the
   // request itself never contains a token, headers, or an API URL. The

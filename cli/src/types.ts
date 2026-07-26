@@ -6,6 +6,7 @@ import type {
   GitHubSourceState,
 } from "@oh-my-pm/providers";
 import type { Runtime } from "@oh-my-pm/runtime";
+import type { MemoryCliCommand } from "./memory-types.js";
 
 export type CliCommand =
   | "status"
@@ -17,12 +18,13 @@ export type CliCommand =
   | "handoff"
   | "install-preview"
   | "github"
-  | "providers";
+  | "providers"
+  | "memory";
 
-/** Commands dispatched to the Runtime; local/github/providers run separately. */
+/** Commands dispatched to the Runtime; local/github/providers/memory run separately. */
 export type RuntimeCliCommand = Exclude<
   CliCommand,
-  "install-preview" | "github" | "providers"
+  "install-preview" | "github" | "providers" | "memory"
 >;
 
 /** GitHub-backed workflow operations. */
@@ -34,9 +36,17 @@ export type ProvidersSubcommand = "status" | "doctor";
 export type CliParseResult =
   | {
       ok: true;
-      command: Exclude<CliCommand, "github" | "providers">;
+      command: Exclude<CliCommand, "github" | "providers" | "memory">;
       outputMode: CliOutputMode;
       input?: string;
+    }
+  | {
+      ok: true;
+      command: "memory";
+      // The parsed nested `memory` command. runCli fails closed on this; it is
+      // handled entirely at the Node process boundary (memory-process.ts).
+      memory: MemoryCliCommand;
+      outputMode: CliOutputMode;
     }
   | {
       ok: true;

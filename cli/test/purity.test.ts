@@ -26,6 +26,14 @@ const NODE_BOUNDARY_FILES = new Set([
 // command. It is still forbidden filesystem writes and all other I/O markers.
 const GITHUB_BOUNDARY_FILE = "local-process.ts";
 
+// The memory process boundary composes the Project Brain Runtime and the Phase 2
+// store (lazily imported on the memory path only). It performs no direct
+// filesystem I/O, network, nondeterminism, or logging itself. It legitimately
+// names the store's read-only `verify`/`sign`-free method surface, so the
+// `verify(` marker (a Phase 2 integrity method name) is not a purity concern
+// here; every real I/O/nondeterminism marker still applies.
+const MEMORY_BOUNDARY_FILE = "memory-process.ts";
+
 const FS_READ_IMPORTS = [
   'from "fs"',
   'from "node:fs"',
@@ -109,6 +117,29 @@ describe("cli purity", () => {
           "new Date",
           "Math.random",
           "console.",
+          "executeInstall",
+          "executeRollback",
+        ];
+      } else if (file === MEMORY_BOUNDARY_FILE) {
+        // The memory boundary must never write files, spawn, fetch, read a
+        // real clock, or log. The Phase 2 store's `verify(`/`sign(` method names
+        // are not I/O markers here, so they are excluded from this list.
+        forbiddenForFile = [
+          ...WRITE_APIS,
+          "process.env",
+          "process.exit",
+          "child_process",
+          "fetch(",
+          "XMLHttpRequest",
+          "Date.now",
+          "new Date",
+          "Math.random",
+          "console.",
+          "http://",
+          "https://",
+          "publish",
+          "upload",
+          "download",
           "executeInstall",
           "executeRollback",
         ];

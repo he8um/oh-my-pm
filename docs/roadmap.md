@@ -209,10 +209,27 @@ in place (see Phase 5B).
   the full vertical slice is proven end-to-end with the real adapter — and the
   Project Brain remains user-inaccessible. `version.json` stays `0.2.0`. See
   [phase-3-runtime.md](v0.3/phase-3-runtime.md).
-- **v0.3 Phases 4–6: not started.** The Project Brain product is still not
-  user-accessible (no CLI or MCP exposure exists). Each remaining phase requires a
-  separate, explicit approval; the next authorized step would be Phase 4 (the
-  minimal preview-first CLI `memory` surface only).
+- **v0.3 Phase 4 (minimal preview-first CLI memory surface): implemented.** Under
+  a separate, explicit owner approval for Phase 4 only, the Project Brain vertical
+  slice was exposed through the CLI as one new `memory` namespace with exactly six
+  preview-first subcommands (`capture`, `changes`, `status`, `history`, `export`,
+  `delete`). Mutations default to a zero-write preview and require `--apply`;
+  `delete --apply` additionally requires an exact `--confirm <project-id>`. The
+  surface uses explicit project identity only, is non-interactive and scriptable,
+  supports `--json`/`--markdown` with stable exit codes, composes the Phase 3
+  Runtime, and lazily constructs the Phase 2 Node adapter on the memory path only.
+  It adds no MCP tool, no provider change, no project-file or config write, no
+  automatic project-id generation, and no version bump; `@oh-my-pm/project-memory`
+  stays a CLI dev/build-time dependency excluded from the v0.2 release bundle. The
+  memory commands run from the source/workspace CLI only and are not available in
+  the published v0.2 artifacts; installed-artifact qualification is deferred to
+  Phase 6. `version.json` stays `0.2.0`, the MCP surface stays exactly ten tools,
+  and no v0.2 behavior changed. See [phase-4-cli.md](v0.3/phase-4-cli.md).
+- **v0.3 Phases 5–6: not started.** No MCP exposure of the Project Brain exists
+  (the ten-tool surface is unchanged) and the memory commands are not yet
+  release-qualified on installed artifacts. Each remaining phase requires a
+  separate, explicit approval; the next authorized step would be Phase 5 (an
+  optional minimal read-only MCP projection, with zero MCP write tools).
 - **Selected North Star:** OH MY PM can capture a project observation locally,
   preserve minimized evidence, compare it with the previous observation, and
   return deterministic changes — without modifying the project or uploading its

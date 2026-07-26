@@ -7,10 +7,13 @@
 import { runLocalCliProcess } from "../dist/index.js";
 
 // The real clock is read only here, at the process boundary, and is consumed by
-// the runner only for the explicit live github command; local/offline commands
-// ignore it and use their fixed deterministic clock.
+// the runner only for the explicit live github and memory commands; local/
+// offline commands ignore it and use their fixed deterministic clock. The
+// process id is read here too and used only to derive the memory operation id
+// (a bounded, non-displayed, non-persisted staging token).
 const result = await runLocalCliProcess(process.argv.slice(2), {
   clock: () => new Date().toISOString(),
+  processId: process.pid,
 });
 
 if (result.stdout !== "") {
