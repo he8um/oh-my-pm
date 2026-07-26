@@ -353,11 +353,10 @@ function installFromArchive(archivePath, workRoot) {
   const extractDir = mkdtempSync(join(workRoot, "extract-"));
   scratchDirs.push(extractDir);
   try {
-    if (abs.endsWith(".zip")) {
-      execFileSync("unzip", ["-q", abs, "-d", extractDir], { stdio: ["ignore", "ignore", "pipe"] });
-    } else {
-      execFileSync("tar", ["-xzf", abs, "-C", extractDir], { stdio: ["ignore", "ignore", "pipe"] });
-    }
+    // bsdtar (the `tar` on modern Windows/macOS/Linux runners) extracts BOTH
+    // .tar.gz and .zip, so one command is portable across platforms. `-xf`
+    // auto-detects the format; `-C` sets the output directory.
+    execFileSync("tar", ["-xf", abs, "-C", extractDir], { stdio: ["ignore", "ignore", "pipe"] });
   } catch {
     bad("archive extraction", "could not extract the archive");
     return null;
@@ -371,10 +370,15 @@ function installFromArchive(archivePath, workRoot) {
   const installer = join(bundleDir, "bin", "oh-my-pm-install.mjs");
   try {
     execFileSync(process.execPath, [installer, "--prefix", prefix, "--apply"], {
-      stdio: ["ignore", "ignore", "pipe"],
+      stdio: ["ignore", "pipe", "pipe"],
     });
-  } catch {
-    bad("archive install", "installer did not apply cleanly");
+  } catch (e) {
+    // Surface the installer's bounded, path-free reason so a platform-specific
+    // failure is diagnosable from the report.
+    const reason =
+      (e && e.stderr ? e.stderr.toString() : "") || (e && e.stdout ? e.stdout.toString() : "");
+    const firstLine = reason.split("\n").find((l) => l.trim() !== "") ?? "unknown";
+    bad("archive install", `installer did not apply cleanly: ${firstLine.slice(0, 200)}`);
     return null;
   }
   ok("installed from prepared archive under isolated prefix");
