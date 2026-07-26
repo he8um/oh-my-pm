@@ -80,6 +80,11 @@ the ten-tool default. Stdio startup dynamically loads the Phase 5 runner.
 Absence of Project Memory in the legacy v0.2 bundle intentionally disables only
 `project_changes` without warning or startup failure.
 
+The legacy portable entrypoint calls stdio startup without source capability
+options; that path skips the optional loader entirely and retains the exact
+ten-tool v0.2 surface. Source/workspace startup supplies the caller clock and
+loads the conditional capability.
+
 ## Source vs Legacy Bundle Tool Counts
 
 - source/workspace capability server: 11 tools;
