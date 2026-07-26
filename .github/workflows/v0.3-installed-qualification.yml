@@ -104,6 +104,9 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 20
+          # The matrix jobs run only Node against the prepared artifact; no
+          # package manager is installed, so disable the package-manager cache.
+          package-manager-cache: false
 
       - name: Download candidate artifact
         uses: actions/download-artifact@v4
