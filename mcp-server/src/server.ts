@@ -1167,17 +1167,23 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
 }
 
 export async function startOhMyPmMcpStdioServer(
-  options: StartOhMyPmMcpStdioServerOptions,
+  options?: StartOhMyPmMcpStdioServerOptions,
 ): Promise<void> {
-  const executeProjectChanges = await loadOptionalProjectChangesExecutor({
-    ...(options.executeProjectChanges !== undefined
-      ? { injectedExecutor: options.executeProjectChanges }
-      : {}),
-    clock: options.clock,
-    ...(options.dataRootOverride !== undefined
-      ? { dataRootOverride: options.dataRootOverride }
-      : {}),
-  });
+  // The historical portable v0.2 entrypoint calls this function without
+  // options. Keep that path on the exact ten-tool surface and do not even
+  // attempt to load the source/workspace-only Project Memory capability.
+  const executeProjectChanges =
+    options === undefined
+      ? undefined
+      : await loadOptionalProjectChangesExecutor({
+          ...(options.executeProjectChanges !== undefined
+            ? { injectedExecutor: options.executeProjectChanges }
+            : {}),
+          clock: options.clock,
+          ...(options.dataRootOverride !== undefined
+            ? { dataRootOverride: options.dataRootOverride }
+            : {}),
+        });
   const server = createOhMyPmMcpServer({
     ...(executeProjectChanges !== undefined ? { executeProjectChanges } : {}),
   });

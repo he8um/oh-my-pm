@@ -148,10 +148,11 @@ async function run(prefix) {
     await client.connect(transport);
     const { tools } = await client.listTools();
     const names = tools.map((tool) => tool.name).sort();
-    // The ten-tool surface (four local + four GitHub + two diagnostics),
-    // compared sorted. Only the offline local project_brief is exercised below;
-    // no GitHub workflow tool and no network diagnostic is ever called, so this
-    // verifier stays network-free and needs no token.
+    // A local source/workspace install exposes the historical ten tools plus
+    // the conditional read-only project_changes capability. Only the offline
+    // local project_brief is exercised below; no GitHub workflow tool, network
+    // diagnostic, or Project Memory tool is called, so this verifier stays
+    // network-free and creates no application state.
     const expected = [
       "github_project_brief",
       "github_project_handoff",
@@ -159,6 +160,7 @@ async function run(prefix) {
       "github_project_risks",
       "github_provider_diagnostics",
       "project_brief",
+      "project_changes",
       "project_handoff",
       "project_next",
       "project_risks",
