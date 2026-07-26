@@ -7,7 +7,10 @@
 import { startOhMyPmMcpStdioServer } from "../dist/index.js";
 
 try {
-  await startOhMyPmMcpStdioServer();
+  // The real clock is supplied only here, at the process boundary. The server,
+  // projector, and runtime never read a system clock; the read-only
+  // project_changes tool reads it exactly once per invocation.
+  await startOhMyPmMcpStdioServer({ clock: () => new Date().toISOString() });
 } catch {
   process.stderr.write("OH MY PM MCP server failed to start\n");
   process.exitCode = 1;

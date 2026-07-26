@@ -239,11 +239,28 @@ in place (see Phase 5B).
   write, or version bump; `version.json` stays `0.2.0`, the Project Brain schema
   stays `1`, and the MCP surface stays exactly ten tools. See
   [phase-4-1-snapshot-chronology.md](v0.3/phase-4-1-snapshot-chronology.md).
-- **v0.3 Phases 5–6: not started.** No MCP exposure of the Project Brain exists
-  (the ten-tool surface is unchanged) and the memory commands are not yet
-  release-qualified on installed artifacts. Each remaining phase requires a
-  separate, explicit approval; the next authorized step would be Phase 5 (an
-  optional minimal read-only MCP projection, with zero MCP write tools).
+- **v0.3 Phase 5 — minimal read-only MCP projection: implemented.** With a
+  separate, explicit owner approval for Phase 5 only, exactly one bounded,
+  sanitized, read-only MCP tool, `project_changes`, was added over
+  already-captured Project Brain memory. It reads local application-state and
+  compares committed snapshots in Phase 4.1 capture order through the existing
+  Runtime compare; it captures nothing, migrates nothing, exports/deletes
+  nothing, calls no provider, and touches no network. Its output is a strict
+  allowlist (category/kind/id plus optional title/status/severity/dueDate and an
+  evidence count) — never raw state, evidence ids, previous/current values, or
+  paths. It is registered only when a read-only executor is injected, loaded
+  lazily at stdio startup via a dynamic `@oh-my-pm/project-memory` import: the
+  source/workspace capability server exposes eleven tools (the historical ten
+  plus `project_changes`); the legacy/current v0.2 bundle, which excludes the
+  package, starts with the exact ten. Zero MCP write tools; stdio-only; no
+  version bump; `@oh-my-pm/project-memory` stays a dev-only workspace dependency
+  excluded from the v0.2 release bundle. `version.json` stays `0.2.0`, the MCP
+  write-tool count stays zero, and the published `v0.2.0` is untouched. See
+  [phase-5-mcp.md](v0.3/phase-5-mcp.md).
+- **v0.3 Phase 6: not started.** The memory commands and `project_changes` are
+  not yet release-qualified on installed cross-platform artifacts (Project Memory
+  is still excluded from the release bundle). Phase 6 (release qualification and
+  the deliberate RC decision) requires a separate, explicit approval.
 - **Selected North Star:** OH MY PM can capture a project observation locally,
   preserve minimized evidence, compare it with the previous observation, and
   return deterministic changes — without modifying the project or uploading its

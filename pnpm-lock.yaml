@@ -137,6 +137,10 @@ importers:
       zod:
         specifier: ^3.25.76
         version: 3.25.76
+    devDependencies:
+      '@oh-my-pm/project-memory':
+        specifier: workspace:*
+        version: link:../project-memory
 
   planner:
     dependencies:

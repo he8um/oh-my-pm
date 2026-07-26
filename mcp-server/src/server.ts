@@ -3,6 +3,16 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { executeMcpGitHubTool, githubOperationForToolName } from "./github-tool-runner.js";
+import { loadOptionalProjectChangesExecutor } from "./project-changes-loader.js";
+import type { LoadProjectChangesExecutorOptions } from "./project-changes-loader.js";
+import {
+  findForbiddenMarker,
+  renderProjectChangesMarkdown,
+} from "./project-changes-projector.js";
+import type {
+  McpProjectChangesExecutor,
+  McpProjectChangesResult,
+} from "./project-changes-types.js";
 import { executeMcpProjectTool, projectOperationForToolName } from "./project-tool-runner.js";
 import {
   executeMcpGitHubProviderDiagnostics,
@@ -433,6 +443,14 @@ export type CreateOhMyPmMcpServerOptions = {
   executeGitHubTool?: McpGitHubToolExecutor;
   executeProviderStatus?: McpProviderStatusExecutor;
   executeGitHubProviderDiagnostics?: McpGitHubProviderDiagnosticsExecutor;
+  /**
+   * The read-only Project Brain compare executor (Phase 5). When supplied, the
+   * server registers the eleventh tool, `project_changes`, appended AFTER the
+   * existing ten. When absent, the server preserves its exact ten-tool surface —
+   * the intended behavior for the legacy/current v0.2 bundle where Project
+   * Memory is not packaged.
+   */
+  executeProjectChanges?: McpProjectChangesExecutor;
 };
 
 // GitHub tool input/output schemas. Input is a strict owner/repo plus an
@@ -742,6 +760,123 @@ const githubDiagnosticsOutputShape = {
     .optional(),
 } as const;
 
+// --- project_changes tool schemas (Phase 5) --------------------------------
+//
+// Strict, read-only input: a project id plus an optional explicit snapshot pair,
+// a staleness threshold, and a projection limit. There is NO root, dataDir,
+// path, token, provider, capture, apply, confirm, migrate, or force field — the
+// agent cannot choose a filesystem location or trigger any mutation.
+const projectChangesInputShape = {
+  projectId: z
+    .string()
+    .trim()
+    .min(1)
+    .max(256)
+    .describe("Opaque Project Brain project id whose captured memory to compare"),
+  previousSnapshotId: z
+    .string()
+    .trim()
+    .min(1)
+    .max(256)
+    .optional()
+    .describe("Explicit previous snapshot id; must be supplied together with currentSnapshotId"),
+  currentSnapshotId: z
+    .string()
+    .trim()
+    .min(1)
+    .max(256)
+    .optional()
+    .describe("Explicit current snapshot id; must be supplied together with previousSnapshotId"),
+  staleAfterSeconds: z
+    .number()
+    .int()
+    .min(0)
+    .max(31_536_000)
+    .optional()
+    .describe("Evidence staleness threshold in seconds (0..31536000, default 604800)"),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe("Maximum projected changes returned (1..100, default 50); bounds output only"),
+} as const;
+
+const projectedChangeSchema = z
+  .object({
+    category: z.enum([
+      "added",
+      "removed",
+      "modified",
+      "resolved",
+      "reopened",
+      "becameOverdue",
+      "noLongerOverdue",
+      "severityIncreased",
+      "severityDecreased",
+      "fresh",
+      "stale",
+      "evidenceChanged",
+    ]),
+    itemKind: z.enum(["milestone", "task", "risk", "decision", "dependency", "blocker"]),
+    itemId: z.string(),
+    title: z.string().optional(),
+    previousStatus: z.string().optional(),
+    currentStatus: z.string().optional(),
+    previousSeverity: z.string().optional(),
+    currentSeverity: z.string().optional(),
+    previousDueDate: z.string().optional(),
+    currentDueDate: z.string().optional(),
+    evidenceCount: z.number().int(),
+  })
+  .strict();
+
+const changeCountsSchema = z
+  .object({
+    added: z.number().int(),
+    removed: z.number().int(),
+    resolved: z.number().int(),
+    reopened: z.number().int(),
+    becameOverdue: z.number().int(),
+    noLongerOverdue: z.number().int(),
+    severityIncreased: z.number().int(),
+    severityDecreased: z.number().int(),
+    fresh: z.number().int(),
+    stale: z.number().int(),
+    evidenceChanged: z.number().int(),
+    modified: z.number().int(),
+  })
+  .strict();
+
+const projectChangesOutputShape = {
+  schemaVersion: z.literal(1),
+  status: z.enum(["compared", "noPriorMemory", "insufficientHistory"]),
+  projectId: z.string(),
+  previousSnapshotId: z.string().optional(),
+  currentSnapshotId: z.string().optional(),
+  chronology: z.literal("capture-order"),
+  summary: z
+    .object({
+      totalChanges: z.number().int(),
+      returnedChanges: z.number().int(),
+      truncated: z.boolean(),
+      countsByCategory: changeCountsSchema,
+    })
+    .strict(),
+  changes: z.array(projectedChangeSchema),
+} as const;
+
+// The strict output validator: the server re-validates the runner's projected
+// result before returning it, so a projection defect fails closed as an MCP
+// error rather than emitting a partially-projected or unexpected shape.
+const projectChangesOutputSchema = z.object(projectChangesOutputShape).strict();
+
+const PROJECT_CHANGES_OUTPUT_INVALID_TEXT =
+  "project_changes_output_invalid: result did not match the safe public shape";
+const PROJECT_CHANGES_FAILED_TEXT =
+  "project_changes_failed: unexpected project changes failure";
+
 const PROJECT_OUTPUT_INVALID_TEXT =
   "project_output_invalid: runtime output did not match the expected tool shape";
 
@@ -809,22 +944,75 @@ async function handleGitHubTool(
   return successResult(execution.markdown, githubPublicResult(execution));
 }
 
+/**
+ * Run the read-only `project_changes` executor and project it to a strict,
+ * validated public MCP result. A controlled runner failure maps to a stable MCP
+ * error; an unexpected exception maps to one generic error; a projection that
+ * fails strict validation or a forbidden-marker scan is rejected rather than
+ * partially returned.
+ */
+async function handleProjectChanges(
+  execute: McpProjectChangesExecutor,
+  input: {
+    projectId: string;
+    previousSnapshotId?: string;
+    currentSnapshotId?: string;
+    staleAfterSeconds?: number;
+    limit?: number;
+  },
+): Promise<ToolResult> {
+  let execution;
+  try {
+    execution = await execute(input);
+  } catch {
+    return errorResult(PROJECT_CHANGES_FAILED_TEXT);
+  }
+  if (!execution.ok) {
+    return errorResult(`${execution.code}: ${execution.message}`);
+  }
+  // Strict output validation: the projected result must match the safe public
+  // shape exactly. Reject rather than emit a partially-projected result.
+  const parsed = projectChangesOutputSchema.safeParse(execution.result);
+  if (!parsed.success) {
+    return errorResult(PROJECT_CHANGES_OUTPUT_INVALID_TEXT);
+  }
+  const result: McpProjectChangesResult = parsed.data as McpProjectChangesResult;
+  const structured = result as unknown as Record<string, unknown>;
+  const markdown = renderProjectChangesMarkdown(result);
+  // Final leak scan over the serialized text + structured content. A structural
+  // marker match means the projection failed; reject the result.
+  const serialized = `${JSON.stringify(structured)}\n${markdown}`;
+  if (findForbiddenMarker(serialized) !== null) {
+    return errorResult(PROJECT_CHANGES_OUTPUT_INVALID_TEXT);
+  }
+  return successResult(markdown, structured);
+}
+
 export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): McpServer {
   const execute = options?.executeProjectTool ?? executeMcpProjectTool;
   const executeGitHub = options?.executeGitHubTool ?? executeMcpGitHubTool;
   const executeProviderStatus = options?.executeProviderStatus ?? executeMcpProviderStatus;
   const executeGitHubProviderDiagnostics =
     options?.executeGitHubProviderDiagnostics ?? executeMcpGitHubProviderDiagnostics;
+  // project_changes is registered ONLY when a read-only executor is supplied
+  // (the source/workspace capability path). Absent -> the exact ten-tool server.
+  const executeProjectChanges = options?.executeProjectChanges;
+
+  // The ten-tool fallback server keeps its historical instruction. The
+  // capability server (eleven tools) states the accurate posture, including that
+  // project_changes reads previously captured memory and that not every tool
+  // requires a project root.
+  const instructions =
+    executeProjectChanges === undefined
+      ? "OH MY PM provides read-only local project intelligence from Markdown documents. All tools require a local project root, respect oh-my-pm.config.json, never modify files, and never upload project context."
+      : "OH MY PM provides read-only local project intelligence. Existing document tools read configured Markdown under a local project root and respect oh-my-pm.config.json. project_changes reads previously captured local Project Brain memory and needs no project root. No MCP tool writes project files or application state. GitHub tools access the network only when explicitly called, and never upload project context.";
 
   const server = new McpServer(
     {
       name: OH_MY_PM_MCP_SERVER_NAME,
       version: OH_MY_PM_MCP_SERVER_VERSION,
     },
-    {
-      instructions:
-        "OH MY PM provides read-only local project intelligence from Markdown documents. All tools require a local project root, respect oh-my-pm.config.json, never modify files, and never upload project context.",
-    },
+    { instructions },
   );
 
   server.registerTool(
@@ -1008,11 +1196,56 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
     },
   );
 
+  // Phase 5: the eleventh tool, appended AFTER the existing ten, registered ONLY
+  // when a read-only Project Brain compare executor is supplied. It reads
+  // already-captured local memory and compares snapshots in authoritative
+  // capture order; it captures nothing, migrates nothing, and touches no network.
+  if (executeProjectChanges !== undefined) {
+    server.registerTool(
+      "project_changes",
+      {
+        title: "Project Changes",
+        description:
+          "Read already-captured local Project Brain memory and compare snapshots in authoritative capture order. Does not capture or modify a project, does not migrate, export, delete, or repair memory, and performs no network request.",
+        inputSchema: projectChangesInputShape,
+        outputSchema: projectChangesOutputShape,
+        annotations: {
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      ({ projectId, previousSnapshotId, currentSnapshotId, staleAfterSeconds, limit }) =>
+        handleProjectChanges(executeProjectChanges, {
+          projectId,
+          ...(previousSnapshotId !== undefined ? { previousSnapshotId } : {}),
+          ...(currentSnapshotId !== undefined ? { currentSnapshotId } : {}),
+          ...(staleAfterSeconds !== undefined ? { staleAfterSeconds } : {}),
+          ...(limit !== undefined ? { limit } : {}),
+        }),
+    );
+  }
+
   return server;
 }
 
-export async function startOhMyPmMcpStdioServer(): Promise<void> {
-  const server = createOhMyPmMcpServer();
+/**
+ * Start the stdio MCP server. Before constructing the server it loads the
+ * OPTIONAL read-only Project Brain compare capability: when @oh-my-pm/project-
+ * memory resolves (source/workspace), the eleventh tool `project_changes` is
+ * registered; when it is absent (the legacy/current v0.2 bundle), the server
+ * starts with the exact ten tools and no stderr warning. The real clock is
+ * supplied here at the process boundary — never inside the server, projector,
+ * or runtime.
+ */
+export async function startOhMyPmMcpStdioServer(
+  options?: LoadProjectChangesExecutorOptions,
+): Promise<void> {
+  const executeProjectChanges = await loadOptionalProjectChangesExecutor(options);
+  const server = createOhMyPmMcpServer(
+    executeProjectChanges !== undefined ? { executeProjectChanges } : {},
+  );
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

@@ -220,21 +220,42 @@ an explicit "no previous observation," not an error.
   semantic change, or a version bump → stop.
 - **Dependencies:** Phase 4.
 
-## Phase 5 — Minimal read-only MCP exposure · complexity M
+## Phase 5 — Minimal read-only MCP exposure · complexity M · **implemented**
 
-- **Objective:** bounded, sanitized, read-only projection over captured state —
-  **only after contracts stabilize.**
-- **Allowed files/packages:** `mcp-server/src/**`, MCP tests, the tool-count
-  verifiers.
-- **Deliverables:** at most **one** new read-only tool (e.g. `project_changes`),
-  sanitized exactly like existing projections; **the first Project Brain release
-  ships zero MCP write tools** and may ship zero new tools.
-- **Tests:** projection sanitization (no bodies/tokens/absolute paths); tool-count
-  and order verifiers updated deliberately; stdio-only preserved.
+> **Implemented and green.** Phase 5 adds exactly one bounded, sanitized,
+> read-only MCP tool, `project_changes`, over already-captured Project Brain
+> memory: it reads local application-state and compares committed snapshots in
+> Phase 4.1 capture order through the existing Phase 3 Runtime compare and Phase 1
+> Kernel binding. It captures nothing, migrates nothing, exports/deletes nothing,
+> calls no provider, and touches no network. The output is a strict allowlist
+> (category/kind/id + optional title/status/severity/dueDate + evidenceCount) —
+> never raw state, evidence ids, previous/current values, or paths. The tool is
+> registered only when a read-only executor is injected, loaded lazily at stdio
+> startup via a dynamic `@oh-my-pm/project-memory` import: the source/workspace
+> capability server exposes **eleven** tools (the historical ten plus
+> `project_changes`), while the legacy/current v0.2 bundle — which excludes the
+> package — starts with the exact **ten**. Zero MCP write tools; stdio-only; no
+> HTTP/SSE/WebSocket; no version bump; `@oh-my-pm/project-memory` stays a
+> dev-only workspace dependency excluded from the v0.2 bundle. `version.json`
+> stays `0.2.0`, the Project Brain schema stays `1`, and the published `v0.2.0`
+> is untouched. See [phase-5-mcp.md](phase-5-mcp.md). Phase 6 is **not started**;
+> installed-artifact qualification of `project_changes` belongs to it.
+
+- **Objective:** bounded, sanitized, read-only projection over captured state.
+- **Allowed files/packages:** `mcp-server/src/**`, MCP tests, the source stdio
+  smoke, the tool-count verifiers, the MCP package dev workspace dependency, and
+  the Phase 5 docs.
+- **Deliverables:** exactly one new read-only tool (`project_changes`), sanitized
+  strictly; **zero MCP write tools**; conditional registration + lazy capability
+  loading preserving the ten-tool legacy fallback.
+- **Tests:** projection sanitization (no bodies/tokens/absolute paths/evidence
+  ids); registration (10 vs 11); runner read-only + chronology + version/
+  corruption; source stdio smoke updated to eleven tools deliberately;
+  stdio-only preserved.
 - **Acceptance:** G12 (bounded sanitized MCP exposure); no write tool; no HTTP.
-- **Stop conditions:** any MCP write tool, HTTP transport, or unsanitized field →
-  stop.
-- **Dependencies:** Phase 4; contracts stable.
+- **Stop conditions:** any MCP write tool, a second Project Brain tool, HTTP
+  transport, an unsanitized field, or a version bump → stop.
+- **Dependencies:** Phase 4 (and Phase 4.1 chronology).
 
 ## Phase 6 — Release qualification · complexity M
 

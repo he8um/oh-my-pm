@@ -1885,13 +1885,88 @@ for (const file of trackedFiles) {
     }
   }
 }
-// The MCP server must not register a projectbrain/memory tool (the ten-tool set
-// is unchanged; no project_changes / capture / compare / memory projection is
-// added in Phase 3). The ten-tool count and order are asserted separately below.
+// v0.3 Phase 5: the MCP server may register EXACTLY ONE new read-only Project
+// Brain tool, `project_changes`, and no other. Every forbidden Project Brain MCP
+// tool (capture/compare/delete/export/migrate/status/history) and any second
+// Project Brain tool remains rejected. `project_changes` must be registered only
+// through a conditional guarded by an injected executor (so the legacy v0.2
+// bundle without Project Memory keeps the exact ten tools). The eleventh-tool
+// count/order is asserted in validate-structure.mjs.
 if (trackedFiles.includes("mcp-server/src/server.ts")) {
   const server = readFileSync("mcp-server/src/server.ts", "utf8");
-  if (/projectbrain|project_changes|project_capture|project_compare|\bmemory\b/i.test(server)) {
-    err("mcp-server/src/server.ts must not add a projectbrain/memory MCP tool");
+  // Any registered tool literal (bare-string first arg to registerTool).
+  const registeredTools = new Set(
+    [...server.matchAll(/registerTool\(\s*["']([a-z_]+)["']/g)].map((m) => m[1]),
+  );
+  // Forbidden Project Brain MCP tools must never be registered.
+  const FORBIDDEN_PB_MCP_TOOLS = [
+    "project_capture",
+    "project_compare",
+    "project_delete",
+    "project_export",
+    "project_migrate",
+    "project_status",
+    "project_history",
+  ];
+  for (const forbidden of FORBIDDEN_PB_MCP_TOOLS) {
+    if (registeredTools.has(forbidden)) {
+      err(`mcp-server/src/server.ts must not register the forbidden MCP tool "${forbidden}"`);
+    }
+  }
+  // Exactly one Project Brain read-only tool is allowed: project_changes.
+  const projectBrainTools = [...registeredTools].filter(
+    (name) => name === "project_changes",
+  );
+  if (projectBrainTools.length > 1) {
+    err("mcp-server/src/server.ts must register at most one Project Brain MCP tool");
+  }
+  // project_changes must be registered behind the injected executor guard, never
+  // unconditionally (so the legacy ten-tool bundle is preserved).
+  if (registeredTools.has("project_changes")) {
+    if (!/if\s*\(\s*executeProjectChanges\s*!==\s*undefined\s*\)/.test(server)) {
+      err(
+        "mcp-server/src/server.ts must register project_changes only when an executor is injected",
+      );
+    }
+    // No write/destructive annotation on the read-only tool.
+    if (/destructiveHint:\s*true/.test(server) || /readOnlyHint:\s*false/.test(server)) {
+      err("mcp-server/src/server.ts project_changes must be read-only and non-destructive");
+    }
+  }
+  // The server must NOT statically import the project-memory package (the lazy
+  // loader is the only capability composition path).
+  if (/from\s+["']@oh-my-pm\/project-memory["']/.test(server)) {
+    err("mcp-server/src/server.ts must not statically import @oh-my-pm/project-memory");
+  }
+}
+// The MCP bin must not statically import the project-memory package either.
+if (trackedFiles.includes("mcp-server/bin/oh-my-pm-mcp.mjs")) {
+  const bin = readFileSync("mcp-server/bin/oh-my-pm-mcp.mjs", "utf8");
+  if (bin.includes("@oh-my-pm/project-memory")) {
+    err("mcp-server/bin/oh-my-pm-mcp.mjs must not reference @oh-my-pm/project-memory");
+  }
+}
+// The project_changes runner must not import a provider, call capture/commit/
+// export/delete/migrate, or reach the network. It reaches persistence only via
+// the lazy adapter import and the structural read port.
+if (trackedFiles.includes("mcp-server/src/project-changes-runner.ts")) {
+  const runner = readFileSync("mcp-server/src/project-changes-runner.ts", "utf8");
+  for (const marker of ["@oh-my-pm/providers", "createProviderRegistry", "createLocalProvider"]) {
+    if (runner.includes(marker)) {
+      err(`mcp-server/src/project-changes-runner.ts must not reference a provider ("${marker}")`);
+    }
+  }
+  for (const marker of [
+    "commitSnapshotBundle(",
+    "exportProject(",
+    "deleteProject(",
+    "migrateProject(",
+    "previewMigration(",
+    ".capture(",
+  ]) {
+    if (runner.includes(marker)) {
+      err(`mcp-server/src/project-changes-runner.ts must not invoke a mutating/capture call ("${marker}")`);
+    }
   }
 }
 // Phase 3 Kernel binding surface. The Kernel WASM binding gains the seven
@@ -2239,6 +2314,11 @@ if (trackedFiles.includes("project-memory/package.json")) {
 const PROJECT_MEMORY_DEV_DEP_ALLOWED = new Set([
   "runtime/package.json",
   "cli/package.json",
+  // v0.3 Phase 5: the MCP server devDepends on the adapter so TypeScript resolves
+  // the lazily dynamic-imported project_changes capability path. It is a
+  // dev/build-time dependency only, never a production/startup dependency, and
+  // the package stays excluded from the v0.2 release bundle.
+  "mcp-server/package.json",
 ]);
 for (const file of trackedFiles) {
   if (!/(^|\/)package\.json$/.test(file)) continue;
@@ -2268,12 +2348,18 @@ for (const file of trackedFiles) {
 }
 // Only test files (and the two validators) may reference the adapter package by
 // name in a STATIC import: the persistence boundary is reached in production
-// source only through the structural port. The single Phase 4 exception is the
-// CLI memory process boundary, which may reference the package name ONLY inside
-// a dynamic `import("@oh-my-pm/project-memory")` (lazy load on the memory path
-// only) and must never statically import it. Any other production reference, or
-// a static import in the CLI boundary, is a leak.
-const PROJECT_MEMORY_CLI_LAZY_BOUNDARY = "cli/src/memory-process.ts";
+// source only through the structural port. The lazy-load exceptions may
+// reference the package name ONLY inside a dynamic `import("@oh-my-pm/project-
+// memory")` and must never statically import it: the Phase 4 CLI memory process
+// boundary, and the Phase 5 MCP capability loader + read-only runner (which lazy-
+// load the adapter only on the project_changes path so the legacy v0.2 bundle,
+// which excludes the package, still starts with the exact ten tools). Any other
+// production reference, or a static import in a lazy boundary, is a leak.
+const PROJECT_MEMORY_LAZY_BOUNDARIES = new Set([
+  "cli/src/memory-process.ts",
+  "mcp-server/src/project-changes-loader.ts",
+  "mcp-server/src/project-changes-runner.ts",
+]);
 for (const file of trackedFiles) {
   if (file.startsWith("project-memory/")) continue;
   if (!/\.(ts|mjs|js)$/.test(file)) continue;
@@ -2285,9 +2371,9 @@ for (const file of trackedFiles) {
   if (file.startsWith("runtime/test/") || file.includes("/test/")) continue;
   const contents = readFileSync(file, "utf8");
   if (!contents.includes("@oh-my-pm/project-memory")) continue;
-  if (file === PROJECT_MEMORY_CLI_LAZY_BOUNDARY) {
-    // The CLI boundary must reach the adapter ONLY via a dynamic import and
-    // must never statically import it (which would defeat the lazy-load rule).
+  if (PROJECT_MEMORY_LAZY_BOUNDARIES.has(file)) {
+    // A lazy boundary must reach the adapter ONLY via a dynamic import and must
+    // never statically import it (which would defeat the lazy-load rule).
     if (!contents.includes('import("@oh-my-pm/project-memory")')) {
       err(`${file} must load @oh-my-pm/project-memory via a dynamic import`);
     }

@@ -5,7 +5,11 @@
 > (local persistence adapter) — implemented. Phase 3 (Runtime capture and
 > compare) — implemented. Phase 4 (minimal preview-first CLI memory surface) —
 > implemented. Phase 4.1 (snapshot capture chronology correction) —
+> implemented. Phase 5 (minimal read-only MCP projection, `project_changes`) —
 > implemented.**
+> The source/workspace capability MCP server exposes eleven tools (the historical
+> ten plus `project_changes`); the legacy/current v0.2 bundle exposes the existing
+> ten and the published v0.2.0 is unchanged. Phase 6 not started.
 > **v0.3 memory commands run from the source/workspace CLI only; they are not
 > available in the published v0.2 artifacts. No MCP surface invokes the Project
 > Brain. Phase 5 not started.**
@@ -35,10 +39,13 @@
 > [phase-1-kernel.md](phase-1-kernel.md) for the Kernel,
 > [phase-2-persistence.md](phase-2-persistence.md) for the adapter,
 > [phase-3-runtime.md](phase-3-runtime.md) for the Runtime orchestration,
-> [phase-4-cli.md](phase-4-cli.md) for the CLI memory surface, and
+> [phase-4-cli.md](phase-4-cli.md) for the CLI memory surface,
 > [phase-4-1-snapshot-chronology.md](phase-4-1-snapshot-chronology.md) for the
 > snapshot capture chronology correction (internal store format 2; the default
-> comparison and history now use real capture order).
+> comparison and history now use real capture order), and
+> [phase-5-mcp.md](phase-5-mcp.md) for the read-only `project_changes` MCP
+> projection (eleven tools in the source/workspace capability server; ten in the
+> legacy v0.2 bundle).
 
 ## What this is
 

@@ -1,10 +1,14 @@
 # @oh-my-pm/mcp-server
 
-Private Model Context Protocol (MCP) server for OH MY PM. It exposes ten
-read-only tools to MCP clients over stdio: four local Markdown project workflows
+Private Model Context Protocol (MCP) server for OH MY PM. It exposes read-only
+tools to MCP clients over stdio: four local Markdown project workflows
 (filesystem-only), four GitHub workflows (read-only outbound API requests, only
 when called), and two provider diagnostics tools (offline, with one explicitly
-confirmed GitHub request). It is private and is not published.
+confirmed GitHub request). In the source/workspace build, when the local Project
+Memory capability is available, it also exposes the v0.3 Phase 5 read-only
+`project_changes` tool (eleven tools total); the legacy/current v0.2 bundle,
+which excludes Project Memory, exposes the existing ten. It is private and is not
+published; it has **zero** write tools.
 
 ## Build requirement
 
@@ -40,7 +44,7 @@ The generator prints the configuration only — it never writes to or edits a cl
 
 ## Tools
 
-Exactly ten tools are registered, in this order — four local, four GitHub, then two provider diagnostics:
+The ten historical tools are registered in this order — four local, four GitHub, then two provider diagnostics — and, in the source/workspace capability build, the read-only `project_changes` tool is appended as the eleventh:
 
 - `project_brief` — deterministic project status brief
 - `project_risks` — line-level risk signals from recognized Markdown headings/markers
@@ -52,6 +56,9 @@ Exactly ten tools are registered, in this order — four local, four GitHub, the
 - `github_project_handoff` — GitHub repository handoff
 - `provider_status` — offline resolved provider state (no network)
 - `github_provider_diagnostics` — offline GitHub diagnostics, one confirmed GET when opted in
+- `project_changes` — **(source/workspace capability only)** read-only comparison of already-captured local Project Brain memory in authoritative capture order
+
+The first ten always register and keep their exact order. `project_changes` is registered only when the local Project Memory capability resolves at stdio startup (a lazy, optional dynamic import); when it is absent — the intended case for the legacy/current v0.2 bundle, which excludes `@oh-my-pm/project-memory` — the server starts with the exact ten and emits no warning.
 
 The four local tools accept a project root:
 
@@ -86,6 +93,16 @@ The two provider diagnostics tools:
 
 `provider_status` takes no input, resolves provider configuration from the process environment or standard OS location (an agent can never supply a config path), reports token presence only, and never accesses the network. `github_provider_diagnostics` takes an optional `repository` (the configured default may be used) and an optional `confirmNetwork` (defaults to `false`); with `confirmNetwork: true` it performs exactly one read-only `GET` repository-metadata request. Neither accepts a token, config path, API URL, limit, or headers. See [provider configuration](../docs/providers/configuration.md) and [provider diagnostics](../docs/providers/diagnostics.md).
 
+### `project_changes` (v0.3 Phase 5, read-only)
+
+`project_changes` reads already-captured local Project Brain memory and compares committed snapshots in authoritative capture order. It does not capture or modify a project, does not migrate/export/delete/repair memory, and performs no network request. Its input is strict — a `projectId` plus an optional explicit `previousSnapshotId`/`currentSnapshotId` pair (both-or-neither, must differ), `staleAfterSeconds` (`0..31536000`, default 604800), and `limit` (`1..100`, default 50, bounds output only):
+
+```json
+{ "projectId": "my-project", "limit": 50 }
+```
+
+There is **no** `root`, `dataDir`, `path`, `token`, `provider`, `capture`, `apply`, `migrate`, or `force` input — the agent cannot choose a filesystem location, and the tool resolves the same standard application-data location the Project Memory adapter uses. The default comparison compares the latest committed capture with the capture committed immediately before it (Phase 4.1 capture chronology, never a lexical id order); an explicit pair is honored exactly. The result is a strict, versioned projection: `status` (`compared`/`noPriorMemory`/`insufficientHistory`), the compared snapshot ids, a `summary` with `totalChanges`/`returnedChanges`/`truncated` and complete twelve-category counts, and a bounded `changes` array of `{ category, itemKind, itemId, title?, previousStatus?, currentStatus?, previousSeverity?, currentSeverity?, previousDueDate?, currentDueDate?, evidenceCount }`. It never exposes raw `ProjectState`/`ProjectSnapshot`/`EvidenceRecord`, `previousValue`/`currentValue`, evidence ids, metadata, provenance, owner, priority, raw bodies, or paths — evidence is reported as a count only. `noPriorMemory` and `insufficientHistory` are controlled non-error statuses. See [phase-5-mcp.md](../docs/v0.3/phase-5-mcp.md).
+
 ### Success behavior
 
 - `content` contains the human-readable Markdown, identical to the CLI's `--markdown` output for the same workflow.
@@ -105,12 +122,13 @@ Each tool reuses the CLI's configured document loader: it reads only `<root>/oh-
 
 - read-only — no file modification, no writes, no GitHub mutations
 - local project tools are filesystem-local and offline; no local project context is uploaded or persisted
+- `project_changes` reads already-captured local Project Brain memory only; it captures nothing, writes nothing, acquires no lock, migrates nothing, and creates no data directory
 - GitHub tools reach the network only when called, and only as `GET`-only requests to `api.github.com`
 - no request is made at server startup or during `tools/list`
 - no telemetry, no logging of document content
 - no HTTP endpoint and no HTTP/SSE MCP transport (stdio only)
 - the optional `OH_MY_PM_GITHUB_TOKEN` is read only at a GitHub tool-call boundary, never printed, and never written into generated client config
-- no write tools
+- no write tools (zero MCP write tools, including for Project Brain memory)
 
 ## Generic MCP client configuration
 
@@ -135,4 +153,4 @@ After building the workspace, run the stdio smoke check:
 pnpm mcp:smoke
 ```
 
-It spawns the server, asserts the exact ten-tool list, calls the offline local `project_brief` on the public fixture and the offline `provider_status` tool, asserts safe results, and prints one success line. The smoke never calls a GitHub workflow tool and never runs a network diagnostic, so it makes no network request and needs no token.
+It spawns the source/workspace server against an isolated standard data root, asserts the exact eleven-tool list, calls the offline local `project_brief` on the public fixture, the offline `provider_status` tool, and the read-only `project_changes` tool over an empty store (asserting a `noPriorMemory` status, that no data directory/file/lock was created, and that no forbidden sentinel leaked), asserts safe results, and prints one success line. The smoke never calls a GitHub workflow tool and never runs a network diagnostic, so it makes no network request and needs no token.

@@ -787,8 +787,17 @@ if (existsSync("kernel/crate/Cargo.toml")) {
     err(`kernel/crate/Cargo.toml version must remain ${CANONICAL_VERSION}`);
   }
 }
-// The MCP server must declare exactly the ten approved tools, in order. This is a
-// static count/ordering guard complementing the runtime mcp:smoke assertion.
+// The MCP server declares the ten historical tools plus, as of v0.3 Phase 5, the
+// single read-only Project Brain tool `project_changes` (registered conditionally
+// behind an injected executor). This is a static count/ordering guard
+// complementing the runtime mcp:smoke assertion.
+//
+// LEGACY_V02_MCP_TOOL_COUNT = 10 (the current v0.2 bundle without Project Memory)
+// SOURCE_V03_PHASE5_MCP_TOOL_COUNT = 11 (the source/workspace capability server)
+// PROJECT_BRAIN_MCP_WRITE_TOOL_COUNT = 0
+// PROJECT_BRAIN_MCP_READ_TOOL_COUNT = 1 (project_changes)
+const LEGACY_V02_MCP_TOOL_COUNT = 10;
+const SOURCE_V03_PHASE5_MCP_TOOL_COUNT = 11;
 const MCP_TEN_TOOLS = [
   "project_brief",
   "project_risks",
@@ -801,27 +810,36 @@ const MCP_TEN_TOOLS = [
   "provider_status",
   "github_provider_diagnostics",
 ];
+// The single approved additional Project Brain read-only tool (Phase 5).
+const MCP_PHASE5_READONLY_TOOL = "project_changes";
 if (existsSync("mcp-server/src/server.ts")) {
   const server = readFileSync("mcp-server/src/server.ts", "utf8");
-  // Every approved tool name must appear as a quoted string literal (tools are
+  // Every historical tool name must appear as a quoted string literal (tools are
   // registered with heterogeneous styles: bare-string first-arg for local tools,
   // `name: "..."` for GitHub tools). The authoritative ordering assertion is the
   // runtime mcp:smoke check; here we assert presence and reject any extra
-  // project_*/github_* tool literal that is not in the approved set.
+  // project_*/github_* tool literal outside the approved set.
   for (const name of MCP_TEN_TOOLS) {
     if (!server.includes(`"${name}"`)) {
       err(`mcp-server/src/server.ts must register the tool "${name}"`);
     }
   }
+  const approved = new Set([...MCP_TEN_TOOLS, MCP_PHASE5_READONLY_TOOL]);
   const toolLiterals = new Set(
     [...server.matchAll(/"((?:project|github)_[a-z_]+)"/g)].map((m) => m[1]),
   );
   for (const literal of toolLiterals) {
     // Ignore stable error/reason identifiers that share the prefix but are not
-    // tool names (they carry a suffix like "_failed"/"_invalid").
-    if (MCP_TEN_TOOLS.includes(literal)) continue;
-    if (/_(failed|invalid|error|required|missing|unavailable)/.test(literal)) continue;
-    err(`mcp-server/src/server.ts registers an unexpected tool literal "${literal}" (Phase 1 keeps exactly ten tools)`);
+    // tool names (they carry a suffix like "_failed"/"_invalid"/"_output").
+    if (approved.has(literal)) continue;
+    if (/_(failed|invalid|error|required|missing|unavailable|output)/.test(literal)) continue;
+    err(
+      `mcp-server/src/server.ts registers an unexpected tool literal "${literal}" (Phase 5 keeps the ten historical tools plus project_changes)`,
+    );
+  }
+  // Guard the deliberate tool-count constants against silent drift.
+  if (LEGACY_V02_MCP_TOOL_COUNT !== 10 || SOURCE_V03_PHASE5_MCP_TOOL_COUNT !== 11) {
+    err("MCP tool-count constants must remain 10 (legacy) and 11 (source Phase 5)");
   }
 }
 
@@ -992,6 +1010,26 @@ const PHASE_4_1_SOURCES = [
 ];
 for (const file of PHASE_4_1_SOURCES) {
   if (!existsSync(file)) err(`Phase 4.1 file missing: ${file}`);
+}
+
+// 11. v0.3 Phase 5 read-only MCP projection. Phase 5 adds exactly one bounded,
+// sanitized, read-only MCP tool (project_changes) over already-captured Project
+// Brain memory: its types, strict projector, read-only runner, lazy optional
+// capability loader, tests, and the Phase 5 report. The source version stays
+// 0.2.0 (enforced above); the historical ten-tool surface stays unchanged; the
+// source/workspace capability server exposes eleven tools.
+const PHASE_5_SOURCES = [
+  "mcp-server/src/project-changes-types.ts",
+  "mcp-server/src/project-changes-projector.ts",
+  "mcp-server/src/project-changes-runner.ts",
+  "mcp-server/src/project-changes-loader.ts",
+  "mcp-server/test/project-changes-projector.test.ts",
+  "mcp-server/test/project-changes-runner.test.ts",
+  "mcp-server/test/project-changes-server.test.ts",
+  "docs/v0.3/phase-5-mcp.md",
+];
+for (const file of PHASE_5_SOURCES) {
+  if (!existsSync(file)) err(`Phase 5 file missing: ${file}`);
 }
 
 if (fail) {
