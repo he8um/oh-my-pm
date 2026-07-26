@@ -20,6 +20,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const RC_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.3-rc.yml");
+const STABLE_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.3.yml");
 const QUAL_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "v0.3-installed-qualification.yml");
 
 function read(p) {
@@ -101,6 +102,98 @@ describe("v0.3 RC release workflow (static dry-run)", () => {
     // A publish run without the exact confirmation is rejected in both the
     // prepare and publish jobs.
     const gateCount = (wf.match(/RELEASE v0\.3\.0-rc\.1/g) || []).length;
+    expect(gateCount).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("v0.3 stable release workflow (static dry-run)", () => {
+  const wf = read(STABLE_WORKFLOW);
+
+  it("triggers on workflow_dispatch only, never push/pr/schedule/release", () => {
+    expect(/^on:\s*\n\s+workflow_dispatch:/m.test(wf)).toBe(true);
+    for (const trigger of ["\n  push:", "\n  pull_request:", "\n  schedule:", "\n  release:"]) {
+      expect(wf.includes(trigger)).toBe(false);
+    }
+  });
+
+  it("defaults publish to false and confirmation to empty", () => {
+    expect(/publish:[\s\S]*?default:\s*false/.test(wf)).toBe(true);
+    expect(/confirmation:[\s\S]*?default:\s*""/.test(wf)).toBe(true);
+  });
+
+  it("declares top-level contents: read and grants contents: write exactly once", () => {
+    expect(/^permissions:\s*\n\s+contents:\s*read\s*$/m.test(wf)).toBe(true);
+    const writeCount = (wf.match(/^\s+contents: write\s*$/gm) || []).length;
+    expect(writeCount).toBe(1);
+  });
+
+  it("gates the publish job on publish==true and the github-release environment", () => {
+    expect(/if:\s*\$\{\{\s*inputs\.publish\s*==\s*true\s*\}\}/.test(wf)).toBe(true);
+    expect(/name:\s*github-release/.test(wf)).toBe(true);
+  });
+
+  it("requires the exact stable version and confirmation string", () => {
+    expect(wf.includes('!= "0.3.0"')).toBe(true);
+    expect(wf.includes("RELEASE v0.3.0")).toBe(true);
+    // Never an RC-suffixed confirmation.
+    expect(wf.includes("RELEASE v0.3.0-rc.1")).toBe(false);
+  });
+
+  it("publishes a stable latest release at the exact commit SHA, never prerelease", () => {
+    expect(wf.includes("--latest")).toBe(true);
+    expect(wf.includes("--prerelease")).toBe(false);
+    expect(wf.includes('--target "$GITHUB_SHA"')).toBe(true);
+    expect(/isPrerelease\s*!==\s*false/.test(wf)).toBe(true);
+    expect(wf.includes("releases/latest")).toBe(true);
+  });
+
+  it("gates on the validated RC lineage and the recorded GO decision", () => {
+    expect(wf.includes("v0.3.0-rc.1")).toBe(true);
+    expect(wf.includes("1db4057b7dfb31cae7f0d6db593928ee1287ef85")).toBe(true);
+    expect(wf.includes("GO FOR v0.3.0 STABLE PREPARATION")).toBe(true);
+  });
+
+  it("depends on the cross-platform installed qualification before publish", () => {
+    expect(/needs:\s*\[\s*prepare\s*,\s*installed-qualification\s*\]/.test(wf)).toBe(true);
+    expect(/ubuntu-latest,\s*macos-latest,\s*windows-latest/.test(wf)).toBe(true);
+  });
+
+  it("refuses to overwrite an existing tag or release", () => {
+    expect(wf.includes("refusing to overwrite")).toBe(true);
+  });
+
+  it("references exactly the three stable assets and no RC-named asset", () => {
+    for (const asset of [
+      "oh-my-pm-v0.3.0.tar.gz",
+      "oh-my-pm-v0.3.0.zip",
+      "oh-my-pm-v0.3.0-SHA256SUMS.txt",
+    ]) {
+      expect(wf.includes(asset)).toBe(true);
+    }
+    for (const rcAsset of [
+      "oh-my-pm-v0.3.0-rc.1.tar.gz",
+      "oh-my-pm-v0.3.0-rc.1.zip",
+      "oh-my-pm-v0.3.0-rc.1-SHA256SUMS.txt",
+    ]) {
+      expect(wf.includes(rcAsset)).toBe(false);
+    }
+  });
+
+  it("contains no registry-publish, Docker-push, or hidden-upload verb", () => {
+    for (const verb of [
+      "npm publish",
+      "pnpm publish",
+      "cargo publish",
+      "yarn publish",
+      "docker push",
+      "docker/build-push-action",
+    ]) {
+      expect(wf.includes(verb)).toBe(false);
+    }
+  });
+
+  it("cannot publish without the exact confirmation (the gate is present twice)", () => {
+    const gateCount = (wf.match(/RELEASE v0\.3\.0(?!-rc)/g) || []).length;
     expect(gateCount).toBeGreaterThanOrEqual(2);
   });
 });

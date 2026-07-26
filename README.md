@@ -5,9 +5,10 @@
 It is designed for teams that want clearer delivery context, safer execution boundaries, and repeatable validation around project work.
 
 > **Latest stable release:** [`v0.2.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0)
-> **Source version:** `0.2.0` (published; maintenance line `v0.2.x`)
+> **Latest prerelease:** [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1)
+> **Source version:** `0.3.0` (prepared for separate, explicitly authorized stable publication)
 >
-> `v0.2.0` is the latest **stable** release — a non-draft, non-prerelease GitHub Release marked latest, targeting `2bac37a…`, carrying exactly three assets, published through the manually gated `Release v0.2 Stable` workflow after a separate owner approval. [`v0.2.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0-rc.1) remains a preserved historical prerelease and [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) remains a preserved historical stable. The `v0.2.0` line is closed and `v0.2.x` is maintenance-only; see [the post-stable closure report](docs/releases/v0.2.0-post-stable-closure.md) and [the v0.2.x maintenance policy](docs/releases/v0.2.x-maintenance-policy.md). Node.js 20+ is the only runtime requirement for installed archives. Packages remain private; there is no npm package.
+> `v0.2.0` remains the latest **stable** release — a non-draft, non-prerelease GitHub Release marked latest, targeting `2bac37a…`, carrying exactly three assets. [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) is a published **prerelease** (the v0.3 Project Brain line; not marked latest and does not supersede `v0.2.0`), targeting `1db4057…`. [`v0.2.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0-rc.1) and [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) remain preserved historical releases. The source tree is at `0.3.0`, prepared for a separate, explicitly authorized stable `v0.3.0` publication — `v0.3.0` is **not** yet published as stable. Node.js 20+ is the only runtime requirement for installed archives. Packages remain private; there is no npm package.
 
 ---
 
@@ -145,7 +146,7 @@ oh-my-pm next ./project --markdown
 oh-my-pm handoff ./project --markdown
 ```
 
-Local MCP onboarding is available too — generate a generic stdio client configuration with `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the `0.2.0` source line; installed release archives require only Node.js 20+.
+Local MCP onboarding is available too — generate a generic stdio client configuration with `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the `0.3.0` source line (prepared for separate stable publication); installed release archives require only Node.js 20+.
 
 ### Latest stable release (v0.2.0)
 

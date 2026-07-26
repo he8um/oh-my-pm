@@ -2,13 +2,46 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-27
+
+Stable **Project Brain** foundation for the v0.3 line — the validated promotion
+of the `v0.3.0-rc.1` prerelease. **This entry records the prepared stable source
+version `0.3.0`; no `v0.3.0` tag, GitHub Release, or registry artifact is created
+by this preparation.** The latest published stable release remains `v0.2.0` until
+`v0.3.0` is published through the manually gated `Release v0.3 Stable` workflow
+after a separate, explicit owner authorization. `v0.3.0-rc.1` remains the
+published prerelease.
+
+No product behavior changed relative to the validated `v0.3.0-rc.1`; only the
+version string moved from `0.3.0-rc.1` to `0.3.0`.
+
+### Added
+
+- Post-publication validation report for `v0.3.0-rc.1`
+  (`docs/releases/v0.3.0-rc.1-post-publication-validation.md`) recording the
+  `GO FOR v0.3.0 STABLE PREPARATION` decision from the published public assets.
+- Stable release notes (`docs/releases/v0.3.0.md`), the stable publishing runbook
+  (`docs/releases/publishing-v0.3.0.md`), the stable installed getting-started
+  guide (`docs/v0.3/getting-started-installed.md`), and the Phase 7 report.
+- `.github/workflows/release-v0.3.yml` — a manually gated, `workflow_dispatch`-only
+  stable release workflow (prerelease never; `--latest`; protected
+  `github-release` environment; cross-platform installed-qualification gate). It
+  is prepared but not dispatched with `publish=true`.
+
+### Changed
+
+- Promoted the canonical source version `0.3.0-rc.1 → 0.3.0` across all version
+  surfaces (packaging/generated/version-metadata only; no product semantics
+  change), and corrected public documentation to reflect the published
+  `v0.3.0-rc.1` prerelease and the prepared (not yet published) stable `v0.3.0`.
+
 ## [0.3.0-rc.1] - 2026-07-26
 
-Release candidate for the v0.3 **Project Brain** line. Prepared through the
-manually gated `Release v0.3 RC` workflow; **no tag, GitHub Release, or registry
-artifact is created by this preparation**. It is a prerelease and does not
-supersede the published stable `v0.2.0`. Publication of `v0.3.0-rc.1` is a
-separate, explicitly authorized action.
+Release candidate for the v0.3 **Project Brain** line, **published** as a
+non-draft GitHub **prerelease** (tag `v0.3.0-rc.1` targeting `1db4057…`, not
+marked latest, exactly three assets, no registry publication) through the
+manually gated `Release v0.3 RC` workflow after a separate explicit owner
+authorization. It does not supersede the published stable `v0.2.0`.
 
 Phase 6 packages the already-approved Project Brain slice (local Markdown
 capture, minimized evidence, deterministic snapshots/changes, capture-order

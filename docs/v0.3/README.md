@@ -1,24 +1,31 @@
 # OH MY PM — v0.3 Project Brain Foundation
 
-> **Status: discovery and architecture gate — complete. Phase 0 (contracts and
-> guards) — implemented. Phase 1 (deterministic Kernel) — implemented. Phase 2
-> (local persistence adapter) — implemented. Phase 3 (Runtime capture and
-> compare) — implemented. Phase 4 (minimal preview-first CLI memory surface) —
-> implemented. Phase 4.1 (snapshot capture chronology correction) —
-> implemented. Phase 5 (minimal read-only MCP projection, `project_changes`) —
-> implemented. Phase 6 (installed-artifact release qualification and
-> `0.3.0-rc.1` preparation) — implemented.**
-> As of Phase 6, the self-contained v0.3 release bundle ("project-brain" profile)
-> ships the bundled `@oh-my-pm/project-memory` package, so the **installed** CLI
-> memory commands and the **installed** MCP `project_changes` tool resolve without
-> a workspace checkout: the installed MCP exposes eleven tools. The historical
-> v0.2 bundle (no profile) still exposes ten tools and the published v0.2.0 is
-> unchanged. The prepared source version is `0.3.0-rc.1`; no `v0.3.0-rc.1` tag or
-> GitHub Release exists — publication is a separate, explicitly authorized action.
-> See [phase-6-release-qualification.md](phase-6-release-qualification.md), the
-> [RC release notes](../releases/v0.3.0-rc.1.md), the
-> [publishing guide](../releases/publishing-v0.3.0-rc.1.md), and the
-> [installed getting-started guide](getting-started-installed-rc.md).
+> **Status: Phases 0–6 implemented. Phase 7 (stable qualification and `0.3.0`
+> preparation) — implemented.** Phase 0 (contracts and guards), Phase 1
+> (deterministic Kernel), Phase 2 (local persistence adapter), Phase 3 (Runtime
+> capture and compare), Phase 4 (preview-first CLI memory surface), Phase 4.1
+> (snapshot capture chronology correction), Phase 5 (read-only MCP
+> `project_changes`), and Phase 6 (installed-artifact release qualification and
+> `0.3.0-rc.1` preparation) are all implemented.
+> The `v0.3.0-rc.1` prerelease **is published** (a non-draft prerelease targeting
+> `1db4057…`, not marked latest); it was validated from its public assets and
+> received a GO decision, so Phase 7 promoted the source version to `0.3.0` and
+> prepared the protected stable release workflow. The self-contained v0.3 release
+> bundle ("project-brain" profile) ships the bundled `@oh-my-pm/project-memory`
+> package, so the **installed** CLI memory commands and the **installed** MCP
+> `project_changes` tool resolve without a workspace checkout: the installed MCP
+> exposes eleven tools. The historical v0.2 bundle (no profile) still exposes ten
+> tools; the published `v0.2.0` remains the latest stable and is unchanged.
+> **`v0.3.0` is prepared but not yet published as stable — publication is a
+> separate, explicitly authorized action, and no `v0.3.0` tag or stable release
+> exists yet.** See
+> [phase-6-release-qualification.md](phase-6-release-qualification.md),
+> [phase-7-stable-qualification.md](phase-7-stable-qualification.md), the
+> [RC release notes](../releases/v0.3.0-rc.1.md) and its
+> [post-publication validation](../releases/v0.3.0-rc.1-post-publication-validation.md),
+> the [stable release notes](../releases/v0.3.0.md), the
+> [stable publishing guide](../releases/publishing-v0.3.0.md), and the
+> [installed getting-started guide](getting-started-installed.md).
 > Phase 0 added the six versioned Project Brain contracts, their deterministic
 > TS/Rust generation, contract tests, and architecture guards. Phase 1 added the
 > pure, deterministic Kernel module (normalization, identifiers, canonical
@@ -35,12 +42,13 @@
 > exposed that slice through the CLI as one new `memory` namespace with exactly
 > six preview-first subcommands (`capture`, `changes`, `status`, `history`,
 > `export`, `delete`), composing the Phase 3 Runtime and lazily constructing the
-> Phase 2 adapter on the memory path only — with **no** MCP tool, **no** provider
-> change, **no** project or config write, **no** version bump, and the Project
-> Memory package still excluded from the v0.2 release bundle. `version.json`
-> remains `0.2.0` and `v0.2.x` stays maintenance-only (see
-> [the v0.2.x maintenance policy](../releases/v0.2.x-maintenance-policy.md)).
-> Phases 5–6 remain unstarted; each requires a separate, explicit approval. See
+> Phase 2 adapter on the memory path only. Phase 5 then added the single
+> read-only `project_changes` MCP tool, and Phase 6 packaged the slice into the
+> self-contained "project-brain" release bundle (which now includes the built
+> `@oh-my-pm/project-memory` package so the installed MCP exposes eleven tools).
+> The source version was promoted to `0.3.0-rc.1` for the published prerelease and
+> then to `0.3.0` in Phase 7 for the prepared (not yet published) stable release;
+> the published `v0.2.0` stable is unchanged. See
 > [phase-0-contracts.md](phase-0-contracts.md) for the contract surface,
 > [phase-1-kernel.md](phase-1-kernel.md) for the Kernel,
 > [phase-2-persistence.md](phase-2-persistence.md) for the adapter,

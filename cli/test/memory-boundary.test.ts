@@ -20,7 +20,7 @@ describe("runCli fails closed on the memory command", () => {
       kernel: createNodeWasmKernelApi(),
       providers: createProviderRegistry([createLocalProvider({ items: [] })]),
       skills: createDefaultSkillRegistry(),
-      version: "0.3.0-rc.1",
+      version: "0.3.0",
       now: "2026-01-01T00:00:00.000Z",
     });
     const result = await runCli(["memory", "status"], { runtime });

@@ -257,10 +257,43 @@ in place (see Phase 5B).
   excluded from the v0.2 release bundle. `version.json` stays `0.2.0`, the MCP
   write-tool count stays zero, and the published `v0.2.0` is untouched. See
   [phase-5-mcp.md](v0.3/phase-5-mcp.md).
-- **v0.3 Phase 6: not started.** The memory commands and `project_changes` are
-  not yet release-qualified on installed cross-platform artifacts (Project Memory
-  is still excluded from the release bundle). Phase 6 (release qualification and
-  the deliberate RC decision) requires a separate, explicit approval.
+- **v0.3 Phase 6 — installed-artifact release qualification and `0.3.0-rc.1`
+  preparation: implemented.** With a separate, explicit owner approval for Phase 6
+  only, the Project Brain slice was packaged into a self-contained, cross-platform
+  release candidate with no product behavior change. `@oh-my-pm/project-memory`
+  became a runtime dependency of the CLI and MCP server (both still lazy-import
+  it), so `pnpm deploy --prod` bundles it dist-only and the **installed** memory
+  commands and `project_changes` tool resolve with no workspace checkout — the
+  installed MCP exposes eleven tools. An explicit, self-describing "project-brain"
+  release profile in `RELEASE.json` drives profile-aware, fail-closed verifiers;
+  the historical v0.2 profile still resolves ten tools. A cross-platform installed
+  qualification (`tools/check-v0.3-installed-project-brain.mjs`), a non-publishing
+  CI matrix (Ubuntu/macOS/Windows), and a manually gated, prerelease-only RC
+  workflow were added, and `version.json` was promoted to `0.3.0-rc.1`. See
+  [phase-6-release-qualification.md](v0.3/phase-6-release-qualification.md).
+- **`0.3.0-rc.1` published.** The manually gated `Release v0.3 RC` workflow was
+  run at `1db4057…` (dry run `publish=false`, then `publish=true` with the exact
+  confirmation) to create the immutable GitHub **prerelease** (tag `v0.3.0-rc.1`,
+  `draft=false`, `prerelease=true`, not marked latest, exactly three assets, no
+  registry publication). Latest stable remains `v0.2.0`.
+- **`0.3.0-rc.1` post-publication validation: GO.** The published prerelease was
+  validated from its public GitHub Release assets (checksums, archive, both
+  extractions, profile, installer/relocation, the full CLI journey, the eleven-tool
+  MCP surface and `project_changes` lifecycle, migration, corruption, concurrency,
+  privacy) — 162/162 installed-qualification checks on both archives, with green
+  CI on Linux/macOS/Windows. Only Low-severity documentation-truthfulness findings.
+  Decision: **GO FOR v0.3.0 STABLE PREPARATION**. See
+  [v0.3.0-rc.1-post-publication-validation.md](releases/v0.3.0-rc.1-post-publication-validation.md).
+- **v0.3 Phase 7 — stable qualification and `0.3.0` preparation: implemented.**
+  Under a separate, explicit owner approval, the validated candidate was promoted
+  `0.3.0-rc.1 → 0.3.0` across all version surfaces (no product semantics change),
+  stable release notes / publishing runbook / installed getting-started / Phase 7
+  report were added, public documentation was corrected, and a manually gated
+  `Release v0.3 Stable` workflow (`.github/workflows/release-v0.3.yml`) was added.
+  `v0.3.0` is **prepared but not published as stable** — no `v0.3.0` tag or stable
+  release exists, `releases/latest` remains `v0.2.0`, and publication is a
+  separate, explicitly authorized action. See
+  [phase-7-stable-qualification.md](v0.3/phase-7-stable-qualification.md).
 - **Selected North Star:** OH MY PM can capture a project observation locally,
   preserve minimized evidence, compare it with the previous observation, and
   return deterministic changes — without modifying the project or uploading its

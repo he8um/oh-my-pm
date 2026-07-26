@@ -1358,6 +1358,7 @@ const RELEASE_WORKFLOW = ".github/workflows/release-v0.1.yml";
 const RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.2-rc.yml";
 const STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.2.yml";
 const V03_RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.3-rc.yml";
+const V03_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.3.yml";
 
 /** Shared manual-gate policy applied to every dedicated release workflow. */
 function checkReleaseWorkflowCommon(path, confirmation) {
@@ -1579,6 +1580,86 @@ if (v03Wf !== null) {
   }
 }
 
+// The v0.3 STABLE workflow mirrors the v0.2 stable invariants for the 0.3.0 line:
+// a manually gated stable release that gates on the exact stable version 0.3.0
+// (never a prerelease suffix), publishes a non-prerelease "latest" release (never
+// --prerelease), verifies releases/latest, gates on the validated RC lineage and
+// the recorded GO decision, depends on the cross-platform installed-qualification
+// matrix, targets the exact workflow SHA, grants contents: write exactly once,
+// and uses no registry verb. It must not weaken any of these.
+const v03StableWf = checkReleaseWorkflowCommon(V03_STABLE_RELEASE_WORKFLOW, "RELEASE v0.3.0");
+if (v03StableWf !== null) {
+  // Exact stable version gate on the input (0.3.0, not a prerelease suffix).
+  if (!v03StableWf.includes('!= "0.3.0"')) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} must gate on the exact version 0.3.0`);
+  }
+  // It must never accept a prerelease confirmation string.
+  if (v03StableWf.includes("RELEASE v0.3.0-rc.1")) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} must use only the stable confirmation string RELEASE v0.3.0`);
+  }
+  // version.json must be checked against the input version.
+  if (
+    !v03StableWf.includes("require('./version.json').version") &&
+    !v03StableWf.includes('require("./version.json").version')
+  ) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} must verify version.json equals the input version`);
+  }
+  // Stable, never prerelease: --latest and never --prerelease.
+  if (v03StableWf.includes("--prerelease")) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} must never use --prerelease (it is a stable release)`);
+  }
+  if (!v03StableWf.includes("--latest")) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} must create the stable release with --latest`);
+  }
+  if (!/isPrerelease\s*!==\s*false/.test(v03StableWf)) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} must verify the published release isPrerelease === false`);
+  }
+  // Latest-stable verification against releases/latest.
+  if (!v03StableWf.includes("releases/latest")) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} must verify releases/latest resolves to the stable tag`);
+  }
+  // Existence refusal before creating tag/release.
+  if (!v03StableWf.includes("refusing to overwrite")) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} must refuse when the tag or release already exists`);
+  }
+  // It must gate on the validated RC lineage (the GO decision evidence).
+  if (!v03StableWf.includes("GO FOR v0.3.0 STABLE PREPARATION")) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} must gate on the recorded stable GO decision`);
+  }
+  // The publish job must depend on the cross-platform installed qualification.
+  if (!/needs:\s*\[\s*prepare\s*,\s*installed-qualification\s*\]/.test(v03StableWf)) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} publish must depend on the installed-qualification matrix`);
+  }
+  // The release must target the exact workflow commit SHA, not floating main.
+  if (!v03StableWf.includes('--target "$GITHUB_SHA"')) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} must target the exact workflow commit SHA`);
+  }
+  // Exactly the three stable assets are created — and never an RC-named asset.
+  for (const asset of [
+    "oh-my-pm-v0.3.0.tar.gz",
+    "oh-my-pm-v0.3.0.zip",
+    "oh-my-pm-v0.3.0-SHA256SUMS.txt",
+  ]) {
+    if (!v03StableWf.includes(asset)) {
+      err(`${V03_STABLE_RELEASE_WORKFLOW} must reference the stable asset: ${asset}`);
+    }
+  }
+  for (const rcAsset of [
+    "oh-my-pm-v0.3.0-rc.1.tar.gz",
+    "oh-my-pm-v0.3.0-rc.1.zip",
+    "oh-my-pm-v0.3.0-rc.1-SHA256SUMS.txt",
+  ]) {
+    if (v03StableWf.includes(rcAsset)) {
+      err(`${V03_STABLE_RELEASE_WORKFLOW} must not publish an RC-named asset: ${rcAsset}`);
+    }
+  }
+  // contents: write granted exactly once (publish job only).
+  const v03WriteKeyCount = (v03StableWf.match(/^\s+contents: write\s*$/gm) || []).length;
+  if (v03WriteKeyCount !== 1) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} must grant contents: write exactly once (publish job only)`);
+  }
+}
+
 // The v0.1 and RC workflow contracts must remain byte-stable against the audited
 // baseline: the stable workflow addition must not silently rewrite them. Their
 // confirmation strings and prerelease/latest posture are asserted above; here we
@@ -1597,13 +1678,16 @@ const RELEASE_PUBLISH_ALLOWED = new Set([
   RC_RELEASE_WORKFLOW,
   STABLE_RELEASE_WORKFLOW,
   V03_RC_RELEASE_WORKFLOW,
+  V03_STABLE_RELEASE_WORKFLOW,
   "docs/releases/publishing-v0.1.0.md",
   "docs/releases/publishing-v0.2.0-rc.1.md",
   "docs/releases/publishing-v0.2.0.md",
   "docs/releases/publishing-v0.3.0-rc.1.md",
+  "docs/releases/publishing-v0.3.0.md",
   "docs/releases/v0.1.0.md",
   "docs/releases/v0.2.0.md",
   "docs/releases/v0.3.0-rc.1.md",
+  "docs/releases/v0.3.0.md",
   "tools/validate-boundaries.mjs",
   "tools/validate-structure.mjs",
 ]);
@@ -2133,10 +2217,11 @@ if (trackedFiles.includes("kernel/crate/Cargo.toml")) {
   }
 }
 // Version guard: version.json carries the prepared source version. Phases 0–5
-// stayed at 0.2.0; Phase 6 prepares the v0.3 release candidate 0.3.0-rc.1. The
-// value must be exactly this prepared version (all package manifests and the
-// runtime version constants are checked against it by check-version-consistency).
-const EXPECTED_SOURCE_VERSION = "0.3.0-rc.1";
+// stayed at 0.2.0; Phase 6 prepared the v0.3 release candidate 0.3.0-rc.1; Phase
+// 7 promotes the validated candidate to the stable 0.3.0. The value must be
+// exactly this prepared version (all package manifests and the runtime version
+// constants are checked against it by check-version-consistency).
+const EXPECTED_SOURCE_VERSION = "0.3.0";
 if (trackedFiles.includes("version.json")) {
   const version = JSON.parse(readFileSync("version.json", "utf8")).version;
   if (version !== EXPECTED_SOURCE_VERSION) {

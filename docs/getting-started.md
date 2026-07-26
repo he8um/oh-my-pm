@@ -2,12 +2,12 @@
 
 ## What this version is
 
-This is the `v0.2` line of OH MY PM; the source tree is at version `0.2.0`. Stable **`v0.2.0` is published and is the latest stable release** — `v0.2.0-rc.1` is a preserved historical prerelease and `v0.1.0` a preserved historical stable. The `v0.2.0` line is closed and `v0.2.x` is maintenance-only (see [the maintenance policy](releases/v0.2.x-maintenance-policy.md)). It is installed from the repository or a release archive, not from a package registry — the workspace packages remain private and unpublished. Installed release archives require only **Node.js 20+**. The CLI and the MCP server are both read-only: they analyze local Markdown project documents (and, only on explicit opt-in, read-only GitHub context) and never modify project files. No project context is uploaded and no telemetry is emitted.
+The source tree is at version `0.3.0` (the v0.3 Project Brain line, prepared for a separate, explicitly authorized stable publication). Stable **`v0.2.0` is published and remains the latest stable release**; [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) is a published **prerelease** (not marked latest, does not supersede `v0.2.0`); `v0.2.0-rc.1` and `v0.1.0` are preserved historical releases. `v0.3.0` is **not** yet published as stable. OH MY PM is installed from the repository or a release archive, not from a package registry — the workspace packages remain private and unpublished. Installed release archives require only **Node.js 20+**. The CLI and the MCP server are both read-only: they analyze local Markdown project documents (and, only on explicit opt-in, read-only GitHub context) and never modify project files. No project context is uploaded and no telemetry is emitted. For the v0.3 Project Brain memory feature specifically, see the [installed v0.3 getting-started guide](v0.3/getting-started-installed.md).
 
 There are two ways to run OH MY PM:
 
-1. **Repository development installation** — clone, build, and install command shims from the repository (below).
-2. **Stable release archive** — download the published [`v0.2.0`](#installing-the-stable-v020-release) bundle that needs only Node.js 20+. Contributors can also [build a development bundle from `main`](#building-a-development-bundle-from-main).
+1. **Repository development installation** — clone, build, and install command shims from the repository (below). At the current source line this builds `0.3.0`.
+2. **Release archive** — download the published [`v0.2.0`](#installing-the-stable-v020-release) stable bundle, or the [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) prerelease; both need only Node.js 20+. Contributors can also [build a development bundle from `main`](#building-a-development-bundle-from-main).
 
 ## Requirements
 

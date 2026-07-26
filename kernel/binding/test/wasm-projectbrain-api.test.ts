@@ -69,7 +69,7 @@ describe("project brain kernel binding (wasm)", () => {
 
   it("keeps the four existing KernelApi methods intact", () => {
     const api = createNodeWasmKernelApi();
-    expect(api.version()).toBe("0.3.0-rc.1");
+    expect(api.version()).toBe("0.3.0");
     expect(api.decideTransition({ from: "idea", to: "source" }).allowed).toBe(true);
     expect(typeof api.validateJson).toBe("function");
     expect(typeof api.checkUpdatePlan).toBe("function");
