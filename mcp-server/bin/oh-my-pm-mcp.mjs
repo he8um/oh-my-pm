@@ -7,7 +7,7 @@
 import { startOhMyPmMcpStdioServer } from "../dist/index.js";
 
 try {
-  await startOhMyPmMcpStdioServer();
+  await startOhMyPmMcpStdioServer({ clock: () => new Date().toISOString() });
 } catch {
   process.stderr.write("OH MY PM MCP server failed to start\n");
   process.exitCode = 1;

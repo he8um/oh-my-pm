@@ -5,6 +5,8 @@
 // one concise success line, only after the server process has closed.
 
 import { createRequire } from "node:module";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -30,8 +32,9 @@ function fail(message) {
   process.exitCode = 1;
 }
 
-// The ten-tool surface (four local + four GitHub + two provider diagnostics),
-// compared as a sorted set.
+// Source/workspace Phase 5 surface: the legacy ten plus one read-only Project
+// Brain projection. Release-bundle checks deliberately retain the historical
+// v0.2 ten-tool expectation.
 // The smoke calls only the offline local project_brief; no GitHub tool is
 // invoked, so this smoke never touches the network and needs no token.
 const EXPECTED_TOOLS = [
@@ -41,18 +44,38 @@ const EXPECTED_TOOLS = [
   "github_project_risks",
   "github_provider_diagnostics",
   "project_brief",
+  "project_changes",
   "project_handoff",
   "project_next",
   "project_risks",
   "provider_status",
 ];
+const LEGACY_V02_MCP_TOOL_COUNT = 10;
+const SOURCE_V03_PHASE5_MCP_TOOL_COUNT = 11;
+const PROJECT_BRAIN_MCP_WRITE_TOOL_COUNT = 0;
+const PROJECT_BRAIN_MCP_READ_TOOL_COUNT = 1;
+if (
+  EXPECTED_TOOLS.length !== SOURCE_V03_PHASE5_MCP_TOOL_COUNT ||
+  SOURCE_V03_PHASE5_MCP_TOOL_COUNT !==
+    LEGACY_V02_MCP_TOOL_COUNT + PROJECT_BRAIN_MCP_READ_TOOL_COUNT ||
+  PROJECT_BRAIN_MCP_WRITE_TOOL_COUNT !== 0
+) {
+  throw new Error("Phase 5 MCP tool-count constants are inconsistent");
+}
 
 let capturedStderr = "";
+const isolatedDataBase = mkdtempSync(join(tmpdir(), "oh-my-pm-mcp-phase5-"));
+const expectedDataRoot = join(isolatedDataBase, "oh-my-pm");
 
 const transport = new StdioClientTransport({
   command: process.execPath,
   args: [binPath],
   cwd: repoRoot,
+  env: {
+    ...process.env,
+    XDG_DATA_HOME: isolatedDataBase,
+    MCP_PHASE5_PLANTED_SECRET: "MCP-SMOKE-TOKEN-SENTINEL",
+  },
   stderr: "pipe",
 });
 
@@ -101,6 +124,49 @@ try {
     }
   }
 
+  const changesResult = await client.callTool({
+    name: "project_changes",
+    arguments: { projectId: "mcp-smoke-nonexistent" },
+  });
+  if (changesResult.isError) {
+    ok = false;
+    fail(`project_changes returned an error: ${changesResult.content?.[0]?.text ?? "unknown"}`);
+  }
+  const changesStructured = changesResult.structuredContent;
+  if (
+    !changesStructured ||
+    changesStructured.schemaVersion !== 1 ||
+    changesStructured.status !== "noPriorMemory" ||
+    changesStructured.chronology !== "capture-order"
+  ) {
+    ok = false;
+    fail("project_changes did not return the controlled noPriorMemory result");
+  }
+  const changesSerialized = `${JSON.stringify(changesStructured)}\n${changesResult.content?.[0]?.text ?? ""}`;
+  for (const forbidden of [
+    "MCP-SMOKE-TOKEN-SENTINEL",
+    "Authorization",
+    "Bearer ",
+    "rawBody",
+    "diffHunk",
+    "runtimeResponse",
+    "providerResponses",
+    "trace",
+    "projectRoot",
+    "dataRoot",
+    isolatedDataBase,
+    expectedDataRoot,
+  ]) {
+    if (changesSerialized.includes(forbidden)) {
+      ok = false;
+      fail(`project_changes leaked forbidden sentinel: ${forbidden}`);
+    }
+  }
+  if (existsSync(expectedDataRoot)) {
+    ok = false;
+    fail("project_changes created application-state data for missing memory");
+  }
+
   // provider_status is offline and safe to call from the smoke check. It must
   // return a valid structured status report and never leak forbidden fields.
   const statusResult = await client.callTool({ name: "provider_status", arguments: {} });
@@ -126,6 +192,7 @@ try {
 } finally {
   await client.close();
   await transport.close();
+  rmSync(isolatedDataBase, { recursive: true, force: true });
 }
 
 if (ok && capturedStderr.trim() !== "") {

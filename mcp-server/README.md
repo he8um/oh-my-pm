@@ -1,10 +1,13 @@
 # @oh-my-pm/mcp-server
 
-Private Model Context Protocol (MCP) server for OH MY PM. It exposes ten
-read-only tools to MCP clients over stdio: four local Markdown project workflows
+Private Model Context Protocol (MCP) server for OH MY PM. Its capability-enabled
+source/workspace build exposes eleven read-only tools over stdio: four local Markdown project workflows
 (filesystem-only), four GitHub workflows (read-only outbound API requests, only
 when called), and two provider diagnostics tools (offline, with one explicitly
-confirmed GitHub request). It is private and is not published.
+confirmed GitHub request), plus `project_changes`, a local read-only projection
+over previously captured Project Brain memory. The legacy/current v0.2 bundle
+remains at ten tools because Project Memory is intentionally not packaged there.
+The package is private and is not published.
 
 ## Build requirement
 
@@ -40,7 +43,8 @@ The generator prints the configuration only — it never writes to or edits a cl
 
 ## Tools
 
-Exactly ten tools are registered, in this order — four local, four GitHub, then two provider diagnostics:
+The source/workspace capability server registers eleven tools in this order —
+the historical ten unchanged, then `project_changes`:
 
 - `project_brief` — deterministic project status brief
 - `project_risks` — line-level risk signals from recognized Markdown headings/markers
@@ -52,6 +56,11 @@ Exactly ten tools are registered, in this order — four local, four GitHub, the
 - `github_project_handoff` — GitHub repository handoff
 - `provider_status` — offline resolved provider state (no network)
 - `github_provider_diagnostics` — offline GitHub diagnostics, one confirmed GET when opted in
+- `project_changes` — bounded comparison of already-captured local Project Brain snapshots
+
+Without the optional Project Memory capability (including the legacy/current
+v0.2 bundle), the first ten tools remain available and `project_changes` is not
+listed.
 
 The four local tools accept a project root:
 
@@ -85,6 +94,14 @@ The two provider diagnostics tools:
 ```
 
 `provider_status` takes no input, resolves provider configuration from the process environment or standard OS location (an agent can never supply a config path), reports token presence only, and never accesses the network. `github_provider_diagnostics` takes an optional `repository` (the configured default may be used) and an optional `confirmNetwork` (defaults to `false`); with `confirmNetwork: true` it performs exactly one read-only `GET` repository-metadata request. Neither accepts a token, config path, API URL, limit, or headers. See [provider configuration](../docs/providers/configuration.md) and [provider diagnostics](../docs/providers/diagnostics.md).
+
+`project_changes` accepts an explicit `projectId`, an optional complete snapshot
+pair, `staleAfterSeconds`, and `limit`. It resolves only the standard
+application-data location; no root/data-directory/token/network/write option is
+accepted. The strict result contains capture-order ids, complete category
+counts, and at most 100 allowlisted changes. It exposes evidence counts only,
+never evidence ids, raw values, bodies, metadata, provenance, paths, or traces.
+No memory is captured, migrated, exported, deleted, repaired, or modified.
 
 ### Success behavior
 

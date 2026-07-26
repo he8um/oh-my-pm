@@ -169,3 +169,99 @@ export type McpGitHubToolExecution = McpGitHubToolSuccess | McpGitHubToolFailure
 // --- Provider diagnostics tool surface -------------------------------------
 
 export type McpDiagnosticsToolName = "provider_status" | "github_provider_diagnostics";
+
+// --- Project Brain read-only projection -----------------------------------
+
+export const MCP_PROJECT_CHANGE_CATEGORIES = [
+  "added",
+  "removed",
+  "resolved",
+  "reopened",
+  "becameOverdue",
+  "noLongerOverdue",
+  "severityIncreased",
+  "severityDecreased",
+  "fresh",
+  "stale",
+  "evidenceChanged",
+  "modified",
+] as const;
+
+export type McpProjectChangeCategory = (typeof MCP_PROJECT_CHANGE_CATEGORIES)[number];
+export type McpProjectChangeItemKind =
+  | "milestone"
+  | "task"
+  | "risk"
+  | "decision"
+  | "dependency"
+  | "blocker";
+
+export type McpProjectChangesInput = {
+  projectId: string;
+  previousSnapshotId?: string;
+  currentSnapshotId?: string;
+  staleAfterSeconds?: number;
+  limit?: number;
+};
+
+export type McpProjectedChange = {
+  category: McpProjectChangeCategory;
+  itemKind: McpProjectChangeItemKind;
+  itemId: string;
+  title?: string;
+  previousStatus?: string;
+  currentStatus?: string;
+  previousSeverity?: string;
+  currentSeverity?: string;
+  previousDueDate?: string;
+  currentDueDate?: string;
+  evidenceCount: number;
+};
+
+export type McpProjectChangesResult = {
+  schemaVersion: 1;
+  status: "compared" | "noPriorMemory" | "insufficientHistory";
+  projectId: string;
+  previousSnapshotId?: string;
+  currentSnapshotId?: string;
+  chronology: "capture-order";
+  summary: {
+    totalChanges: number;
+    returnedChanges: number;
+    truncated: boolean;
+    countsByCategory: Record<McpProjectChangeCategory, number>;
+  };
+  changes: McpProjectedChange[];
+};
+
+export type McpProjectChangesSuccess = {
+  ok: true;
+  result: McpProjectChangesResult;
+  markdown: string;
+};
+
+export type McpProjectChangesFailureCode =
+  | "project_changes_invalid_input"
+  | "project_changes_memory_unavailable"
+  | "project_changes_store_locked"
+  | "project_changes_store_corrupt"
+  | "project_changes_migration_required"
+  | "project_changes_unsupported_store"
+  | "project_changes_incompatible_schema"
+  | "project_changes_kernel_unavailable"
+  | "project_changes_compare_failed"
+  | "project_changes_read_failed";
+
+export type McpProjectChangesFailure = {
+  ok: false;
+  code: McpProjectChangesFailureCode;
+  message: string;
+};
+
+export type McpProjectChangesExecution =
+  | McpProjectChangesSuccess
+  | McpProjectChangesFailure;
+
+export type McpProjectChangesExecutor = (
+  input: McpProjectChangesInput,
+) => Promise<McpProjectChangesExecution>;

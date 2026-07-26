@@ -1885,13 +1885,31 @@ for (const file of trackedFiles) {
     }
   }
 }
-// The MCP server must not register a projectbrain/memory tool (the ten-tool set
-// is unchanged; no project_changes / capture / compare / memory projection is
-// added in Phase 3). The ten-tool count and order are asserted separately below.
+// Phase 5 permits exactly one conditional, read-only Project Brain MCP
+// projection. Write/capture/export/delete/migrate tools remain forbidden.
 if (trackedFiles.includes("mcp-server/src/server.ts")) {
   const server = readFileSync("mcp-server/src/server.ts", "utf8");
-  if (/projectbrain|project_changes|project_capture|project_compare|\bmemory\b/i.test(server)) {
-    err("mcp-server/src/server.ts must not add a projectbrain/memory MCP tool");
+  for (const forbidden of [
+    "project_capture",
+    "project_delete",
+    "project_export",
+    "project_migrate",
+    "project_status",
+    "project_history",
+  ]) {
+    if (server.includes(`"${forbidden}"`)) {
+      err(`mcp-server/src/server.ts must not register ${forbidden}`);
+    }
+  }
+  if (!server.includes("if (executeProjectChanges !== undefined)")) {
+    err("project_changes must be conditionally registered by injected executor");
+  }
+  if (
+    !server.includes("readOnlyHint: true") ||
+    !server.includes("destructiveHint: false") ||
+    !server.includes("openWorldHint: false")
+  ) {
+    err("project_changes must carry closed-world read-only annotations");
   }
 }
 // Phase 3 Kernel binding surface. The Kernel WASM binding gains the seven
@@ -2239,6 +2257,7 @@ if (trackedFiles.includes("project-memory/package.json")) {
 const PROJECT_MEMORY_DEV_DEP_ALLOWED = new Set([
   "runtime/package.json",
   "cli/package.json",
+  "mcp-server/package.json",
 ]);
 for (const file of trackedFiles) {
   if (!/(^|\/)package\.json$/.test(file)) continue;
@@ -2274,6 +2293,10 @@ for (const file of trackedFiles) {
 // only) and must never statically import it. Any other production reference, or
 // a static import in the CLI boundary, is a leak.
 const PROJECT_MEMORY_CLI_LAZY_BOUNDARY = "cli/src/memory-process.ts";
+const PROJECT_MEMORY_MCP_READ_BOUNDARIES = new Set([
+  "mcp-server/src/project-changes-loader.ts",
+  "mcp-server/src/project-changes-runner.ts",
+]);
 for (const file of trackedFiles) {
   if (file.startsWith("project-memory/")) continue;
   if (!/\.(ts|mjs|js)$/.test(file)) continue;
@@ -2296,7 +2319,37 @@ for (const file of trackedFiles) {
     }
     continue;
   }
+  if (PROJECT_MEMORY_MCP_READ_BOUNDARIES.has(file)) continue;
   err(`${file} references @oh-my-pm/project-memory in production source (use the structural port)`);
+}
+
+// Phase 5 MCP composition remains lazy and read-only.
+if (trackedFiles.includes("mcp-server/src/server.ts")) {
+  const server = readFileSync("mcp-server/src/server.ts", "utf8");
+  if (server.includes("@oh-my-pm/project-memory")) {
+    err("mcp-server/src/server.ts must not statically reference Project Memory");
+  }
+}
+if (trackedFiles.includes("mcp-server/bin/oh-my-pm-mcp.mjs")) {
+  const bin = readFileSync("mcp-server/bin/oh-my-pm-mcp.mjs", "utf8");
+  if (bin.includes("@oh-my-pm/project-memory")) {
+    err("MCP bin must not statically reference Project Memory");
+  }
+}
+if (trackedFiles.includes("mcp-server/src/project-changes-runner.ts")) {
+  const runner = readFileSync("mcp-server/src/project-changes-runner.ts", "utf8");
+  for (const marker of [
+    "commitSnapshotBundle(",
+    "exportProject(",
+    "deleteProject(",
+    "migrateProject(",
+    "createProviderRegistry",
+    "fetch(",
+  ]) {
+    if (runner.includes(marker)) {
+      err(`project_changes runner contains forbidden capability: ${marker}`);
+    }
+  }
 }
 
 // 9. v0.3 Phase 3 exact guards. Phase 3 wires capture/compare below the CLI

@@ -5,10 +5,12 @@
 > (local persistence adapter) — implemented. Phase 3 (Runtime capture and
 > compare) — implemented. Phase 4 (minimal preview-first CLI memory surface) —
 > implemented. Phase 4.1 (snapshot capture chronology correction) —
-> implemented.**
+> implemented. Phase 5 (minimal read-only MCP projection) — implemented.**
 > **v0.3 memory commands run from the source/workspace CLI only; they are not
-> available in the published v0.2 artifacts. No MCP surface invokes the Project
-> Brain. Phase 5 not started.**
+> available in the published v0.2 artifacts. The capability-enabled
+> source/workspace MCP server appends one read-only `project_changes` tool; the
+> legacy/current v0.2 bundle keeps its historical ten-tool surface. Phase 6 has
+> not started.**
 > Phase 0 added the six versioned Project Brain contracts, their deterministic
 > TS/Rust generation, contract tests, and architecture guards. Phase 1 added the
 > pure, deterministic Kernel module (normalization, identifiers, canonical
@@ -30,7 +32,8 @@
 > Memory package still excluded from the v0.2 release bundle. `version.json`
 > remains `0.2.0` and `v0.2.x` stays maintenance-only (see
 > [the v0.2.x maintenance policy](../releases/v0.2.x-maintenance-policy.md)).
-> Phases 5–6 remain unstarted; each requires a separate, explicit approval. See
+> Phase 5 adds no write tool, release packaging, version bump, or provider
+> behavior. Phase 6 remains unstarted and requires separate approval. See
 > [phase-0-contracts.md](phase-0-contracts.md) for the contract surface,
 > [phase-1-kernel.md](phase-1-kernel.md) for the Kernel,
 > [phase-2-persistence.md](phase-2-persistence.md) for the adapter,
@@ -38,7 +41,8 @@
 > [phase-4-cli.md](phase-4-cli.md) for the CLI memory surface, and
 > [phase-4-1-snapshot-chronology.md](phase-4-1-snapshot-chronology.md) for the
 > snapshot capture chronology correction (internal store format 2; the default
-> comparison and history now use real capture order).
+> comparison and history now use real capture order), and
+> [phase-5-mcp.md](phase-5-mcp.md) for the bounded MCP projection.
 
 ## What this is
 
@@ -89,6 +93,7 @@ changed.
 | 13 | [phase-3-runtime.md](phase-3-runtime.md) | The **implemented** Phase 3 Runtime capture/compare orchestration, the minimal Kernel binding, the pure Skills deriver, evidence minimization, and the below-CLI e2e slice. |
 | 14 | [phase-4-cli.md](phase-4-cli.md) | The **implemented** Phase 4 preview-first `memory` CLI surface: command grammar, explicit identity, preview/apply, output modes, exit codes, privacy, and the source-workspace qualification. |
 | 15 | [getting-started-memory.md](getting-started-memory.md) | A hands-on walkthrough of the `memory` commands from the source/workspace CLI (unreleased; not in published v0.2 artifacts). |
+| 16 | [phase-5-mcp.md](phase-5-mcp.md) | The **implemented** conditional source/workspace `project_changes` tool, strict projection, lazy capability loading, and legacy ten-tool compatibility. |
 
 ## Invariants this plan will not cross
 

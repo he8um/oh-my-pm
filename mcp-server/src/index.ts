@@ -1,4 +1,29 @@
 export {
+  loadOptionalProjectChangesExecutor,
+} from "./project-changes-loader.js";
+export type { OptionalProjectChangesLoaderOptions } from "./project-changes-loader.js";
+export {
+  DEFAULT_CHANGES_RETURNED,
+  DEFAULT_STALE_AFTER_SECONDS,
+  MAX_CHANGES_RETURNED,
+  MAX_DUE_DATE_BYTES,
+  MAX_ITEM_ID_BYTES,
+  MAX_PROJECT_ID_BYTES,
+  MAX_SEVERITY_BYTES,
+  MAX_SNAPSHOT_ID_BYTES,
+  MAX_STALE_AFTER_SECONDS,
+  MAX_STATUS_BYTES,
+  MAX_TITLE_BYTES,
+  emptyCategoryCounts,
+  hasForbiddenProjectChangesShape,
+  isValidProjectId,
+  isValidSnapshotId,
+  isConsistentProjectChangesResult,
+  projectChangesResultSchema,
+  projectCompareResult,
+  renderProjectChangesMarkdown,
+} from "./project-changes-projector.js";
+export {
   MCP_PROJECT_RUNTIME_NOW,
   MCP_PROJECT_RUNTIME_VERSION,
   executeMcpProjectTool,
@@ -50,6 +75,7 @@ export type {
   McpProjectRisksOutput,
   McpProjectRisksResult,
   McpProjectToolExecutor,
+  StartOhMyPmMcpStdioServerOptions,
   McpPublicProjectDocuments,
 } from "./server.js";
 export type {
@@ -70,4 +96,15 @@ export type {
   McpProjectToolFailureCode,
   McpProjectToolName,
   McpProjectToolSuccess,
+  McpProjectChangeCategory,
+  McpProjectChangeItemKind,
+  McpProjectChangesExecution,
+  McpProjectChangesExecutor,
+  McpProjectChangesFailure,
+  McpProjectChangesFailureCode,
+  McpProjectChangesInput,
+  McpProjectChangesResult,
+  McpProjectChangesSuccess,
+  McpProjectedChange,
 } from "./types.js";
+export { MCP_PROJECT_CHANGE_CATEGORIES } from "./types.js";

@@ -726,7 +726,7 @@ if (existsSync(PROJECT_BRAIN_GENERATED.ts) && existsSync(PROJECT_BRAIN_GENERATED
 // 8c. v0.3 Project Brain (Phase 1) pure Kernel surface. Phase 1 adds the pure,
 // deterministic Kernel module, its integration tests, golden fixtures, and the
 // Phase 1 report. These files must exist; the version stays 0.2.0 (enforced via
-// CANONICAL_VERSION above); the MCP surface stays exactly ten tools; and the
+// CANONICAL_VERSION above); the default MCP surface stays exactly ten tools; and the
 // binding surface (WASM exports, KernelApi) stays frozen (enforced in
 // validate-boundaries.mjs). No persistence, no application-state write.
 const PROJECT_BRAIN_KERNEL_SOURCES = [
@@ -787,8 +787,8 @@ if (existsSync("kernel/crate/Cargo.toml")) {
     err(`kernel/crate/Cargo.toml version must remain ${CANONICAL_VERSION}`);
   }
 }
-// The MCP server must declare exactly the ten approved tools, in order. This is a
-// static count/ordering guard complementing the runtime mcp:smoke assertion.
+// The default MCP server keeps the ten approved v0.2 tools. Phase 5 may append
+// exactly one conditional read-only source/workspace tool.
 const MCP_TEN_TOOLS = [
   "project_brief",
   "project_risks",
@@ -801,6 +801,19 @@ const MCP_TEN_TOOLS = [
   "provider_status",
   "github_provider_diagnostics",
 ];
+const SOURCE_V03_PHASE5_MCP_TOOL = "project_changes";
+const LEGACY_V02_MCP_TOOL_COUNT = 10;
+const SOURCE_V03_PHASE5_MCP_TOOL_COUNT = 11;
+const PROJECT_BRAIN_MCP_WRITE_TOOL_COUNT = 0;
+const PROJECT_BRAIN_MCP_READ_TOOL_COUNT = 1;
+if (
+  MCP_TEN_TOOLS.length !== LEGACY_V02_MCP_TOOL_COUNT ||
+  SOURCE_V03_PHASE5_MCP_TOOL_COUNT !==
+    LEGACY_V02_MCP_TOOL_COUNT + PROJECT_BRAIN_MCP_READ_TOOL_COUNT ||
+  PROJECT_BRAIN_MCP_WRITE_TOOL_COUNT !== 0
+) {
+  err("Phase 5 MCP tool-count constants are inconsistent");
+}
 if (existsSync("mcp-server/src/server.ts")) {
   const server = readFileSync("mcp-server/src/server.ts", "utf8");
   // Every approved tool name must appear as a quoted string literal (tools are
@@ -820,9 +833,24 @@ if (existsSync("mcp-server/src/server.ts")) {
     // Ignore stable error/reason identifiers that share the prefix but are not
     // tool names (they carry a suffix like "_failed"/"_invalid").
     if (MCP_TEN_TOOLS.includes(literal)) continue;
+    if (literal === SOURCE_V03_PHASE5_MCP_TOOL) continue;
     if (/_(failed|invalid|error|required|missing|unavailable)/.test(literal)) continue;
-    err(`mcp-server/src/server.ts registers an unexpected tool literal "${literal}" (Phase 1 keeps exactly ten tools)`);
+    err(`mcp-server/src/server.ts registers an unexpected tool literal "${literal}"`);
   }
+  if (!server.includes("if (executeProjectChanges !== undefined)")) {
+    err("project_changes registration must require an injected executor");
+  }
+  if (!server.includes('server.registerTool(\n      "project_changes"')) {
+    err("Phase 5 project_changes registration is missing");
+  }
+}
+for (const file of [
+  "mcp-server/src/project-changes-projector.ts",
+  "mcp-server/src/project-changes-runner.ts",
+  "mcp-server/src/project-changes-loader.ts",
+  "docs/v0.3/phase-5-mcp.md",
+]) {
+  if (!existsSync(file)) err(`Phase 5 file missing: ${file}`);
 }
 
 // 9 + 10. CI workflow exists. The only release-publishing workflows allowed are

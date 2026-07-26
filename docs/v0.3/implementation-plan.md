@@ -222,13 +222,21 @@ an explicit "no previous observation," not an error.
 
 ## Phase 5 — Minimal read-only MCP exposure · complexity M
 
+> **Status: implemented in source/workspace.** Exactly one conditional
+> `project_changes` tool is appended after the existing ten. It uses the Phase 3
+> compare path and Phase 4.1 capture chronology, exposes only a strict bounded
+> allowlist, performs no write/network/provider/project-file operation, and is
+> loaded lazily. The legacy/current v0.2 bundle remains ten tools; version
+> remains `0.2.0`; installed qualification is deferred to Phase 6. See
+> [phase-5-mcp.md](phase-5-mcp.md).
+
 - **Objective:** bounded, sanitized, read-only projection over captured state —
   **only after contracts stabilize.**
 - **Allowed files/packages:** `mcp-server/src/**`, MCP tests, the tool-count
   verifiers.
-- **Deliverables:** at most **one** new read-only tool (e.g. `project_changes`),
+- **Deliverables:** exactly **one** new read-only tool (`project_changes`),
   sanitized exactly like existing projections; **the first Project Brain release
-  ships zero MCP write tools** and may ship zero new tools.
+  ships zero MCP write tools**.
 - **Tests:** projection sanitization (no bodies/tokens/absolute paths); tool-count
   and order verifiers updated deliberately; stdio-only preserved.
 - **Acceptance:** G12 (bounded sanitized MCP exposure); no write tool; no HTTP.

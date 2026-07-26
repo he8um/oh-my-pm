@@ -239,11 +239,17 @@ in place (see Phase 5B).
   write, or version bump; `version.json` stays `0.2.0`, the Project Brain schema
   stays `1`, and the MCP surface stays exactly ten tools. See
   [phase-4-1-snapshot-chronology.md](v0.3/phase-4-1-snapshot-chronology.md).
-- **v0.3 Phases 5–6: not started.** No MCP exposure of the Project Brain exists
-  (the ten-tool surface is unchanged) and the memory commands are not yet
-  release-qualified on installed artifacts. Each remaining phase requires a
-  separate, explicit approval; the next authorized step would be Phase 5 (an
-  optional minimal read-only MCP projection, with zero MCP write tools).
+- **v0.3 Phase 5 (minimal read-only MCP projection): implemented.** The
+  capability-enabled source/workspace stdio server appends exactly one strict,
+  bounded `project_changes` tool after the existing ten. It reads already
+  captured Project Brain memory through the existing Runtime/Kernel path and
+  authoritative capture chronology, with zero MCP write tools, project-file
+  reads, provider calls, network access, locks, migration, or application-state
+  writes. Lazy capability loading preserves the legacy/current v0.2 bundle's
+  ten-tool surface; published `v0.2.0` remains unchanged and source version
+  remains `0.2.0`. See [phase-5-mcp.md](v0.3/phase-5-mcp.md).
+- **v0.3 Phase 6: not started.** Installed cross-platform qualification,
+  release packaging, and any RC decision require separate explicit approval.
 - **Selected North Star:** OH MY PM can capture a project observation locally,
   preserve minimized evidence, compare it with the previous observation, and
   return deterministic changes — without modifying the project or uploading its

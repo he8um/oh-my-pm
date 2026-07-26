@@ -3,6 +3,21 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { executeMcpGitHubTool, githubOperationForToolName } from "./github-tool-runner.js";
+import { loadOptionalProjectChangesExecutor } from "./project-changes-loader.js";
+import {
+  DEFAULT_CHANGES_RETURNED,
+  DEFAULT_STALE_AFTER_SECONDS,
+  MAX_CHANGES_RETURNED,
+  MAX_PROJECT_ID_BYTES,
+  MAX_SNAPSHOT_ID_BYTES,
+  MAX_STALE_AFTER_SECONDS,
+  hasForbiddenProjectChangesShape,
+  isConsistentProjectChangesResult,
+  projectChangesOutputShape,
+  projectChangesResultSchema,
+  renderProjectChangesMarkdown,
+  utf8Bytes,
+} from "./project-changes-projector.js";
 import { executeMcpProjectTool, projectOperationForToolName } from "./project-tool-runner.js";
 import {
   executeMcpGitHubProviderDiagnostics,
@@ -15,6 +30,10 @@ import type {
   McpGitHubToolName,
   McpGitHubToolSuccess,
   McpProjectOperation,
+  McpProjectChangesExecution,
+  McpProjectChangesExecutor,
+  McpProjectChangesInput,
+  McpProjectChangesResult,
   McpProjectToolExecution,
   McpProjectToolName,
   McpProjectToolSuccess,
@@ -433,6 +452,13 @@ export type CreateOhMyPmMcpServerOptions = {
   executeGitHubTool?: McpGitHubToolExecutor;
   executeProviderStatus?: McpProviderStatusExecutor;
   executeGitHubProviderDiagnostics?: McpGitHubProviderDiagnosticsExecutor;
+  executeProjectChanges?: McpProjectChangesExecutor;
+};
+
+export type StartOhMyPmMcpStdioServerOptions = {
+  executeProjectChanges?: McpProjectChangesExecutor;
+  clock: () => string;
+  dataRootOverride?: string;
 };
 
 // GitHub tool input/output schemas. Input is a strict owner/repo plus an
@@ -744,6 +770,63 @@ const githubDiagnosticsOutputShape = {
 
 const PROJECT_OUTPUT_INVALID_TEXT =
   "project_output_invalid: runtime output did not match the expected tool shape";
+const PROJECT_CHANGES_OUTPUT_INVALID_TEXT =
+  "project_changes_output_invalid: result did not match the safe public shape";
+
+const projectChangesInputShape = {
+  projectId: z
+    .string()
+    .trim()
+    .min(1)
+    .refine((value) => utf8Bytes(value) <= MAX_PROJECT_ID_BYTES)
+    .refine((value) => value !== "." && value !== "..")
+    .refine((value) => !/[\u0000-\u001f\u007f-\u009f/\\]/u.test(value))
+    .describe("Explicit Project Brain project id; never a filesystem path"),
+  previousSnapshotId: z
+    .string()
+    .max(MAX_SNAPSHOT_ID_BYTES)
+    .regex(/^snapshot:[0-9a-f]{64}$/u)
+    .optional(),
+  currentSnapshotId: z
+    .string()
+    .max(MAX_SNAPSHOT_ID_BYTES)
+    .regex(/^snapshot:[0-9a-f]{64}$/u)
+    .optional(),
+  staleAfterSeconds: z
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_STALE_AFTER_SECONDS)
+    .default(DEFAULT_STALE_AFTER_SECONDS),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_CHANGES_RETURNED)
+    .default(DEFAULT_CHANGES_RETURNED),
+} as const;
+
+const projectChangesInputSchema = z
+  .object(projectChangesInputShape)
+  .strict()
+  .superRefine((value, context) => {
+    const hasPrevious = value.previousSnapshotId !== undefined;
+    const hasCurrent = value.currentSnapshotId !== undefined;
+    if (hasPrevious !== hasCurrent) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "previousSnapshotId and currentSnapshotId must be supplied together",
+      });
+    } else if (
+      hasPrevious &&
+      value.previousSnapshotId === value.currentSnapshotId
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "previousSnapshotId and currentSnapshotId must differ",
+      });
+    }
+  });
 
 type ToolResult = {
   content: Array<{ type: "text"; text: string }>;
@@ -809,12 +892,49 @@ async function handleGitHubTool(
   return successResult(execution.markdown, githubPublicResult(execution));
 }
 
+async function handleProjectChanges(
+  execute: McpProjectChangesExecutor,
+  input: McpProjectChangesInput,
+): Promise<ToolResult> {
+  const hasPrevious = input.previousSnapshotId !== undefined;
+  const hasCurrent = input.currentSnapshotId !== undefined;
+  if (
+    hasPrevious !== hasCurrent ||
+    (hasPrevious && input.previousSnapshotId === input.currentSnapshotId)
+  ) {
+    return errorResult("project_changes_invalid_input: explicit snapshot selection is invalid");
+  }
+  let execution: McpProjectChangesExecution;
+  try {
+    execution = await execute(input);
+  } catch {
+    return errorResult("project_changes_failed: unexpected project changes failure");
+  }
+  if (!execution.ok) return errorResult(`${execution.code}: ${execution.message}`);
+  const validated = projectChangesResultSchema.safeParse(execution.result);
+  const publicResult = validated.success
+    ? (validated.data as McpProjectChangesResult)
+    : undefined;
+  if (
+    !validated.success ||
+    publicResult === undefined ||
+    !isConsistentProjectChangesResult(publicResult) ||
+    hasForbiddenProjectChangesShape(execution.result) ||
+    hasForbiddenProjectChangesShape({ markdown: execution.markdown }) ||
+    execution.markdown !== renderProjectChangesMarkdown(publicResult)
+  ) {
+    return errorResult(PROJECT_CHANGES_OUTPUT_INVALID_TEXT);
+  }
+  return successResult(execution.markdown, publicResult);
+}
+
 export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): McpServer {
   const execute = options?.executeProjectTool ?? executeMcpProjectTool;
   const executeGitHub = options?.executeGitHubTool ?? executeMcpGitHubTool;
   const executeProviderStatus = options?.executeProviderStatus ?? executeMcpProviderStatus;
   const executeGitHubProviderDiagnostics =
     options?.executeGitHubProviderDiagnostics ?? executeMcpGitHubProviderDiagnostics;
+  const executeProjectChanges = options?.executeProjectChanges;
 
   const server = new McpServer(
     {
@@ -823,7 +943,9 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
     },
     {
       instructions:
-        "OH MY PM provides read-only local project intelligence from Markdown documents. All tools require a local project root, respect oh-my-pm.config.json, never modify files, and never upload project context.",
+        executeProjectChanges === undefined
+          ? "OH MY PM provides read-only local project intelligence. Document tools read configured Markdown. No MCP tool writes project files or application state. GitHub tools access the network only when explicitly called."
+          : "OH MY PM provides read-only local project intelligence. Document tools read configured Markdown. project_changes reads previously captured local Project Brain memory. No MCP tool writes project files or application state. GitHub tools access the network only when explicitly called.",
     },
   );
 
@@ -1008,11 +1130,57 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
     },
   );
 
+  if (executeProjectChanges !== undefined) {
+    server.registerTool(
+      "project_changes",
+      {
+        title: "Project Changes",
+        description:
+          "Read already-captured local Project Brain memory and compare committed snapshots in authoritative capture order. Does not capture or modify a project; does not migrate, export, delete, or repair memory; and performs no network request.",
+        inputSchema: projectChangesInputSchema,
+        outputSchema: projectChangesOutputShape,
+        annotations: {
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      ({
+        projectId,
+        previousSnapshotId,
+        currentSnapshotId,
+        staleAfterSeconds,
+        limit,
+      }) =>
+        handleProjectChanges(executeProjectChanges, {
+          projectId,
+          ...(previousSnapshotId !== undefined ? { previousSnapshotId } : {}),
+          ...(currentSnapshotId !== undefined ? { currentSnapshotId } : {}),
+          staleAfterSeconds: staleAfterSeconds ?? DEFAULT_STALE_AFTER_SECONDS,
+          limit: limit ?? DEFAULT_CHANGES_RETURNED,
+        }),
+    );
+  }
+
   return server;
 }
 
-export async function startOhMyPmMcpStdioServer(): Promise<void> {
-  const server = createOhMyPmMcpServer();
+export async function startOhMyPmMcpStdioServer(
+  options: StartOhMyPmMcpStdioServerOptions,
+): Promise<void> {
+  const executeProjectChanges = await loadOptionalProjectChangesExecutor({
+    ...(options.executeProjectChanges !== undefined
+      ? { injectedExecutor: options.executeProjectChanges }
+      : {}),
+    clock: options.clock,
+    ...(options.dataRootOverride !== undefined
+      ? { dataRootOverride: options.dataRootOverride }
+      : {}),
+  });
+  const server = createOhMyPmMcpServer({
+    ...(executeProjectChanges !== undefined ? { executeProjectChanges } : {}),
+  });
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
