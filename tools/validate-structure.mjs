@@ -858,6 +858,9 @@ const ALLOWED_RELEASE_WORKFLOWS = new Set([
   "release-v0.1.yml",
   "release-v0.2-rc.yml",
   "release-v0.2.yml",
+  // v0.3 RC release workflow (manually gated prerelease, validated in detail by
+  // validate-boundaries.mjs). It legitimately uses gh release / tags.
+  "release-v0.3-rc.yml",
 ]);
 // The v0.2 RC release workflow must exist.
 if (!existsSync(join(workflowsDir, "release-v0.2-rc.yml"))) {
@@ -866,6 +869,16 @@ if (!existsSync(join(workflowsDir, "release-v0.2-rc.yml"))) {
 // The v0.2 stable release workflow must exist.
 if (!existsSync(join(workflowsDir, "release-v0.2.yml"))) {
   err(".github/workflows/release-v0.2.yml missing");
+}
+// The v0.3 RC release workflow must exist.
+if (!existsSync(join(workflowsDir, "release-v0.3-rc.yml"))) {
+  err(".github/workflows/release-v0.3-rc.yml missing");
+}
+// The non-publishing v0.3 installed-qualification workflow must exist. It is not
+// release-named and carries no publish markers (enforced by the generic scan
+// below), so it needs no release-workflow allowance.
+if (!existsSync(join(workflowsDir, "v0.3-installed-qualification.yml"))) {
+  err(".github/workflows/v0.3-installed-qualification.yml missing");
 }
 if (existsSync(workflowsDir)) {
   for (const name of readdirSync(workflowsDir)) {

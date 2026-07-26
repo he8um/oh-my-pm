@@ -8,7 +8,8 @@
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -123,10 +124,14 @@ async function run(bundle) {
   if (bundleBasename !== expectedBundleName && bundleBasename !== expectedVersion) {
     return fail(`bundle directory basename ${bundleBasename} != ${expectedBundleName}`);
   }
-  // Exactly the ten tools in order: four local, four GitHub, then two provider
-  // diagnostics. The local tools are still callable offline; the GitHub tools
-  // are opt-in network.
-  const expectedTools = [
+  // The MCP tool surface is profile-driven and self-described by the bundle.
+  // The ten historical tools (four local, four GitHub, two provider diagnostics)
+  // are always present and in order; the local tools are callable offline, the
+  // GitHub tools are opt-in network. The "project-brain" (v0.3) profile appends
+  // exactly one read-only tool, project_changes, for eleven total. The legacy
+  // profile (absent or "source-v0.2") ships the ten-tool surface. Any other
+  // profile fails closed: the verifier never guesses a surface.
+  const TEN_TOOLS = [
     "project_brief",
     "project_risks",
     "project_next",
@@ -138,8 +143,38 @@ async function run(bundle) {
     "provider_status",
     "github_provider_diagnostics",
   ];
+  const bundleProfile = release.bundleProfile ?? "source-v0.2";
+  let expectedTools;
+  if (bundleProfile === "project-brain") {
+    expectedTools = [...TEN_TOOLS, "project_changes"];
+  } else if (bundleProfile === "source-v0.2") {
+    expectedTools = [...TEN_TOOLS];
+  } else {
+    return fail(`RELEASE.json bundleProfile is unknown: ${bundleProfile}`);
+  }
   if (JSON.stringify(release.mcpTools) !== JSON.stringify(expectedTools)) {
     return fail("RELEASE.json mcpTools list is unexpected");
+  }
+  // When declared, expectedMcpToolCount must equal the resolved tool count, and
+  // the profile's Project Brain metadata block must be internally consistent.
+  if (release.expectedMcpToolCount !== undefined && release.expectedMcpToolCount !== expectedTools.length) {
+    return fail("RELEASE.json expectedMcpToolCount disagrees with mcpTools");
+  }
+  if (bundleProfile === "project-brain") {
+    const pb = release.projectBrain;
+    if (pb === null || typeof pb !== "object") {
+      return fail("RELEASE.json projectBrain metadata is missing for the project-brain profile");
+    }
+    if (pb.schemaVersion !== 1) return fail("RELEASE.json projectBrain.schemaVersion must be 1");
+    if (pb.storeFormatVersion !== 2) return fail("RELEASE.json projectBrain.storeFormatVersion must be 2");
+    if (pb.mcpReadTools !== 1) return fail("RELEASE.json projectBrain.mcpReadTools must be 1");
+    if (pb.mcpWriteTools !== 0) return fail("RELEASE.json projectBrain.mcpWriteTools must be 0");
+    if (pb.automaticMigration !== false) return fail("RELEASE.json projectBrain.automaticMigration must be false");
+    if (pb.projectWrites !== false) return fail("RELEASE.json projectBrain.projectWrites must be false");
+    const expectedSubcommands = ["capture", "changes", "status", "history", "export", "delete"];
+    if (JSON.stringify(pb.memorySubcommands) !== JSON.stringify(expectedSubcommands)) {
+      return fail("RELEASE.json projectBrain.memorySubcommands must be the exact six subcommands");
+    }
   }
   const expectedGithubWorkflows = ["brief", "risks", "next", "handoff"];
   if (JSON.stringify(release.githubWorkflows) !== JSON.stringify(expectedGithubWorkflows)) {
@@ -408,6 +443,17 @@ async function run(bundle) {
     return fail("bundled kernel WASM JS invalid");
   }
 
+  // The project-brain profile must ship the built @oh-my-pm/project-memory
+  // package (dist-only) so the installed CLI/MCP resolve Project Brain with no
+  // workspace checkout. A missing package would silently drop the eleventh tool
+  // and the memory commands back to the ten-tool fallback, so require it here.
+  if (bundleProfile === "project-brain") {
+    const pmManifest = join(bundle, "node_modules", "@oh-my-pm", "project-memory", "package.json");
+    const pmEntry = join(bundle, "node_modules", "@oh-my-pm", "project-memory", "dist", "index.js");
+    if (!isRegularFile(pmManifest)) return fail("bundled @oh-my-pm/project-memory package.json missing");
+    if (!isRegularFile(pmEntry)) return fail("bundled @oh-my-pm/project-memory dist/index.js missing");
+  }
+
   // Fictional fixture
   const fixtureRoot = join(bundle, "examples", "markdown-project");
   if (!existsSync(join(fixtureRoot, "README.md"))) return fail("bundled fixture missing");
@@ -471,10 +517,27 @@ async function run(bundle) {
     return fail("could not resolve the MCP SDK from the bundle dependency tree");
   }
 
+  // Isolate the MCP process's standard application-data resolution to an empty
+  // temporary root so a project-brain read (project_changes) never touches the
+  // real user data directory. project_changes accepts no data path; the standard
+  // resolver reads LOCALAPPDATA (Windows), HOME/Library/Application Support
+  // (macOS), or XDG_DATA_HOME / HOME/.local/share (Linux). All are pointed at
+  // one throwaway directory here; the read returns a controlled noPriorMemory.
+  // The StdioClientTransport merges the SDK's default inherited environment
+  // (PATH, HOME, …) with these overrides, so only the data-home variables are
+  // set here; no ambient release-tool environment is read.
+  const isolatedDataHome = mkdtempSync(join(tmpdir(), "omp-bundle-check-data-"));
+  const mcpEnv = {
+    HOME: isolatedDataHome,
+    XDG_DATA_HOME: join(isolatedDataHome, "xdg"),
+    LOCALAPPDATA: join(isolatedDataHome, "localappdata"),
+    APPDATA: join(isolatedDataHome, "appdata"),
+  };
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [mcpBin],
     cwd: bundle,
+    env: mcpEnv,
     stderr: "pipe",
   });
   const client = new Client({ name: "oh-my-pm-bundle-check", version: "0.0.0" });
@@ -503,6 +566,32 @@ async function run(bundle) {
       ) {
         mcpOk = false;
         mcpMessage = "bundled MCP project_brief leaked a forbidden field";
+      } else if (bundleProfile === "project-brain") {
+        // The read-only project_changes tool must resolve the bundled Project
+        // Memory package and return a controlled noPriorMemory success against
+        // this MCP process's isolated, empty application-data root (set below on
+        // the transport env). It accepts no data path and must never write.
+        const changes = await client.callTool({
+          name: "project_changes",
+          arguments: { projectId: "oh-my-pm-bundle-check-fixture" },
+        });
+        const sc = changes.structuredContent ?? {};
+        const changesSerialized = JSON.stringify(sc);
+        if (changes.isError) {
+          mcpOk = false;
+          mcpMessage = "bundled MCP project_changes returned an error";
+        } else if (sc.schemaVersion !== 1 || sc.status !== "noPriorMemory") {
+          mcpOk = false;
+          mcpMessage = "bundled MCP project_changes did not return noPriorMemory";
+        } else if (
+          changesSerialized.includes("evidenceRefs") ||
+          changesSerialized.includes("runtimeResponse") ||
+          changesSerialized.includes("/Users/") ||
+          changesSerialized.includes("/home/")
+        ) {
+          mcpMessage = "bundled MCP project_changes leaked a forbidden field";
+          mcpOk = false;
+        }
       }
     }
   } catch {
@@ -516,6 +605,12 @@ async function run(bundle) {
     }
     try {
       await transport.close();
+    } catch {
+      // ignore
+    }
+    // Remove only the throwaway isolated app-data root this check created.
+    try {
+      rmSync(isolatedDataHome, { recursive: true, force: true });
     } catch {
       // ignore
     }

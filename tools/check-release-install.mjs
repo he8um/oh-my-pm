@@ -10,16 +10,20 @@
 import { createRequire } from "node:module";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { basename, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const isWindows = process.platform === "win32";
 
-// The ten installed MCP tools (four local + four GitHub + two provider
-// diagnostics), compared sorted.
-// This verifier calls only the offline local project_brief; it never invokes a
-// GitHub tool and never touches the network or requires a token.
-const EXPECTED_MCP_TOOLS = [
+// The historical ten installed MCP tools (four local + four GitHub + two
+// provider diagnostics), compared sorted. The v0.3 "project-brain" profile adds
+// exactly one read-only tool, project_changes; the profile is read from the
+// installed RELEASE.json and the expected surface is resolved fail-closed below.
+// This verifier calls only offline tools (project_brief, provider_status, and —
+// on the project-brain profile — project_changes); it never invokes a GitHub
+// tool and never touches the network or requires a token.
+const TEN_MCP_TOOLS_SORTED = [
   "github_project_brief",
   "github_project_handoff",
   "github_project_next",
@@ -31,6 +35,7 @@ const EXPECTED_MCP_TOOLS = [
   "project_risks",
   "provider_status",
 ];
+const ELEVEN_MCP_TOOLS_SORTED = [...TEN_MCP_TOOLS_SORTED, "project_changes"].sort();
 
 function isCanonicalSemver(value) {
   if (typeof value !== "string" || value !== value.trim() || value === "") return false;
@@ -227,6 +232,31 @@ async function run(prefix, expectedVersion) {
   if (release.version !== version) return fail("installed RELEASE.json version disagrees with manifest");
   if (release.bundle !== `oh-my-pm-v${version}`) return fail("installed RELEASE.json bundle disagrees");
 
+  // Resolve the installed MCP surface from the bundle's own declared profile and
+  // fail closed on any unknown profile. The project-brain profile expects eleven
+  // tools and the bundled Project Memory package; the legacy profile (absent or
+  // "source-v0.2") expects the historical ten.
+  const installedProfile = release.bundleProfile ?? "source-v0.2";
+  let expectedMcpToolsSorted;
+  if (installedProfile === "project-brain") {
+    expectedMcpToolsSorted = ELEVEN_MCP_TOOLS_SORTED;
+  } else if (installedProfile === "source-v0.2") {
+    expectedMcpToolsSorted = TEN_MCP_TOOLS_SORTED;
+  } else {
+    return fail(`installed RELEASE.json bundleProfile is unknown: ${installedProfile}`);
+  }
+  if (installedProfile === "project-brain") {
+    const pmEntry = join(
+      versionDir,
+      "node_modules",
+      "@oh-my-pm",
+      "project-memory",
+      "dist",
+      "index.js",
+    );
+    if (!isRegularFile(pmEntry)) return fail("installed @oh-my-pm/project-memory dist/index.js missing");
+  }
+
   // Installed internal checksums and bundle verifier pass.
   const installedVerifier = join(versionDir, "libexec", "check-release-bundle.mjs");
   if (!isRegularFile(installedVerifier)) return fail("installed bundle verifier is missing");
@@ -353,10 +383,27 @@ async function run(prefix, expectedVersion) {
     entrypoint: mcpEntrypoint,
     args: [],
   });
+  // Isolate the installed MCP process's standard application-data resolution to
+  // an empty, non-existent temporary root so a project-brain read
+  // (project_changes) never touches the real user data directory and returns
+  // noPriorMemory without any write. project_changes accepts no data path; the
+  // resolver reads LOCALAPPDATA (Windows), HOME/Library/Application Support
+  // (macOS), or XDG_DATA_HOME / HOME/.local/share (Linux) — all pointed here.
+  // The StdioClientTransport merges the SDK's default inherited environment with
+  // these overrides, so only the data-home variables are set (no ambient install
+  // environment is read) and no directory is created or removed by this verifier.
+  const isolatedDataHome = join(tmpdir(), `omp-install-check-${process.pid}-${basename(versionDir)}`);
+  const mcpEnv = {
+    HOME: isolatedDataHome,
+    XDG_DATA_HOME: join(isolatedDataHome, "xdg"),
+    LOCALAPPDATA: join(isolatedDataHome, "localappdata"),
+    APPDATA: join(isolatedDataHome, "appdata"),
+  };
   const transport = new StdioClientTransport({
     command: mcpInvocation.command,
     args: mcpInvocation.args,
     cwd: versionDir,
+    env: mcpEnv,
     stderr: "pipe",
   });
   const client = new Client({ name: "oh-my-pm-release-install-check", version: "0.0.0" });
@@ -366,7 +413,7 @@ async function run(prefix, expectedVersion) {
     await client.connect(transport);
     const { tools } = await client.listTools();
     const names = tools.map((tool) => tool.name).sort();
-    if (JSON.stringify(names) !== JSON.stringify(EXPECTED_MCP_TOOLS)) {
+    if (JSON.stringify(names) !== JSON.stringify(expectedMcpToolsSorted)) {
       mcpOk = false;
       mcpMessage = `unexpected MCP tool list: ${names.join(", ")}`;
     } else {
@@ -400,6 +447,32 @@ async function run(prefix, expectedVersion) {
         ) {
           mcpOk = false;
           mcpMessage = "installed MCP provider_status leaked a forbidden field";
+        } else if (installedProfile === "project-brain") {
+          // The read-only project_changes tool must resolve the installed Project
+          // Memory package and return a controlled noPriorMemory success against
+          // this MCP process's isolated, empty application-data root. It accepts
+          // no data path and must never write, lock, migrate, or reach a network.
+          const changes = await client.callTool({
+            name: "project_changes",
+            arguments: { projectId: "oh-my-pm-install-check-fixture" },
+          });
+          const sc = changes.structuredContent ?? {};
+          const changesSerialized = JSON.stringify(sc);
+          if (changes.isError) {
+            mcpOk = false;
+            mcpMessage = "installed MCP project_changes returned an error";
+          } else if (sc.schemaVersion !== 1 || sc.status !== "noPriorMemory") {
+            mcpOk = false;
+            mcpMessage = "installed MCP project_changes did not return noPriorMemory";
+          } else if (
+            changesSerialized.includes("evidenceRefs") ||
+            changesSerialized.includes("runtimeResponse") ||
+            changesSerialized.includes("/Users/") ||
+            changesSerialized.includes("/home/")
+          ) {
+            mcpOk = false;
+            mcpMessage = "installed MCP project_changes leaked a forbidden field";
+          }
         }
       }
     }

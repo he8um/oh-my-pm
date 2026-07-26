@@ -2,6 +2,47 @@
 
 ## [Unreleased]
 
+## [0.3.0-rc.1] - 2026-07-26
+
+Release candidate for the v0.3 **Project Brain** line. Prepared through the
+manually gated `Release v0.3 RC` workflow; **no tag, GitHub Release, or registry
+artifact is created by this preparation**. It is a prerelease and does not
+supersede the published stable `v0.2.0`. Publication of `v0.3.0-rc.1` is a
+separate, explicitly authorized action.
+
+Phase 6 packages the already-approved Project Brain slice (local Markdown
+capture, minimized evidence, deterministic snapshots/changes, capture-order
+history, preview-first `memory` CLI with `capture`/`changes`/`status`/`history`/
+`export`/`delete`, explicit `v1 → v2` store migration, and the read-only
+`project_changes` MCP tool) into a self-contained, cross-platform artifact. No
+product behavior changed relative to the source at Phase 5.
+
+### Added
+
+- An explicit, self-describing "project-brain" release profile in `RELEASE.json`
+  (`releaseLine`, `bundleProfile`, `expectedMcpToolCount`, `projectBrain`),
+  driving profile-aware, fail-closed bundle/install verifiers. The historical
+  v0.2 profile still resolves the ten-tool surface.
+- The self-contained v0.3 bundle now ships `@oh-my-pm/project-memory` (dist-only),
+  so the **installed** CLI memory commands and the **installed** MCP
+  `project_changes` tool resolve without a workspace checkout; the installed MCP
+  exposes eleven tools.
+- `tools/check-v0.3-installed-project-brain.mjs` — a cross-platform installed
+  Project Brain qualification (full CLI + MCP journey, migration, corruption,
+  concurrency, planted-sentinel privacy audit, source-independence).
+- `.github/workflows/v0.3-installed-qualification.yml` — non-publishing
+  cross-platform CI (one prepared artifact tested on Ubuntu/macOS/Windows).
+- `.github/workflows/release-v0.3-rc.yml` — manually gated, prerelease-only RC
+  workflow (not dispatched).
+- RC release notes, publishing runbook, the installed getting-started guide, and
+  the Phase 6 report.
+
+### Changed
+
+- `@oh-my-pm/project-memory` moved from a dev to a runtime dependency of
+  `@oh-my-pm/cli` and `@oh-my-pm/mcp-server` (both reach it via a lazy dynamic
+  import). Packaging-only; no external dependency added.
+
 ## [0.2.0] - 2026-07-25
 
 Stable `v0.2.0`, consolidating the validated `v0.2.0-rc.1` release candidate.

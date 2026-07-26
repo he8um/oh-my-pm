@@ -1,0 +1,372 @@
+name: Release v0.3 RC
+
+# Manually gated release-candidate workflow for the v0.3 line. It builds and
+# verifies the exact 0.3.0-rc.1 portable artifact (the self-contained
+# "project-brain" profile bundle: eleven read-only MCP tools, the bundled
+# @oh-my-pm/project-memory package, the six memory subcommands), runs the
+# cross-platform installed Project Brain qualification, and — only on an
+# explicitly confirmed, environment-approved publish run — creates an immutable
+# PRERELEASE GitHub Release targeting the exact workflow commit SHA. It publishes
+# to no registry, never marks a release "latest", and never modifies the
+# immutable v0.1.0 / v0.2.0-rc.1 / v0.2.0 releases or their historical workflows.
+#
+# Manually triggered only. There is no push, pull_request, release, schedule, or
+# tag trigger. The prepare and qualification jobs cannot write repository
+# contents; only the gated publish job receives contents: write, and only when
+# publish == true with the exact confirmation and the protected github-release
+# environment approval.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Canonical version without v prefix
+        required: true
+        default: "0.3.0-rc.1"
+        type: string
+      publish:
+        description: Create the Git tag and prerelease GitHub Release after validation
+        required: true
+        default: false
+        type: boolean
+      confirmation:
+        description: Type RELEASE v0.3.0-rc.1 when publish is enabled
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oh-my-pm-release-v0.3-rc-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare RC release assets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Enforce main branch
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Release v0.3 RC must run from refs/heads/main (got $GITHUB_REF)" >&2
+            exit 1
+          fi
+
+      - name: Enforce version and confirmation gates
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$INPUT_VERSION" != "0.3.0-rc.1" ]; then
+            echo "Only version 0.3.0-rc.1 is accepted by this workflow (got $INPUT_VERSION)" >&2
+            exit 1
+          fi
+          if [ "$INPUT_PUBLISH" = "true" ] && [ "$INPUT_CONFIRMATION" != "RELEASE v0.3.0-rc.1" ]; then
+            echo "publish requires confirmation exactly equal to: RELEASE v0.3.0-rc.1" >&2
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Enforce version.json equals the input version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          FILE_VERSION="$(node -p "require('./version.json').version")"
+          if [ "$FILE_VERSION" != "$INPUT_VERSION" ]; then
+            echo "version.json ($FILE_VERSION) does not equal input version ($INPUT_VERSION)" >&2
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.4.0
+        with:
+          version: 9.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy, rustfmt
+
+      - name: Install wasm-bindgen CLI
+        run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build contracts
+        run: pnpm build:contracts
+
+      - name: Build kernel
+        run: pnpm build:kernel
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Validate
+        run: pnpm validate
+
+      - name: MCP smoke
+        run: pnpm mcp:smoke
+
+      - name: Build and verify portable bundle (project-brain profile)
+        run: |
+          VERSION="${{ inputs.version }}"
+          BUNDLE_OUT="$RUNNER_TEMP/bundle"
+
+          node tools/build-release-bundle.mjs --output "$BUNDLE_OUT" --apply
+          node tools/check-release-bundle.mjs --bundle "$BUNDLE_OUT/oh-my-pm-v$VERSION"
+
+          # The RC bundle must declare the eleven-tool project-brain profile and
+          # ship the bundled Project Memory package.
+          node -e '
+            const fs = require("node:fs");
+            const dir = process.argv[1];
+            const r = JSON.parse(fs.readFileSync(dir + "/RELEASE.json", "utf8"));
+            if (r.bundleProfile !== "project-brain") { console.error("bundleProfile must be project-brain"); process.exit(1); }
+            if (r.expectedMcpToolCount !== 11) { console.error("expectedMcpToolCount must be 11"); process.exit(1); }
+            if (r.mcpTools[r.mcpTools.length - 1] !== "project_changes") { console.error("project_changes must be last"); process.exit(1); }
+            if (!fs.existsSync(dir + "/node_modules/@oh-my-pm/project-memory/dist/index.js")) { console.error("project-memory must be bundled"); process.exit(1); }
+          ' "$BUNDLE_OUT/oh-my-pm-v$VERSION"
+
+      - name: Build and verify deterministic archives
+        run: |
+          VERSION="${{ inputs.version }}"
+          BUNDLE_DIR="$RUNNER_TEMP/bundle/oh-my-pm-v$VERSION"
+          ASSETS_DIR="$RUNNER_TEMP/release-assets"
+
+          node tools/build-release-archives.mjs --bundle "$BUNDLE_DIR" --output "$ASSETS_DIR" --apply
+          node tools/check-release-archives.mjs --assets "$ASSETS_DIR"
+          node tools/check-release-archive-reproducibility.mjs --bundle "$BUNDLE_DIR"
+
+      - name: Print archive checksums to summary
+        run: |
+          VERSION="${{ inputs.version }}"
+          {
+            echo "### OH MY PM v$VERSION release archive checksums"
+            echo ""
+            echo '```'
+            cat "$RUNNER_TEMP/release-assets/oh-my-pm-v$VERSION-SHA256SUMS.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload release assets artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: oh-my-pm-v0.3.0-rc.1-release-assets
+          path: |
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.3.0-rc.1.tar.gz
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.3.0-rc.1.zip
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.3.0-rc.1-SHA256SUMS.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  installed-qualification:
+    name: Installed Project Brain qualification (${{ matrix.os }})
+    needs: prepare
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: Download prepared release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: oh-my-pm-v0.3.0-rc.1-release-assets
+          path: release-assets
+
+      - name: Verify checksum then qualify the installed artifact (POSIX)
+        if: runner.os != 'Windows'
+        run: |
+          VERSION="${{ inputs.version }}"
+          cd release-assets
+          shasum -a 256 -c "oh-my-pm-v$VERSION-SHA256SUMS.txt"
+          cd ..
+          node tools/check-v0.3-installed-project-brain.mjs \
+            --archive "release-assets/oh-my-pm-v$VERSION.tar.gz" \
+            --work "$RUNNER_TEMP/qual-work"
+
+      - name: Verify checksum then qualify the installed artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.version }}"
+          Push-Location release-assets
+          $sums = Get-Content "oh-my-pm-v$version-SHA256SUMS.txt"
+          foreach ($line in $sums) {
+            if ($line.Trim() -eq "") { continue }
+            $parts = $line -split "\s+", 2
+            $expected = $parts[0]
+            $file = $parts[1].Trim()
+            $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLower()
+            if ($actual -ne $expected) { throw "checksum mismatch for $file" }
+          }
+          Pop-Location
+          node tools/check-v0.3-installed-project-brain.mjs `
+            --archive "release-assets/oh-my-pm-v$version.zip" `
+            --work "$env:RUNNER_TEMP/qual-work"
+          if ($LASTEXITCODE -ne 0) { throw "installed qualification failed" }
+
+  publish:
+    name: Publish prerelease GitHub Release
+    needs: [prepare, installed-qualification]
+    if: ${{ inputs.publish == true }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-release
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Re-enforce version and confirmation gates
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$INPUT_VERSION" != "0.3.0-rc.1" ]; then
+            echo "Only version 0.3.0-rc.1 is accepted by this workflow (got $INPUT_VERSION)" >&2
+            exit 1
+          fi
+          if [ "$INPUT_CONFIRMATION" != "RELEASE v0.3.0-rc.1" ]; then
+            echo "publish requires confirmation exactly equal to: RELEASE v0.3.0-rc.1" >&2
+            exit 1
+          fi
+
+      - name: Enforce version.json equals the input version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          FILE_VERSION="$(node -p "require('./version.json').version")"
+          if [ "$FILE_VERSION" != "$INPUT_VERSION" ]; then
+            echo "version.json ($FILE_VERSION) does not equal input version ($INPUT_VERSION)" >&2
+            exit 1
+          fi
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: oh-my-pm-v0.3.0-rc.1-release-assets
+          path: release-assets
+
+      - name: Re-verify archive checksums
+        run: |
+          cd release-assets
+          sha256sum -c oh-my-pm-v0.3.0-rc.1-SHA256SUMS.txt
+
+      - name: Ensure release notes exist
+        run: test -f docs/releases/v0.3.0-rc.1.md
+
+      - name: Ensure tag and release do not already exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=v0.3.0-rc.1
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists on origin; refusing to overwrite" >&2
+            exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "GitHub Release $TAG already exists; refusing to overwrite" >&2
+            exit 1
+          fi
+
+      - name: Ensure the immutable stable v0.2.0 release is unchanged
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          STABLE_TAG=v0.2.0
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$STABLE_TAG" >/dev/null 2>&1; then
+            echo "Stable tag $STABLE_TAG no longer exists; refusing to publish an RC on top of a missing baseline" >&2
+            exit 1
+          fi
+          STABLE_META="$(gh release view "$STABLE_TAG" --json isPrerelease,isDraft)"
+          echo "$STABLE_META" | node -e '
+            const meta = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+            if (meta.isPrerelease !== false) { console.error("stable v0.2.0 must remain non-prerelease"); process.exit(1); }
+            if (meta.isDraft !== false) { console.error("stable v0.2.0 must remain non-draft"); process.exit(1); }
+          '
+
+      - name: Create prerelease GitHub Release at the exact workflow commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v0.3.0-rc.1" \
+            "release-assets/oh-my-pm-v0.3.0-rc.1.tar.gz" \
+            "release-assets/oh-my-pm-v0.3.0-rc.1.zip" \
+            "release-assets/oh-my-pm-v0.3.0-rc.1-SHA256SUMS.txt" \
+            --target "$GITHUB_SHA" \
+            --title "OH MY PM v0.3.0-rc.1" \
+            --notes-file "docs/releases/v0.3.0-rc.1.md" \
+            --prerelease
+
+      - name: Verify published prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          META="$(gh release view v0.3.0-rc.1 --json tagName,isDraft,isPrerelease,assets)"
+          echo "$META"
+          echo "$META" | node -e '
+            const meta = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+            const expected = [
+              "oh-my-pm-v0.3.0-rc.1-SHA256SUMS.txt",
+              "oh-my-pm-v0.3.0-rc.1.tar.gz",
+              "oh-my-pm-v0.3.0-rc.1.zip",
+            ].sort();
+            const names = (meta.assets || []).map((a) => a.name).sort();
+            if (meta.tagName !== "v0.3.0-rc.1") { console.error("bad tag"); process.exit(1); }
+            if (meta.isDraft !== false) { console.error("draft must be false"); process.exit(1); }
+            if (meta.isPrerelease !== true) { console.error("prerelease must be true"); process.exit(1); }
+            if (JSON.stringify(names) !== JSON.stringify(expected)) { console.error("asset mismatch"); process.exit(1); }
+          '
+
+      - name: Revalidate published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DL="$RUNNER_TEMP/published"
+          mkdir -p "$DL"
+          gh release download v0.3.0-rc.1 --dir "$DL"
+          cd "$DL"
+          sha256sum -c oh-my-pm-v0.3.0-rc.1-SHA256SUMS.txt
+
+      - name: Print release URL to summary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          URL="$(gh release view v0.3.0-rc.1 --json url --jq .url)"
+          echo "Published prerelease: $URL" >> "$GITHUB_STEP_SUMMARY"

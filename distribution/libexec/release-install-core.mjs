@@ -29,7 +29,11 @@ export const RELEASE_INSTALL_MANIFEST_SCHEMA_VERSION = 1;
 export const RELEASE_INSTALL_COMMANDS = ["oh-my-pm", "oh-my-pm-mcp"];
 const EXPECTED_CLI_WORKFLOWS = ["brief", "risks", "next", "handoff"];
 const EXPECTED_GITHUB_WORKFLOWS = ["brief", "risks", "next", "handoff"];
-const EXPECTED_MCP_TOOLS = [
+// The ten historical MCP tools. The v0.3 "project-brain" profile appends one
+// read-only tool (project_changes) for eleven total; the legacy profile (absent
+// or "source-v0.2") keeps the ten. The expected surface is resolved from the
+// bundle's own declared bundleProfile and fails closed on an unknown profile.
+const TEN_MCP_TOOLS = [
   "project_brief",
   "project_risks",
   "project_next",
@@ -323,8 +327,27 @@ export function validateReleaseBundleForInstall(bundleRoot) {
   if (JSON.stringify(release.cliWorkflows) !== JSON.stringify(EXPECTED_CLI_WORKFLOWS)) {
     add("release_cli_workflows_unexpected");
   }
-  if (JSON.stringify(release.mcpTools) !== JSON.stringify(EXPECTED_MCP_TOOLS)) {
+  // Resolve the expected MCP surface from the bundle's declared profile.
+  // Unknown profiles fail closed; the installer never guesses a tool surface.
+  const bundleProfile = release.bundleProfile ?? "source-v0.2";
+  let expectedMcpTools;
+  if (bundleProfile === "project-brain") {
+    expectedMcpTools = [...TEN_MCP_TOOLS, "project_changes"];
+  } else if (bundleProfile === "source-v0.2") {
+    expectedMcpTools = [...TEN_MCP_TOOLS];
+  } else {
+    expectedMcpTools = null;
+    add("release_bundle_profile_unknown");
+  }
+  if (expectedMcpTools !== null && JSON.stringify(release.mcpTools) !== JSON.stringify(expectedMcpTools)) {
     add("release_mcp_tools_unexpected");
+  }
+  if (
+    release.expectedMcpToolCount !== undefined &&
+    expectedMcpTools !== null &&
+    release.expectedMcpToolCount !== expectedMcpTools.length
+  ) {
+    add("release_mcp_tool_count_unexpected");
   }
   if (typeof release.node !== "string" || !/>=\s*20/.test(release.node)) {
     add("release_node_requirement_incompatible");

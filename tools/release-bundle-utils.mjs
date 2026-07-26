@@ -448,26 +448,52 @@ export function formatReleaseBundlePlan(plan, mode) {
 // exact canonical origin string.
 const GITHUB_ORIGIN = `${"https"}://api.github.com`;
 
+// Explicit v0.3 release profile. The historical v0.2 bundle shipped ten MCP
+// tools and no Project Memory package; that published artifact is immutable and
+// is never rewritten. The current source prepares the "project-brain" profile:
+// eleven read-only MCP tools (the ten historical tools plus the single read-only
+// project_changes tool), the bundled @oh-my-pm/project-memory package, the six
+// installed memory subcommands, Project Brain schema 1, and Project Memory store
+// format 2. Verifiers read these fields from the bundle's own RELEASE.json and
+// fail closed on an unknown profile — they never branch on the version string.
+const RELEASE_LINE = "v0.3";
+const BUNDLE_PROFILE = "project-brain";
+const MEMORY_SUBCOMMANDS = ["capture", "changes", "status", "history", "export", "delete"];
+const V03_MCP_TOOLS = [
+  "project_brief",
+  "project_risks",
+  "project_next",
+  "project_handoff",
+  "github_project_brief",
+  "github_project_risks",
+  "github_project_next",
+  "github_project_handoff",
+  "provider_status",
+  "github_provider_diagnostics",
+  "project_changes",
+];
+
 const RELEASE_METADATA = {
   name: "OH MY PM",
   version: RELEASE_BUNDLE_VERSION,
   bundle: RELEASE_BUNDLE_NAME,
   node: ">=20",
+  releaseLine: RELEASE_LINE,
+  bundleProfile: BUNDLE_PROFILE,
+  expectedMcpToolCount: V03_MCP_TOOLS.length,
   commands: ["oh-my-pm", "oh-my-pm-mcp"],
   cliWorkflows: ["brief", "risks", "next", "handoff"],
   githubWorkflows: ["brief", "risks", "next", "handoff"],
-  mcpTools: [
-    "project_brief",
-    "project_risks",
-    "project_next",
-    "project_handoff",
-    "github_project_brief",
-    "github_project_risks",
-    "github_project_next",
-    "github_project_handoff",
-    "provider_status",
-    "github_provider_diagnostics",
-  ],
+  mcpTools: V03_MCP_TOOLS,
+  projectBrain: {
+    schemaVersion: 1,
+    storeFormatVersion: 2,
+    memorySubcommands: MEMORY_SUBCOMMANDS,
+    mcpReadTools: 1,
+    mcpWriteTools: 0,
+    automaticMigration: false,
+    projectWrites: false,
+  },
   transport: "stdio",
   readOnly: true,
   network: {
@@ -665,6 +691,34 @@ function inspectBundleSafety(bundleRoot) {
   );
   if (!isRegularFile(wasmJs)) errors.push("bundled kernel generated WASM JS is missing");
   if (!isRegularFile(wasmBin)) errors.push("bundled kernel generated WASM binary is missing");
+
+  // The v0.3 "project-brain" profile must ship the built @oh-my-pm/project-memory
+  // package so the installed CLI/MCP resolve Project Brain without a workspace
+  // checkout. It ships dist-only (its "files" field is ["dist"]); raw src/test
+  // are rejected by the first-party leak check above. Fail closed here if the
+  // package or its compiled entrypoint is absent.
+  if (BUNDLE_PROFILE === "project-brain") {
+    const pmDir = join(bundleRoot, "node_modules", "@oh-my-pm", "project-memory");
+    const pmManifest = join(pmDir, "package.json");
+    const pmEntry = join(pmDir, "dist", "index.js");
+    if (!isRegularFile(pmManifest)) {
+      errors.push("v0.3 profile requires bundled @oh-my-pm/project-memory package.json");
+    }
+    if (!isRegularFile(pmEntry)) {
+      errors.push("v0.3 profile requires bundled @oh-my-pm/project-memory dist/index.js");
+    }
+    if (isRegularFile(pmManifest)) {
+      let pmPkg;
+      try {
+        pmPkg = JSON.parse(readFileSync(pmManifest, "utf8"));
+      } catch {
+        pmPkg = null;
+      }
+      if (pmPkg === null || pmPkg.name !== "@oh-my-pm/project-memory" || pmPkg.private !== true) {
+        errors.push("bundled @oh-my-pm/project-memory manifest is invalid or not private");
+      }
+    }
+  }
 
   // No source-repository absolute path may remain in text files.
   for (const file of files) {

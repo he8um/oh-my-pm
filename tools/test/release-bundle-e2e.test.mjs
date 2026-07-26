@@ -112,8 +112,10 @@ describe("portable release bundle e2e", () => {
     expect(existsSync(join(movedBundle, "libexec", "release-install-core.test.mjs"))).toBe(false);
   });
 
-  it("declares the ten MCP tools and provider config/diagnostics metadata", () => {
+  it("declares the eleven v0.3 project-brain MCP tools and profile metadata", () => {
     const release = JSON.parse(readFileSync(join(movedBundle, "RELEASE.json"), "utf8"));
+    // The current source prepares the v0.3 "project-brain" profile: the ten
+    // historical tools plus the single read-only project_changes tool, in order.
     expect(release.mcpTools).toEqual([
       "project_brief",
       "project_risks",
@@ -125,7 +127,20 @@ describe("portable release bundle e2e", () => {
       "github_project_handoff",
       "provider_status",
       "github_provider_diagnostics",
+      "project_changes",
     ]);
+    expect(release.releaseLine).toBe("v0.3");
+    expect(release.bundleProfile).toBe("project-brain");
+    expect(release.expectedMcpToolCount).toBe(11);
+    expect(release.projectBrain).toEqual({
+      schemaVersion: 1,
+      storeFormatVersion: 2,
+      memorySubcommands: ["capture", "changes", "status", "history", "export", "delete"],
+      mcpReadTools: 1,
+      mcpWriteTools: 0,
+      automaticMigration: false,
+      projectWrites: false,
+    });
     expect(release.providerConfiguration).toEqual({
       schemaVersion: 1,
       fileName: "providers.json",

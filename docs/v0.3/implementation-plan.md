@@ -257,7 +257,24 @@ an explicit "no previous observation," not an error.
   transport, an unsanitized field, or a version bump → stop.
 - **Dependencies:** Phase 4 (and Phase 4.1 chronology).
 
-## Phase 6 — Release qualification · complexity M
+## Phase 6 — Release qualification · complexity M · **implemented**
+
+> **Implemented and green.** Phase 6 packages the Project Brain slice into a
+> self-contained, cross-platform release candidate without adding product
+> behavior. `@oh-my-pm/project-memory` moved from a dev to a runtime dependency of
+> the CLI and MCP server (both lazy-import it), so `pnpm deploy --prod` bundles it
+> dist-only and the **installed** memory commands and `project_changes` tool
+> resolve with no workspace checkout. An explicit, self-describing "project-brain"
+> release profile (declared in `RELEASE.json`) drives every verifier fail-closed;
+> the historical v0.2 profile still resolves ten tools. The installed-artifact
+> qualification (`tools/check-v0.3-installed-project-brain.mjs`) drives the
+> installed shims through the full CLI + MCP journey, migration, corruption,
+> concurrency, and a planted-sentinel privacy audit, isolated to temporary
+> directories. A non-publishing CI workflow tests one prepared artifact on
+> Ubuntu/macOS/Windows, and a manually gated, prerelease-only RC workflow is
+> prepared but not dispatched. The prepared source version is `0.3.0-rc.1`; no tag
+> or GitHub Release is created. See
+> [phase-6-release-qualification.md](phase-6-release-qualification.md).
 
 - **Objective:** prove the slice ships safely cross-platform.
 - **Allowed files/packages:** release/install tooling and CI as needed; no product

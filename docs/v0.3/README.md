@@ -6,13 +6,19 @@
 > compare) — implemented. Phase 4 (minimal preview-first CLI memory surface) —
 > implemented. Phase 4.1 (snapshot capture chronology correction) —
 > implemented. Phase 5 (minimal read-only MCP projection, `project_changes`) —
-> implemented.**
-> The source/workspace capability MCP server exposes eleven tools (the historical
-> ten plus `project_changes`); the legacy/current v0.2 bundle exposes the existing
-> ten and the published v0.2.0 is unchanged. Phase 6 not started.
-> **v0.3 memory commands run from the source/workspace CLI only; they are not
-> available in the published v0.2 artifacts. No MCP surface invokes the Project
-> Brain. Phase 5 not started.**
+> implemented. Phase 6 (installed-artifact release qualification and
+> `0.3.0-rc.1` preparation) — implemented.**
+> As of Phase 6, the self-contained v0.3 release bundle ("project-brain" profile)
+> ships the bundled `@oh-my-pm/project-memory` package, so the **installed** CLI
+> memory commands and the **installed** MCP `project_changes` tool resolve without
+> a workspace checkout: the installed MCP exposes eleven tools. The historical
+> v0.2 bundle (no profile) still exposes ten tools and the published v0.2.0 is
+> unchanged. The prepared source version is `0.3.0-rc.1`; no `v0.3.0-rc.1` tag or
+> GitHub Release exists — publication is a separate, explicitly authorized action.
+> See [phase-6-release-qualification.md](phase-6-release-qualification.md), the
+> [RC release notes](../releases/v0.3.0-rc.1.md), the
+> [publishing guide](../releases/publishing-v0.3.0-rc.1.md), and the
+> [installed getting-started guide](getting-started-installed-rc.md).
 > Phase 0 added the six versioned Project Brain contracts, their deterministic
 > TS/Rust generation, contract tests, and architecture guards. Phase 1 added the
 > pure, deterministic Kernel module (normalization, identifiers, canonical

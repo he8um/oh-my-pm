@@ -1070,6 +1070,9 @@ const GITHUB_TOKEN_ENV_ALLOWED = new Set([
   // The MCP client-config generator names the optional env var in docs prose
   // only; it never reads it and never writes it into the emitted config.
   "tools/print-mcp-client-config.mjs",
+  // Phase 6 installed qualification PLANTS the token env var as a privacy
+  // sentinel to prove it is never persisted to the store, export, or output.
+  "tools/check-v0.3-installed-project-brain.mjs",
 ]);
 // The provider-config path env var may appear only in the read-only loader, the
 // process adapters that resolve it, release metadata, the client-config docs
@@ -1354,6 +1357,7 @@ for (const file of trackedFiles) {
 const RELEASE_WORKFLOW = ".github/workflows/release-v0.1.yml";
 const RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.2-rc.yml";
 const STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.2.yml";
+const V03_RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.3-rc.yml";
 
 /** Shared manual-gate policy applied to every dedicated release workflow. */
 function checkReleaseWorkflowCommon(path, confirmation) {
@@ -1518,6 +1522,63 @@ if (stableWf !== null) {
   }
 }
 
+// The v0.3 RC workflow mirrors the v0.2 RC invariants for the 0.3.0-rc.1 line: a
+// manually gated PRERELEASE (never --latest), gating on the exact version and
+// confirmation, an existence refusal, exactly the three RC-named assets, a
+// cross-platform installed-qualification dependency before publish, and no
+// registry verb. It must not weaken any of these.
+const v03Wf = checkReleaseWorkflowCommon(V03_RC_RELEASE_WORKFLOW, "RELEASE v0.3.0-rc.1");
+if (v03Wf !== null) {
+  // Exact version gate on the input.
+  if (!v03Wf.includes('!= "0.3.0-rc.1"')) {
+    err(`${V03_RC_RELEASE_WORKFLOW} must gate on the exact version 0.3.0-rc.1`);
+  }
+  // version.json must be checked against the input version.
+  if (
+    !v03Wf.includes("require('./version.json').version") &&
+    !v03Wf.includes('require("./version.json").version')
+  ) {
+    err(`${V03_RC_RELEASE_WORKFLOW} must verify version.json equals the input version`);
+  }
+  // Prerelease, never latest.
+  if (!v03Wf.includes("--prerelease")) {
+    err(`${V03_RC_RELEASE_WORKFLOW} must create the release with --prerelease`);
+  }
+  if (v03Wf.includes("--latest")) {
+    err(`${V03_RC_RELEASE_WORKFLOW} must never use --latest`);
+  }
+  if (!/isPrerelease\s*!==\s*true/.test(v03Wf)) {
+    err(`${V03_RC_RELEASE_WORKFLOW} must verify the published release isPrerelease === true`);
+  }
+  // Existence refusal before creating tag/release.
+  if (!v03Wf.includes("refusing to overwrite")) {
+    err(`${V03_RC_RELEASE_WORKFLOW} must refuse when the tag or release already exists`);
+  }
+  // The publish job must depend on the cross-platform installed qualification.
+  if (!/needs:\s*\[\s*prepare\s*,\s*installed-qualification\s*\]/.test(v03Wf)) {
+    err(`${V03_RC_RELEASE_WORKFLOW} publish must depend on the installed-qualification matrix`);
+  }
+  // The release must target the exact workflow commit SHA, not floating main.
+  if (!v03Wf.includes('--target "$GITHUB_SHA"')) {
+    err(`${V03_RC_RELEASE_WORKFLOW} must target the exact workflow commit SHA`);
+  }
+  // Exactly the three RC assets are created.
+  for (const asset of [
+    "oh-my-pm-v0.3.0-rc.1.tar.gz",
+    "oh-my-pm-v0.3.0-rc.1.zip",
+    "oh-my-pm-v0.3.0-rc.1-SHA256SUMS.txt",
+  ]) {
+    if (!v03Wf.includes(asset)) {
+      err(`${V03_RC_RELEASE_WORKFLOW} must reference the RC asset: ${asset}`);
+    }
+  }
+  // contents: write is granted exactly once (the publish job only).
+  const writeKeyCount = (v03Wf.match(/^\s+contents: write\s*$/gm) || []).length;
+  if (writeKeyCount !== 1) {
+    err(`${V03_RC_RELEASE_WORKFLOW} must grant contents: write exactly once (publish job only)`);
+  }
+}
+
 // The v0.1 and RC workflow contracts must remain byte-stable against the audited
 // baseline: the stable workflow addition must not silently rewrite them. Their
 // confirmation strings and prerelease/latest posture are asserted above; here we
@@ -1535,11 +1596,14 @@ const RELEASE_PUBLISH_ALLOWED = new Set([
   RELEASE_WORKFLOW,
   RC_RELEASE_WORKFLOW,
   STABLE_RELEASE_WORKFLOW,
+  V03_RC_RELEASE_WORKFLOW,
   "docs/releases/publishing-v0.1.0.md",
   "docs/releases/publishing-v0.2.0-rc.1.md",
   "docs/releases/publishing-v0.2.0.md",
+  "docs/releases/publishing-v0.3.0-rc.1.md",
   "docs/releases/v0.1.0.md",
   "docs/releases/v0.2.0.md",
+  "docs/releases/v0.3.0-rc.1.md",
   "tools/validate-boundaries.mjs",
   "tools/validate-structure.mjs",
 ]);
@@ -1728,6 +1792,11 @@ const PROJECT_BRAIN_ALLOWED_PREFIXES = [
 ];
 const PROJECT_BRAIN_ALLOWED_FILES = new Set([
   "kernel/crate/tests/projectbrain_contracts.rs", // Phase 0 serde round-trip
+  // Phase 6 release qualification: the installed-artifact Project Brain
+  // qualification script drives the installed CLI/MCP end to end. It is release
+  // tooling (spawns installed shims, plants an isolated v1 fixture), not a
+  // product surface, so it names project-brain by design.
+  "tools/check-v0.3-installed-project-brain.mjs",
 ]);
 // Kernel integration tests: kernel/crate/tests/projectbrain_*.rs.
 const PROJECT_BRAIN_TEST_RE = /^kernel\/crate\/tests\/projectbrain_[a-z_]+\.rs$/;
@@ -2063,11 +2132,15 @@ if (trackedFiles.includes("kernel/crate/Cargo.toml")) {
     }
   }
 }
-// Phase 1 version guard: version.json and every package version stay 0.2.0.
+// Version guard: version.json carries the prepared source version. Phases 0–5
+// stayed at 0.2.0; Phase 6 prepares the v0.3 release candidate 0.3.0-rc.1. The
+// value must be exactly this prepared version (all package manifests and the
+// runtime version constants are checked against it by check-version-consistency).
+const EXPECTED_SOURCE_VERSION = "0.3.0-rc.1";
 if (trackedFiles.includes("version.json")) {
   const version = JSON.parse(readFileSync("version.json", "utf8")).version;
-  if (version !== "0.2.0") {
-    err(`version.json must remain 0.2.0 in Phase 1 (found ${version})`);
+  if (version !== EXPECTED_SOURCE_VERSION) {
+    err(`version.json must be ${EXPECTED_SOURCE_VERSION} (found ${version})`);
   }
 }
 // Golden fixtures must carry no absolute path, credential, or raw body.
@@ -2298,7 +2371,9 @@ for (const file of PROJECT_MEMORY_SRC) {
 if (trackedFiles.includes("project-memory/package.json")) {
   const pkg = JSON.parse(readFileSync("project-memory/package.json", "utf8"));
   if (pkg.private !== true) err("project-memory/package.json must set private: true");
-  if (pkg.version !== "0.2.0") err("project-memory/package.json must remain version 0.2.0");
+  if (pkg.version !== EXPECTED_SOURCE_VERSION) {
+    err(`project-memory/package.json must be version ${EXPECTED_SOURCE_VERSION}`);
+  }
   for (const field of ["dependencies", "peerDependencies", "optionalDependencies", "devDependencies"]) {
     if (pkg[field] && Object.keys(pkg[field]).length > 0) {
       err(`project-memory/package.json must declare no ${field} (Node built-ins only)`);
@@ -2307,18 +2382,21 @@ if (trackedFiles.includes("project-memory/package.json")) {
 }
 // Project-memory dependency policy. No package may take a PRODUCTION dependency
 // on @oh-my-pm/project-memory: the Phase 3 Runtime reaches persistence only
-// through its structural port. Two packages may devDepend on it: the Runtime's
-// e2e integration test, and (Phase 4) the CLI — a dev/build-time-only dependency
-// so TypeScript resolves the lazily dynamic-imported memory command path; it is
-// never a production dependency and stays excluded from the v0.2 release bundle.
-const PROJECT_MEMORY_DEV_DEP_ALLOWED = new Set([
-  "runtime/package.json",
+// through its structural port. The Runtime's e2e integration test devDepends on
+// it (test/build-time only). As of the v0.3 "project-brain" release profile, the
+// CLI and the MCP server take it as a RUNTIME dependency: both reach it through a
+// lazy dynamic import (never a static startup import), and it must be present in
+// the self-contained v0.3 bundle so the installed memory commands and the
+// project_changes tool resolve without a workspace checkout. When the package is
+// genuinely absent (the historical v0.2 bundle), the lazy load falls back to the
+// exact ten-tool surface.
+const PROJECT_MEMORY_RUNTIME_DEP_ALLOWED = new Set([
   "cli/package.json",
-  // v0.3 Phase 5: the MCP server devDepends on the adapter so TypeScript resolves
-  // the lazily dynamic-imported project_changes capability path. It is a
-  // dev/build-time dependency only, never a production/startup dependency, and
-  // the package stays excluded from the v0.2 release bundle.
   "mcp-server/package.json",
+]);
+const PROJECT_MEMORY_DEV_DEP_ALLOWED = new Set([
+  // The Runtime keeps a test-only devDependency for its e2e integration suite.
+  "runtime/package.json",
 ]);
 for (const file of trackedFiles) {
   if (!/(^|\/)package\.json$/.test(file)) continue;
@@ -2333,7 +2411,9 @@ for (const file of trackedFiles) {
   for (const field of ["dependencies", "peerDependencies", "optionalDependencies"]) {
     const deps = pkg && typeof pkg === "object" ? pkg[field] : undefined;
     if (deps && typeof deps === "object" && "@oh-my-pm/project-memory" in deps) {
-      err(`${file} must not take a production dependency on @oh-my-pm/project-memory`);
+      if (field !== "dependencies" || !PROJECT_MEMORY_RUNTIME_DEP_ALLOWED.has(file)) {
+        err(`${file} must not take a ${field} on @oh-my-pm/project-memory`);
+      }
     }
   }
   const devDeps = pkg && typeof pkg === "object" ? pkg.devDependencies : undefined;
@@ -2360,6 +2440,17 @@ const PROJECT_MEMORY_LAZY_BOUNDARIES = new Set([
   "mcp-server/src/project-changes-loader.ts",
   "mcp-server/src/project-changes-runner.ts",
 ]);
+// Release/qualification tools that legitimately reference the package by name as
+// a STRING — to assert its presence in the self-contained v0.3 bundle, to stage
+// it, or to load the installed dist for planting a v1 fixture. These are tools,
+// not product runtime source; they perform no static production import of it.
+const PROJECT_MEMORY_TOOL_REFERENCE_ALLOWED = new Set([
+  "tools/release-bundle-utils.mjs",
+  "tools/check-release-bundle.mjs",
+  "tools/check-release-install.mjs",
+  "tools/check-v0.3-installed-project-brain.mjs",
+  "distribution/libexec/release-install-core.mjs",
+]);
 for (const file of trackedFiles) {
   if (file.startsWith("project-memory/")) continue;
   if (!/\.(ts|mjs|js)$/.test(file)) continue;
@@ -2371,6 +2462,15 @@ for (const file of trackedFiles) {
   if (file.startsWith("runtime/test/") || file.includes("/test/")) continue;
   const contents = readFileSync(file, "utf8");
   if (!contents.includes("@oh-my-pm/project-memory")) continue;
+  if (PROJECT_MEMORY_TOOL_REFERENCE_ALLOWED.has(file)) {
+    // A release/qualification tool may name the package but must never STATICALLY
+    // import it as a module dependency (it either references it as a string or
+    // loads the installed dist by file URL).
+    if (/from\s+["']@oh-my-pm\/project-memory["']/.test(contents)) {
+      err(`${file} must not statically import @oh-my-pm/project-memory`);
+    }
+    continue;
+  }
   if (PROJECT_MEMORY_LAZY_BOUNDARIES.has(file)) {
     // A lazy boundary must reach the adapter ONLY via a dynamic import and must
     // never statically import it (which would defeat the lazy-load rule).
@@ -2531,13 +2631,19 @@ for (const file of trackedFiles) {
     }
   }
 }
-// 9g. Project-memory remains excluded from the v0.2 release bundle. The bundle
-// builder references an explicit first-party package list; project-memory must
-// not appear in it.
+// 9g. v0.3 release profile: the self-contained "project-brain" bundle MUST ship
+// @oh-my-pm/project-memory so the installed memory commands and the read-only
+// project_changes tool resolve without a workspace checkout. The bundle builder
+// declares the profile and fails closed if the package is absent. The historical
+// v0.2 bundle (built from the immutable tag) is unaffected — it declares no
+// profile and ships the ten-tool surface.
 if (trackedFiles.includes("tools/release-bundle-utils.mjs")) {
   const bundle = readFileSync("tools/release-bundle-utils.mjs", "utf8");
-  if (bundle.includes("project-memory") || bundle.includes("@oh-my-pm/project-memory")) {
-    err("tools/release-bundle-utils.mjs must not include project-memory in the release bundle");
+  if (!bundle.includes('bundleProfile: BUNDLE_PROFILE') && !bundle.includes('"project-brain"')) {
+    err("tools/release-bundle-utils.mjs must declare the project-brain release profile");
+  }
+  if (!bundle.includes("project-memory")) {
+    err("tools/release-bundle-utils.mjs must require @oh-my-pm/project-memory in the v0.3 bundle");
   }
 }
 

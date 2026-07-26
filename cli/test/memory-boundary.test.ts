@@ -20,7 +20,7 @@ describe("runCli fails closed on the memory command", () => {
       kernel: createNodeWasmKernelApi(),
       providers: createProviderRegistry([createLocalProvider({ items: [] })]),
       skills: createDefaultSkillRegistry(),
-      version: "0.2.0",
+      version: "0.3.0-rc.1",
       now: "2026-01-01T00:00:00.000Z",
     });
     const result = await runCli(["memory", "status"], { runtime });
@@ -49,10 +49,15 @@ describe("Project Memory is imported only lazily on the memory path", () => {
     }
   });
 
-  it("keeps the memory package out of the CLI production dependency set", () => {
+  it("takes project-memory as a runtime dependency reached only via lazy import", () => {
+    // As of the v0.3 project-brain release profile, the CLI takes
+    // @oh-my-pm/project-memory as a RUNTIME dependency so the self-contained
+    // bundle ships it and the installed memory commands resolve without a
+    // workspace checkout. It is still reached ONLY through the dynamic import
+    // asserted above (never a static startup import), so a genuine absence falls
+    // back safely. It must not remain a dev-only dependency.
     const pkg = JSON.parse(readFileSync(join(srcDir, "..", "package.json"), "utf8"));
-    expect(pkg.dependencies?.["@oh-my-pm/project-memory"]).toBeUndefined();
-    // It is a dev/build-time dependency only (workspace type resolution).
-    expect(pkg.devDependencies?.["@oh-my-pm/project-memory"]).toBe("workspace:*");
+    expect(pkg.dependencies?.["@oh-my-pm/project-memory"]).toBe("workspace:*");
+    expect(pkg.devDependencies?.["@oh-my-pm/project-memory"]).toBeUndefined();
   });
 });

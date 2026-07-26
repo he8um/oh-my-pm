@@ -32,6 +32,9 @@ importers:
       '@oh-my-pm/kernel':
         specifier: workspace:*
         version: link:../kernel/binding
+      '@oh-my-pm/project-memory':
+        specifier: workspace:*
+        version: link:../project-memory
       '@oh-my-pm/providers':
         specifier: workspace:*
         version: link:../providers
@@ -41,10 +44,6 @@ importers:
       '@oh-my-pm/skills':
         specifier: workspace:*
         version: link:../skills
-    devDependencies:
-      '@oh-my-pm/project-memory':
-        specifier: workspace:*
-        version: link:../project-memory
 
   contracts: {}
 
@@ -125,6 +124,9 @@ importers:
       '@oh-my-pm/kernel':
         specifier: workspace:*
         version: link:../kernel/binding
+      '@oh-my-pm/project-memory':
+        specifier: workspace:*
+        version: link:../project-memory
       '@oh-my-pm/providers':
         specifier: workspace:*
         version: link:../providers
@@ -137,10 +139,6 @@ importers:
       zod:
         specifier: ^3.25.76
         version: 3.25.76
-    devDependencies:
-      '@oh-my-pm/project-memory':
-        specifier: workspace:*
-        version: link:../project-memory
 
   planner:
     dependencies:
