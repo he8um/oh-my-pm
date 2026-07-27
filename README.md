@@ -4,11 +4,11 @@
 
 It is designed for teams that want clearer delivery context, safer execution boundaries, and repeatable validation around project work.
 
-> **Latest stable release:** [`v0.2.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0)
+> **Latest stable release:** [`v0.3.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0)
 > **Latest prerelease:** [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1)
-> **Source version:** `0.3.0` (prepared for separate, explicitly authorized stable publication)
+> **Source version:** `0.3.0`
 >
-> `v0.2.0` remains the latest **stable** release — a non-draft, non-prerelease GitHub Release marked latest, targeting `2bac37a…`, carrying exactly three assets. [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) is a published **prerelease** (the v0.3 Project Brain line; not marked latest and does not supersede `v0.2.0`), targeting `1db4057…`. [`v0.2.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0-rc.1) and [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) remain preserved historical releases. The source tree is at `0.3.0`, prepared for a separate, explicitly authorized stable `v0.3.0` publication — `v0.3.0` is **not** yet published as stable. Node.js 20+ is the only runtime requirement for installed archives. Packages remain private; there is no npm package.
+> [`v0.3.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0) is the latest **stable** release — a non-draft, non-prerelease GitHub Release marked latest, targeting `0d6f9b1…`, carrying exactly three assets. [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) is a published **prerelease** (the v0.3 Project Brain line; not marked latest), targeting `1db4057…`. [`v0.2.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0), [`v0.2.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0-rc.1) and [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) remain preserved historical releases. Node.js 20+ is the only runtime requirement for installed archives. Packages remain private; there is no npm package.
 
 ---
 
@@ -126,7 +126,7 @@ The current next-task workflow extracts explicit unchecked Markdown checklist it
 
 ## Getting started locally
 
-The packages are private and repository-based (there is no registry package), and the latest stable release is [`v0.2.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0). To build from a checkout, see [the getting-started guide](docs/getting-started.md) for the full walkthrough. The short path is:
+The packages are private and repository-based (there is no registry package), and the latest stable release is [`v0.3.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0). To build from a checkout, see [the getting-started guide](docs/getting-started.md) for the full walkthrough. The short path is:
 
 ```bash
 rustup target add wasm32-unknown-unknown
@@ -146,11 +146,11 @@ oh-my-pm next ./project --markdown
 oh-my-pm handoff ./project --markdown
 ```
 
-Local MCP onboarding is available too — generate a generic stdio client configuration with `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the `0.3.0` source line (prepared for separate stable publication); installed release archives require only Node.js 20+.
+Local MCP onboarding is available too — generate a generic stdio client configuration with `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the `0.3.0` source line (published as the latest stable release `v0.3.0`); installed release archives require only Node.js 20+.
 
-### Latest stable release (v0.2.0)
+### Historical stable release (v0.2.0)
 
-The latest stable [`v0.2.0` release](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0) ships three assets:
+The [`v0.2.0` release](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0) — now superseded as latest stable by [`v0.3.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0) — ships three assets:
 
 ```text
 oh-my-pm-v0.2.0.tar.gz

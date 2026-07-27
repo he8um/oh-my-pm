@@ -5,12 +5,12 @@
 ## [0.3.0] - 2026-07-27
 
 Stable **Project Brain** foundation for the v0.3 line — the validated promotion
-of the `v0.3.0-rc.1` prerelease. **This entry records the prepared stable source
-version `0.3.0`; no `v0.3.0` tag, GitHub Release, or registry artifact is created
-by this preparation.** The latest published stable release remains `v0.2.0` until
-`v0.3.0` is published through the manually gated `Release v0.3 Stable` workflow
-after a separate, explicit owner authorization. `v0.3.0-rc.1` remains the
-published prerelease.
+of the `v0.3.0-rc.1` prerelease. **`v0.3.0` is published** as the latest stable
+GitHub Release (tag `v0.3.0` targeting `0d6f9b1…`, non-draft, non-prerelease,
+marked latest, exactly three assets, no registry publication) through the
+manually gated `Release v0.3 Stable` workflow after a separate, explicit owner
+authorization. It supersedes `v0.2.0` as the latest stable release. `v0.3.0-rc.1`
+remains the published prerelease.
 
 No product behavior changed relative to the validated `v0.3.0-rc.1`; only the
 version string moved from `0.3.0-rc.1` to `0.3.0`.
@@ -26,14 +26,14 @@ version string moved from `0.3.0-rc.1` to `0.3.0`.
 - `.github/workflows/release-v0.3.yml` — a manually gated, `workflow_dispatch`-only
   stable release workflow (prerelease never; `--latest`; protected
   `github-release` environment; cross-platform installed-qualification gate). It
-  is prepared but not dispatched with `publish=true`.
+  published `v0.3.0` as the latest stable release.
 
 ### Changed
 
 - Promoted the canonical source version `0.3.0-rc.1 → 0.3.0` across all version
   surfaces (packaging/generated/version-metadata only; no product semantics
   change), and corrected public documentation to reflect the published
-  `v0.3.0-rc.1` prerelease and the prepared (not yet published) stable `v0.3.0`.
+  `v0.3.0-rc.1` prerelease and the published latest stable `v0.3.0`.
 
 ## [0.3.0-rc.1] - 2026-07-26
 
