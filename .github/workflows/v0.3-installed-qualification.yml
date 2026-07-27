@@ -109,7 +109,7 @@ jobs:
           package-manager-cache: false
 
       - name: Download candidate artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           name: v0.3-candidate-artifact
           path: candidate

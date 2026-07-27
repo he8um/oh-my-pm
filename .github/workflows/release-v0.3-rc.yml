@@ -204,7 +204,7 @@ jobs:
           package-manager-cache: false
 
       - name: Download prepared release assets
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           name: oh-my-pm-v0.3.0-rc.1-release-assets
           path: release-assets
@@ -281,7 +281,7 @@ jobs:
           fi
 
       - name: Download release assets
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           name: oh-my-pm-v0.3.0-rc.1-release-assets
           path: release-assets
