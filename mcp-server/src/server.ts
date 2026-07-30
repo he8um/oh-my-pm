@@ -13,6 +13,13 @@ import type {
   McpProjectChangesExecutor,
   McpProjectChangesResult,
 } from "./project-changes-types.js";
+import { loadOptionalProjectTimelineExecutor } from "./project-timeline-loader.js";
+import type { LoadProjectTimelineExecutorOptions } from "./project-timeline-loader.js";
+import { renderProjectTimelineMarkdown } from "./project-timeline-projector.js";
+import type {
+  McpProjectTimelineExecutor,
+  McpProjectTimelineResult,
+} from "./project-timeline-types.js";
 import { executeMcpProjectTool, projectOperationForToolName } from "./project-tool-runner.js";
 import {
   executeMcpGitHubProviderDiagnostics,
@@ -451,6 +458,13 @@ export type CreateOhMyPmMcpServerOptions = {
    * Memory is not packaged.
    */
   executeProjectChanges?: McpProjectChangesExecutor;
+  /**
+   * The read-only Project Timeline executor (v0.4). When supplied, the server
+   * registers the twelfth tool, `project_timeline`, appended AFTER the existing
+   * eleven. When absent, the tool is not registered — the intended behavior for
+   * a bundle where Project Memory is not packaged.
+   */
+  executeProjectTimeline?: McpProjectTimelineExecutor;
 };
 
 // GitHub tool input/output schemas. Input is a strict owner/repo plus an
@@ -872,6 +886,110 @@ const projectChangesOutputShape = {
 // error rather than emitting a partially-projected or unexpected shape.
 const projectChangesOutputSchema = z.object(projectChangesOutputShape).strict();
 
+// --- project_timeline tool schemas (v0.4) ----------------------------------
+//
+// Strict, read-only input: a project id plus an optional page size, pagination
+// cursor, and the two taxonomy filters. There is NO root, dataDir, path, token,
+// provider, capture, apply, confirm, migrate, or force field — the agent cannot
+// choose a filesystem location or trigger any mutation.
+const projectTimelineInputShape = {
+  projectId: z
+    .string()
+    .trim()
+    .min(1)
+    .max(256)
+    .describe("Opaque Project Brain project id whose captured history to read"),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe("Maximum timeline events returned (1..100, default 20)"),
+  beforeSequence: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe(
+      "Exclusive upper bound on captureSequence for pagination: only events from strictly earlier captures are returned",
+    ),
+  category: z
+    .enum([
+      "added",
+      "removed",
+      "modified",
+      "resolved",
+      "reopened",
+      "becameOverdue",
+      "noLongerOverdue",
+      "severityIncreased",
+      "severityDecreased",
+      "fresh",
+      "stale",
+      "evidenceChanged",
+    ])
+    .optional()
+    .describe("Optional change-category filter"),
+  kind: z
+    .enum(["milestone", "task", "risk", "decision", "dependency", "blocker"])
+    .optional()
+    .describe("Optional item-kind filter"),
+} as const;
+
+// The public event projection: identity, position, taxonomy, and allow-listed
+// title-level scalars only. Evidence is a COUNT, never an id.
+const projectedTimelineEventSchema = z
+  .object({
+    eventId: z.string(),
+    snapshotId: z.string(),
+    captureSequence: z.number().int(),
+    eventSequence: z.number().int(),
+    capturedAt: z.string(),
+    category: z.enum([
+      "added",
+      "removed",
+      "modified",
+      "resolved",
+      "reopened",
+      "becameOverdue",
+      "noLongerOverdue",
+      "severityIncreased",
+      "severityDecreased",
+      "fresh",
+      "stale",
+      "evidenceChanged",
+    ]),
+    kind: z.enum(["milestone", "task", "risk", "decision", "dependency", "blocker"]),
+    subjectId: z.string(),
+    title: z.string().optional(),
+    status: z.string().optional(),
+    severity: z.string().optional(),
+    dueDate: z.string().optional(),
+    evidenceCount: z.number().int(),
+  })
+  .strict();
+
+const projectTimelineOutputShape = {
+  schemaVersion: z.literal(1),
+  projectId: z.string(),
+  eventCount: z.number().int(),
+  hasMore: z.boolean(),
+  nextBeforeSequence: z.number().int().optional(),
+  chronology: z.literal("capture-order"),
+  events: z.array(projectedTimelineEventSchema),
+} as const;
+
+// The strict output validator: the server re-validates the runner's projected
+// result before returning it, so a projection defect fails closed as an MCP
+// error rather than emitting a partially-projected or unexpected shape.
+const projectTimelineOutputSchema = z.object(projectTimelineOutputShape).strict();
+
+const PROJECT_TIMELINE_OUTPUT_INVALID_TEXT =
+  "project_timeline_output_invalid: result did not match the safe public shape";
+const PROJECT_TIMELINE_FAILED_TEXT =
+  "project_timeline_failed: unexpected project timeline failure";
+
 const PROJECT_CHANGES_OUTPUT_INVALID_TEXT =
   "project_changes_output_invalid: result did not match the safe public shape";
 const PROJECT_CHANGES_FAILED_TEXT =
@@ -988,6 +1106,48 @@ async function handleProjectChanges(
   return successResult(markdown, structured);
 }
 
+/**
+ * Run the read-only `project_timeline` executor and project it to a strict,
+ * validated public MCP result. A controlled runner failure maps to a stable MCP
+ * error; an unexpected exception maps to one generic error; a projection that
+ * fails strict validation or a forbidden-marker scan is rejected rather than
+ * partially returned.
+ */
+async function handleProjectTimeline(
+  execute: McpProjectTimelineExecutor,
+  input: {
+    projectId: string;
+    limit?: number;
+    beforeSequence?: number;
+    category?: McpProjectTimelineResult["events"][number]["category"];
+    kind?: McpProjectTimelineResult["events"][number]["kind"];
+  },
+): Promise<ToolResult> {
+  let execution;
+  try {
+    execution = await execute(input);
+  } catch {
+    return errorResult(PROJECT_TIMELINE_FAILED_TEXT);
+  }
+  if (!execution.ok) {
+    return errorResult(`${execution.code}: ${execution.message}`);
+  }
+  const parsed = projectTimelineOutputSchema.safeParse(execution.result);
+  if (!parsed.success) {
+    return errorResult(PROJECT_TIMELINE_OUTPUT_INVALID_TEXT);
+  }
+  const result: McpProjectTimelineResult = parsed.data as McpProjectTimelineResult;
+  const structured = result as unknown as Record<string, unknown>;
+  const markdown = renderProjectTimelineMarkdown(result);
+  // Final leak scan over the serialized text + structured content. A structural
+  // marker match means the projection failed; reject the result.
+  const serialized = `${JSON.stringify(structured)}\n${markdown}`;
+  if (findForbiddenMarker(serialized) !== null) {
+    return errorResult(PROJECT_TIMELINE_OUTPUT_INVALID_TEXT);
+  }
+  return successResult(markdown, structured);
+}
+
 export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): McpServer {
   const execute = options?.executeProjectTool ?? executeMcpProjectTool;
   const executeGitHub = options?.executeGitHubTool ?? executeMcpGitHubTool;
@@ -997,6 +1157,9 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
   // project_changes is registered ONLY when a read-only executor is supplied
   // (the source/workspace capability path). Absent -> the exact ten-tool server.
   const executeProjectChanges = options?.executeProjectChanges;
+  // project_timeline is registered ONLY when a read-only executor is supplied
+  // (the source/workspace capability path), exactly like project_changes.
+  const executeProjectTimeline = options?.executeProjectTimeline;
 
   // The ten-tool fallback server keeps its historical instruction. The
   // capability server (eleven tools) states the accurate posture, including that
@@ -1005,7 +1168,7 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
   const instructions =
     executeProjectChanges === undefined
       ? "OH MY PM provides read-only local project intelligence from Markdown documents. All tools require a local project root, respect oh-my-pm.config.json, never modify files, and never upload project context."
-      : "OH MY PM provides read-only local project intelligence. Existing document tools read configured Markdown under a local project root and respect oh-my-pm.config.json. project_changes reads previously captured local Project Brain memory and needs no project root. No MCP tool writes project files or application state. GitHub tools access the network only when explicitly called, and never upload project context.";
+      : "OH MY PM provides read-only local project intelligence. Existing document tools read configured Markdown under a local project root and respect oh-my-pm.config.json. project_changes and project_timeline read previously captured local Project Brain memory and need no project root. No MCP tool writes project files or application state. GitHub tools access the network only when explicitly called, and never upload project context.";
 
   const server = new McpServer(
     {
@@ -1227,25 +1390,68 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
     );
   }
 
+  // v0.4: the twelfth tool, appended AFTER the existing eleven, registered ONLY
+  // when a read-only Project Timeline executor is supplied. It reads
+  // already-captured local memory and derives a bounded history from adjacent
+  // committed snapshots in authoritative capture order; it captures nothing,
+  // migrates nothing, persists nothing, and touches no network.
+  if (executeProjectTimeline !== undefined) {
+    server.registerTool(
+      "project_timeline",
+      {
+        title: "Project Timeline",
+        description:
+          "Read already-captured local Project Brain memory and return a bounded, deterministic timeline of project changes in authoritative capture order. Does not capture or modify a project, does not migrate, export, delete, or repair memory, stores no timeline, and performs no network request.",
+        inputSchema: projectTimelineInputShape,
+        outputSchema: projectTimelineOutputShape,
+        annotations: {
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      ({ projectId, limit, beforeSequence, category, kind }) =>
+        handleProjectTimeline(executeProjectTimeline, {
+          projectId,
+          ...(limit !== undefined ? { limit } : {}),
+          ...(beforeSequence !== undefined ? { beforeSequence } : {}),
+          ...(category !== undefined ? { category } : {}),
+          ...(kind !== undefined ? { kind } : {}),
+        }),
+    );
+  }
+
   return server;
 }
 
 /**
- * Start the stdio MCP server. Before constructing the server it loads the
- * OPTIONAL read-only Project Brain compare capability: when @oh-my-pm/project-
- * memory resolves (source/workspace), the eleventh tool `project_changes` is
- * registered; when it is absent (the legacy/current v0.2 bundle), the server
- * starts with the exact ten tools and no stderr warning. The real clock is
- * supplied here at the process boundary — never inside the server, projector,
- * or runtime.
+ * Start the stdio MCP server. Before constructing the server it loads the two
+ * OPTIONAL read-only Project Brain memory capabilities: when the
+ * @oh-my-pm/project-
+ * memory package resolves (source/workspace or the self-contained
+ * bundle), the eleventh tool `project_changes` and the twelfth tool
+ * `project_timeline` are registered, giving twelve tools; when it is absent (the
+ * legacy v0.2 bundle), the server starts with the exact ten tools and no stderr
+ * warning. The real clock is supplied here at the process boundary — never
+ * inside the server, projector, or runtime.
  */
 export async function startOhMyPmMcpStdioServer(
-  options?: LoadProjectChangesExecutorOptions,
+  options?: LoadProjectChangesExecutorOptions & {
+    readonly timeline?: LoadProjectTimelineExecutorOptions;
+  },
 ): Promise<void> {
   const executeProjectChanges = await loadOptionalProjectChangesExecutor(options);
-  const server = createOhMyPmMcpServer(
-    executeProjectChanges !== undefined ? { executeProjectChanges } : {},
-  );
+  // The timeline capability is probed independently but shares the same clock,
+  // so both memory tools observe one invocation timestamp source.
+  const executeProjectTimeline = await loadOptionalProjectTimelineExecutor({
+    ...(options?.clock !== undefined ? { clock: options.clock } : {}),
+    ...(options?.timeline ?? {}),
+  });
+  const server = createOhMyPmMcpServer({
+    ...(executeProjectChanges !== undefined ? { executeProjectChanges } : {}),
+    ...(executeProjectTimeline !== undefined ? { executeProjectTimeline } : {}),
+  });
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

@@ -806,17 +806,19 @@ if (existsSync("kernel/crate/Cargo.toml")) {
     err(`kernel/crate/Cargo.toml version must remain ${CANONICAL_VERSION}`);
   }
 }
-// The MCP server declares the ten historical tools plus, as of v0.3 Phase 5, the
-// single read-only Project Brain tool `project_changes` (registered conditionally
-// behind an injected executor). This is a static count/ordering guard
-// complementing the runtime mcp:smoke assertion.
+// The MCP server declares the ten historical tools plus the two read-only
+// Project Brain tools `project_changes` (v0.3) and `project_timeline` (v0.4),
+// each registered conditionally behind an injected executor. This is a static
+// count/ordering guard complementing the runtime mcp:smoke assertion.
 //
-// LEGACY_V02_MCP_TOOL_COUNT = 10 (the current v0.2 bundle without Project Memory)
-// SOURCE_V03_PHASE5_MCP_TOOL_COUNT = 11 (the source/workspace capability server)
+// LEGACY_V02_MCP_TOOL_COUNT = 10 (the legacy v0.2 bundle without Project Memory)
+// SOURCE_V03_PHASE5_MCP_TOOL_COUNT = 11 (the v0.3 capability server)
+// SOURCE_V04_MCP_TOOL_COUNT = 12 (the v0.4 capability server)
 // PROJECT_BRAIN_MCP_WRITE_TOOL_COUNT = 0
-// PROJECT_BRAIN_MCP_READ_TOOL_COUNT = 1 (project_changes)
+// PROJECT_BRAIN_MCP_READ_TOOL_COUNT = 2 (project_changes, project_timeline)
 const LEGACY_V02_MCP_TOOL_COUNT = 10;
 const SOURCE_V03_PHASE5_MCP_TOOL_COUNT = 11;
+const SOURCE_V04_MCP_TOOL_COUNT = 12;
 const MCP_TEN_TOOLS = [
   "project_brief",
   "project_risks",
@@ -829,8 +831,9 @@ const MCP_TEN_TOOLS = [
   "provider_status",
   "github_provider_diagnostics",
 ];
-// The single approved additional Project Brain read-only tool (Phase 5).
+// The two approved additional Project Brain read-only tools.
 const MCP_PHASE5_READONLY_TOOL = "project_changes";
+const MCP_V04_READONLY_TOOL = "project_timeline";
 if (existsSync("mcp-server/src/server.ts")) {
   const server = readFileSync("mcp-server/src/server.ts", "utf8");
   // Every historical tool name must appear as a quoted string literal (tools are
@@ -843,7 +846,11 @@ if (existsSync("mcp-server/src/server.ts")) {
       err(`mcp-server/src/server.ts must register the tool "${name}"`);
     }
   }
-  const approved = new Set([...MCP_TEN_TOOLS, MCP_PHASE5_READONLY_TOOL]);
+  const approved = new Set([
+    ...MCP_TEN_TOOLS,
+    MCP_PHASE5_READONLY_TOOL,
+    MCP_V04_READONLY_TOOL,
+  ]);
   const toolLiterals = new Set(
     [...server.matchAll(/"((?:project|github)_[a-z_]+)"/g)].map((m) => m[1]),
   );
@@ -853,12 +860,16 @@ if (existsSync("mcp-server/src/server.ts")) {
     if (approved.has(literal)) continue;
     if (/_(failed|invalid|error|required|missing|unavailable|output)/.test(literal)) continue;
     err(
-      `mcp-server/src/server.ts registers an unexpected tool literal "${literal}" (Phase 5 keeps the ten historical tools plus project_changes)`,
+      `mcp-server/src/server.ts registers an unexpected tool literal "${literal}" (the surface is the ten historical tools plus project_changes and project_timeline)`,
     );
   }
   // Guard the deliberate tool-count constants against silent drift.
-  if (LEGACY_V02_MCP_TOOL_COUNT !== 10 || SOURCE_V03_PHASE5_MCP_TOOL_COUNT !== 11) {
-    err("MCP tool-count constants must remain 10 (legacy) and 11 (source Phase 5)");
+  if (
+    LEGACY_V02_MCP_TOOL_COUNT !== 10 ||
+    SOURCE_V03_PHASE5_MCP_TOOL_COUNT !== 11 ||
+    SOURCE_V04_MCP_TOOL_COUNT !== 12
+  ) {
+    err("MCP tool-count constants must remain 10 (legacy), 11 (v0.3) and 12 (v0.4)");
   }
 }
 
@@ -1088,6 +1099,14 @@ const V04_REQUIRED = [
   "runtime/test/projectbrain-timeline.test.ts",
   // Phase 4: the read-only `memory timeline` CLI subcommand and its tests.
   "cli/test/memory-timeline.test.ts",
+  // Phase 5: the read-only project_timeline MCP tool surface and its tests.
+  "mcp-server/src/project-timeline-types.ts",
+  "mcp-server/src/project-timeline-projector.ts",
+  "mcp-server/src/project-timeline-runner.ts",
+  "mcp-server/src/project-timeline-loader.ts",
+  "mcp-server/test/project-timeline-projector.test.ts",
+  "mcp-server/test/project-timeline-runner.test.ts",
+  "mcp-server/test/project-timeline-server.test.ts",
 ];
 for (const file of V04_REQUIRED) {
   if (!existsSync(file)) err(`v0.4 file missing: ${file}`);

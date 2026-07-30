@@ -62,6 +62,33 @@ export type {
   McpProjectChangesSuccess,
   McpProjectedChange,
 } from "./project-changes-types.js";
+// v0.4: the read-only project_timeline tool surface.
+export { runProjectTimeline } from "./project-timeline-runner.js";
+export type {
+  ProjectTimelineRunnerOptions,
+  ProjectTimelineStore,
+} from "./project-timeline-runner.js";
+export { loadOptionalProjectTimelineExecutor } from "./project-timeline-loader.js";
+export type { LoadProjectTimelineExecutorOptions } from "./project-timeline-loader.js";
+export {
+  DEFAULT_TIMELINE_LIMIT,
+  emptyTimelineResult,
+  MAX_TIMELINE_LIMIT,
+  MIN_TIMELINE_LIMIT,
+  projectTimelineEvent,
+  projectTimelineResult,
+  renderProjectTimelineMarkdown,
+} from "./project-timeline-projector.js";
+export type {
+  McpProjectedTimelineEvent,
+  McpProjectTimelineExecution,
+  McpProjectTimelineExecutor,
+  McpProjectTimelineFailure,
+  McpProjectTimelineFailureCode,
+  McpProjectTimelineInput,
+  McpProjectTimelineResult,
+  McpProjectTimelineSuccess,
+} from "./project-timeline-types.js";
 export type {
   CreateOhMyPmMcpServerOptions,
   McpGitHubProviderDiagnosticsExecutor,

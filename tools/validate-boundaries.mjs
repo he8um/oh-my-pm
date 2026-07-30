@@ -2558,6 +2558,9 @@ const PROJECT_MEMORY_LAZY_BOUNDARIES = new Set([
   "cli/src/memory-process.ts",
   "mcp-server/src/project-changes-loader.ts",
   "mcp-server/src/project-changes-runner.ts",
+  // v0.4: the project_timeline capability follows the identical lazy-load rule.
+  "mcp-server/src/project-timeline-loader.ts",
+  "mcp-server/src/project-timeline-runner.ts",
 ]);
 // Release/qualification tools that legitimately reference the package by name as
 // a STRING — to assert its presence in the self-contained v0.3 bundle, to stage
