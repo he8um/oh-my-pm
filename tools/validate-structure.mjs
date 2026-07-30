@@ -1095,6 +1095,7 @@ const V04_REQUIRED = [
   "docs/releases/v0.4.0.md",
   "docs/releases/publishing-v0.4.0.md",
   "docs/v0.4/getting-started-timeline.md",
+  "docs/releases/v0.4-real-project-smoke.md",
   ".github/workflows/release-v0.4.yml",
   // Phase 2: the deterministic derivation, its tests, and the cross-language
   // golden fixture shared by the native and WASM assertions.
