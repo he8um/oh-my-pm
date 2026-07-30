@@ -1086,6 +1086,8 @@ const V04_REQUIRED = [
   // Phase 3: the read-only Runtime timeline query and its tests.
   "runtime/src/projectbrain/timeline.ts",
   "runtime/test/projectbrain-timeline.test.ts",
+  // Phase 4: the read-only `memory timeline` CLI subcommand and its tests.
+  "cli/test/memory-timeline.test.ts",
 ];
 for (const file of V04_REQUIRED) {
   if (!existsSync(file)) err(`v0.4 file missing: ${file}`);

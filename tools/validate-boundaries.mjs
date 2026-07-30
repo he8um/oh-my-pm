@@ -2662,8 +2662,8 @@ if (trackedFiles.includes("skills/src/project-brain-state.ts")) {
     err("skills/src/project-brain-state.ts must not declare or register a Skill");
   }
 }
-// 9e. v0.3 Phase 4 CLI memory surface guards. Phase 4 adds exactly one new
-// top-level command namespace (`memory`) with exactly six subcommands, handled
+// 9e. CLI memory surface guards. The `memory` namespace carries exactly the six
+// v0.3 subcommands plus the single v0.4 read-only `timeline` subcommand, handled
 // at the Node process boundary and never through the legacy Runtime request
 // contract. The legacy Runtime request builder must stay memory-free (memory
 // never routes through Runtime.handle), and runCli must fail closed on a memory
@@ -2679,9 +2679,11 @@ if (trackedFiles.includes("cli/src/request.ts")) {
     err("cli/src/request.ts must stay memory-free (memory never routes through the Runtime)");
   }
 }
-// The nested memory parser must accept EXACTLY the six approved subcommands and
-// no seventh. The canonical list is the MEMORY_SUBCOMMANDS constant in
-// memory-types.ts; assert it is exactly these six in order.
+// The nested memory parser must accept EXACTLY the seven approved subcommands
+// and no eighth. The canonical list is the MEMORY_SUBCOMMANDS constant in
+// memory-types.ts; assert it is exactly these seven in order, with the six
+// historical subcommands keeping their original positions and `timeline`
+// appended last.
 if (trackedFiles.includes("cli/src/memory-types.ts")) {
   const memoryTypes = readFileSync("cli/src/memory-types.ts", "utf8");
   const listMatch = memoryTypes.match(/MEMORY_SUBCOMMANDS[^=]*=\s*\[([^\]]*)\]/);
@@ -2689,7 +2691,16 @@ if (trackedFiles.includes("cli/src/memory-types.ts")) {
     err("cli/src/memory-types.ts must declare the MEMORY_SUBCOMMANDS allowlist");
   } else {
     const subs = [...listMatch[1].matchAll(/"([a-z]+)"/g)].map((m) => m[1]);
-    const expected = ["capture", "changes", "status", "history", "export", "delete"];
+    const expected = [
+      "capture",
+      "changes",
+      "status",
+      "history",
+      "export",
+      "delete",
+      // v0.4: appended last so the six historical subcommands keep their order.
+      "timeline",
+    ];
     if (JSON.stringify(subs) !== JSON.stringify(expected)) {
       err(`MEMORY_SUBCOMMANDS must be exactly ${expected.join(", ")} in order (found ${subs.join(", ")})`);
     }
@@ -2697,6 +2708,43 @@ if (trackedFiles.includes("cli/src/memory-types.ts")) {
     for (const forbidden of ["init", "import", "repair", "migrate", "prune", "config", "sync", "watch", "serve"]) {
       if (subs.includes(forbidden)) {
         err(`MEMORY_SUBCOMMANDS must not include the forbidden subcommand "${forbidden}"`);
+      }
+    }
+  }
+}
+// The v0.4 timeline subcommand must stay read-only: it may never appear in the
+// --apply allowlist, and its dedicated options must be gated to it alone.
+if (trackedFiles.includes("cli/src/memory-parser.ts")) {
+  const parser = readFileSync("cli/src/memory-parser.ts", "utf8");
+  const applyBlock = parser.match(/APPLY_SUBCOMMANDS[^=]*=\s*new Set\(\[([\s\S]*?)\]\)/);
+  if (applyBlock !== null && /"timeline"/.test(applyBlock[1])) {
+    err("cli/src/memory-parser.ts must never allow --apply for timeline (the timeline is read-only)");
+  }
+  for (const option of ["--before-sequence", "--category", "--kind"]) {
+    if (!parser.includes(`${option} is only valid for timeline`)) {
+      err(`cli/src/memory-parser.ts must gate ${option} to timeline only`);
+    }
+  }
+}
+// The timeline process path must not read a project document, construct a
+// provider that observes, or touch a mutating store method.
+if (trackedFiles.includes("cli/src/memory-process.ts")) {
+  const process_ = readFileSync("cli/src/memory-process.ts", "utf8");
+  const timelineFn = process_.match(/async function runTimeline\([\s\S]*?\n}\n/);
+  if (timelineFn === null) {
+    err("cli/src/memory-process.ts must declare runTimeline for the read-only timeline path");
+  } else {
+    for (const marker of [
+      "loadMemoryProjectDocuments",
+      "commitSnapshotBundle",
+      "migrateProject",
+      "exportProject",
+      "deleteProject",
+      "runtime.capture",
+      "previewMigration",
+    ]) {
+      if (timelineFn[0].includes(marker)) {
+        err(`cli/src/memory-process.ts runTimeline must not use "${marker}" (the timeline is read-only)`);
       }
     }
   }

@@ -61,4 +61,7 @@ export type {
   ProjectObservationRequest,
   ProjectObservationResult,
   ProjectStateDeriver,
+  TimelineProjectInput,
+  TimelineProjectResult,
+  TimelineStatus,
 } from "./projectbrain/index.js";

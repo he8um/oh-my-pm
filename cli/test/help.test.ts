@@ -130,12 +130,12 @@ describe("help text", () => {
     expect(text).toContain("oh-my-pm status");
   });
 
-  it("memory help lists exactly the six subcommands", () => {
+  it("memory help lists exactly the seven subcommands", () => {
     const text = formatHelp("memory");
     for (const sub of MEMORY_SUBCOMMANDS) {
       expect(text).toContain(sub);
     }
-    expect(MEMORY_SUBCOMMANDS.length).toBe(6);
+    expect(MEMORY_SUBCOMMANDS.length).toBe(7);
   });
 
   it("providers help documents both subcommands and the network gate", () => {

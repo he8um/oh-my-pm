@@ -1,6 +1,6 @@
-// v0.3 Phase 4 — nested `memory` parser tests. Covers every subcommand in all
-// output modes, the exact six-subcommand allowlist, option validation, duplicate
-// and mutation-only rejection, and legacy parser regression.
+// Nested `memory` parser tests. Covers every subcommand in all output modes,
+// the exact seven-subcommand allowlist, option validation, duplicate and
+// mutation-only rejection, and legacy parser regression.
 
 import { describe, expect, it } from "vitest";
 import { parseCliArgs } from "../src/parser.js";
@@ -13,10 +13,23 @@ function parseTop(args: string[]) {
 }
 
 describe("memory parser — allowlist and dispatch", () => {
-  it("exposes exactly the six approved subcommands", () => {
+  it("exposes exactly the seven approved subcommands", () => {
     expect([...MEMORY_SUBCOMMANDS].sort()).toEqual(
-      ["capture", "changes", "delete", "export", "history", "status"].sort(),
+      ["capture", "changes", "delete", "export", "history", "status", "timeline"].sort(),
     );
+  });
+
+  it("keeps the six historical subcommands in their original order", () => {
+    // timeline is APPENDED; the six v0.3 subcommands keep their exact order.
+    expect(MEMORY_SUBCOMMANDS.slice(0, 6)).toEqual([
+      "capture",
+      "changes",
+      "status",
+      "history",
+      "export",
+      "delete",
+    ]);
+    expect(MEMORY_SUBCOMMANDS[6]).toBe("timeline");
   });
 
   it("rejects a missing subcommand", () => {

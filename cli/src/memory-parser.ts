@@ -1,7 +1,7 @@
-// v0.3 Phase 4 — the nested `memory` command parser.
+// The nested `memory` command parser.
 //
-// A dedicated grammar for the six `memory` subcommands, kept out of the flat CLI
-// loop. Pure: no filesystem, environment, network, or clock access. Every value
+// A dedicated grammar for the seven `memory` subcommands, kept out of the flat
+// CLI loop. Pure: no filesystem, environment, network, or clock access. Every value
 // is validated here; duplicate options, missing values, control characters, and
 // mutation-only options on read commands are rejected. The project root and any
 // destination are passed through exactly as typed and never normalized.
@@ -11,12 +11,18 @@ import {
   MEMORY_DEFAULT_HISTORY_LIMIT,
   MEMORY_DEFAULT_LOCALE,
   MEMORY_DEFAULT_STALE_AFTER_SECONDS,
+  MEMORY_DEFAULT_TIMELINE_LIMIT,
   MEMORY_MAX_HISTORY_LIMIT,
   MEMORY_MAX_STALE_AFTER_SECONDS,
+  MEMORY_MAX_TIMELINE_LIMIT,
   MEMORY_MIN_HISTORY_LIMIT,
   MEMORY_MIN_STALE_AFTER_SECONDS,
+  MEMORY_MIN_TIMELINE_LIMIT,
   MEMORY_SUBCOMMANDS,
+  MEMORY_TIMELINE_CATEGORIES,
+  MEMORY_TIMELINE_KINDS,
 } from "./memory-types.js";
+import type { ChangeCategory, StateItemKind } from "@oh-my-pm/contracts";
 import type {
   MemoryCliCommand,
   MemoryCliParseResult,
@@ -127,6 +133,9 @@ export function parseMemoryCommand(rest: readonly string[]): MemoryCliParseResul
   let confirm: string | null = null;
   let forceCorruptDelete = false;
   let migrateStore = false;
+  let beforeSequence: number | null = null;
+  let category: ChangeCategory | null = null;
+  let kind: StateItemKind | null = null;
 
   for (let i = 0; i < rest.length; i += 1) {
     const arg = rest[i] as string;
@@ -240,19 +249,61 @@ export function parseMemoryCommand(rest: readonly string[]): MemoryCliParseResul
       continue;
     }
     if (arg === "--limit") {
-      if (subcommand !== "history") {
-        return fail("--limit is only valid for history");
+      if (subcommand !== "history" && subcommand !== "timeline") {
+        return fail("--limit is only valid for history or timeline");
+      }
+      const [min, max] =
+        subcommand === "timeline"
+          ? [MEMORY_MIN_TIMELINE_LIMIT, MEMORY_MAX_TIMELINE_LIMIT]
+          : [MEMORY_MIN_HISTORY_LIMIT, MEMORY_MAX_HISTORY_LIMIT];
+      const taken = takeIntegerValue(rest, i, limit, "--limit", min, max);
+      if ("error" in taken) return taken.error;
+      limit = taken.value;
+      i = taken.next;
+      continue;
+    }
+    // Timeline-only read options. Rejected before the subcommand is known and on
+    // every other subcommand, so misuse fails closed.
+    if (arg === "--before-sequence") {
+      if (subcommand !== "timeline") {
+        return fail("--before-sequence is only valid for timeline");
       }
       const taken = takeIntegerValue(
         rest,
         i,
-        limit,
-        "--limit",
-        MEMORY_MIN_HISTORY_LIMIT,
-        MEMORY_MAX_HISTORY_LIMIT,
+        beforeSequence,
+        "--before-sequence",
+        0,
+        Number.MAX_SAFE_INTEGER,
       );
       if ("error" in taken) return taken.error;
-      limit = taken.value;
+      beforeSequence = taken.value;
+      i = taken.next;
+      continue;
+    }
+    if (arg === "--category") {
+      if (subcommand !== "timeline") {
+        return fail("--category is only valid for timeline");
+      }
+      const taken = takeValue(rest, i, category, "--category");
+      if ("error" in taken) return taken.error;
+      if (!(MEMORY_TIMELINE_CATEGORIES as readonly string[]).includes(taken.value)) {
+        return fail(`--category must be one of ${MEMORY_TIMELINE_CATEGORIES.join(", ")}`);
+      }
+      category = taken.value as ChangeCategory;
+      i = taken.next;
+      continue;
+    }
+    if (arg === "--kind") {
+      if (subcommand !== "timeline") {
+        return fail("--kind is only valid for timeline");
+      }
+      const taken = takeValue(rest, i, kind, "--kind");
+      if ("error" in taken) return taken.error;
+      if (!(MEMORY_TIMELINE_KINDS as readonly string[]).includes(taken.value)) {
+        return fail(`--kind must be one of ${MEMORY_TIMELINE_KINDS.join(", ")}`);
+      }
+      kind = taken.value as StateItemKind;
       i = taken.next;
       continue;
     }
@@ -365,6 +416,25 @@ export function parseMemoryCommand(rest: readonly string[]): MemoryCliParseResul
         apply,
         ...(confirm !== null ? { confirm } : {}),
         forceCorruptDelete,
+        ...commonFields,
+      };
+      break;
+    case "timeline":
+      // timeline is identified purely by project id: it reads committed memory
+      // and needs no project root. A positional root is therefore rejected
+      // rather than silently ignored.
+      if (common.positionalRoots.length > 0) {
+        return fail("timeline takes no project root; identify the project with --project-id");
+      }
+      if (common.projectId === null) {
+        return fail("--project-id is required for timeline");
+      }
+      command = {
+        subcommand: "timeline",
+        limit: limit ?? MEMORY_DEFAULT_TIMELINE_LIMIT,
+        ...(beforeSequence !== null ? { beforeSequence } : {}),
+        ...(category !== null ? { category } : {}),
+        ...(kind !== null ? { kind } : {}),
         ...commonFields,
       };
       break;
