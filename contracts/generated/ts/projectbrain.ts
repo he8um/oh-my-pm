@@ -235,3 +235,63 @@ export interface ChangeSet {
   /** Project Brain schema version for this contract. */
   schemaVersion: number;
 }
+
+/** One sanitized change to one subject, attributed to the capture that first observed it (v0.4). Derived from adjacent committed snapshots; never persisted. Carries allow-listed, title-level fields only: no raw evidence, no evidence ids, no unrestricted previous/current values, no paths. */
+export interface TimelineEvent {
+  /** Deterministic id derived from canonical, domain-separated event inputs. The same inputs always produce the same id. */
+  eventId: string;
+  /** Owning ProjectIdentity id. */
+  projectId: string;
+  /** Id of the current snapshot of the adjacent pair that produced this event. */
+  snapshotId: string;
+  /** That snapshot's contiguous 1-based capture ordinal from the authoritative chronology. The primary sort key; never a lexical id order. */
+  captureSequence: number;
+  /** The event's 0-based ordinal within its capture, in deterministic change order. The secondary sort key. */
+  eventSequence: number;
+  /** That snapshot's authoritative capture timestamp. Presentation data only; never a sort key. */
+  capturedAt: string;
+  /** The existing deterministic change category. */
+  category: ChangeCategory;
+  /** The existing kind of item that changed. */
+  kind: StateItemKind;
+  /** The changed item's stable id, using the existing exact/normalized identifiers only. */
+  subjectId: string;
+  /** How many evidence records back this change. A count only; never evidence ids. */
+  evidenceCount: number;
+  /** Title-level text only, when present. */
+  title?: string;
+  /** Normalized status label, when present. */
+  status?: string;
+  /** Normalized severity label, when present. */
+  severity?: string;
+  /** Timezone-safe due date, when present. */
+  dueDate?: string;
+}
+
+/** A bounded, read-only timeline request (v0.4). Carries no path, no data directory, no token, and no capture, apply, migrate, or write field: a timeline query cannot mutate anything. */
+export interface TimelineQuery {
+  /** Required owning ProjectIdentity id. */
+  projectId: string;
+  /** Maximum events returned (1..100, default 20). Applied after filtering. */
+  limit?: number;
+  /** Exclusive upper bound on captureSequence for pagination: only events with a strictly lower capture sequence are eligible. Non-negative. */
+  beforeSequence?: number;
+  /** Optional change-category filter, from the existing taxonomy. */
+  category?: ChangeCategory;
+  /** Optional item-kind filter, from the existing taxonomy. */
+  kind?: StateItemKind;
+}
+
+/** The bounded, newest-first result of one timeline query (v0.4). The event array is bounded by the validated limit; hasMore and nextBeforeSequence are stable and truthful. */
+export interface TimelineResult {
+  /** Owning ProjectIdentity id, echoed from the query. */
+  projectId: string;
+  /** Number of events in this page (equals events.length). */
+  eventCount: number;
+  /** True exactly when at least one eligible event remains below this page. */
+  hasMore: boolean;
+  /** The page of events, newest capture first, then ascending eventSequence within each capture. */
+  events: TimelineEvent[];
+  /** The beforeSequence value that returns the next page with no duplicate and no skip. Present exactly when hasMore is true. */
+  nextBeforeSequence?: number;
+}

@@ -223,6 +223,51 @@
         { "name": "changes", "type": { "array": { "ref": "StateChange" } }, "doc": "Ordered, deterministic changes." },
         { "name": "schemaVersion", "type": "integer", "doc": "Project Brain schema version for this contract." }
       ]
+    },
+    {
+      "kind": "struct",
+      "name": "TimelineEvent",
+      "doc": "One sanitized change to one subject, attributed to the capture that first observed it (v0.4). Derived from adjacent committed snapshots; never persisted. Carries allow-listed, title-level fields only: no raw evidence, no evidence ids, no unrestricted previous/current values, no paths.",
+      "fields": [
+        { "name": "eventId", "type": "string", "doc": "Deterministic id derived from canonical, domain-separated event inputs. The same inputs always produce the same id." },
+        { "name": "projectId", "type": "string", "doc": "Owning ProjectIdentity id." },
+        { "name": "snapshotId", "type": "string", "doc": "Id of the current snapshot of the adjacent pair that produced this event." },
+        { "name": "captureSequence", "type": "integer", "doc": "That snapshot's contiguous 1-based capture ordinal from the authoritative chronology. The primary sort key; never a lexical id order." },
+        { "name": "eventSequence", "type": "integer", "doc": "The event's 0-based ordinal within its capture, in deterministic change order. The secondary sort key." },
+        { "name": "capturedAt", "type": "string", "doc": "That snapshot's authoritative capture timestamp. Presentation data only; never a sort key." },
+        { "name": "category", "type": { "ref": "ChangeCategory" }, "doc": "The existing deterministic change category." },
+        { "name": "kind", "type": { "ref": "StateItemKind" }, "doc": "The existing kind of item that changed." },
+        { "name": "subjectId", "type": "string", "doc": "The changed item's stable id, using the existing exact/normalized identifiers only." },
+        { "name": "evidenceCount", "type": "integer", "doc": "How many evidence records back this change. A count only; never evidence ids." },
+        { "name": "title", "type": "string", "doc": "Title-level text only, when present.", "optional": true },
+        { "name": "status", "type": "string", "doc": "Normalized status label, when present.", "optional": true },
+        { "name": "severity", "type": "string", "doc": "Normalized severity label, when present.", "optional": true },
+        { "name": "dueDate", "type": "string", "doc": "Timezone-safe due date, when present.", "optional": true }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "TimelineQuery",
+      "doc": "A bounded, read-only timeline request (v0.4). Carries no path, no data directory, no token, and no capture, apply, migrate, or write field: a timeline query cannot mutate anything.",
+      "fields": [
+        { "name": "projectId", "type": "string", "doc": "Required owning ProjectIdentity id." },
+        { "name": "limit", "type": "integer", "doc": "Maximum events returned (1..100, default 20). Applied after filtering.", "optional": true },
+        { "name": "beforeSequence", "type": "integer", "doc": "Exclusive upper bound on captureSequence for pagination: only events with a strictly lower capture sequence are eligible. Non-negative.", "optional": true },
+        { "name": "category", "type": { "ref": "ChangeCategory" }, "doc": "Optional change-category filter, from the existing taxonomy.", "optional": true },
+        { "name": "kind", "type": { "ref": "StateItemKind" }, "doc": "Optional item-kind filter, from the existing taxonomy.", "optional": true }
+      ]
+    },
+    {
+      "kind": "struct",
+      "name": "TimelineResult",
+      "doc": "The bounded, newest-first result of one timeline query (v0.4). The event array is bounded by the validated limit; hasMore and nextBeforeSequence are stable and truthful.",
+      "fields": [
+        { "name": "projectId", "type": "string", "doc": "Owning ProjectIdentity id, echoed from the query." },
+        { "name": "eventCount", "type": "integer", "doc": "Number of events in this page (equals events.length)." },
+        { "name": "hasMore", "type": "boolean", "doc": "True exactly when at least one eligible event remains below this page." },
+        { "name": "events", "type": { "array": { "ref": "TimelineEvent" } }, "doc": "The page of events, newest capture first, then ascending eventSequence within each capture." },
+        { "name": "nextBeforeSequence", "type": "integer", "doc": "The beforeSequence value that returns the next page with no duplicate and no skip. Present exactly when hasMore is true.", "optional": true }
+      ]
     }
   ]
 }

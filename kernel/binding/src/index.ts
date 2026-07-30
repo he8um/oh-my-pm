@@ -21,11 +21,13 @@ export {
 } from "./projectbrain.js";
 export type {
   DeriveFreshnessInput,
+  DeriveProjectTimelineInput,
   DiffProjectSnapshotsInput,
   FingerprintContentInput,
   ProjectBrainKernelApi,
   ProjectBrainKernelResult,
   ProjectIdentitySeedInput,
+  TimelineCaptureInput,
 } from "./projectbrain.js";
 
 /** Public boundary the rest of the workspace uses to reach the Kernel. */

@@ -16,6 +16,7 @@ import type {
   MemoryFailureOutcome,
   MemoryHistoryOutcome,
   MemoryStatusOutcome,
+  MemoryTimelineOutcome,
 } from "./memory-types.js";
 
 /** The stable exit code for a completed outcome (0 on success unless noted). */
@@ -99,6 +100,8 @@ function renderBrief(outcome: Extract<MemoryCommandOutcome, { ok: true }>): stri
       return exportBrief(outcome);
     case "memory.delete":
       return deleteBrief(outcome);
+    case "memory.timeline":
+      return timelineBrief(outcome);
   }
 }
 
@@ -203,6 +206,38 @@ function deleteBrief(o: MemoryDeleteOutcome): string {
   return lines.join("\n");
 }
 
+/**
+ * A concise timeline summary. Bounded and allow-listed: it shows the same fields
+ * as the JSON projection and never more.
+ */
+function timelineBrief(o: MemoryTimelineOutcome): string {
+  const lines = [`OH MY PM memory timeline: ${o.eventCount}`];
+  lines.push(`project: ${o.projectId}`);
+  lines.push(`limit: ${o.limit}`);
+  if (o.category !== undefined) lines.push(`category: ${o.category}`);
+  if (o.kind !== undefined) lines.push(`kind: ${o.kind}`);
+  lines.push(`more: ${o.hasMore ? "yes" : "no"}`);
+  if (o.nextBeforeSequence !== undefined) {
+    lines.push(`next before sequence: ${o.nextBeforeSequence}`);
+  }
+  for (const event of o.events) {
+    const detail = [
+      event.status !== undefined ? `status ${event.status}` : "",
+      event.severity !== undefined ? `severity ${event.severity}` : "",
+      event.dueDate !== undefined ? `due ${event.dueDate}` : "",
+    ]
+      .filter((part) => part !== "")
+      .join(", ");
+    lines.push(
+      `- #${event.captureSequence}.${event.eventSequence} ${event.category} ${event.kind} ${event.subjectId}` +
+        `${event.title !== undefined ? ` — ${event.title}` : ""}` +
+        `${detail !== "" ? ` (${detail})` : ""}`,
+    );
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
 // --- markdown --------------------------------------------------------------
 
 function renderMarkdown(outcome: Extract<MemoryCommandOutcome, { ok: true }>): string {
@@ -219,6 +254,8 @@ function renderMarkdown(outcome: Extract<MemoryCommandOutcome, { ok: true }>): s
       return exportMarkdown(outcome);
     case "memory.delete":
       return deleteMarkdown(outcome);
+    case "memory.timeline":
+      return timelineMarkdown(outcome);
   }
 }
 
@@ -314,6 +351,60 @@ function exportMarkdown(o: MemoryExportOutcome): string {
     `- Evidence: ${o.evidenceCount}`,
   ];
   return ["# OH MY PM Memory Export", "", ...rows, ""].join("\n");
+}
+
+/**
+ * Group events by capture (sequence + capture timestamp) under fixed headings.
+ * No summary is invented: every line restates recorded, allow-listed fields.
+ */
+function timelineMarkdown(o: MemoryTimelineOutcome): string {
+  const lines = [
+    "# OH MY PM Memory Timeline",
+    "",
+    `- Project: \`${o.projectId}\``,
+    `- Events: ${o.eventCount}`,
+    `- Limit: ${o.limit}`,
+    ...(o.category !== undefined ? [`- Category: ${o.category}`] : []),
+    ...(o.kind !== undefined ? [`- Kind: ${o.kind}`] : []),
+    `- More: ${o.hasMore ? "yes" : "no"}`,
+    ...(o.nextBeforeSequence !== undefined
+      ? [`- Next before sequence: ${o.nextBeforeSequence}`]
+      : []),
+    "",
+    "## Captures",
+    "",
+  ];
+  if (o.events.length === 0) {
+    lines.push("- none");
+    lines.push("");
+    return lines.join("\n");
+  }
+  // The events arrive newest-capture-first and grouped by capture already; walk
+  // them in order and open a heading at each capture boundary.
+  let currentSequence: number | null = null;
+  for (const event of o.events) {
+    if (event.captureSequence !== currentSequence) {
+      if (currentSequence !== null) lines.push("");
+      currentSequence = event.captureSequence;
+      lines.push(`### Capture #${event.captureSequence} — ${event.capturedAt}`);
+      lines.push("");
+      lines.push(`- Snapshot: \`${event.snapshotId}\``);
+    }
+    const detail = [
+      event.status !== undefined ? `status: ${event.status}` : "",
+      event.severity !== undefined ? `severity: ${event.severity}` : "",
+      event.dueDate !== undefined ? `due: ${event.dueDate}` : "",
+      `evidence: ${event.evidenceCount}`,
+    ]
+      .filter((part) => part !== "")
+      .join(", ");
+    lines.push(
+      `- ${event.category} ${event.kind} \`${event.subjectId}\`` +
+        `${event.title !== undefined ? ` — ${event.title}` : ""} (${detail})`,
+    );
+  }
+  lines.push("");
+  return lines.join("\n");
 }
 
 function deleteMarkdown(o: MemoryDeleteOutcome): string {

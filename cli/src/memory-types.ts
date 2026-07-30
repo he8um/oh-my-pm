@@ -1,19 +1,20 @@
-// v0.3 Phase 4 — `memory` command parse-result types.
+// `memory` command parse-result types.
 //
-// A dedicated discriminated-union model for the six `memory` subcommands. Kept
-// separate from the flat CLI parser's types so the six grammars never overload
+// A dedicated discriminated-union model for the seven `memory` subcommands. Kept
+// separate from the flat CLI parser's types so the seven grammars never overload
 // one loop. Pure type declarations only: no filesystem, environment, or clock.
 
-import type { CliOutputMode } from "@oh-my-pm/contracts";
+import type { ChangeCategory, CliOutputMode, StateItemKind, TimelineEvent } from "@oh-my-pm/contracts";
 
-/** The six approved `memory` subcommands — an exact, closed allowlist. */
+/** The seven approved `memory` subcommands — an exact, closed allowlist. */
 export type MemorySubcommand =
   | "capture"
   | "changes"
   | "status"
   | "history"
   | "export"
-  | "delete";
+  | "delete"
+  | "timeline";
 
 /** The exact set of allowed subcommands, in canonical order. */
 export const MEMORY_SUBCOMMANDS: readonly MemorySubcommand[] = [
@@ -23,6 +24,9 @@ export const MEMORY_SUBCOMMANDS: readonly MemorySubcommand[] = [
   "history",
   "export",
   "delete",
+  // v0.4: the read-only Project Timeline query. Appended last so the six
+  // historical subcommands keep their exact order.
+  "timeline",
 ];
 
 /** Supported capture/derivation locales (mirrors the contracts Locale union). */
@@ -91,6 +95,19 @@ export type MemoryDeleteCommand = MemoryCommonOptions & {
   forceCorruptDelete: boolean;
 };
 
+/**
+ * `memory timeline --project-id <id> [--limit] [--before-sequence] [--category]
+ * [--kind]`. Read-only: there is no --apply, no root requirement, and no
+ * mutating option.
+ */
+export type MemoryTimelineCommand = MemoryCommonOptions & {
+  subcommand: "timeline";
+  limit: number;
+  beforeSequence?: number;
+  category?: ChangeCategory;
+  kind?: StateItemKind;
+};
+
 /** The parsed `memory` command discriminated by subcommand. */
 export type MemoryCliCommand =
   | MemoryCaptureCommand
@@ -98,7 +115,8 @@ export type MemoryCliCommand =
   | MemoryStatusCommand
   | MemoryHistoryCommand
   | MemoryExportCommand
-  | MemoryDeleteCommand;
+  | MemoryDeleteCommand
+  | MemoryTimelineCommand;
 
 /** The result of parsing a `memory` command (success or a controlled error). */
 export type MemoryCliParseResult =
@@ -115,6 +133,40 @@ export const MEMORY_MAX_STALE_AFTER_SECONDS = 31_536_000;
 export const MEMORY_DEFAULT_HISTORY_LIMIT = 20;
 export const MEMORY_MIN_HISTORY_LIMIT = 1;
 export const MEMORY_MAX_HISTORY_LIMIT = 100;
+
+/**
+ * Default/min/max for `memory timeline --limit`. Mirrors the Kernel derivation's
+ * own bounds exactly; the CLI never accepts a page size the derivation rejects.
+ */
+export const MEMORY_DEFAULT_TIMELINE_LIMIT = 20;
+export const MEMORY_MIN_TIMELINE_LIMIT = 1;
+export const MEMORY_MAX_TIMELINE_LIMIT = 100;
+
+/** The exact ChangeSet taxonomy accepted by --category. No second taxonomy. */
+export const MEMORY_TIMELINE_CATEGORIES: readonly ChangeCategory[] = [
+  "added",
+  "removed",
+  "modified",
+  "resolved",
+  "reopened",
+  "becameOverdue",
+  "noLongerOverdue",
+  "severityIncreased",
+  "severityDecreased",
+  "fresh",
+  "stale",
+  "evidenceChanged",
+];
+
+/** The exact StateItemKind taxonomy accepted by --kind. */
+export const MEMORY_TIMELINE_KINDS: readonly StateItemKind[] = [
+  "milestone",
+  "task",
+  "risk",
+  "decision",
+  "dependency",
+  "blocker",
+];
 
 /** Default capture locale. */
 export const MEMORY_DEFAULT_LOCALE: MemoryLocale = "en";
@@ -271,6 +323,24 @@ export type MemoryFailureOutcome = {
   storeMigrated?: boolean;
 };
 
+/**
+ * Timeline outcome. Read-only. Presents the newest capture first, bounded by the
+ * validated limit. The events carry the public allow-listed projection only.
+ */
+export type MemoryTimelineOutcome = {
+  command: "memory.timeline";
+  ok: true;
+  projectId: string;
+  limit: number;
+  eventCount: number;
+  hasMore: boolean;
+  nextBeforeSequence?: number;
+  /** The applied filters, echoed so a page is self-describing. */
+  category?: ChangeCategory;
+  kind?: StateItemKind;
+  events: TimelineEvent[];
+};
+
 /** The union of every possible memory command outcome. */
 export type MemoryCommandOutcome =
   | MemoryCaptureOutcome
@@ -279,4 +349,5 @@ export type MemoryCommandOutcome =
   | MemoryHistoryOutcome
   | MemoryExportOutcome
   | MemoryDeleteOutcome
+  | MemoryTimelineOutcome
   | MemoryFailureOutcome;

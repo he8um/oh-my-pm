@@ -193,7 +193,7 @@ export function buildMcpClientConfig(name: string, commandPath: string): McpClie
   };
 }
 
-/** The eleven read-only tools, in the server's fixed order. */
+/** The twelve read-only tools, in the server's fixed order. */
 export const MCP_CONFIG_READ_ONLY_TOOLS: readonly string[] = [
   "project_brief",
   "project_risks",
@@ -206,6 +206,8 @@ export const MCP_CONFIG_READ_ONLY_TOOLS: readonly string[] = [
   "provider_status",
   "github_provider_diagnostics",
   "project_changes",
+  // v0.4: appended last so the historical tools keep their exact order.
+  "project_timeline",
 ];
 
 /**

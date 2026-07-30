@@ -338,3 +338,78 @@ pub struct ChangeSet {
     /// Project Brain schema version for this contract.
     pub schema_version: i64,
 }
+
+/// One sanitized change to one subject, attributed to the capture that first observed it (v0.4). Derived from adjacent committed snapshots; never persisted. Carries allow-listed, title-level fields only: no raw evidence, no evidence ids, no unrestricted previous/current values, no paths.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimelineEvent {
+    /// Deterministic id derived from canonical, domain-separated event inputs. The same inputs always produce the same id.
+    pub event_id: String,
+    /// Owning ProjectIdentity id.
+    pub project_id: String,
+    /// Id of the current snapshot of the adjacent pair that produced this event.
+    pub snapshot_id: String,
+    /// That snapshot's contiguous 1-based capture ordinal from the authoritative chronology. The primary sort key; never a lexical id order.
+    pub capture_sequence: i64,
+    /// The event's 0-based ordinal within its capture, in deterministic change order. The secondary sort key.
+    pub event_sequence: i64,
+    /// That snapshot's authoritative capture timestamp. Presentation data only; never a sort key.
+    pub captured_at: String,
+    /// The existing deterministic change category.
+    pub category: ChangeCategory,
+    /// The existing kind of item that changed.
+    pub kind: StateItemKind,
+    /// The changed item's stable id, using the existing exact/normalized identifiers only.
+    pub subject_id: String,
+    /// How many evidence records back this change. A count only; never evidence ids.
+    pub evidence_count: i64,
+    /// Title-level text only, when present.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Normalized status label, when present.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    /// Normalized severity label, when present.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub severity: Option<String>,
+    /// Timezone-safe due date, when present.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub due_date: Option<String>,
+}
+
+/// A bounded, read-only timeline request (v0.4). Carries no path, no data directory, no token, and no capture, apply, migrate, or write field: a timeline query cannot mutate anything.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimelineQuery {
+    /// Required owning ProjectIdentity id.
+    pub project_id: String,
+    /// Maximum events returned (1..100, default 20). Applied after filtering.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<i64>,
+    /// Exclusive upper bound on captureSequence for pagination: only events with a strictly lower capture sequence are eligible. Non-negative.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub before_sequence: Option<i64>,
+    /// Optional change-category filter, from the existing taxonomy.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub category: Option<ChangeCategory>,
+    /// Optional item-kind filter, from the existing taxonomy.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<StateItemKind>,
+}
+
+/// The bounded, newest-first result of one timeline query (v0.4). The event array is bounded by the validated limit; hasMore and nextBeforeSequence are stable and truthful.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimelineResult {
+    /// Owning ProjectIdentity id, echoed from the query.
+    pub project_id: String,
+    /// Number of events in this page (equals events.length).
+    pub event_count: i64,
+    /// True exactly when at least one eligible event remains below this page.
+    pub has_more: bool,
+    /// The page of events, newest capture first, then ascending eventSequence within each capture.
+    pub events: Vec<TimelineEvent>,
+    /// The beforeSequence value that returns the next page with no duplicate and no skip. Present exactly when hasMore is true.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_before_sequence: Option<i64>,
+}

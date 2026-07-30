@@ -15,6 +15,7 @@ export const PROJECT_BRAIN_RUNTIME_ERROR_CODES = {
   storedRecordReadFailed: "OMP-R-PB-6009",
   compareFailed: "OMP-R-PB-6010",
   limitExceeded: "OMP-R-PB-6011",
+  timelineFailed: "OMP-R-PB-6012",
 } as const;
 
 export type ProjectBrainRuntimeErrorCode =
@@ -78,6 +79,9 @@ export function storedRecordReadFailed(message: string): ProjectBrainRuntimeErro
 }
 export function compareFailed(message: string): ProjectBrainRuntimeError {
   return new ProjectBrainRuntimeError(PROJECT_BRAIN_RUNTIME_ERROR_CODES.compareFailed, message);
+}
+export function timelineFailed(message: string): ProjectBrainRuntimeError {
+  return new ProjectBrainRuntimeError(PROJECT_BRAIN_RUNTIME_ERROR_CODES.timelineFailed, message);
 }
 
 /**

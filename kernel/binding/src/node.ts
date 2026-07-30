@@ -16,13 +16,14 @@ import type {
 import type { KernelApi } from "./index.js";
 import type {
   DeriveFreshnessInput,
+  DeriveProjectTimelineInput,
   DiffProjectSnapshotsInput,
   FingerprintContentInput,
   ProjectBrainKernelApi,
   ProjectBrainKernelResult,
   ProjectIdentitySeedInput,
 } from "./projectbrain.js";
-import type { ChangeSet, EvidenceRecord, Freshness, ProjectIdentity, ProjectSnapshot, ProjectState } from "@oh-my-pm/contracts";
+import type { ChangeSet, EvidenceRecord, Freshness, ProjectIdentity, ProjectSnapshot, ProjectState, TimelineResult } from "@oh-my-pm/contracts";
 import type { BindingMarkers } from "./status.js";
 import { WASM_MODE } from "./status.js";
 
@@ -46,6 +47,8 @@ type WasmKernelModule = {
   finalizeProjectState(stateJson: string): string;
   finalizeProjectSnapshot(snapshotJson: string): string;
   diffProjectSnapshots(inputJson: string): string;
+  // Project Timeline binding export (v0.4).
+  deriveProjectTimeline(inputJson: string): string;
 };
 
 function loadWasmKernelModule(): WasmKernelModule | null {
@@ -154,6 +157,11 @@ export function createNodeWasmProjectBrainKernelApi(): ProjectBrainKernelApi {
     },
     diffProjectSnapshots(input: DiffProjectSnapshotsInput): ProjectBrainKernelResult<ChangeSet> {
       return call("diffProjectSnapshots", wasm.diffProjectSnapshots(JSON.stringify(input)));
+    },
+    deriveProjectTimeline(
+      input: DeriveProjectTimelineInput,
+    ): ProjectBrainKernelResult<TimelineResult> {
+      return call("deriveProjectTimeline", wasm.deriveProjectTimeline(JSON.stringify(input)));
     },
   };
 }

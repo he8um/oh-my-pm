@@ -10,13 +10,16 @@ use crate::contracts::kernel::{
     ReleaseState, StateTransitionDecision, StateTransitionInput, UpdateGuardDecision, UpdatePlan,
     ValidationTarget,
 };
-use crate::contracts::projectbrain::{EvidenceRecord, ProjectSnapshot, ProjectState};
+use crate::contracts::projectbrain::{
+    ChangeSet, EvidenceRecord, ProjectSnapshot, ProjectState, TimelineQuery,
+};
 use crate::errors::{blocking_finding, validation_report, OMP_K_INVALID_PAYLOAD};
 use crate::projectbrain::{
-    derive_evidence_id, derive_freshness, diff_project_snapshots, finalize_project_snapshot,
-    finalize_project_state, fingerprint_minimized_content, resolve_project_identity,
-    FreshnessInput, FreshnessPolicy, ProjectBrainError, ProjectIdentitySeed, SnapshotDiffInput,
-    StalenessPolicy,
+    derive_evidence_id, derive_freshness, derive_project_timeline, diff_project_snapshots,
+    finalize_project_snapshot, finalize_project_state, fingerprint_minimized_content,
+    resolve_project_identity, FreshnessInput, FreshnessPolicy, ProjectBrainError,
+    ProjectIdentitySeed, SnapshotDiffInput, StalenessPolicy, TimelineCapture,
+    TimelineDerivationInput,
 };
 use crate::{state, update_guard, validation};
 
@@ -158,6 +161,25 @@ struct SnapshotDiffInputJson {
     staleness_policy: StalenessPolicyInputJson,
 }
 
+/// JSON-deserializable adjacent comparison for `deriveProjectTimeline` (v0.4).
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TimelineCaptureJson {
+    snapshot_id: String,
+    capture_sequence: i64,
+    captured_at: String,
+    change_set: ChangeSet,
+}
+
+/// JSON-deserializable input for `deriveProjectTimeline` (v0.4).
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TimelineDerivationInputJson {
+    #[serde(default)]
+    captures: Vec<TimelineCaptureJson>,
+    query: TimelineQuery,
+}
+
 /// Resolve a ProjectIdentity from a caller-supplied seed.
 #[wasm_bindgen(js_name = deriveProjectIdentity)]
 pub fn derive_project_identity_wasm(seed_json: String) -> String {
@@ -243,6 +265,35 @@ pub fn diff_project_snapshots_wasm(input_json: String) -> String {
             pb_envelope(diff_project_snapshots(input))
         }
         Err(_) => pb_invalid_input("invalid snapshot diff input json"),
+    }
+}
+
+/// Derive the bounded, deterministic Project Timeline (v0.4).
+///
+/// Consumes adjacent committed-snapshot comparisons in authoritative capture
+/// order plus a validated query, and returns a bounded, filtered, newest-first
+/// `TimelineResult`. Pure: no clock, filesystem, environment, network, or
+/// randomness is read, and nothing is persisted.
+#[wasm_bindgen(js_name = deriveProjectTimeline)]
+pub fn derive_project_timeline_wasm(input_json: String) -> String {
+    match serde_json::from_str::<TimelineDerivationInputJson>(&input_json) {
+        Ok(j) => {
+            let input = TimelineDerivationInput {
+                captures: j
+                    .captures
+                    .into_iter()
+                    .map(|c| TimelineCapture {
+                        snapshot_id: c.snapshot_id,
+                        capture_sequence: c.capture_sequence,
+                        captured_at: c.captured_at,
+                        change_set: c.change_set,
+                    })
+                    .collect(),
+                query: j.query,
+            };
+            pb_envelope(derive_project_timeline(&input))
+        }
+        Err(_) => pb_invalid_input("invalid project timeline input json"),
     }
 }
 

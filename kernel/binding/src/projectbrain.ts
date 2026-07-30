@@ -14,6 +14,8 @@ import type {
   ProjectIdentity,
   ProjectSnapshot,
   ProjectState,
+  TimelineQuery,
+  TimelineResult,
 } from "@oh-my-pm/contracts";
 
 /** A binding-only tagged result for a fallible Project Brain Kernel operation. */
@@ -65,7 +67,27 @@ export interface DiffProjectSnapshotsInput {
   };
 }
 
-/** The seven approved Project Brain Kernel binding operations. */
+/**
+ * One adjacent committed-snapshot comparison, attributed to the capture that
+ * produced it (v0.4). `captureSequence` and `capturedAt` describe the CURRENT
+ * snapshot of the pair and come from the store's authoritative chronology —
+ * never from a lexical snapshot-id order and never from a fresh clock read.
+ */
+export interface TimelineCaptureInput {
+  readonly snapshotId: string;
+  readonly captureSequence: number;
+  readonly capturedAt: string;
+  readonly changeSet: ChangeSet;
+}
+
+/** Input for the deterministic Project Timeline derivation (v0.4). */
+export interface DeriveProjectTimelineInput {
+  /** Adjacent comparisons in authoritative capture order, oldest first. */
+  readonly captures: readonly TimelineCaptureInput[];
+  readonly query: TimelineQuery;
+}
+
+/** The eight approved Project Brain Kernel binding operations. */
 export interface ProjectBrainKernelApi {
   deriveProjectIdentity(
     seed: ProjectIdentitySeedInput,
@@ -82,6 +104,9 @@ export interface ProjectBrainKernelApi {
   diffProjectSnapshots(
     input: DiffProjectSnapshotsInput,
   ): ProjectBrainKernelResult<ChangeSet>;
+  deriveProjectTimeline(
+    input: DeriveProjectTimelineInput,
+  ): ProjectBrainKernelResult<TimelineResult>;
 }
 
 /** The unavailable-error envelope factory (fail-closed for every operation). */
@@ -109,5 +134,6 @@ export function createUnavailableProjectBrainKernelApi(
     finalizeProjectState: () => unavailableProjectBrainError(reason),
     finalizeProjectSnapshot: () => unavailableProjectBrainError(reason),
     diffProjectSnapshots: () => unavailableProjectBrainError(reason),
+    deriveProjectTimeline: () => unavailableProjectBrainError(reason),
   };
 }

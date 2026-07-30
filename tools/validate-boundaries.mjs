@@ -1371,6 +1371,9 @@ const RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.2-rc.yml";
 const STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.2.yml";
 const V03_RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.3-rc.yml";
 const V03_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.3.yml";
+// The ACTIVE stable release workflow. The v0.3 stable workflow above is
+// historical and immutable; the active-line policy below applies to this file.
+const ACTIVE_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.4.yml";
 
 /** Shared manual-gate policy applied to every dedicated release workflow. */
 function checkReleaseWorkflowCommon(path, confirmation) {
@@ -1600,27 +1603,28 @@ if (v03Wf !== null) {
 // the exact workflow SHA, grants contents: write exactly once, and uses no
 // registry verb. It must not weaken any of these.
 //
-// The version is read from version.json so a future patch promotion updates one
-// place; the immutable base stable lineage stays pinned.
+// The version is read from version.json so a version promotion updates one
+// place; the immutable base stable lineage stays pinned. The ACTIVE stable line
+// is v0.4, whose base stable tag is the published v0.3.1.
 const V03_PATCH_VERSION = JSON.parse(readFileSync("version.json", "utf8")).version;
-const V03_BASE_STABLE_TAG = "v0.3.0";
-const V03_BASE_STABLE_SHA = "0d6f9b1c66ac01835e5f7bf2c8512b5beea50014";
+const V03_BASE_STABLE_TAG = "v0.3.1";
+const V03_BASE_STABLE_SHA = "81d869ed4cf690de0da46ab25d1abe65f85df155";
 const v03StableWf = checkReleaseWorkflowCommon(
-  V03_STABLE_RELEASE_WORKFLOW,
+  ACTIVE_STABLE_RELEASE_WORKFLOW,
   `RELEASE v${V03_PATCH_VERSION}`,
 );
 if (v03StableWf !== null) {
   // Exact stable version gate on the input (the patch version, not a prerelease).
   if (!v03StableWf.includes(`!= "${V03_PATCH_VERSION}"`)) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must gate on the exact version ${V03_PATCH_VERSION}`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must gate on the exact version ${V03_PATCH_VERSION}`);
   }
   if (/-rc\./.test(V03_PATCH_VERSION)) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must not target a prerelease version`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must not target a prerelease version`);
   }
   // It must never accept a prerelease confirmation string.
   if (v03StableWf.includes("RELEASE v0.3.0-rc.1")) {
     err(
-      `${V03_STABLE_RELEASE_WORKFLOW} must use only the stable confirmation string RELEASE v${V03_PATCH_VERSION}`,
+      `${ACTIVE_STABLE_RELEASE_WORKFLOW} must use only the stable confirmation string RELEASE v${V03_PATCH_VERSION}`,
     );
   }
   // version.json must be checked against the input version.
@@ -1628,41 +1632,41 @@ if (v03StableWf !== null) {
     !v03StableWf.includes("require('./version.json').version") &&
     !v03StableWf.includes('require("./version.json").version')
   ) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must verify version.json equals the input version`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must verify version.json equals the input version`);
   }
   // Stable, never prerelease: --latest and never --prerelease.
   if (v03StableWf.includes("--prerelease")) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must never use --prerelease (it is a stable release)`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must never use --prerelease (it is a stable release)`);
   }
   if (!v03StableWf.includes("--latest")) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must create the stable release with --latest`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must create the stable release with --latest`);
   }
   if (!/isPrerelease\s*!==\s*false/.test(v03StableWf)) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must verify the published release isPrerelease === false`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must verify the published release isPrerelease === false`);
   }
   // Latest-stable verification against releases/latest.
   if (!v03StableWf.includes("releases/latest")) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must verify releases/latest resolves to the stable tag`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must verify releases/latest resolves to the stable tag`);
   }
   // Existence refusal before creating tag/release.
   if (!v03StableWf.includes("refusing to overwrite")) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must refuse when the tag or release already exists`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must refuse when the tag or release already exists`);
   }
   // It must gate on the immutable base stable lineage: the v0.3.0 tag must still
   // resolve to its exact published commit before a patch may be published.
   if (!v03StableWf.includes(V03_BASE_STABLE_TAG)) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must gate on the base stable tag ${V03_BASE_STABLE_TAG}`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must gate on the base stable tag ${V03_BASE_STABLE_TAG}`);
   }
   if (!v03StableWf.includes(V03_BASE_STABLE_SHA)) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must pin the base stable commit ${V03_BASE_STABLE_SHA}`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must pin the base stable commit ${V03_BASE_STABLE_SHA}`);
   }
   // The publish job must depend on the cross-platform installed qualification.
   if (!/needs:\s*\[\s*prepare\s*,\s*installed-qualification\s*\]/.test(v03StableWf)) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} publish must depend on the installed-qualification matrix`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} publish must depend on the installed-qualification matrix`);
   }
   // The release must target the exact workflow commit SHA, not floating main.
   if (!v03StableWf.includes('--target "$GITHUB_SHA"')) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must target the exact workflow commit SHA`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must target the exact workflow commit SHA`);
   }
   // Exactly the three stable assets are created — and never an RC-named asset.
   for (const asset of [
@@ -1671,7 +1675,7 @@ if (v03StableWf !== null) {
     `oh-my-pm-v${V03_PATCH_VERSION}-SHA256SUMS.txt`,
   ]) {
     if (!v03StableWf.includes(asset)) {
-      err(`${V03_STABLE_RELEASE_WORKFLOW} must reference the stable asset: ${asset}`);
+      err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must reference the stable asset: ${asset}`);
     }
   }
   for (const rcAsset of [
@@ -1680,13 +1684,13 @@ if (v03StableWf !== null) {
     "oh-my-pm-v0.3.0-rc.1-SHA256SUMS.txt",
   ]) {
     if (v03StableWf.includes(rcAsset)) {
-      err(`${V03_STABLE_RELEASE_WORKFLOW} must not publish an RC-named asset: ${rcAsset}`);
+      err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must not publish an RC-named asset: ${rcAsset}`);
     }
   }
   // contents: write granted exactly once (publish job only).
   const v03WriteKeyCount = (v03StableWf.match(/^\s+contents: write\s*$/gm) || []).length;
   if (v03WriteKeyCount !== 1) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must grant contents: write exactly once (publish job only)`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must grant contents: write exactly once (publish job only)`);
   }
 }
 
@@ -1709,6 +1713,7 @@ const RELEASE_PUBLISH_ALLOWED = new Set([
   STABLE_RELEASE_WORKFLOW,
   V03_RC_RELEASE_WORKFLOW,
   V03_STABLE_RELEASE_WORKFLOW,
+  ACTIVE_STABLE_RELEASE_WORKFLOW,
   "docs/releases/publishing-v0.1.0.md",
   "docs/releases/publishing-v0.2.0-rc.1.md",
   "docs/releases/publishing-v0.2.0.md",
@@ -2152,10 +2157,10 @@ if (trackedFiles.includes("mcp-server/src/project-changes-runner.ts")) {
     }
   }
 }
-// Phase 3 Kernel binding surface. The Kernel WASM binding gains the seven
-// approved Project Brain exports (11 total: the original 4 plus these 7) and no
-// others. The original four exports must remain, and no export outside the
-// approved allowlist may appear.
+// Kernel binding surface. The Kernel WASM binding carries the seven approved
+// v0.3 Project Brain exports plus the single v0.4 Project Timeline derivation
+// (12 total: the original 4 plus these 8) and no others. The original four
+// exports must remain, and no export outside the approved allowlist may appear.
 const APPROVED_PB_WASM_EXPORTS = [
   "deriveProjectIdentity",
   "fingerprintMinimizedContent",
@@ -2164,6 +2169,9 @@ const APPROVED_PB_WASM_EXPORTS = [
   "finalizeProjectState",
   "finalizeProjectSnapshot",
   "diffProjectSnapshots",
+  // v0.4: the pure, read-only Project Timeline derivation. It consumes
+  // already-computed ChangeSets and persists nothing.
+  "deriveProjectTimeline",
 ];
 const ORIGINAL_WASM_EXPORTS = [
   "kernelVersion",
@@ -2177,7 +2185,7 @@ if (trackedFiles.includes("kernel/crate/src/wasm.rs")) {
   const allowed = new Set([...ORIGINAL_WASM_EXPORTS, ...APPROVED_PB_WASM_EXPORTS]);
   if (exportNames.length !== allowed.size) {
     err(
-      `kernel/crate/src/wasm.rs must expose exactly ${allowed.size} WASM exports in Phase 3 (found ${exportNames.length})`,
+      `kernel/crate/src/wasm.rs must expose exactly ${allowed.size} WASM exports (found ${exportNames.length})`,
     );
   }
   for (const name of ORIGINAL_WASM_EXPORTS) {
@@ -2213,7 +2221,7 @@ if (trackedFiles.includes("kernel/binding/src/index.ts")) {
       }
     }
   }
-  // The seven approved binding methods must appear on the ProjectBrainKernelApi
+  // Every approved binding method must appear on the ProjectBrainKernelApi
   // surface and nowhere else may a new binding method be introduced.
   if (trackedFiles.includes("kernel/binding/src/projectbrain.ts")) {
     const pb = readFileSync("kernel/binding/src/projectbrain.ts", "utf8");
@@ -2246,13 +2254,12 @@ if (trackedFiles.includes("kernel/crate/Cargo.toml")) {
     }
   }
 }
-// Version guard: version.json carries the prepared source version. Phases 0–5
-// stayed at 0.2.0; Phase 6 prepared the v0.3 release candidate 0.3.0-rc.1; Phase
-// 7 promoted the validated candidate to the stable 0.3.0; the v0.3.x maintenance
-// line then advances the patch version (currently 0.3.1). The value must be
+// Version guard: version.json carries the prepared source version. The v0.3 line
+// reached the stable 0.3.1; the v0.4 Project Timeline line then promoted the
+// source to 0.4.0 once every phase was implemented and green. The value must be
 // exactly this prepared version (all package manifests and the runtime version
 // constants are checked against it by check-version-consistency).
-const EXPECTED_SOURCE_VERSION = "0.3.1";
+const EXPECTED_SOURCE_VERSION = "0.4.0";
 if (trackedFiles.includes("version.json")) {
   const version = JSON.parse(readFileSync("version.json", "utf8")).version;
   if (version !== EXPECTED_SOURCE_VERSION) {
@@ -2555,6 +2562,9 @@ const PROJECT_MEMORY_LAZY_BOUNDARIES = new Set([
   "cli/src/memory-process.ts",
   "mcp-server/src/project-changes-loader.ts",
   "mcp-server/src/project-changes-runner.ts",
+  // v0.4: the project_timeline capability follows the identical lazy-load rule.
+  "mcp-server/src/project-timeline-loader.ts",
+  "mcp-server/src/project-timeline-runner.ts",
 ]);
 // Release/qualification tools that legitimately reference the package by name as
 // a STRING — to assert its presence in the self-contained v0.3 bundle, to stage
@@ -2659,8 +2669,8 @@ if (trackedFiles.includes("skills/src/project-brain-state.ts")) {
     err("skills/src/project-brain-state.ts must not declare or register a Skill");
   }
 }
-// 9e. v0.3 Phase 4 CLI memory surface guards. Phase 4 adds exactly one new
-// top-level command namespace (`memory`) with exactly six subcommands, handled
+// 9e. CLI memory surface guards. The `memory` namespace carries exactly the six
+// v0.3 subcommands plus the single v0.4 read-only `timeline` subcommand, handled
 // at the Node process boundary and never through the legacy Runtime request
 // contract. The legacy Runtime request builder must stay memory-free (memory
 // never routes through Runtime.handle), and runCli must fail closed on a memory
@@ -2676,9 +2686,11 @@ if (trackedFiles.includes("cli/src/request.ts")) {
     err("cli/src/request.ts must stay memory-free (memory never routes through the Runtime)");
   }
 }
-// The nested memory parser must accept EXACTLY the six approved subcommands and
-// no seventh. The canonical list is the MEMORY_SUBCOMMANDS constant in
-// memory-types.ts; assert it is exactly these six in order.
+// The nested memory parser must accept EXACTLY the seven approved subcommands
+// and no eighth. The canonical list is the MEMORY_SUBCOMMANDS constant in
+// memory-types.ts; assert it is exactly these seven in order, with the six
+// historical subcommands keeping their original positions and `timeline`
+// appended last.
 if (trackedFiles.includes("cli/src/memory-types.ts")) {
   const memoryTypes = readFileSync("cli/src/memory-types.ts", "utf8");
   const listMatch = memoryTypes.match(/MEMORY_SUBCOMMANDS[^=]*=\s*\[([^\]]*)\]/);
@@ -2686,7 +2698,16 @@ if (trackedFiles.includes("cli/src/memory-types.ts")) {
     err("cli/src/memory-types.ts must declare the MEMORY_SUBCOMMANDS allowlist");
   } else {
     const subs = [...listMatch[1].matchAll(/"([a-z]+)"/g)].map((m) => m[1]);
-    const expected = ["capture", "changes", "status", "history", "export", "delete"];
+    const expected = [
+      "capture",
+      "changes",
+      "status",
+      "history",
+      "export",
+      "delete",
+      // v0.4: appended last so the six historical subcommands keep their order.
+      "timeline",
+    ];
     if (JSON.stringify(subs) !== JSON.stringify(expected)) {
       err(`MEMORY_SUBCOMMANDS must be exactly ${expected.join(", ")} in order (found ${subs.join(", ")})`);
     }
@@ -2694,6 +2715,43 @@ if (trackedFiles.includes("cli/src/memory-types.ts")) {
     for (const forbidden of ["init", "import", "repair", "migrate", "prune", "config", "sync", "watch", "serve"]) {
       if (subs.includes(forbidden)) {
         err(`MEMORY_SUBCOMMANDS must not include the forbidden subcommand "${forbidden}"`);
+      }
+    }
+  }
+}
+// The v0.4 timeline subcommand must stay read-only: it may never appear in the
+// --apply allowlist, and its dedicated options must be gated to it alone.
+if (trackedFiles.includes("cli/src/memory-parser.ts")) {
+  const parser = readFileSync("cli/src/memory-parser.ts", "utf8");
+  const applyBlock = parser.match(/APPLY_SUBCOMMANDS[^=]*=\s*new Set\(\[([\s\S]*?)\]\)/);
+  if (applyBlock !== null && /"timeline"/.test(applyBlock[1])) {
+    err("cli/src/memory-parser.ts must never allow --apply for timeline (the timeline is read-only)");
+  }
+  for (const option of ["--before-sequence", "--category", "--kind"]) {
+    if (!parser.includes(`${option} is only valid for timeline`)) {
+      err(`cli/src/memory-parser.ts must gate ${option} to timeline only`);
+    }
+  }
+}
+// The timeline process path must not read a project document, construct a
+// provider that observes, or touch a mutating store method.
+if (trackedFiles.includes("cli/src/memory-process.ts")) {
+  const process_ = readFileSync("cli/src/memory-process.ts", "utf8");
+  const timelineFn = process_.match(/async function runTimeline\([\s\S]*?\n}\n/);
+  if (timelineFn === null) {
+    err("cli/src/memory-process.ts must declare runTimeline for the read-only timeline path");
+  } else {
+    for (const marker of [
+      "loadMemoryProjectDocuments",
+      "commitSnapshotBundle",
+      "migrateProject",
+      "exportProject",
+      "deleteProject",
+      "runtime.capture",
+      "previewMigration",
+    ]) {
+      if (timelineFn[0].includes(marker)) {
+        err(`cli/src/memory-process.ts runTimeline must not use "${marker}" (the timeline is read-only)`);
       }
     }
   }
@@ -2889,6 +2947,138 @@ if (trackedFiles.includes("runtime/src/projectbrain/compare.ts")) {
   }
   if (!compare.includes("listSnapshots")) {
     err("runtime/src/projectbrain/compare.ts default selection must use the capture chronology");
+  }
+}
+
+// 10. v0.4 Project Timeline boundary guards. The timeline is DERIVED read-only
+// from already-committed snapshots. These assertions fail closed if a future
+// change tries to persist timeline events, write a project or application-state
+// path from the timeline surface, reach the network or a provider, change the
+// Project Brain schema or store format, or add an MCP write capability.
+//
+// 10a. Timeline persistence is forbidden. No timeline source file may name a
+// store/commit/write/migration operation: a timeline is recomputed per query and
+// never has an on-disk representation.
+const TIMELINE_SOURCE_PREFIXES = [
+  "kernel/crate/src/projectbrain/timeline.rs",
+  "runtime/src/projectbrain/timeline.ts",
+  "cli/src/memory-timeline-format.ts",
+  "mcp-server/src/project-timeline-runner.ts",
+  "mcp-server/src/project-timeline-projector.ts",
+  "mcp-server/src/project-timeline-types.ts",
+  "mcp-server/src/project-timeline-loader.ts",
+];
+// Any tracked file whose basename carries the timeline marker in the product
+// packages is subject to the read-only scan (so a renamed/added module cannot
+// escape it).
+const timelineSources = trackedFiles.filter(
+  (f) =>
+    /(^|\/)(project-)?timeline[a-z-]*\.(ts|rs)$/.test(f) &&
+    /^(kernel|runtime|cli|mcp-server|contracts)\//.test(f) &&
+    !/\/(test|tests)\//.test(f) &&
+    !f.endsWith(".test.ts"),
+);
+const TIMELINE_FORBIDDEN_MARKERS = [
+  // persistence / mutation
+  "commitSnapshotBundle",
+  "writeFile",
+  "mkdir",
+  "rename(",
+  "rmSync",
+  "unlink",
+  "migrateProject",
+  "previewMigration",
+  "exportProject",
+  "deleteProject",
+  "acquireLock",
+  // capture
+  "captureProject",
+  "runtime.capture",
+  // network
+  "fetch(",
+  "http://",
+  "https://",
+  "node:http",
+  "node:net",
+  // provider coupling
+  "@oh-my-pm/providers",
+  "createProviderRegistry",
+];
+for (const file of [...new Set([...TIMELINE_SOURCE_PREFIXES, ...timelineSources])]) {
+  if (!trackedFiles.includes(file)) continue;
+  const contents = readFileSync(file, "utf8");
+  for (const marker of TIMELINE_FORBIDDEN_MARKERS) {
+    if (contents.includes(marker)) {
+      err(
+        `${file} contains a forbidden timeline marker "${marker}"; the timeline is derived read-only and never persists, captures, writes, or reaches a provider/network`,
+      );
+    }
+  }
+}
+// 10b. The pure timeline derivation layer must read no clock, filesystem,
+// environment, randomness, or network — the same purity contract as the rest of
+// the deterministic domain layer.
+const TIMELINE_PURE_LAYERS = [
+  "runtime/src/projectbrain/timeline.ts",
+  "kernel/crate/src/projectbrain/timeline.rs",
+];
+const TIMELINE_PURITY_MARKERS = [
+  "Date.now",
+  "new Date(",
+  "Math.random",
+  "process.env",
+  "node:fs",
+  "node:os",
+  "node:crypto",
+  "SystemTime::now",
+  "std::env",
+  "std::fs",
+];
+for (const file of TIMELINE_PURE_LAYERS) {
+  if (!trackedFiles.includes(file)) continue;
+  const contents = readFileSync(file, "utf8");
+  for (const marker of TIMELINE_PURITY_MARKERS) {
+    if (contents.includes(marker)) {
+      err(`${file} must stay pure; forbidden impurity marker "${marker}"`);
+    }
+  }
+}
+// 10c. The timeline must not change the Project Brain schema or the store format.
+// Both constants are asserted elsewhere; here we forbid a timeline source from
+// naming a different version, so a schema/store bump cannot arrive through this
+// surface.
+for (const file of [...new Set([...TIMELINE_SOURCE_PREFIXES, ...timelineSources])]) {
+  if (!trackedFiles.includes(file)) continue;
+  const contents = readFileSync(file, "utf8");
+  if (/CURRENT_STORE_FORMAT_VERSION\s*=\s*(?!2\b)/.test(contents)) {
+    err(`${file} must not redefine the store format version (v0.4 keeps store format 2)`);
+  }
+  if (/PROJECT_BRAIN_SCHEMA_VERSION\s*[:=]\s*(?!1\b)/.test(contents)) {
+    err(`${file} must not redefine the Project Brain schema version (v0.4 keeps schema 1)`);
+  }
+}
+// 10d. The MCP timeline tool must be read-only: no write annotation, and the
+// project-timeline runner must not statically import the persistence package
+// (the lazy capability-load pattern is mandatory, as for project_changes).
+if (trackedFiles.includes("mcp-server/src/project-timeline-runner.ts")) {
+  const runner = readFileSync("mcp-server/src/project-timeline-runner.ts", "utf8");
+  if (/from\s+["']@oh-my-pm\/project-memory["']/.test(runner)) {
+    err(
+      "mcp-server/src/project-timeline-runner.ts must not statically import @oh-my-pm/project-memory (lazy-load only)",
+    );
+  }
+}
+if (trackedFiles.includes("mcp-server/src/server.ts")) {
+  const server = readFileSync("mcp-server/src/server.ts", "utf8");
+  if (server.includes("project_timeline")) {
+    // The tool must declare the read-only annotation set, exactly as
+    // project_changes does. A destructive/open-world timeline tool is forbidden.
+    if (!/readOnlyHint:\s*true/.test(server)) {
+      err("mcp-server/src/server.ts must declare readOnlyHint: true for project_timeline");
+    }
+    if (/destructiveHint:\s*true/.test(server)) {
+      err("mcp-server/src/server.ts must not declare a destructive MCP tool");
+    }
   }
 }
 

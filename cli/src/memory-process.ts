@@ -27,6 +27,7 @@ import type {
   MemoryManifest,
   ProjectMemoryPort,
   ProjectObservationRequest,
+  TimelineProjectResult,
 } from "@oh-my-pm/runtime";
 import { createPreviewMemoryPort } from "./memory-preview.js";
 import type { PreviewMemoryStoreReads } from "./memory-preview.js";
@@ -48,8 +49,12 @@ import type {
   MemoryStatusCommand,
   MemoryStoreStatus,
   MemorySubcommand,
+  MemoryTimelineCommand,
 } from "./memory-types.js";
-import { MEMORY_MAX_FUTURE_SKEW_SECONDS } from "./memory-types.js";
+import {
+  MEMORY_DEFAULT_STALE_AFTER_SECONDS,
+  MEMORY_MAX_FUTURE_SKEW_SECONDS,
+} from "./memory-types.js";
 
 /** Options injected at the process boundary (clock/pid deterministic in tests). */
 export type MemoryProcessOptions = {
@@ -257,6 +262,8 @@ export async function runMemoryProcess(
       return runExport(command, options, now, pid);
     case "delete":
       return runDelete(command, options, now, pid);
+    case "timeline":
+      return runTimeline(command, options, now, pid);
   }
 }
 
@@ -622,6 +629,100 @@ async function runChanges(
 function readChangeCount(changeSet: unknown): number {
   const changes = (changeSet as { changes?: readonly unknown[] } | undefined)?.changes;
   return Array.isArray(changes) ? changes.length : 0;
+}
+
+// --- timeline (read-only) --------------------------------------------------
+
+/**
+ * Run one read-only `memory timeline` query. It reads committed memory only:
+ * no project document is read, no provider is constructed, no clock beyond the
+ * single injected invocation timestamp is consumed, and nothing is written. The
+ * project is identified by --project-id alone, so no project root is required
+ * and no project config is read.
+ */
+async function runTimeline(
+  command: MemoryTimelineCommand,
+  options: MemoryProcessOptions | undefined,
+  now: string,
+  pid: number,
+): Promise<MemoryCommandOutcome> {
+  // The parser guarantees an explicit project id for timeline, so identity
+  // resolution needs no config read and no project root.
+  const projectId = command.projectId;
+  if (projectId === undefined || projectId.length === 0) {
+    return fail("timeline", "memory_project_id_required", "--project-id is required", 2);
+  }
+
+  const store = await loadStore(options, command.dataDir, now);
+  const runtime = createProjectBrainRuntime({
+    kernel: createNodeWasmProjectBrainKernelApi(),
+    memory: realMemoryPort(store),
+    // The timeline never observes and never derives state; inert ports fail
+    // closed if the path ever tried to.
+    observation: createProviderRegistryObservationPort(createProviderRegistry([])),
+    deriver: DERIVER,
+  });
+
+  let result: TimelineProjectResult;
+  try {
+    result = await runtime.timeline({
+      requestId: `omp-timeline-${pid}`,
+      projectId,
+      comparedAt: now,
+      limit: command.limit,
+      ...(command.beforeSequence !== undefined
+        ? { beforeSequence: command.beforeSequence }
+        : {}),
+      ...(command.category !== undefined ? { category: command.category } : {}),
+      ...(command.kind !== undefined ? { kind: command.kind } : {}),
+      stalenessPolicy: {
+        evidenceStaleAfterSeconds: MEMORY_DEFAULT_STALE_AFTER_SECONDS,
+        maxFutureSkewSeconds: MEMORY_MAX_FUTURE_SKEW_SECONDS,
+      },
+    });
+  } catch (err) {
+    return fail("timeline", sanitizedErrorCode(err, "OMP-R-PB-6012"), "timeline failed", 1);
+  }
+
+  if (result.status === "failed") {
+    const code = result.error?.code ?? "OMP-R-PB-6012";
+    // A validation failure is a usage error (2); every other failure is
+    // operational. No partial timeline is ever emitted.
+    const exitCode = code === "OMP-R-PB-6001" ? 2 : timelineErrorExitCode(code);
+    return fail("timeline", code, "timeline failed", exitCode);
+  }
+
+  // noPriorMemory and derived both carry a valid (possibly empty) result.
+  const timeline = result.result;
+  if (timeline === undefined) {
+    return fail("timeline", "OMP-R-PB-6012", "timeline failed", 1);
+  }
+  return {
+    command: "memory.timeline",
+    ok: true,
+    projectId,
+    limit: command.limit,
+    eventCount: timeline.eventCount,
+    hasMore: timeline.hasMore,
+    ...(timeline.nextBeforeSequence !== undefined
+      ? { nextBeforeSequence: timeline.nextBeforeSequence }
+      : {}),
+    ...(command.category !== undefined ? { category: command.category } : {}),
+    ...(command.kind !== undefined ? { kind: command.kind } : {}),
+    events: [...timeline.events],
+  };
+}
+
+/** Map a timeline failure code to a stable CLI exit code. */
+function timelineErrorExitCode(code: string): 1 | 2 | 4 {
+  switch (code) {
+    case "OMP-R-PB-6001": // invalid input
+      return 2;
+    case "OMP-R-PB-6009": // stored record read failed (corruption/integrity)
+      return 4;
+    default:
+      return memoryErrorExitCode(code);
+  }
 }
 
 // --- status ----------------------------------------------------------------

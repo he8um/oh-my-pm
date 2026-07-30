@@ -20,6 +20,7 @@ pub mod identifiers;
 pub mod limits;
 pub mod normalize;
 pub mod time;
+pub mod timeline;
 
 // Public, pure re-exports for future binding work. No binding surface is added
 // in Phase 1; these functions are Rust-only.
@@ -32,3 +33,7 @@ pub use fingerprint::{
 };
 pub use freshness::{derive_freshness, FreshnessInput, FreshnessPolicy, StalenessPolicy};
 pub use identifiers::{resolve_project_identity, ProjectIdentitySeed};
+pub use timeline::{
+    derive_project_timeline, TimelineCapture, TimelineDerivationInput, DEFAULT_TIMELINE_LIMIT,
+    MAX_TIMELINE_LIMIT, MIN_TIMELINE_LIMIT,
+};

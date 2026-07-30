@@ -69,6 +69,10 @@ const ALLOWED_TOP_FILES = [
 // truth; every workspace package and the distribution package pin to it.
 const CANONICAL_VERSION = JSON.parse(readFileSync("version.json", "utf8")).version;
 
+// Tracked but not required: public documentation media only (the README hero
+// image). No source, no fixture, no generated output belongs here.
+const OPTIONAL_TOP_FOLDERS = ["assets"];
+
 const FORBIDDEN_TOP_FOLDERS = ["specs", "_dev", "scripts", "brain", "mcp"];
 
 // 1. Required top-level folders exist on disk.
@@ -86,8 +90,17 @@ const trackedTopFolders = new Set(
 for (const folder of trackedTopFolders) {
   if (FORBIDDEN_TOP_FOLDERS.includes(folder)) {
     err(`forbidden top-level folder is tracked: ${folder}/`);
-  } else if (!REQUIRED_FOLDERS.includes(folder)) {
+  } else if (!REQUIRED_FOLDERS.includes(folder) && !OPTIONAL_TOP_FOLDERS.includes(folder)) {
     err(`unexpected top-level folder is tracked: ${folder}/`);
+  }
+}
+
+// 2a. The optional media folder carries public documentation images only.
+const ASSET_EXTENSIONS = [".png", ".jpg", ".jpeg", ".svg", ".webp", ".gif"];
+for (const file of trackedFiles) {
+  if (!file.startsWith("assets/")) continue;
+  if (!ASSET_EXTENSIONS.some((ext) => file.toLowerCase().endsWith(ext))) {
+    err(`assets/ carries public documentation images only: ${file}`);
   }
 }
 
@@ -793,17 +806,19 @@ if (existsSync("kernel/crate/Cargo.toml")) {
     err(`kernel/crate/Cargo.toml version must remain ${CANONICAL_VERSION}`);
   }
 }
-// The MCP server declares the ten historical tools plus, as of v0.3 Phase 5, the
-// single read-only Project Brain tool `project_changes` (registered conditionally
-// behind an injected executor). This is a static count/ordering guard
-// complementing the runtime mcp:smoke assertion.
+// The MCP server declares the ten historical tools plus the two read-only
+// Project Brain tools `project_changes` (v0.3) and `project_timeline` (v0.4),
+// each registered conditionally behind an injected executor. This is a static
+// count/ordering guard complementing the runtime mcp:smoke assertion.
 //
-// LEGACY_V02_MCP_TOOL_COUNT = 10 (the current v0.2 bundle without Project Memory)
-// SOURCE_V03_PHASE5_MCP_TOOL_COUNT = 11 (the source/workspace capability server)
+// LEGACY_V02_MCP_TOOL_COUNT = 10 (the legacy v0.2 bundle without Project Memory)
+// SOURCE_V03_PHASE5_MCP_TOOL_COUNT = 11 (the v0.3 capability server)
+// SOURCE_V04_MCP_TOOL_COUNT = 12 (the v0.4 capability server)
 // PROJECT_BRAIN_MCP_WRITE_TOOL_COUNT = 0
-// PROJECT_BRAIN_MCP_READ_TOOL_COUNT = 1 (project_changes)
+// PROJECT_BRAIN_MCP_READ_TOOL_COUNT = 2 (project_changes, project_timeline)
 const LEGACY_V02_MCP_TOOL_COUNT = 10;
 const SOURCE_V03_PHASE5_MCP_TOOL_COUNT = 11;
+const SOURCE_V04_MCP_TOOL_COUNT = 12;
 const MCP_TEN_TOOLS = [
   "project_brief",
   "project_risks",
@@ -816,8 +831,9 @@ const MCP_TEN_TOOLS = [
   "provider_status",
   "github_provider_diagnostics",
 ];
-// The single approved additional Project Brain read-only tool (Phase 5).
+// The two approved additional Project Brain read-only tools.
 const MCP_PHASE5_READONLY_TOOL = "project_changes";
+const MCP_V04_READONLY_TOOL = "project_timeline";
 if (existsSync("mcp-server/src/server.ts")) {
   const server = readFileSync("mcp-server/src/server.ts", "utf8");
   // Every historical tool name must appear as a quoted string literal (tools are
@@ -830,7 +846,11 @@ if (existsSync("mcp-server/src/server.ts")) {
       err(`mcp-server/src/server.ts must register the tool "${name}"`);
     }
   }
-  const approved = new Set([...MCP_TEN_TOOLS, MCP_PHASE5_READONLY_TOOL]);
+  const approved = new Set([
+    ...MCP_TEN_TOOLS,
+    MCP_PHASE5_READONLY_TOOL,
+    MCP_V04_READONLY_TOOL,
+  ]);
   const toolLiterals = new Set(
     [...server.matchAll(/"((?:project|github)_[a-z_]+)"/g)].map((m) => m[1]),
   );
@@ -840,12 +860,16 @@ if (existsSync("mcp-server/src/server.ts")) {
     if (approved.has(literal)) continue;
     if (/_(failed|invalid|error|required|missing|unavailable|output)/.test(literal)) continue;
     err(
-      `mcp-server/src/server.ts registers an unexpected tool literal "${literal}" (Phase 5 keeps the ten historical tools plus project_changes)`,
+      `mcp-server/src/server.ts registers an unexpected tool literal "${literal}" (the surface is the ten historical tools plus project_changes and project_timeline)`,
     );
   }
   // Guard the deliberate tool-count constants against silent drift.
-  if (LEGACY_V02_MCP_TOOL_COUNT !== 10 || SOURCE_V03_PHASE5_MCP_TOOL_COUNT !== 11) {
-    err("MCP tool-count constants must remain 10 (legacy) and 11 (source Phase 5)");
+  if (
+    LEGACY_V02_MCP_TOOL_COUNT !== 10 ||
+    SOURCE_V03_PHASE5_MCP_TOOL_COUNT !== 11 ||
+    SOURCE_V04_MCP_TOOL_COUNT !== 12
+  ) {
+    err("MCP tool-count constants must remain 10 (legacy), 11 (v0.3) and 12 (v0.4)");
   }
 }
 
@@ -867,6 +891,9 @@ const ALLOWED_RELEASE_WORKFLOWS = new Set([
   // v0.3 RC release workflow (manually gated prerelease, validated in detail by
   // validate-boundaries.mjs). It legitimately uses gh release / tags.
   "release-v0.3-rc.yml",
+  // v0.4 STABLE release workflow (manually gated stable, validated in detail by
+  // validate-boundaries.mjs). It is the ACTIVE stable release workflow.
+  "release-v0.4.yml",
   // v0.3 STABLE release workflow (manually gated stable, validated in detail by
   // validate-boundaries.mjs). It legitimately uses gh release / tags.
   "release-v0.3.yml",
@@ -887,11 +914,11 @@ if (!existsSync(join(workflowsDir, "release-v0.3-rc.yml"))) {
 if (!existsSync(join(workflowsDir, "release-v0.3.yml"))) {
   err(".github/workflows/release-v0.3.yml missing");
 }
-// The non-publishing v0.3 installed-qualification workflow must exist. It is not
+// The non-publishing installed-qualification workflow must exist. It is not
 // release-named and carries no publish markers (enforced by the generic scan
 // below), so it needs no release-workflow allowance.
-if (!existsSync(join(workflowsDir, "v0.3-installed-qualification.yml"))) {
-  err(".github/workflows/v0.3-installed-qualification.yml missing");
+if (!existsSync(join(workflowsDir, "v0.4-installed-qualification.yml"))) {
+  err(".github/workflows/v0.4-installed-qualification.yml missing");
 }
 if (existsSync(workflowsDir)) {
   for (const name of readdirSync(workflowsDir)) {
@@ -1056,6 +1083,61 @@ const PHASE_5_SOURCES = [
 ];
 for (const file of PHASE_5_SOURCES) {
   if (!existsSync(file)) err(`Phase 5 file missing: ${file}`);
+}
+
+// 12. v0.4 Project Timeline. The locked scope/architecture document is required,
+// and the timeline surface must not introduce a persisted timeline store: no
+// timeline directory, record type, or store module may exist anywhere. A timeline
+// is derived per query from committed snapshots and has no on-disk form.
+const V04_REQUIRED = [
+  "docs/v0.4/README.md",
+  // Phase 7: release documentation for the prepared v0.4.0 stable release.
+  "docs/releases/v0.4.0.md",
+  "docs/releases/publishing-v0.4.0.md",
+  "docs/v0.4/getting-started-timeline.md",
+  "docs/releases/v0.4-real-project-smoke.md",
+  ".github/workflows/release-v0.4.yml",
+  // Phase 2: the deterministic derivation, its tests, and the cross-language
+  // golden fixture shared by the native and WASM assertions.
+  "kernel/crate/src/projectbrain/timeline.rs",
+  "kernel/crate/tests/projectbrain_timeline.rs",
+  "contracts/test/projecttimeline.test.ts",
+  "examples/fixtures/project-brain/timeline-expected.json",
+  // Phase 3: the read-only Runtime timeline query and its tests.
+  "runtime/src/projectbrain/timeline.ts",
+  "runtime/test/projectbrain-timeline.test.ts",
+  // Phase 4: the read-only `memory timeline` CLI subcommand and its tests.
+  "cli/test/memory-timeline.test.ts",
+  // Phase 5: the read-only project_timeline MCP tool surface and its tests.
+  "mcp-server/src/project-timeline-types.ts",
+  "mcp-server/src/project-timeline-projector.ts",
+  "mcp-server/src/project-timeline-runner.ts",
+  "mcp-server/src/project-timeline-loader.ts",
+  "mcp-server/test/project-timeline-projector.test.ts",
+  "mcp-server/test/project-timeline-runner.test.ts",
+  "mcp-server/test/project-timeline-server.test.ts",
+];
+for (const file of V04_REQUIRED) {
+  if (!existsSync(file)) err(`v0.4 file missing: ${file}`);
+}
+// No persisted-timeline storage may appear in the persistence package or as a
+// top-level store surface.
+const FORBIDDEN_TIMELINE_PERSISTENCE = [
+  "project-memory/src/timeline-store.ts",
+  "project-memory/src/timeline.ts",
+  "project-memory/src/events.ts",
+];
+for (const file of FORBIDDEN_TIMELINE_PERSISTENCE) {
+  if (existsSync(file)) {
+    err(`forbidden persisted-timeline module: ${file} (the timeline is derived, never stored)`);
+  }
+}
+// The persistence package must not learn a timeline record type or directory.
+if (existsSync("project-memory/src/types.ts")) {
+  const memTypes = readFileSync("project-memory/src/types.ts", "utf8");
+  if (/timeline/i.test(memTypes)) {
+    err("project-memory/src/types.ts must stay timeline-free (no persisted timeline records)");
+  }
 }
 
 if (fail) {

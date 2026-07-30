@@ -64,7 +64,14 @@ export function inMemoryMemoryPort(): RecordingMemoryPort {
       };
     },
     async listSnapshots(_projectId: string): Promise<MemorySnapshotSummary[]> {
-      return orderedSnapshotIds.map((id) => ({ snapshotId: id, isLatest: id === latest }));
+      // Mirrors the real store: authoritative capture chronology, oldest first,
+      // with a contiguous 1-based sequence and the snapshot's own capturedAt.
+      return orderedSnapshotIds.map((id, index) => ({
+        snapshotId: id,
+        isLatest: id === latest,
+        capturedAt: snapshotStore.get(id)?.capturedAt ?? "",
+        sequence: index + 1,
+      }));
     },
     async readSnapshot(_projectId: string, snapshotId: string): Promise<ProjectSnapshot> {
       const snapshot = snapshotStore.get(snapshotId);

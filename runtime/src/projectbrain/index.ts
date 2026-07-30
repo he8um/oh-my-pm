@@ -36,4 +36,7 @@ export type {
   ProjectObservationRequest,
   ProjectObservationResult,
   ProjectStateDeriver,
+  TimelineProjectInput,
+  TimelineProjectResult,
+  TimelineStatus,
 } from "./types.js";

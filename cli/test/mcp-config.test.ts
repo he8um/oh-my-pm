@@ -154,10 +154,26 @@ describe("mcp-config rendering", () => {
     });
   });
 
-  it("declares exactly the eleven read-only tools including project_changes", () => {
-    expect(MCP_CONFIG_READ_ONLY_TOOLS.length).toBe(11);
+  it("declares exactly the twelve read-only tools in the server's fixed order", () => {
+    expect(MCP_CONFIG_READ_ONLY_TOOLS.length).toBe(12);
     expect(MCP_CONFIG_READ_ONLY_TOOLS).toContain("project_changes");
+    expect(MCP_CONFIG_READ_ONLY_TOOLS).toContain("project_timeline");
+    // The ten historical tools keep their positions; project_changes is
+    // eleventh and project_timeline is appended twelfth.
     expect(MCP_CONFIG_READ_ONLY_TOOLS[10]).toBe("project_changes");
+    expect(MCP_CONFIG_READ_ONLY_TOOLS[11]).toBe("project_timeline");
+    expect(MCP_CONFIG_READ_ONLY_TOOLS.slice(0, 10)).toEqual([
+      "project_brief",
+      "project_risks",
+      "project_next",
+      "project_handoff",
+      "github_project_brief",
+      "github_project_risks",
+      "github_project_next",
+      "github_project_handoff",
+      "provider_status",
+      "github_provider_diagnostics",
+    ]);
   });
 
   it("names the optional env vars in Markdown prose but never in the config block", () => {
@@ -201,13 +217,16 @@ describe("mcp-config through the process runner", () => {
     expect(result.stdout.endsWith("\n")).toBe(true);
   });
 
-  it("prints Markdown wrapping the same JSON with eleven read-only tools", async () => {
+  it("prints Markdown wrapping the same JSON with twelve read-only tools", async () => {
     const result = await run(["--markdown"]);
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
     expect(result.stdout).toContain("```json");
-    expect(result.stdout).toContain("11 read-only tools");
+    expect(result.stdout).toContain("12 read-only tools");
     expect(result.stdout).toContain("`project_changes`");
+    expect(result.stdout).toContain("`project_timeline`");
+    // Truthfulness: the document must not claim a write tool exists.
+    expect(result.stdout).toContain("There are no write tools");
     for (const tool of MCP_CONFIG_READ_ONLY_TOOLS) {
       expect(result.stdout).toContain(`\`${tool}\``);
     }

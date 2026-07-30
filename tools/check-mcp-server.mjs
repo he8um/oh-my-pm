@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 // Local MCP stdio smoke check. Spawns the built MCP server over stdio, lists
 // tools, calls project_brief on the public fixture, provider_status offline, and
-// (v0.3 Phase 5) the read-only project_changes tool against an ISOLATED standard
-// data root holding no memory. It asserts a safe eleven-tool source/workspace
-// surface, a noPriorMemory project_changes result, that project_changes created
-// no data directory/file/lock, and that no forbidden sentinel leaks. This is a
-// validation utility, not package runtime source. It performs no network
-// request and prints exactly one concise success line after the server closes.
+// the two read-only Project Brain memory tools (project_changes, and as of v0.4
+// project_timeline) against an ISOLATED standard data root holding no memory. It
+// asserts a safe TWELVE-tool source/workspace surface in a FIXED registration
+// order, zero write tools, an empty project_timeline result, that neither memory
+// tool created a data directory/file/lock, and that no forbidden sentinel leaks.
+// This is a validation utility, not package runtime source. It performs no
+// network request and prints exactly one concise success line after the server
+// closes.
 
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -36,10 +38,11 @@ function fail(message) {
   process.exitCode = 1;
 }
 
-// The source/workspace surface: ten historical tools plus the Phase 5 read-only
-// project_changes tool (eleven), compared as a sorted set. The smoke calls only
-// the offline local project_brief, offline provider_status, and the read-only
-// project_changes over an empty store, so it never touches the network.
+// The source/workspace surface: ten historical tools, the v0.3 read-only
+// project_changes tool, and the v0.4 read-only project_timeline tool (twelve),
+// compared as a sorted set. The smoke calls only the offline local
+// project_brief, offline provider_status, and the two read-only memory tools
+// over an empty store, so it never touches the network.
 const EXPECTED_TOOLS = [
   "github_project_brief",
   "github_project_handoff",
@@ -51,7 +54,26 @@ const EXPECTED_TOOLS = [
   "project_handoff",
   "project_next",
   "project_risks",
+  "project_timeline",
   "provider_status",
+];
+
+// The exact REGISTRATION order. The ten historical tools keep their positions,
+// project_changes is eleventh, and project_timeline is appended twelfth. A
+// reorder is a compatibility break and must fail here.
+const EXPECTED_TOOL_ORDER = [
+  "project_brief",
+  "project_risks",
+  "project_next",
+  "project_handoff",
+  "github_project_brief",
+  "github_project_risks",
+  "github_project_next",
+  "github_project_handoff",
+  "provider_status",
+  "github_provider_diagnostics",
+  "project_changes",
+  "project_timeline",
 ];
 
 // An isolated standard data root: the MCP server resolves the STANDARD
@@ -129,6 +151,30 @@ try {
   if (JSON.stringify(names) !== JSON.stringify(EXPECTED_TOOLS)) {
     ok = false;
     fail(`unexpected tool list: ${names.join(", ")}`);
+  }
+  if (names.length !== 12) {
+    ok = false;
+    fail(`expected exactly 12 tools, found ${names.length}`);
+  }
+  // Fixed registration order: the historical tools must not be reordered.
+  const registrationOrder = tools.map((tool) => tool.name);
+  if (JSON.stringify(registrationOrder) !== JSON.stringify(EXPECTED_TOOL_ORDER)) {
+    ok = false;
+    fail(`unexpected tool registration order: ${registrationOrder.join(", ")}`);
+  }
+  // Zero write tools: every tool must declare readOnlyHint and must not declare
+  // a destructive or open-world mutation. Tools without annotations are the
+  // historical read-only document/provider tools, which take no write path.
+  for (const tool of tools) {
+    const annotations = tool.annotations ?? {};
+    if (annotations.destructiveHint === true) {
+      ok = false;
+      fail(`tool ${tool.name} declares destructiveHint: true (zero write tools allowed)`);
+    }
+    if (annotations.readOnlyHint === false) {
+      ok = false;
+      fail(`tool ${tool.name} declares readOnlyHint: false (zero write tools allowed)`);
+    }
   }
 
   const result = await client.callTool({
@@ -208,12 +254,61 @@ try {
     ok = false;
     fail("project_changes leaked the resolved data-root path");
   }
-  // project_changes on a missing store created no application-state files.
+  // project_timeline (v0.4): a read-only derivation over the isolated empty
+  // store. A nonexistent project must yield a valid EMPTY result, create no data
+  // directory/file/lock, and leak no forbidden sentinel or path.
+  const timelineResult = await client.callTool({
+    name: "project_timeline",
+    arguments: { projectId: "smoke-nonexistent-project" },
+  });
+  if (timelineResult.isError) {
+    ok = false;
+    fail(`project_timeline returned an error: ${timelineResult.content?.[0]?.text ?? "unknown"}`);
+  }
+  const timelineStructured = timelineResult.structuredContent;
+  if (!timelineStructured || timelineStructured.schemaVersion !== 1) {
+    ok = false;
+    fail("project_timeline structured content missing schemaVersion 1");
+  }
+  if (timelineStructured && timelineStructured.eventCount !== 0) {
+    ok = false;
+    fail(`project_timeline expected 0 events, got: ${timelineStructured.eventCount}`);
+  }
+  if (timelineStructured && timelineStructured.hasMore !== false) {
+    ok = false;
+    fail("project_timeline expected hasMore false on an empty store");
+  }
+  if (timelineStructured && timelineStructured.chronology !== "capture-order") {
+    ok = false;
+    fail("project_timeline must report capture-order chronology");
+  }
+  const timelineSerialized = `${JSON.stringify(timelineStructured)}\n${timelineResult.content?.[0]?.text ?? ""}`;
+  for (const forbidden of forbiddenSentinels) {
+    if (timelineSerialized.includes(forbidden)) {
+      ok = false;
+      fail(`project_timeline leaked forbidden sentinel: ${forbidden}`);
+    }
+  }
+  if (timelineSerialized.includes(dataHome)) {
+    ok = false;
+    fail("project_timeline leaked the resolved data-root path");
+  }
+  // A bounded limit must be enforced: over the maximum is a controlled error.
+  const overLimit = await client.callTool({
+    name: "project_timeline",
+    arguments: { projectId: "smoke-nonexistent-project", limit: 101 },
+  });
+  if (!overLimit.isError) {
+    ok = false;
+    fail("project_timeline accepted a limit above the maximum of 100");
+  }
+
+  // Neither memory tool created any application-state file on a missing store.
   const storeRoot = join(dataHome, "oh-my-pm");
   const written = listFiles(storeRoot).concat(listFiles(join(dataHome, "Library")));
   if (written.length > 0) {
     ok = false;
-    fail(`project_changes created application-state files: ${written.join(", ")}`);
+    fail(`a read-only memory tool created application-state files: ${written.join(", ")}`);
   }
 } catch (error) {
   ok = false;
