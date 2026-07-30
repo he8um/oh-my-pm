@@ -1072,8 +1072,10 @@ const GITHUB_TOKEN_ENV_ALLOWED = new Set([
   "tools/release-bundle-utils.mjs",
   "tools/check-release-install.mjs",
   // The MCP client-config generator names the optional env var in docs prose
-  // only; it never reads it and never writes it into the emitted config.
+  // only; it never reads it and never writes it into the emitted config. The
+  // shared module holds that prose; the repository helper renders through it.
   "tools/print-mcp-client-config.mjs",
+  "cli/src/mcp-config.ts",
   // Phase 6 installed qualification PLANTS the token env var as a privacy
   // sentinel to prove it is never persisted to the store, export, or output.
   "tools/check-v0.3-installed-project-brain.mjs",
@@ -1089,7 +1091,13 @@ const PROVIDER_CONFIG_ENV_ALLOWED = new Set([
   "tools/validate-boundaries.mjs",
   "tools/release-bundle-utils.mjs",
   "tools/check-release-bundle.mjs",
+  // The MCP client-config docs prose names the optional path variable; the
+  // shared module holds that prose and never reads or emits the value.
   "tools/print-mcp-client-config.mjs",
+  "cli/src/mcp-config.ts",
+  // Installed qualification asserts the NAME never enters the emitted config
+  // block; it must name the variable to prove its absence.
+  "tools/check-v0.3-installed-project-brain.mjs",
 ]);
 // Every tracked GitHub production source (provider modules, the CLI adapter and
 // helpers, the MCP runner, and the manual smoke tool), excluding tests/docs.
@@ -2240,7 +2248,8 @@ if (trackedFiles.includes("kernel/crate/Cargo.toml")) {
 }
 // Version guard: version.json carries the prepared source version. Phases 0–5
 // stayed at 0.2.0; Phase 6 prepared the v0.3 release candidate 0.3.0-rc.1; Phase
-// 7 promotes the validated candidate to the stable 0.3.0. The value must be
+// 7 promoted the validated candidate to the stable 0.3.0; the v0.3.x maintenance
+// line then advances the patch version (currently 0.3.1). The value must be
 // exactly this prepared version (all package manifests and the runtime version
 // constants are checked against it by check-version-consistency).
 const EXPECTED_SOURCE_VERSION = "0.3.1";

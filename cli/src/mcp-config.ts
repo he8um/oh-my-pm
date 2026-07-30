@@ -235,12 +235,15 @@ export function formatMcpClientConfig(
     ...MCP_CONFIG_READ_ONLY_TOOLS.map((tool) => `- \`${tool}\``),
     "",
     "There are no write tools. This configuration is secret-free by design: it",
-    "contains no token, credential, environment value, or project path.",
+    "contains no token, credential, environment value, or project path. If you",
+    "need GitHub authentication or a non-default provider configuration file, add",
+    "the process environment variables yourself in your MCP client:",
     "",
-    "GitHub authentication is optional and never required for public",
-    "repositories. If you need it, or a non-default provider configuration file,",
-    "set the documented process environment variables yourself in your MCP",
-    "client. OH MY PM never writes them into your client configuration for you.",
+    "- `OH_MY_PM_GITHUB_TOKEN` — optional GitHub token (never required for",
+    "  public repositories)",
+    "- `OH_MY_PM_PROVIDER_CONFIG` — optional path to a `providers.json` file",
+    "",
+    "OH MY PM never writes these into your client configuration for you.",
   ].join("\n")}\n`;
 }
 

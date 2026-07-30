@@ -536,16 +536,35 @@ async function qualifyHelpAndMcpConfig(runCli, prefix) {
   const rejectedPrefix = runCli(["mcp-config", "--prefix", prefix], { env });
   assert(rejectedPrefix.code === 2, "installed mcp-config requires no --prefix and rejects it");
 
-  // No secret, environment value, or project root in the output.
+  // No secret, environment value, or project root in the output. A planted token
+  // VALUE must never appear in either mode. The env var NAME appears only in the
+  // Markdown guidance prose, never inside the emitted JSON config block.
   for (const [label, text] of [
     ["json", jsonConfig.stdout],
     ["markdown", markdownConfig.stdout],
   ]) {
-    assert(!text.includes(tokenSentinel), `installed mcp-config ${label} leaks no token`);
-    assert(!text.includes("OH_MY_PM_GITHUB_TOKEN"), `installed mcp-config ${label} names no token env var`);
+    assert(!text.includes(tokenSentinel), `installed mcp-config ${label} leaks no token value`);
     assert(!text.includes(dataProbe), `installed mcp-config ${label} leaks no data directory`);
-    assert(!/https?:\/\//.test(text.replace(/`/g, "")) || label === "markdown", `installed mcp-config ${label} contains no URL`);
+    const configBlock =
+      label === "json" ? text : (text.split("```json")[1]?.split("```")[0] ?? "");
+    assert(configBlock.trim() !== "", `installed mcp-config ${label} emits a config block`);
+    assert(
+      !configBlock.includes("OH_MY_PM_GITHUB_TOKEN") &&
+        !configBlock.includes("OH_MY_PM_PROVIDER_CONFIG"),
+      `installed mcp-config ${label} config block names no env var`,
+    );
+    const entry = safeParse(configBlock)?.mcpServers?.["oh-my-pm"];
+    assert(entry !== undefined, `installed mcp-config ${label} config block parses`);
+    assert(
+      entry !== undefined && !("env" in entry) && !("cwd" in entry),
+      `installed mcp-config ${label} emits no env or cwd key`,
+    );
   }
+  // JSON mode carries no guidance prose, so it names no env var at all.
+  assert(
+    !jsonConfig.stdout.includes("OH_MY_PM_GITHUB_TOKEN"),
+    "installed mcp-config json names no token env var",
+  );
 
   // No client-file or project write, and no application-data directory.
   assert(!existsSync(standardDataRootFor(dataProbe)), "installed mcp-config creates no app-data store");

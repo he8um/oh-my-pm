@@ -160,6 +160,25 @@ describe("mcp-config rendering", () => {
     expect(MCP_CONFIG_READ_ONLY_TOOLS[10]).toBe("project_changes");
   });
 
+  it("names the optional env vars in Markdown prose but never in the config block", () => {
+    const config = buildMcpClientConfig("oh-my-pm", POSIX_MCP);
+    const markdown = formatMcpClientConfig(config, "markdown");
+    // The prose names them so operators can add them themselves.
+    expect(markdown).toContain("OH_MY_PM_GITHUB_TOKEN");
+    expect(markdown).toContain("OH_MY_PM_PROVIDER_CONFIG");
+    // The emitted JSON config block carries neither, and no env key at all.
+    const jsonBlock = markdown.split("```json")[1]?.split("```")[0] ?? "";
+    expect(jsonBlock).not.toBe("");
+    expect(jsonBlock).not.toContain("OH_MY_PM_GITHUB_TOKEN");
+    expect(jsonBlock).not.toContain("OH_MY_PM_PROVIDER_CONFIG");
+    expect(jsonBlock).not.toContain("env");
+    // JSON mode carries no prose at all, so neither name can appear.
+    const json = formatMcpClientConfig(config, "json");
+    expect(json).not.toContain("OH_MY_PM_GITHUB_TOKEN");
+    expect(json).not.toContain("OH_MY_PM_PROVIDER_CONFIG");
+    expect(JSON.parse(json).mcpServers["oh-my-pm"]).not.toHaveProperty("env");
+  });
+
   it("renders newline-terminated deterministic output in both modes", () => {
     const config = buildMcpClientConfig("oh-my-pm", POSIX_MCP);
     for (const mode of ["json", "markdown"] as const) {
@@ -259,29 +278,38 @@ describe("mcp-config through the process runner", () => {
   });
 
   it("includes no token, credential, environment value, or project root", async () => {
-    const result = await runLocalCliProcess(["mcp-config"], {
-      entryScriptPath: POSIX_ENTRY,
-      platform: "linux",
-      commandExists: (p) => p === POSIX_MCP,
-      githubToken: "ghp_forbidden_sentinel_value",
-      env: {
-        OH_MY_PM_GITHUB_TOKEN: "ghp_env_sentinel_value",
-        HOME: "/home/forbidden-sentinel",
-      },
-      cwd: "/workspace/forbidden-project-root",
-    });
-    expect(result.exitCode).toBe(0);
-    for (const sentinel of [
-      "ghp_forbidden_sentinel_value",
-      "ghp_env_sentinel_value",
-      "forbidden-sentinel",
-      "forbidden-project-root",
-      "OH_MY_PM_GITHUB_TOKEN",
-      "Bearer ",
-      "env",
-      "cwd",
-    ]) {
-      expect(result.stdout, `output must not include "${sentinel}"`).not.toContain(sentinel);
+    // Both output modes are checked: no planted value may leak in either. The
+    // Markdown mode additionally names the optional env vars in prose only,
+    // which is covered by the rendering test above.
+    for (const mode of [[], ["--markdown"]]) {
+      const result = await runLocalCliProcess(["mcp-config", ...mode], {
+        entryScriptPath: POSIX_ENTRY,
+        platform: "linux",
+        commandExists: (p) => p === POSIX_MCP,
+        githubToken: "ghp_forbidden_sentinel_value",
+        env: {
+          OH_MY_PM_GITHUB_TOKEN: "ghp_env_sentinel_value",
+          HOME: "/home/forbidden-sentinel",
+        },
+        cwd: "/workspace/forbidden-project-root",
+      });
+      expect(result.exitCode).toBe(0);
+      for (const sentinel of [
+        "ghp_forbidden_sentinel_value",
+        "ghp_env_sentinel_value",
+        "forbidden-sentinel",
+        "forbidden-project-root",
+        "Bearer ",
+      ]) {
+        expect(result.stdout, `output must not include "${sentinel}"`).not.toContain(sentinel);
+      }
+      // No env or cwd key ever reaches the emitted server entry.
+      const json = mode.length === 0
+        ? result.stdout
+        : (result.stdout.split("```json")[1]?.split("```")[0] ?? "");
+      const entry = JSON.parse(json).mcpServers["oh-my-pm"];
+      expect(entry).not.toHaveProperty("env");
+      expect(entry).not.toHaveProperty("cwd");
     }
   });
 
