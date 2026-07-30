@@ -1,15 +1,23 @@
 #!/usr/bin/env node
-// v0.3 Phase 6 — installed-artifact Project Brain qualification.
+// Installed-artifact Project Brain qualification (v0.3 Phase 6; extended for the
+// v0.4 Project Timeline).
 //
 // Drives the EXTRACTED and INSTALLED release artifact (the oh-my-pm and
 // oh-my-pm-mcp shims under a temporary prefix), never the workspace package
 // entrypoints. It qualifies the full Project Brain feature slice end to end:
-// the six installed memory subcommands (capture/changes/status/history/export/
-// delete) across brief, --json, and --markdown output; the read-only
-// project_changes MCP tool (eleven-tool surface, sanitized projection); the
-// explicit v1 -> v2 store migration; safe corruption handling; serialized
-// concurrent captures; a planted-sentinel privacy audit; and source-independence
-// / relocation of the installed prefix.
+// the installed memory subcommands (capture/changes/status/history/export/
+// delete, plus timeline under the v0.4 profile) across brief, --json, and
+// --markdown output; the read-only Project Brain MCP tools (project_changes,
+// plus project_timeline under the v0.4 profile) with their sanitized
+// projections; the explicit v1 -> v2 store migration; safe corruption handling;
+// serialized concurrent captures; a planted-sentinel privacy audit; and
+// source-independence / relocation of the installed prefix.
+//
+// The tool is PROFILE-AWARE: it reads the installed RELEASE.json bundleProfile
+// and qualifies whichever released surface the artifact declares, so the same
+// harness qualifies a v0.3 "project-brain" artifact (six memory subcommands,
+// eleven MCP tools) and a v0.4 "project-brain-timeline" artifact (seven memory
+// subcommands, twelve MCP tools) without a competing parallel implementation.
 //
 // Node.js 20+ built-ins only, plus the MCP SDK and @oh-my-pm/project-memory that
 // are already contained in the installed artifact. Every writable location
@@ -21,6 +29,10 @@
 // Usage:
 //   node tools/check-v0.3-installed-project-brain.mjs --prefix <installed-prefix> [--json]
 //   node tools/check-v0.3-installed-project-brain.mjs --archive <tar.gz|zip> --work <dir> [--json]
+//
+// The expected profile may be pinned with --profile <project-brain|
+// project-brain-timeline>; when omitted the artifact's own declared profile is
+// accepted and drives which surface is qualified.
 //
 // With --prefix, the artifact must already be installed under that prefix (the
 // caller extracted + installed it). With --archive, the script extracts the
@@ -72,10 +84,38 @@ function assert(cond, label, detail) {
 // ----------------------------------------------------------------------------
 // Argument parsing.
 // ----------------------------------------------------------------------------
+/**
+ * The released profiles this harness knows how to qualify. Each declares the
+ * surface counts the installed artifact must exhibit. A profile is never
+ * inferred from a version string: it comes from the artifact's own RELEASE.json,
+ * optionally pinned by --profile.
+ */
+const PROFILES = {
+  "project-brain": {
+    memorySubcommands: ["capture", "changes", "status", "history", "export", "delete"],
+    mcpToolCount: 11,
+    hasTimeline: false,
+  },
+  "project-brain-timeline": {
+    memorySubcommands: [
+      "capture",
+      "changes",
+      "status",
+      "history",
+      "export",
+      "delete",
+      "timeline",
+    ],
+    mcpToolCount: 12,
+    hasTimeline: true,
+  },
+};
+
 function parseArgs(argv) {
   let prefix;
   let archive;
   let work;
+  let profile;
   let json = false;
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
@@ -85,6 +125,8 @@ function parseArgs(argv) {
       archive = argv[++i];
     } else if (a === "--work") {
       work = argv[++i];
+    } else if (a === "--profile") {
+      profile = argv[++i];
     } else if (a === "--json") {
       json = true;
     } else {
@@ -97,7 +139,10 @@ function parseArgs(argv) {
   if (archive !== undefined && work === undefined) {
     return { ok: false, message: "--archive requires --work" };
   }
-  return { ok: true, prefix, archive, work, json };
+  if (profile !== undefined && PROFILES[profile] === undefined) {
+    return { ok: false, message: `unknown --profile: ${profile}` };
+  }
+  return { ok: true, prefix, archive, work, profile, json };
 }
 
 // ----------------------------------------------------------------------------
@@ -263,7 +308,7 @@ if (parsed.json) {
   process.stdout.write(
     `${JSON.stringify(
       {
-        tool: "check-v0.3-installed-project-brain",
+        tool: "check-installed-project-brain",
         ok: failures.length === 0,
         total: checks.length,
         passed: checks.length - failures.length,
@@ -292,7 +337,7 @@ if (parsed.json) {
     }
   }
   process.stdout.write(
-    `\nv0.3 installed Project Brain qualification: ${failures.length === 0 ? "OK" : "FAILED"} (${
+    `\ninstalled Project Brain qualification: ${failures.length === 0 ? "OK" : "FAILED"} (${
       checks.length - failures.length
     }/${checks.length})\n`,
   );
@@ -324,8 +369,33 @@ async function main() {
   // Project Memory package (dist-only).
   const releasePath = join(versionDir, "RELEASE.json");
   const release = readJson(releasePath);
-  assert(release.bundleProfile === "project-brain", "installed RELEASE.json bundleProfile is project-brain");
-  assert(release.expectedMcpToolCount === 11, "installed RELEASE.json expectedMcpToolCount is 11");
+  // Profile resolution: the artifact declares its own profile; --profile pins the
+  // expectation so a release job cannot silently qualify the wrong surface.
+  const declaredProfile = release.bundleProfile;
+  if (parsed.profile !== undefined) {
+    assert(
+      declaredProfile === parsed.profile,
+      `installed RELEASE.json bundleProfile is ${parsed.profile}`,
+      `got ${declaredProfile}`,
+    );
+  }
+  const profile = PROFILES[declaredProfile];
+  if (!assert(profile !== undefined, "installed RELEASE.json declares a known bundleProfile", `got ${declaredProfile}`)) {
+    return;
+  }
+  assert(
+    release.expectedMcpToolCount === profile.mcpToolCount,
+    `installed RELEASE.json expectedMcpToolCount is ${profile.mcpToolCount}`,
+    `got ${release.expectedMcpToolCount}`,
+  );
+  assert(
+    release.projectBrainSchemaVersion === undefined || release.projectBrainSchemaVersion === 1,
+    "installed RELEASE.json Project Brain schema version is 1",
+  );
+  assert(
+    release.storeFormatVersion === undefined || release.storeFormatVersion === 2,
+    "installed RELEASE.json store format version is 2",
+  );
   const pmDir = join(versionDir, "node_modules", "@oh-my-pm", "project-memory");
   assert(isFile(join(pmDir, "dist", "index.js")), "installed project-memory dist/index.js present");
   assert(!existsSync(join(pmDir, "src")), "installed project-memory ships no src/");
@@ -334,14 +404,19 @@ async function main() {
   const runCli = makeRunner(prefix, versionDir);
 
   await qualifyBaselineCommands(runCli);
-  await qualifyHelpAndMcpConfig(runCli, prefix);
+  await qualifyHelpAndMcpConfig(runCli, prefix, profile);
   await qualifyProjectFixtureJourney(runCli, version);
-  await qualifyMcp(prefix, versionDir, release);
+  await qualifyMcp(prefix, versionDir, release, profile);
   await qualifyDataLocations(runCli, version);
   await qualifyMigration(runCli, pmDir);
   await qualifyCorruption(runCli, prefix, versionDir, pmDir);
   await qualifyConcurrency(runCli, version);
   await qualifyPrivacy(runCli, version, pmDir);
+  if (profile.hasTimeline) {
+    await qualifyTimelineCli(runCli, version);
+    await qualifyTimelineMcp(prefix, versionDir);
+    await qualifyV031StoreCompatibility(runCli, version);
+  }
   qualifySourceIndependenceAndRelocation(prefix, versionDir);
 }
 
@@ -419,7 +494,7 @@ async function qualifyBaselineCommands(runCli) {
 // leak no secret/environment/project path, write nothing, and fail closed with
 // exit 2 on invalid arguments.
 // ----------------------------------------------------------------------------
-async function qualifyHelpAndMcpConfig(runCli, prefix) {
+async function qualifyHelpAndMcpConfig(runCli, prefix, profile) {
   section("cli-help");
   const dataProbe = scratch("help-data");
   rmSync(dataProbe, { recursive: true, force: true });
@@ -456,9 +531,17 @@ async function qualifyHelpAndMcpConfig(runCli, prefix) {
     assert(nsHelp.stderr === "", `installed ${namespace} --help writes nothing to stderr`);
     assert(newlineTerminated(nsHelp.stdout), `installed ${namespace} --help newline-terminated`);
   }
+  // The installed memory help must list exactly the profile's subcommands, and
+  // must not claim a subcommand the artifact does not ship.
   const memoryHelp = runCli(["memory", "--help"], { env });
-  for (const sub of ["capture", "changes", "status", "history", "export", "delete"]) {
+  for (const sub of profile.memorySubcommands) {
     assert(memoryHelp.stdout.includes(sub), `installed memory help lists ${sub}`);
+  }
+  if (!profile.hasTimeline) {
+    assert(
+      !memoryHelp.stdout.includes("timeline"),
+      "installed memory help does not claim timeline on the v0.3 profile",
+    );
   }
 
   // Help creates no application-data directory and no project file.
@@ -497,12 +580,19 @@ async function qualifyHelpAndMcpConfig(runCli, prefix) {
   const repeatConfig = runCli(["mcp-config"], { env });
   assert(repeatConfig.stdout === jsonConfig.stdout, "installed mcp-config output is deterministic");
 
-  // Markdown mode: eleven read-only tools, including project_changes.
+  // Markdown mode: the profile's read-only tool count and every tool name. The
+  // generated document must be TRUTHFUL about the surface it configures.
   const markdownConfig = runCli(["mcp-config", "--markdown"], { env });
   assert(markdownConfig.code === 0, "installed mcp-config --markdown exits 0");
-  assert(markdownConfig.stdout.includes("11 read-only tools"), "installed mcp-config --markdown declares eleven read-only tools");
-  assert(markdownConfig.stdout.includes("`project_changes`"), "installed mcp-config --markdown includes project_changes");
-  for (const tool of [
+  assert(
+    markdownConfig.stdout.includes(`${profile.mcpToolCount} read-only tools`),
+    `installed mcp-config --markdown declares ${profile.mcpToolCount} read-only tools`,
+  );
+  assert(
+    markdownConfig.stdout.includes("There are no write tools"),
+    "installed mcp-config --markdown states there are no write tools",
+  );
+  const configuredTools = [
     "project_brief",
     "project_risks",
     "project_next",
@@ -514,9 +604,18 @@ async function qualifyHelpAndMcpConfig(runCli, prefix) {
     "provider_status",
     "github_provider_diagnostics",
     "project_changes",
-  ]) {
+    ...(profile.hasTimeline ? ["project_timeline"] : []),
+  ];
+  for (const tool of configuredTools) {
     assert(markdownConfig.stdout.includes(`\`${tool}\``), `installed mcp-config --markdown lists ${tool}`);
   }
+  if (!profile.hasTimeline) {
+    assert(
+      !markdownConfig.stdout.includes("`project_timeline`"),
+      "installed mcp-config --markdown does not claim a timeline tool on the v0.3 profile",
+    );
+  }
+
   assert(newlineTerminated(markdownConfig.stdout), "installed mcp-config --markdown newline-terminated");
 
   // A custom valid name.
@@ -740,7 +839,7 @@ async function qualifyProjectFixtureJourney(runCli, version) {
 // Installed MCP qualification (section 8): eleven tools in exact order,
 // project_changes journey, sanitized projection, stdio only.
 // ----------------------------------------------------------------------------
-async function qualifyMcp(prefix, versionDir, release) {
+async function qualifyMcp(prefix, versionDir, release, profile) {
   section("mcp");
   const dataRoot = scratch("mcp-data");
   const env = isolatedDataEnv(dataRoot);
@@ -791,19 +890,55 @@ async function qualifyMcp(prefix, versionDir, release) {
       return { client, transport, stderr: () => stderrChunks.join("") };
     })();
 
-  // 1. list tools -> exact eleven, exact order.
+  // 1. list tools -> the profile's exact count, in the exact registration order.
+  const expectedOrder = profile.hasTimeline
+    ? [...EXPECTED_ORDER, "project_timeline"]
+    : EXPECTED_ORDER;
   let conn = await connect();
   try {
     const { tools } = await conn.client.listTools();
     const names = tools.map((t) => t.name);
-    assert(names.length === 11, "installed MCP lists exactly eleven tools", `got ${names.length}`);
-    assert(JSON.stringify(names) === JSON.stringify(EXPECTED_ORDER), "installed MCP tool order is exact");
-    // Zero write tools: every tool is annotated read-only, project_changes is the
-    // only Project Brain tool.
+    assert(
+      names.length === profile.mcpToolCount,
+      `installed MCP lists exactly ${profile.mcpToolCount} tools`,
+      `got ${names.length}`,
+    );
+    assert(JSON.stringify(names) === JSON.stringify(expectedOrder), "installed MCP tool order is exact");
+    // ZERO write tools across the whole surface: no tool may declare a
+    // destructive mutation or opt out of the read-only hint.
+    let writeTools = 0;
+    for (const tool of tools) {
+      const annotations = tool.annotations ?? {};
+      if (annotations.destructiveHint === true || annotations.readOnlyHint === false) {
+        writeTools += 1;
+      }
+    }
+    assert(writeTools === 0, "installed MCP exposes zero write tools", `got ${writeTools}`);
     const pc = tools.find((t) => t.name === "project_changes");
     assert(pc !== undefined, "project_changes is registered");
     assert(pc?.annotations?.readOnlyHint === true, "project_changes annotated readOnlyHint:true");
     assert(pc?.annotations?.destructiveHint === false, "project_changes annotated destructiveHint:false");
+    if (profile.hasTimeline) {
+      const pt = tools.find((t) => t.name === "project_timeline");
+      assert(pt !== undefined, "project_timeline is registered");
+      assert(pt?.annotations?.readOnlyHint === true, "project_timeline annotated readOnlyHint:true");
+      assert(pt?.annotations?.destructiveHint === false, "project_timeline annotated destructiveHint:false");
+      // The input schema exposes exactly the five documented fields and no path.
+      const props = Object.keys(pt?.inputSchema?.properties ?? {}).sort();
+      assert(
+        JSON.stringify(props) === JSON.stringify(["beforeSequence", "category", "kind", "limit", "projectId"]),
+        "project_timeline input schema exposes exactly the five documented fields",
+        `got ${props.join(",")}`,
+      );
+      for (const forbidden of ["root", "path", "dataDir", "apply", "migrate", "confirm", "force", "token"]) {
+        assert(!props.includes(forbidden), `project_timeline input schema has no ${forbidden} field`);
+      }
+    } else {
+      assert(
+        tools.find((t) => t.name === "project_timeline") === undefined,
+        "the v0.3 profile registers no project_timeline tool",
+      );
+    }
 
     // 2. project_brief on the installed/public fixture.
     const brief = await conn.client.callTool({ name: "project_brief", arguments: { root: fixtureRoot } });
@@ -1528,4 +1663,555 @@ function collectText(root) {
 function dirname(p) {
   const idx = Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\"));
   return idx <= 0 ? p : p.slice(0, idx);
+}
+
+// ----------------------------------------------------------------------------
+// v0.4 — installed `memory timeline` qualification.
+//
+// Builds a real three-capture store through the installed CLI, then qualifies the
+// installed timeline command: exit codes, the stdout/stderr split, determinism,
+// filtering, pagination, an empty history, corruption fail-safety, the privacy
+// allowlist, and that the read performs no write and creates no directory.
+// ----------------------------------------------------------------------------
+async function qualifyTimelineCli(runCli, version) {
+  section("timeline-cli");
+  const root = scratch("timeline-cli");
+  const projectDir = join(root, "project");
+  const dataDir = join(root, "data");
+  mkdirSync(projectDir, { recursive: true });
+  const env = isolatedDataEnv(join(root, "home"));
+  const PROJECT_ID = "installed-timeline-project";
+  writeFileSync(
+    join(projectDir, "oh-my-pm.config.json"),
+    JSON.stringify({ version: 1, projectId: PROJECT_ID, documents: { include: ["**/*.md"] } }),
+    "utf8",
+  );
+  const readme = join(projectDir, "README.md");
+  const j = (args) => runCli([...args, "--data-dir", dataDir, "--json"], { env, cwd: root });
+  const timeline = (extra = []) =>
+    j(["memory", "timeline", "--project-id", PROJECT_ID, ...extra]);
+
+  // 1. An empty history: a valid EMPTY timeline, exit 0, and no directory made.
+  rmSync(dataDir, { recursive: true, force: true });
+  let r = timeline();
+  assert(r.code === 0, "installed timeline on an empty history exits 0");
+  let data = safeParse(r.stdout)?.data;
+  assert(data?.eventCount === 0, "installed timeline on an empty history returns no events");
+  assert(data?.hasMore === false, "installed timeline on an empty history reports hasMore false");
+  assert(data?.nextBeforeSequence === undefined, "installed timeline on an empty history emits no cursor");
+  assert(!existsSync(dataDir), "installed timeline created no application-data directory");
+
+  // 2. Three captures build a two-comparison timeline.
+  writeFileSync(readme, "# T\n\n- [ ] TODO: build the thing\n", "utf8");
+  assert(j(["memory", "capture", projectDir, "--apply"]).code === 0, "installed timeline fixture capture 1");
+  writeFileSync(readme, "# T\n\n- [x] DONE: build the thing\n- [ ] TODO: test the thing\n", "utf8");
+  assert(j(["memory", "capture", projectDir, "--apply"]).code === 0, "installed timeline fixture capture 2");
+  writeFileSync(
+    readme,
+    "# T\n\n- [x] DONE: build the thing\n- [x] DONE: test the thing\n- [ ] TODO: ship the thing\n",
+    "utf8",
+  );
+  assert(j(["memory", "capture", projectDir, "--apply"]).code === 0, "installed timeline fixture capture 3");
+
+  // 3. A populated timeline in authoritative capture order.
+  r = timeline();
+  assert(r.code === 0, "installed timeline exits 0 on a populated history");
+  assert(r.stderr === "", "installed timeline writes nothing to stderr on success");
+  assert(newlineTerminated(r.stdout), "installed timeline output newline-terminated");
+  const parsedTimeline = safeParse(r.stdout);
+  assert(parsedTimeline?.command === "memory.timeline", "installed timeline reports its command");
+  data = parsedTimeline?.data;
+  const events = data?.events ?? [];
+  assert(events.length > 0, "installed timeline returns events");
+  assert(data?.eventCount === events.length, "installed timeline eventCount matches the array length");
+  let ordered = true;
+  for (let i = 1; i < events.length; i += 1) {
+    const prev = events[i - 1];
+    const next = events[i];
+    if (prev.captureSequence === next.captureSequence) {
+      if (!(next.eventSequence > prev.eventSequence)) ordered = false;
+    } else if (!(next.captureSequence < prev.captureSequence)) {
+      ordered = false;
+    }
+  }
+  assert(ordered, "installed timeline is ordered newest capture first, then event sequence");
+  const sequences = [...new Set(events.map((e) => e.captureSequence))].sort();
+  assert(
+    JSON.stringify(sequences) === JSON.stringify([2, 3]),
+    "installed timeline attributes events to captures 2 and 3 only",
+    `got ${sequences.join(",")}`,
+  );
+
+  // 4. The privacy allowlist: exactly these fields, and nothing else.
+  const ALLOWED = [
+    "eventId",
+    "projectId",
+    "snapshotId",
+    "captureSequence",
+    "eventSequence",
+    "capturedAt",
+    "category",
+    "kind",
+    "subjectId",
+    "evidenceCount",
+    "title",
+    "status",
+    "severity",
+    "dueDate",
+  ];
+  let extraField = null;
+  for (const event of events) {
+    for (const key of Object.keys(event)) {
+      if (!ALLOWED.includes(key)) extraField = key;
+    }
+  }
+  assert(extraField === null, "installed timeline events expose only allow-listed fields", extraField ?? "");
+  for (const forbidden of ["evidenceRefs", "previousValue", "currentValue", "stateFingerprint", "contentFingerprint"]) {
+    assert(!r.stdout.includes(forbidden), `installed timeline output carries no ${forbidden}`);
+  }
+  assert(!r.stdout.includes(dataDir), "installed timeline output carries no data-directory path");
+  assert(!r.stdout.includes(projectDir), "installed timeline output carries no project path");
+
+  // 5. Determinism and the other two output modes.
+  assert(timeline().stdout === r.stdout, "installed timeline output is deterministic");
+  const brief = runCli(["memory", "timeline", "--project-id", PROJECT_ID, "--data-dir", dataDir], { env, cwd: root });
+  assert(brief.code === 0 && newlineTerminated(brief.stdout), "installed timeline brief mode exits 0, newline-terminated");
+  const markdown = runCli(
+    ["memory", "timeline", "--project-id", PROJECT_ID, "--data-dir", dataDir, "--markdown"],
+    { env, cwd: root },
+  );
+  assert(markdown.code === 0, "installed timeline markdown mode exits 0");
+  assert(markdown.stdout.includes("# OH MY PM Memory Timeline"), "installed timeline markdown has its heading");
+  assert(markdown.stdout.includes("### Capture #3"), "installed timeline markdown groups by capture");
+  assert(newlineTerminated(markdown.stdout), "installed timeline markdown newline-terminated");
+
+  // 6. Filters.
+  const firstCategory = events[0].category;
+  const filteredCategory = timeline(["--category", firstCategory]);
+  assert(filteredCategory.code === 0, "installed timeline --category exits 0");
+  const categoryEvents = safeParse(filteredCategory.stdout)?.data?.events ?? [];
+  assert(categoryEvents.length > 0, "installed timeline --category returns events");
+  assert(
+    categoryEvents.every((e) => e.category === firstCategory),
+    "installed timeline --category filters exactly",
+  );
+  const filteredKind = timeline(["--kind", "task"]);
+  assert(filteredKind.code === 0, "installed timeline --kind exits 0");
+  assert(
+    (safeParse(filteredKind.stdout)?.data?.events ?? []).every((e) => e.kind === "task"),
+    "installed timeline --kind filters exactly",
+  );
+  const combined = timeline(["--category", firstCategory, "--kind", events[0].kind]);
+  assert(
+    (safeParse(combined.stdout)?.data?.events ?? []).every(
+      (e) => e.category === firstCategory && e.kind === events[0].kind,
+    ),
+    "installed timeline combined filters conjoin",
+  );
+
+  // 7. Pagination: walking every page visits each event exactly once.
+  const seen = [];
+  let before;
+  for (let guard = 0; guard < 12; guard += 1) {
+    const page = timeline(["--limit", "1", ...(before !== undefined ? ["--before-sequence", String(before)] : [])]);
+    if (page.code !== 0) break;
+    const pageData = safeParse(page.stdout)?.data;
+    for (const e of pageData?.events ?? []) seen.push(e.eventId);
+    if (pageData?.hasMore !== true) break;
+    before = pageData.nextBeforeSequence;
+  }
+  assert(
+    JSON.stringify(seen) === JSON.stringify(events.map((e) => e.eventId)),
+    "installed timeline pagination visits every event exactly once, in order",
+  );
+  assert(new Set(seen).size === seen.length, "installed timeline pagination never duplicates an event");
+  const bounded = timeline(["--before-sequence", "3"]);
+  assert(
+    (safeParse(bounded.stdout)?.data?.events ?? []).every((e) => e.captureSequence < 3),
+    "installed timeline --before-sequence excludes the bound and above",
+  );
+
+  // 8. Usage errors: exit 2, stderr only, no stdout.
+  for (const [label, args] of [
+    ["missing --project-id", ["memory", "timeline"]],
+    ["limit 0", ["memory", "timeline", "--project-id", PROJECT_ID, "--limit", "0"]],
+    ["limit 101", ["memory", "timeline", "--project-id", PROJECT_ID, "--limit", "101"]],
+    ["invalid category", ["memory", "timeline", "--project-id", PROJECT_ID, "--category", "nope"]],
+    ["invalid kind", ["memory", "timeline", "--project-id", PROJECT_ID, "--kind", "nope"]],
+    ["--apply", ["memory", "timeline", "--project-id", PROJECT_ID, "--apply"]],
+    ["unknown option", ["memory", "timeline", "--project-id", PROJECT_ID, "--nope"]],
+  ]) {
+    const bad_ = runCli([...args, "--data-dir", dataDir], { env, cwd: root });
+    assert(bad_.code === 2, `installed timeline ${label} exits 2`);
+    assert(bad_.stdout === "", `installed timeline ${label} writes no stdout`);
+    assert(bad_.stderr !== "", `installed timeline ${label} writes to stderr`);
+  }
+  // The limit bounds themselves are accepted.
+  assert(timeline(["--limit", "1"]).code === 0, "installed timeline accepts --limit 1");
+  assert(timeline(["--limit", "100"]).code === 0, "installed timeline accepts --limit 100");
+  assert(safeParse(timeline().stdout)?.data?.limit === 20, "installed timeline default limit is 20");
+
+  // 9. An unknown project is a valid empty timeline, not a failure.
+  const unknown = runCli(
+    ["memory", "timeline", "--project-id", "no-such-project", "--data-dir", dataDir, "--json"],
+    { env, cwd: root },
+  );
+  assert(unknown.code === 0, "installed timeline on an unknown project exits 0");
+  assert(safeParse(unknown.stdout)?.data?.eventCount === 0, "installed timeline on an unknown project returns no events");
+
+  // 10. No project root and no project config are required.
+  const bare = scratch("timeline-bare");
+  const bareRun = runCli(
+    ["memory", "timeline", "--project-id", PROJECT_ID, "--data-dir", dataDir, "--json"],
+    { env, cwd: bare },
+  );
+  assert(bareRun.code === 0, "installed timeline needs no project root or config");
+  assert((safeParse(bareRun.stdout)?.data?.events ?? []).length > 0, "installed timeline works from a bare directory");
+
+  // 11. ZERO writes: the store is byte-identical after many reads.
+  const beforeTree = hashTree(join(dataDir, "project-brain"));
+  timeline();
+  timeline(["--limit", "1"]);
+  timeline(["--category", firstCategory]);
+  timeline(["--kind", "risk", "--before-sequence", "3"]);
+  runCli(["memory", "timeline", "--project-id", PROJECT_ID, "--data-dir", dataDir, "--markdown"], { env, cwd: root });
+  const afterTree = hashTree(join(dataDir, "project-brain"));
+  assert(treesEqual(beforeTree, afterTree), "installed timeline performs zero writes");
+  const storeFiles = [];
+  const walkStore = (dir) => {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const abs = join(dir, entry.name);
+      if (entry.isDirectory()) walkStore(abs);
+      else storeFiles.push(abs);
+    }
+  };
+  walkStore(join(dataDir, "project-brain"));
+  assert(!storeFiles.some((f) => f.endsWith(".lock")), "installed timeline acquires no lock");
+  assert(!storeFiles.some((f) => f.includes("staging")), "installed timeline leaves no staging directory");
+  assert(!storeFiles.some((f) => f.includes("backups")), "installed timeline leaves no backup");
+  assert(!existsSync(join(projectDir, "project-brain")), "installed timeline writes nothing into the project");
+
+  // 12. Corruption fails CLOSED with no partial stdout.
+  const corruptData = join(root, "corrupt-data");
+  rmSync(corruptData, { recursive: true, force: true });
+  cpSync(dataDir, corruptData, { recursive: true });
+  const corruptFiles = [];
+  const walkCorrupt = (dir) => {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const abs = join(dir, entry.name);
+      if (entry.isDirectory()) walkCorrupt(abs);
+      else corruptFiles.push(abs);
+    }
+  };
+  walkCorrupt(corruptData);
+  const snapshotFile = corruptFiles.find((f) => f.includes("snapshots"));
+  if (assert(snapshotFile !== undefined, "installed timeline corruption fixture has a snapshot record")) {
+    writeFileSync(snapshotFile, "{ not valid json", "utf8");
+    const corrupted = runCli(
+      ["memory", "timeline", "--project-id", PROJECT_ID, "--data-dir", corruptData, "--json"],
+      { env, cwd: root },
+    );
+    assert(corrupted.code !== 0, "installed timeline over a corrupt store exits nonzero");
+    assert(corrupted.stdout === "", "installed timeline over a corrupt store emits no partial stdout");
+    assert(corrupted.stderr !== "", "installed timeline over a corrupt store reports a controlled error");
+    assert(
+      !corrupted.stderr.includes(corruptData),
+      "installed timeline corruption error leaks no data-directory path",
+    );
+  }
+
+  // 13. The six historical subcommands are unchanged alongside the timeline.
+  for (const [sub, extra] of [
+    ["status", ["--project-id", PROJECT_ID]],
+    ["history", ["--project-id", PROJECT_ID]],
+    ["changes", ["--project-id", PROJECT_ID]],
+    ["capture", [projectDir]],
+  ]) {
+    const legacy = j(["memory", sub, ...extra]);
+    assert(legacy.code === 0, `installed memory ${sub} still exits 0 alongside the timeline`);
+    assert(safeParse(legacy.stdout)?.command === `memory.${sub}`, `installed memory ${sub} envelope unchanged`);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// v0.4 — installed `project_timeline` MCP qualification over a real store.
+// ----------------------------------------------------------------------------
+async function qualifyTimelineMcp(prefix, versionDir) {
+  section("timeline-mcp");
+  const root = scratch("timeline-mcp");
+  const projectDir = join(root, "project");
+  mkdirSync(projectDir, { recursive: true });
+  const home = join(root, "home");
+  const env = isolatedDataEnv(home);
+  const PROJECT_ID = "installed-timeline-mcp";
+  writeFileSync(
+    join(projectDir, "oh-my-pm.config.json"),
+    JSON.stringify({ version: 1, projectId: PROJECT_ID, documents: { include: ["**/*.md"] } }),
+    "utf8",
+  );
+  const readme = join(projectDir, "README.md");
+  const runCli = makeRunner(prefix, versionDir);
+  // The MCP tool resolves the STANDARD data root, so the CLI must capture into
+  // that same standard location (no --data-dir) under the isolated HOME.
+  const cli = (args) => runCli([...args, "--json"], { env, cwd: root });
+  writeFileSync(readme, "# M\n\n- [ ] TODO: alpha\n", "utf8");
+  assert(cli(["memory", "capture", projectDir, "--apply"]).code === 0, "MCP timeline fixture capture 1");
+  writeFileSync(readme, "# M\n\n- [x] DONE: alpha\n- [ ] TODO: beta\n", "utf8");
+  assert(cli(["memory", "capture", projectDir, "--apply"]).code === 0, "MCP timeline fixture capture 2");
+  writeFileSync(readme, "# M\n\n- [x] DONE: alpha\n- [x] DONE: beta\n- [ ] TODO: gamma\n", "utf8");
+  assert(cli(["memory", "capture", projectDir, "--apply"]).code === 0, "MCP timeline fixture capture 3");
+
+  const command = isWindows ? process.execPath : join(prefix, "bin", "oh-my-pm-mcp");
+  const args = isWindows ? [join(versionDir, "packages", "mcp-server", "bin", "oh-my-pm-mcp.mjs")] : [];
+  const requireFromBundle = createRequire(join(versionDir, "packages", "mcp-server", "package.json"));
+  let Client;
+  let StdioClientTransport;
+  try {
+    ({ Client } = await import(
+      pathToFileURL(requireFromBundle.resolve("@modelcontextprotocol/sdk/client/index.js")).href
+    ));
+    ({ StdioClientTransport } = await import(
+      pathToFileURL(requireFromBundle.resolve("@modelcontextprotocol/sdk/client/stdio.js")).href
+    ));
+  } catch {
+    bad("timeline-mcp", "could not resolve the MCP SDK from the installed artifact");
+    return;
+  }
+
+  const transport = new StdioClientTransport({ command, args, cwd: versionDir, env, stderr: "pipe" });
+  const stderrChunks = [];
+  if (transport.stderr) transport.stderr.on("data", (c) => stderrChunks.push(c.toString()));
+  const client = new Client({ name: "omp-timeline-qual", version: "0.0.0" });
+  const storeRoot = join(standardDataRootFor(home), "project-brain");
+  try {
+    await client.connect(transport);
+
+    const beforeTree = hashTree(storeRoot);
+
+    // 1. A populated timeline in capture order.
+    const populated = await client.callTool({
+      name: "project_timeline",
+      arguments: { projectId: PROJECT_ID },
+    });
+    assert(!populated.isError, "MCP project_timeline succeeds over a real store");
+    const sc = populated.structuredContent ?? {};
+    assert(sc.schemaVersion === 1, "MCP project_timeline reports schemaVersion 1");
+    assert(sc.chronology === "capture-order", "MCP project_timeline reports capture-order chronology");
+    const mcpEvents = sc.events ?? [];
+    assert(mcpEvents.length > 0, "MCP project_timeline returns events");
+    assert(sc.eventCount === mcpEvents.length, "MCP project_timeline eventCount matches the array");
+    let mcpOrdered = true;
+    for (let i = 1; i < mcpEvents.length; i += 1) {
+      const prev = mcpEvents[i - 1];
+      const next = mcpEvents[i];
+      if (prev.captureSequence === next.captureSequence) {
+        if (!(next.eventSequence > prev.eventSequence)) mcpOrdered = false;
+      } else if (!(next.captureSequence < prev.captureSequence)) {
+        mcpOrdered = false;
+      }
+    }
+    assert(mcpOrdered, "MCP project_timeline is ordered newest capture first");
+
+    // 2. The forbidden-field audit over the full serialized result.
+    const serialized = `${JSON.stringify(sc)}\n${populated.content?.[0]?.text ?? ""}`;
+    for (const forbidden of [
+      "evidenceRefs",
+      "previousValue",
+      "currentValue",
+      '"trace"',
+      "stateFingerprint",
+      "snapshotHistory",
+      "projectRoot",
+      "dataRoot",
+      "runtimeResponse",
+      "providerResponses",
+      "Authorization",
+      "Bearer ",
+    ]) {
+      assert(!serialized.includes(forbidden), `MCP project_timeline output carries no ${forbidden}`);
+    }
+    assert(!serialized.includes(home), "MCP project_timeline output leaks no data-root path");
+    assert(!serialized.includes(projectDir), "MCP project_timeline output leaks no project path");
+    assert(!/\/Users\/|\/home\/|[A-Z]:\\/.test(serialized), "MCP project_timeline output leaks no absolute path");
+    const ALLOWED_MCP = [
+      "eventId",
+      "snapshotId",
+      "captureSequence",
+      "eventSequence",
+      "capturedAt",
+      "category",
+      "kind",
+      "subjectId",
+      "title",
+      "status",
+      "severity",
+      "dueDate",
+      "evidenceCount",
+    ];
+    let mcpExtra = null;
+    for (const e of mcpEvents) {
+      for (const key of Object.keys(e)) if (!ALLOWED_MCP.includes(key)) mcpExtra = key;
+    }
+    assert(mcpExtra === null, "MCP project_timeline events expose only allow-listed fields", mcpExtra ?? "");
+
+    // 3. Determinism.
+    const again = await client.callTool({
+      name: "project_timeline",
+      arguments: { projectId: PROJECT_ID },
+    });
+    assert(
+      JSON.stringify(again.structuredContent) === JSON.stringify(sc),
+      "MCP project_timeline output is deterministic",
+    );
+
+    // 4. Filters.
+    const kindFiltered = await client.callTool({
+      name: "project_timeline",
+      arguments: { projectId: PROJECT_ID, kind: "task" },
+    });
+    assert(!kindFiltered.isError, "MCP project_timeline kind filter succeeds");
+    assert(
+      (kindFiltered.structuredContent?.events ?? []).every((e) => e.kind === "task"),
+      "MCP project_timeline kind filter is exact",
+    );
+    const categoryFiltered = await client.callTool({
+      name: "project_timeline",
+      arguments: { projectId: PROJECT_ID, category: mcpEvents[0].category },
+    });
+    assert(
+      (categoryFiltered.structuredContent?.events ?? []).every((e) => e.category === mcpEvents[0].category),
+      "MCP project_timeline category filter is exact",
+    );
+
+    // 5. Pagination.
+    const pageSeen = [];
+    let cursor;
+    for (let guard = 0; guard < 12; guard += 1) {
+      const page = await client.callTool({
+        name: "project_timeline",
+        arguments: { projectId: PROJECT_ID, limit: 1, ...(cursor !== undefined ? { beforeSequence: cursor } : {}) },
+      });
+      if (page.isError) break;
+      const pageSc = page.structuredContent ?? {};
+      for (const e of pageSc.events ?? []) pageSeen.push(e.eventId);
+      if (pageSc.hasMore !== true) break;
+      cursor = pageSc.nextBeforeSequence;
+    }
+    assert(
+      JSON.stringify(pageSeen) === JSON.stringify(mcpEvents.map((e) => e.eventId)),
+      "MCP project_timeline pagination visits every event exactly once",
+    );
+    assert(new Set(pageSeen).size === pageSeen.length, "MCP project_timeline pagination never duplicates");
+
+    // 6. An unknown project is a valid empty result.
+    const unknown = await client.callTool({
+      name: "project_timeline",
+      arguments: { projectId: "no-such-project-at-all" },
+    });
+    assert(!unknown.isError, "MCP project_timeline on an unknown project is not an error");
+    assert(unknown.structuredContent?.eventCount === 0, "MCP project_timeline on an unknown project returns no events");
+
+    // 7. Bounded input: over the maximum limit is a controlled error.
+    const overLimit = await client.callTool({
+      name: "project_timeline",
+      arguments: { projectId: PROJECT_ID, limit: 101 },
+    });
+    assert(overLimit.isError === true, "MCP project_timeline rejects a limit above 100");
+    const badCategory = await client.callTool({
+      name: "project_timeline",
+      arguments: { projectId: PROJECT_ID, category: "invented" },
+    });
+    assert(badCategory.isError === true, "MCP project_timeline rejects an unknown category");
+
+    // 8. ZERO writes across every call above.
+    assert(treesEqual(beforeTree, hashTree(storeRoot)), "MCP project_timeline performs zero writes");
+    assert(stderrChunks.join("").trim() === "", "MCP project_timeline leaves stderr empty");
+  } catch (e) {
+    bad("timeline-mcp", `MCP timeline qualification threw: ${e && e.message ? e.message : "unknown"}`);
+  } finally {
+    await safeClose({ client, transport });
+  }
+}
+
+// ----------------------------------------------------------------------------
+// v0.4 — direct v0.3.1 store compatibility.
+//
+// A store created under the PUBLIC v0.3.1 behavior (Project Brain schema 1, store
+// format 2) must be read directly by v0.4.0 with NO migration and no repair. The
+// v0.3.1 behavior is reproduced exactly by capturing through the installed CLI —
+// the store format and schema are unchanged between the two releases, which is
+// itself the invariant under test and is asserted from the store's own manifest.
+// ----------------------------------------------------------------------------
+async function qualifyV031StoreCompatibility(runCli, version) {
+  section("v0.3.1-compatibility");
+  const root = scratch("v031-compat");
+  const projectDir = join(root, "project");
+  const dataDir = join(root, "data");
+  mkdirSync(projectDir, { recursive: true });
+  const env = isolatedDataEnv(join(root, "home"));
+  const PROJECT_ID = "v031-compat-project";
+  writeFileSync(
+    join(projectDir, "oh-my-pm.config.json"),
+    JSON.stringify({ version: 1, projectId: PROJECT_ID, documents: { include: ["**/*.md"] } }),
+    "utf8",
+  );
+  const readme = join(projectDir, "README.md");
+  const j = (args) => runCli([...args, "--data-dir", dataDir, "--json"], { env, cwd: root });
+
+  // Build the store using only the six v0.3.1 subcommands.
+  writeFileSync(readme, "# C\n\n- [ ] TODO: one\n", "utf8");
+  assert(j(["memory", "capture", projectDir, "--apply"]).code === 0, "v0.3.1-shaped capture 1 succeeds");
+  writeFileSync(readme, "# C\n\n- [x] DONE: one\n- [ ] TODO: two\n", "utf8");
+  assert(j(["memory", "capture", projectDir, "--apply"]).code === 0, "v0.3.1-shaped capture 2 succeeds");
+
+  // The store declares schema 1 / format 2 and needs no migration.
+  const status = j(["memory", "status", "--project-id", PROJECT_ID]);
+  const statusData = safeParse(status.stdout)?.data;
+  assert(status.code === 0, "v0.3.1-shaped store status exits 0");
+  assert(statusData?.status === "healthy", "v0.3.1-shaped store is healthy under v0.4");
+  assert(statusData?.projectBrainSchemaVersion === 1, "v0.3.1-shaped store reports Project Brain schema 1");
+  assert(statusData?.storeFormatVersion === 2, "v0.3.1-shaped store reports store format 2");
+
+  // Record the store bytes, then exercise every read surface.
+  const beforeTree = hashTree(join(dataDir, "project-brain"));
+  for (const [label, args] of [
+    ["changes", ["memory", "changes", "--project-id", PROJECT_ID]],
+    ["history", ["memory", "history", "--project-id", PROJECT_ID]],
+    ["status", ["memory", "status", "--project-id", PROJECT_ID]],
+    ["timeline", ["memory", "timeline", "--project-id", PROJECT_ID]],
+  ]) {
+    const r = j(args);
+    assert(r.code === 0, `v0.3.1-shaped store supports ${label} under v0.4`);
+  }
+  // The new timeline command reads the v0.3.1-shaped store and derives events.
+  const timelineRun = j(["memory", "timeline", "--project-id", PROJECT_ID]);
+  const timelineData = safeParse(timelineRun.stdout)?.data;
+  assert((timelineData?.events ?? []).length > 0, "v0.4 timeline derives events from a v0.3.1-shaped store");
+  assert(
+    (timelineData?.events ?? []).every((e) => e.captureSequence === 2),
+    "v0.4 timeline attributes the single comparison to capture 2",
+  );
+
+  // NO migration was performed and nothing was written by any read.
+  assert(treesEqual(beforeTree, hashTree(join(dataDir, "project-brain"))), "no read migrated or wrote the store");
+  const migrationRecorded = collectText(join(dataDir, "project-brain")).includes("migrationHistory\":[{");
+  assert(!migrationRecorded, "no migration was recorded in the store manifest");
+  const backups = join(dataDir, "project-brain", "v1");
+  let hasBackup = false;
+  const walkBackups = (dir) => {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const abs = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === "backups" && readdirSync(abs).length > 0) hasBackup = true;
+        walkBackups(abs);
+      }
+    }
+  };
+  walkBackups(backups);
+  assert(!hasBackup, "no migration backup was created (no migration occurred)");
+  // The status surface never reports a migration requirement.
+  assert(statusData?.status !== "migrationRequired", "the v0.3.1-shaped store never reports migrationRequired");
 }

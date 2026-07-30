@@ -150,14 +150,15 @@ async function run(prefix) {
     const names = tools.map((tool) => tool.name).sort();
     // This verifier installs from the SOURCE workspace, where the local Project
     // Memory capability resolves, so the installed MCP command exposes the
-    // eleven-tool source/workspace surface (four local + four GitHub + two
-    // diagnostics + the v0.3 Phase 5 read-only project_changes), compared
-    // sorted. The bundled RELEASE install excludes Project Memory and stays at
-    // ten tools — verified by tools/check-release-install.mjs. Only the offline
-    // local project_brief is exercised below; project_changes is exercised
-    // end-to-end (with an isolated data root) by tools/check-mcp-server.mjs. No
-    // GitHub workflow tool and no network diagnostic is ever called, so this
-    // verifier stays network-free and needs no token.
+    // twelve-tool source/workspace surface (four local + four GitHub + two
+    // diagnostics + the read-only project_changes and project_timeline),
+    // compared sorted. A bundled RELEASE install that excludes Project Memory
+    // stays at ten tools — verified by tools/check-release-install.mjs. Only the
+    // offline local project_brief is exercised below; the two memory tools are
+    // exercised end-to-end (with an isolated data root) by
+    // tools/check-mcp-server.mjs. No GitHub workflow tool and no network
+    // diagnostic is ever called, so this verifier stays network-free and needs
+    // no token.
     const expected = [
       "github_project_brief",
       "github_project_handoff",
@@ -169,6 +170,7 @@ async function run(prefix) {
       "project_handoff",
       "project_next",
       "project_risks",
+      "project_timeline",
       "provider_status",
     ];
     if (JSON.stringify(names) !== JSON.stringify(expected)) {

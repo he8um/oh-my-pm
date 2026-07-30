@@ -333,6 +333,9 @@ export function validateReleaseBundleForInstall(bundleRoot) {
   let expectedMcpTools;
   if (bundleProfile === "project-brain") {
     expectedMcpTools = [...TEN_MCP_TOOLS, "project_changes"];
+  } else if (bundleProfile === "project-brain-timeline") {
+    // v0.4: project_timeline is appended after project_changes, for twelve.
+    expectedMcpTools = [...TEN_MCP_TOOLS, "project_changes", "project_timeline"];
   } else if (bundleProfile === "source-v0.2") {
     expectedMcpTools = [...TEN_MCP_TOOLS];
   } else {

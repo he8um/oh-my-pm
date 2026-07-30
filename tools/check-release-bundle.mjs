@@ -128,9 +128,11 @@ async function run(bundle) {
   // The ten historical tools (four local, four GitHub, two provider diagnostics)
   // are always present and in order; the local tools are callable offline, the
   // GitHub tools are opt-in network. The "project-brain" (v0.3) profile appends
-  // exactly one read-only tool, project_changes, for eleven total. The legacy
-  // profile (absent or "source-v0.2") ships the ten-tool surface. Any other
-  // profile fails closed: the verifier never guesses a surface.
+  // exactly one read-only tool, project_changes, for eleven total. The
+  // "project-brain-timeline" (v0.4) profile appends project_timeline after it,
+  // for twelve total. The legacy profile (absent or "source-v0.2") ships the
+  // ten-tool surface. Any other profile fails closed: the verifier never guesses
+  // a surface.
   const TEN_TOOLS = [
     "project_brief",
     "project_risks",
@@ -145,13 +147,32 @@ async function run(bundle) {
   ];
   const bundleProfile = release.bundleProfile ?? "source-v0.2";
   let expectedTools;
+  let expectedReadTools;
+  let expectedMemorySubcommands;
   if (bundleProfile === "project-brain") {
     expectedTools = [...TEN_TOOLS, "project_changes"];
+    expectedReadTools = 1;
+    expectedMemorySubcommands = ["capture", "changes", "status", "history", "export", "delete"];
+  } else if (bundleProfile === "project-brain-timeline") {
+    expectedTools = [...TEN_TOOLS, "project_changes", "project_timeline"];
+    expectedReadTools = 2;
+    expectedMemorySubcommands = [
+      "capture",
+      "changes",
+      "status",
+      "history",
+      "export",
+      "delete",
+      "timeline",
+    ];
   } else if (bundleProfile === "source-v0.2") {
     expectedTools = [...TEN_TOOLS];
   } else {
     return fail(`RELEASE.json bundleProfile is unknown: ${bundleProfile}`);
   }
+  /** Whether this profile ships the bundled Project Brain memory capability. */
+  const hasProjectBrain =
+    bundleProfile === "project-brain" || bundleProfile === "project-brain-timeline";
   if (JSON.stringify(release.mcpTools) !== JSON.stringify(expectedTools)) {
     return fail("RELEASE.json mcpTools list is unexpected");
   }
@@ -160,20 +181,31 @@ async function run(bundle) {
   if (release.expectedMcpToolCount !== undefined && release.expectedMcpToolCount !== expectedTools.length) {
     return fail("RELEASE.json expectedMcpToolCount disagrees with mcpTools");
   }
-  if (bundleProfile === "project-brain") {
+  if (hasProjectBrain) {
     const pb = release.projectBrain;
     if (pb === null || typeof pb !== "object") {
-      return fail("RELEASE.json projectBrain metadata is missing for the project-brain profile");
+      return fail(`RELEASE.json projectBrain metadata is missing for the ${bundleProfile} profile`);
     }
     if (pb.schemaVersion !== 1) return fail("RELEASE.json projectBrain.schemaVersion must be 1");
     if (pb.storeFormatVersion !== 2) return fail("RELEASE.json projectBrain.storeFormatVersion must be 2");
-    if (pb.mcpReadTools !== 1) return fail("RELEASE.json projectBrain.mcpReadTools must be 1");
+    if (pb.mcpReadTools !== expectedReadTools) {
+      return fail(`RELEASE.json projectBrain.mcpReadTools must be ${expectedReadTools}`);
+    }
+    if (JSON.stringify(pb.memorySubcommands) !== JSON.stringify(expectedMemorySubcommands)) {
+      return fail(`RELEASE.json projectBrain.memorySubcommands must be exactly the ${bundleProfile} set`);
+    }
     if (pb.mcpWriteTools !== 0) return fail("RELEASE.json projectBrain.mcpWriteTools must be 0");
     if (pb.automaticMigration !== false) return fail("RELEASE.json projectBrain.automaticMigration must be false");
     if (pb.projectWrites !== false) return fail("RELEASE.json projectBrain.projectWrites must be false");
-    const expectedSubcommands = ["capture", "changes", "status", "history", "export", "delete"];
-    if (JSON.stringify(pb.memorySubcommands) !== JSON.stringify(expectedSubcommands)) {
-      return fail("RELEASE.json projectBrain.memorySubcommands must be the exact six subcommands");
+    // v0.4 profile only: the timeline is derived, so the profile must declare
+    // that no timeline is persisted and that no store migration is required.
+    if (bundleProfile === "project-brain-timeline") {
+      if (pb.timelinePersistence !== false) {
+        return fail("RELEASE.json projectBrain.timelinePersistence must be false");
+      }
+      if (pb.storeMigrationRequired !== false) {
+        return fail("RELEASE.json projectBrain.storeMigrationRequired must be false");
+      }
     }
   }
   const expectedGithubWorkflows = ["brief", "risks", "next", "handoff"];
@@ -447,7 +479,7 @@ async function run(bundle) {
   // package (dist-only) so the installed CLI/MCP resolve Project Brain with no
   // workspace checkout. A missing package would silently drop the eleventh tool
   // and the memory commands back to the ten-tool fallback, so require it here.
-  if (bundleProfile === "project-brain") {
+  if (hasProjectBrain) {
     const pmManifest = join(bundle, "node_modules", "@oh-my-pm", "project-memory", "package.json");
     const pmEntry = join(bundle, "node_modules", "@oh-my-pm", "project-memory", "dist", "index.js");
     if (!isRegularFile(pmManifest)) return fail("bundled @oh-my-pm/project-memory package.json missing");
@@ -566,7 +598,7 @@ async function run(bundle) {
       ) {
         mcpOk = false;
         mcpMessage = "bundled MCP project_brief leaked a forbidden field";
-      } else if (bundleProfile === "project-brain") {
+      } else if (hasProjectBrain) {
         // The read-only project_changes tool must resolve the bundled Project
         // Memory package and return a controlled noPriorMemory success against
         // this MCP process's isolated, empty application-data root (set below on

@@ -448,17 +448,28 @@ export function formatReleaseBundlePlan(plan, mode) {
 // exact canonical origin string.
 const GITHUB_ORIGIN = `${"https"}://api.github.com`;
 
-// Explicit v0.3 release profile. The historical v0.2 bundle shipped ten MCP
-// tools and no Project Memory package; that published artifact is immutable and
-// is never rewritten. The current source prepares the "project-brain" profile:
-// eleven read-only MCP tools (the ten historical tools plus the single read-only
-// project_changes tool), the bundled @oh-my-pm/project-memory package, the six
-// installed memory subcommands, Project Brain schema 1, and Project Memory store
-// format 2. Verifiers read these fields from the bundle's own RELEASE.json and
-// fail closed on an unknown profile — they never branch on the version string.
-const RELEASE_LINE = "v0.3";
-const BUNDLE_PROFILE = "project-brain";
-const MEMORY_SUBCOMMANDS = ["capture", "changes", "status", "history", "export", "delete"];
+// Explicit v0.4 release profile. The historical v0.2 bundle shipped ten MCP
+// tools and no Project Memory package, and the historical v0.3 bundle shipped
+// eleven; both published artifacts are immutable and are never rewritten. The
+// current source prepares the "project-brain-timeline" profile: TWELVE read-only
+// MCP tools (the ten historical tools plus project_changes and the new
+// project_timeline), the bundled @oh-my-pm/project-memory package, SEVEN
+// installed memory subcommands, Project Brain schema 1 (unchanged), and Project
+// Memory store format 2 (unchanged, so no migration is required). Verifiers read
+// these fields from the bundle's own RELEASE.json and fail closed on an unknown
+// profile — they never branch on the version string.
+const RELEASE_LINE = "v0.4";
+const BUNDLE_PROFILE = "project-brain-timeline";
+const MEMORY_SUBCOMMANDS = [
+  "capture",
+  "changes",
+  "status",
+  "history",
+  "export",
+  "delete",
+  // v0.4: appended last so the six historical subcommands keep their order.
+  "timeline",
+];
 const V03_MCP_TOOLS = [
   "project_brief",
   "project_risks",
@@ -471,6 +482,8 @@ const V03_MCP_TOOLS = [
   "provider_status",
   "github_provider_diagnostics",
   "project_changes",
+  // v0.4: appended last so the eleven historical tools keep their order.
+  "project_timeline",
 ];
 
 const RELEASE_METADATA = {
@@ -489,10 +502,12 @@ const RELEASE_METADATA = {
     schemaVersion: 1,
     storeFormatVersion: 2,
     memorySubcommands: MEMORY_SUBCOMMANDS,
-    mcpReadTools: 1,
+    mcpReadTools: 2,
     mcpWriteTools: 0,
     automaticMigration: false,
+    storeMigrationRequired: false,
     projectWrites: false,
+    timelinePersistence: false,
   },
   transport: "stdio",
   readOnly: true,
@@ -697,7 +712,7 @@ function inspectBundleSafety(bundleRoot) {
   // checkout. It ships dist-only (its "files" field is ["dist"]); raw src/test
   // are rejected by the first-party leak check above. Fail closed here if the
   // package or its compiled entrypoint is absent.
-  if (BUNDLE_PROFILE === "project-brain") {
+  if (BUNDLE_PROFILE === "project-brain" || BUNDLE_PROFILE === "project-brain-timeline") {
     const pmDir = join(bundleRoot, "node_modules", "@oh-my-pm", "project-memory");
     const pmManifest = join(pmDir, "package.json");
     const pmEntry = join(pmDir, "dist", "index.js");

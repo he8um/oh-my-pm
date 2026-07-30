@@ -911,11 +911,11 @@ if (!existsSync(join(workflowsDir, "release-v0.3-rc.yml"))) {
 if (!existsSync(join(workflowsDir, "release-v0.3.yml"))) {
   err(".github/workflows/release-v0.3.yml missing");
 }
-// The non-publishing v0.3 installed-qualification workflow must exist. It is not
+// The non-publishing installed-qualification workflow must exist. It is not
 // release-named and carries no publish markers (enforced by the generic scan
 // below), so it needs no release-workflow allowance.
-if (!existsSync(join(workflowsDir, "v0.3-installed-qualification.yml"))) {
-  err(".github/workflows/v0.3-installed-qualification.yml missing");
+if (!existsSync(join(workflowsDir, "v0.4-installed-qualification.yml"))) {
+  err(".github/workflows/v0.4-installed-qualification.yml missing");
 }
 if (existsSync(workflowsDir)) {
   for (const name of readdirSync(workflowsDir)) {

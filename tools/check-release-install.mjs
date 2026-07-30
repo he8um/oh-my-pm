@@ -17,7 +17,8 @@ import { pathToFileURL } from "node:url";
 const isWindows = process.platform === "win32";
 
 // The historical ten installed MCP tools (four local + four GitHub + two
-// provider diagnostics), compared sorted. The v0.3 "project-brain" profile adds
+// provider diagnostics), compared sorted. The "project-brain" (v0.3) and
+// "project-brain-timeline" (v0.4) profiles add
 // exactly one read-only tool, project_changes; the profile is read from the
 // installed RELEASE.json and the expected surface is resolved fail-closed below.
 // This verifier calls only offline tools (project_brief, provider_status, and —
@@ -36,6 +37,11 @@ const TEN_MCP_TOOLS_SORTED = [
   "provider_status",
 ];
 const ELEVEN_MCP_TOOLS_SORTED = [...TEN_MCP_TOOLS_SORTED, "project_changes"].sort();
+const TWELVE_MCP_TOOLS_SORTED = [
+  ...TEN_MCP_TOOLS_SORTED,
+  "project_changes",
+  "project_timeline",
+].sort();
 
 function isCanonicalSemver(value) {
   if (typeof value !== "string" || value !== value.trim() || value === "") return false;
@@ -233,19 +239,24 @@ async function run(prefix, expectedVersion) {
   if (release.bundle !== `oh-my-pm-v${version}`) return fail("installed RELEASE.json bundle disagrees");
 
   // Resolve the installed MCP surface from the bundle's own declared profile and
-  // fail closed on any unknown profile. The project-brain profile expects eleven
-  // tools and the bundled Project Memory package; the legacy profile (absent or
+  // fail closed on any unknown profile. The project-brain (v0.3) profile expects
+  // eleven tools; the project-brain-timeline (v0.4) profile expects twelve; both
+  // require the bundled Project Memory package. The legacy profile (absent or
   // "source-v0.2") expects the historical ten.
   const installedProfile = release.bundleProfile ?? "source-v0.2";
   let expectedMcpToolsSorted;
   if (installedProfile === "project-brain") {
     expectedMcpToolsSorted = ELEVEN_MCP_TOOLS_SORTED;
+  } else if (installedProfile === "project-brain-timeline") {
+    expectedMcpToolsSorted = TWELVE_MCP_TOOLS_SORTED;
   } else if (installedProfile === "source-v0.2") {
     expectedMcpToolsSorted = TEN_MCP_TOOLS_SORTED;
   } else {
     return fail(`installed RELEASE.json bundleProfile is unknown: ${installedProfile}`);
   }
-  if (installedProfile === "project-brain") {
+  const installedHasProjectBrain =
+    installedProfile === "project-brain" || installedProfile === "project-brain-timeline";
+  if (installedHasProjectBrain) {
     const pmEntry = join(
       versionDir,
       "node_modules",
@@ -447,7 +458,7 @@ async function run(prefix, expectedVersion) {
         ) {
           mcpOk = false;
           mcpMessage = "installed MCP provider_status leaked a forbidden field";
-        } else if (installedProfile === "project-brain") {
+        } else if (installedHasProjectBrain) {
           // The read-only project_changes tool must resolve the installed Project
           // Memory package and return a controlled noPriorMemory success against
           // this MCP process's isolated, empty application-data root. It accepts

@@ -1,10 +1,13 @@
-name: v0.3 Installed Qualification
+name: v0.4 Installed Qualification
 
-# Non-publishing continuous qualification of the v0.3 installed artifact. On every
+# Non-publishing continuous qualification of the v0.4 installed artifact. On every
 # push/PR to main it prepares ONE deterministic candidate archive set on Linux and
 # then qualifies that SAME prepared artifact on Linux, macOS, and Windows by
 # extracting it, installing it under a temporary prefix, and running the installed
-# Project Brain CLI + MCP journeys, privacy checks, and project-byte checks.
+# Project Brain CLI + MCP journeys (including the v0.4 Project Timeline CLI and
+# MCP surfaces and direct v0.3.1 store compatibility), privacy checks, and
+# project-byte checks. The expected release profile is pinned so a job can never
+# silently qualify the wrong surface.
 #
 # It creates no tag, no GitHub Release, no registry artifact. It grants only
 # contents: read. It uploads a workflow artifact (the prepared archives) so every
@@ -80,7 +83,7 @@ jobs:
       - name: Upload candidate artifact
         uses: actions/upload-artifact@v7
         with:
-          name: v0.3-candidate-artifact
+          name: v0.4-candidate-artifact
           path: ${{ runner.temp }}/candidate/*
           if-no-files-found: error
           compression-level: 0
@@ -111,7 +114,7 @@ jobs:
       - name: Download candidate artifact
         uses: actions/download-artifact@v7
         with:
-          name: v0.3-candidate-artifact
+          name: v0.4-candidate-artifact
           path: candidate
 
       - name: Verify checksum and qualify the installed artifact (POSIX)
@@ -123,7 +126,8 @@ jobs:
           cd ..
           node tools/check-v0.3-installed-project-brain.mjs \
             --archive "candidate/oh-my-pm-v$VERSION.tar.gz" \
-            --work "$RUNNER_TEMP/qual-work"
+            --work "$RUNNER_TEMP/qual-work" \
+            --profile project-brain-timeline
 
       - name: Verify checksum and qualify the installed artifact (Windows)
         if: runner.os == 'Windows'
@@ -143,5 +147,6 @@ jobs:
           Pop-Location
           node tools/check-v0.3-installed-project-brain.mjs `
             --archive "candidate/oh-my-pm-v$version.zip" `
-            --work "$env:RUNNER_TEMP/qual-work"
+            --work "$env:RUNNER_TEMP/qual-work" `
+            --profile project-brain-timeline
           if ($LASTEXITCODE -ne 0) { throw "installed qualification failed" }

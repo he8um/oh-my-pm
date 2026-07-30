@@ -28,7 +28,7 @@ const BASE_STABLE_TAG = "v0.3.0";
 const BASE_STABLE_SHA = "0d6f9b1c66ac01835e5f7bf2c8512b5beea50014";
 const RC_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.3-rc.yml");
 const STABLE_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.3.yml");
-const QUAL_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "v0.3-installed-qualification.yml");
+const QUAL_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "v0.4-installed-qualification.yml");
 
 function read(p) {
   return readFileSync(p, "utf8");
@@ -220,7 +220,10 @@ describe("v0.3 installed-qualification workflow (non-publishing)", () => {
 
   it("prepares one artifact and tests it across Linux/macOS/Windows", () => {
     expect(/ubuntu-latest,\s*macos-latest,\s*windows-latest/.test(wf)).toBe(true);
-    expect(wf.includes("v0.3-candidate-artifact")).toBe(true);
+    expect(wf.includes("v0.4-candidate-artifact")).toBe(true);
+    // The expected release profile is pinned, so a matrix job can never
+    // silently qualify the wrong surface.
+    expect(wf.includes("--profile project-brain-timeline")).toBe(true);
     expect(wf.includes("check-v0.3-installed-project-brain.mjs")).toBe(true);
   });
 
@@ -231,26 +234,29 @@ describe("v0.3 installed-qualification workflow (non-publishing)", () => {
   });
 });
 
-describe("v0.3 release profile is self-describing and fail-closed", () => {
-  it("release-bundle-utils declares the project-brain profile with eleven tools", () => {
+describe("release profile is self-describing and fail-closed", () => {
+  it("release-bundle-utils declares the v0.4 project-brain-timeline profile", () => {
     const utils = read(join(REPO_ROOT, "tools", "release-bundle-utils.mjs"));
-    expect(utils.includes('BUNDLE_PROFILE = "project-brain"')).toBe(true);
-    expect(utils.includes('RELEASE_LINE = "v0.3"')).toBe(true);
+    expect(utils.includes('BUNDLE_PROFILE = "project-brain-timeline"')).toBe(true);
+    expect(utils.includes('RELEASE_LINE = "v0.4"')).toBe(true);
     expect(utils.includes('"project_changes"')).toBe(true);
+    expect(utils.includes('"project_timeline"')).toBe(true);
   });
 
   it("the bundle verifier rejects an unknown profile", () => {
     // The verifier's profile switch fails closed on any profile other than
-    // "project-brain" or "source-v0.2".
+    // "project-brain", "project-brain-timeline", or "source-v0.2".
     const verifier = read(join(REPO_ROOT, "tools", "check-release-bundle.mjs"));
     expect(verifier.includes("bundleProfile is unknown")).toBe(true);
-    expect(verifier.includes('bundleProfile === "project-brain"') || verifier.includes('"project-brain"')).toBe(true);
+    expect(verifier.includes('bundleProfile === "project-brain"')).toBe(true);
+    expect(verifier.includes('bundleProfile === "project-brain-timeline"')).toBe(true);
   });
 
   it("the install core resolves the surface from the declared profile, fail-closed", () => {
     const core = read(join(REPO_ROOT, "distribution", "libexec", "release-install-core.mjs"));
     expect(core.includes("release_bundle_profile_unknown")).toBe(true);
     expect(core.includes("project_changes")).toBe(true);
+    expect(core.includes("project_timeline")).toBe(true);
   });
 });
 
@@ -294,11 +300,19 @@ describe("self-contained v0.3 bundle includes project-memory (dist-only)", () =>
     walk(pmDir);
   });
 
-  it("declares the project-brain profile in the bundle RELEASE.json", () => {
+  it("declares the v0.4 project-brain-timeline profile in the bundle RELEASE.json", () => {
     const release = JSON.parse(read(join(bundleDir, "RELEASE.json")));
-    expect(release.bundleProfile).toBe("project-brain");
-    expect(release.expectedMcpToolCount).toBe(11);
-    expect(release.mcpTools[release.mcpTools.length - 1]).toBe("project_changes");
+    expect(release.bundleProfile).toBe("project-brain-timeline");
+    expect(release.expectedMcpToolCount).toBe(12);
+    expect(release.mcpTools[release.mcpTools.length - 1]).toBe("project_timeline");
+    expect(release.mcpTools[release.mcpTools.length - 2]).toBe("project_changes");
+    // Schema and store format are UNCHANGED from v0.3, so no migration exists.
+    expect(release.projectBrain.schemaVersion).toBe(1);
+    expect(release.projectBrain.storeFormatVersion).toBe(2);
+    expect(release.projectBrain.storeMigrationRequired).toBe(false);
+    expect(release.projectBrain.mcpWriteTools).toBe(0);
+    expect(release.projectBrain.timelinePersistence).toBe(false);
+    expect(release.projectBrain.memorySubcommands).toHaveLength(7);
   });
 
   it("passes the profile-aware bundle verifier", () => {
@@ -318,8 +332,9 @@ describe("self-contained v0.3 bundle includes project-memory (dist-only)", () =>
 // v0.2.0 archive exercised in the release workflow; here we assert, without
 // fragile physical bundle surgery, that the reusable profile logic in the
 // install core (a) defaults an absent profile to the ten-tool legacy surface,
-// (b) resolves the project-brain profile to eleven, and (c) fails closed on any
-// unknown profile.
+// (b) resolves the project-brain profile to eleven and the
+// project-brain-timeline profile to twelve, and (c) fails closed on any unknown
+// profile.
 describe("release profile resolution (v0.2 upgrade compatibility)", () => {
   const CORE = join(REPO_ROOT, "distribution", "libexec", "release-install-core.mjs");
   const source = read(CORE);
@@ -337,11 +352,18 @@ describe("release profile resolution (v0.2 upgrade compatibility)", () => {
     expect(source.includes("release_bundle_profile_unknown")).toBe(true);
   });
 
-  it("the shipped bundle verifier serves both profiles from one file", () => {
+  it("appends project_timeline for the project-brain-timeline profile", () => {
+    expect(
+      /\[\s*\.\.\.\s*TEN_MCP_TOOLS\s*,\s*"project_changes"\s*,\s*"project_timeline"\s*\]/.test(source),
+    ).toBe(true);
+  });
+
+  it("the shipped bundle verifier serves every profile from one file", () => {
     const verifier = read(join(REPO_ROOT, "tools", "check-release-bundle.mjs"));
     // The verifier resolves the surface from bundleProfile, defaulting to legacy.
     expect(verifier.includes('release.bundleProfile ?? "source-v0.2"')).toBe(true);
     expect(verifier.includes('bundleProfile === "project-brain"')).toBe(true);
+    expect(verifier.includes('bundleProfile === "project-brain-timeline"')).toBe(true);
     expect(verifier.includes("bundleProfile is unknown")).toBe(true);
   });
 });
