@@ -1963,9 +1963,18 @@ async function qualifyTimelineMcp(prefix, versionDir) {
   writeFileSync(readme, "# M\n\n- [x] DONE: alpha\n- [x] DONE: beta\n- [ ] TODO: gamma\n", "utf8");
   assert(cli(["memory", "capture", projectDir, "--apply"]).code === 0, "MCP timeline fixture capture 3");
 
-  const command = isWindows ? process.execPath : join(prefix, "bin", "oh-my-pm-mcp");
-  const args = isWindows ? [join(versionDir, "packages", "mcp-server", "bin", "oh-my-pm-mcp.mjs")] : [];
-  const requireFromBundle = createRequire(join(versionDir, "packages", "mcp-server", "package.json"));
+  // Resolve the installed MCP command exactly as the other MCP sections do: the
+  // POSIX shim, or Node plus the installed entry script on Windows (a .cmd shim
+  // cannot be spawned without a shell). The SDK is resolved from the installed
+  // mcp-server package under node_modules — the installed artifact has no
+  // packages/ directory.
+  const mcpShim = join(prefix, "bin", isWindows ? "oh-my-pm-mcp.cmd" : "oh-my-pm-mcp");
+  const mcpEntry = join(versionDir, "bin", "oh-my-pm-mcp.mjs");
+  const command = isWindows ? process.execPath : mcpShim;
+  const args = isWindows ? [mcpEntry] : [];
+  const requireFromBundle = createRequire(
+    realpathSync(join(versionDir, "node_modules", "@oh-my-pm", "mcp-server", "package.json")),
+  );
   let Client;
   let StdioClientTransport;
   try {
