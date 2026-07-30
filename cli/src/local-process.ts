@@ -20,6 +20,7 @@ import { createRuntime } from "@oh-my-pm/runtime";
 import { createDefaultSkillRegistry } from "@oh-my-pm/skills";
 import { runCli } from "./cli.js";
 import { readGitHubTokenFromEnvironment } from "./github-token.js";
+import { formatHelp, resolveHelpRequest } from "./help.js";
 import { formatMemoryOutcome, memoryOutcomeExitCode } from "./memory-format.js";
 import { runMemoryProcess } from "./memory-process.js";
 import type { MemoryProcessOptions } from "./memory-process.js";
@@ -331,6 +332,15 @@ export async function runLocalCliProcess(
   options?: LocalCliProcessOptions,
 ): Promise<LocalCliProcessResult> {
   const version = options?.version ?? DEFAULT_VERSION;
+
+  // Help is resolved before the parser so `--help` never becomes an unsupported
+  // option, and before any command runs so help performs no work at all: no
+  // filesystem, environment, token, network, clock, or write access. It always
+  // succeeds with exit 0, prints to stdout only, and never touches stderr.
+  const helpTopic = resolveHelpRequest(args);
+  if (helpTopic !== null) {
+    return { exitCode: 0, stdout: formatHelp(helpTopic), stderr: "" };
+  }
 
   const parsed = parseCliArgs([...args]);
 

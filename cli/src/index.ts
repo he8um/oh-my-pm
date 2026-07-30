@@ -17,6 +17,13 @@ export {
   formatRuntimeResponse,
 } from "./format.js";
 export {
+  HELP_TOPICS,
+  formatHelp,
+  isHelpFlag,
+  resolveHelpRequest,
+} from "./help.js";
+export type { HelpTopic } from "./help.js";
+export {
   formatInstallerPreview,
   runInstallerPreview,
 } from "./install-preview.js";
