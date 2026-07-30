@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -8,6 +9,12 @@ const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(pkgDir, "..");
 const binPath = join(pkgDir, "bin", "oh-my-pm.mjs");
 const fixtureRoot = join(repoRoot, "examples", "fixtures", "markdown-project");
+
+// The canonical version is read from the single source of truth so a version
+// promotion needs no test edit.
+const CANONICAL_VERSION: string = JSON.parse(
+  readFileSync(join(repoRoot, "version.json"), "utf8"),
+).version;
 
 function runBin(args) {
   const result = spawnSync(process.execPath, [binPath, ...args], {
@@ -21,8 +28,8 @@ describe("runLocalCliProcess", () => {
   it("reports the current version and kernel version for status", async () => {
     const result = await runLocalCliProcess(["status"]);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("version: 0.3.0");
-    expect(result.stdout).toContain("kernel: 0.3.0");
+    expect(result.stdout).toContain(`version: ${CANONICAL_VERSION}`);
+    expect(result.stdout).toContain(`kernel: ${CANONICAL_VERSION}`);
   });
 
   it("matches the repository bin output for status", async () => {

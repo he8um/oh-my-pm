@@ -1,6 +1,9 @@
 // Proves the TypeScript boundary reaches the real Rust Kernel through the
 // generated WASM binding. Requires the binding build to have run first.
 
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { TaskGraph, UpdatePlan } from "@oh-my-pm/contracts";
 import { describe, expect, it } from "vitest";
 import {
@@ -8,6 +11,14 @@ import {
   describeKernelBinding,
   isNodeWasmKernelAvailable,
 } from "../src/index.js";
+
+// The canonical version is read from the single source of truth so a version
+// promotion needs no test edit. check-version-consistency proves the Kernel
+// literal and every manifest agree with it.
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const CANONICAL_VERSION: string = JSON.parse(
+  readFileSync(join(repoRoot, "version.json"), "utf8"),
+).version;
 
 const validGraph: TaskGraph = {
   nodes: [
@@ -54,7 +65,7 @@ describe("node wasm kernel api", () => {
   });
 
   it("returns the real Kernel version", () => {
-    expect(createNodeWasmKernelApi().version()).toBe("0.3.0");
+    expect(createNodeWasmKernelApi().version()).toBe(CANONICAL_VERSION);
   });
 
   it("is described as a configured wasm binding", () => {

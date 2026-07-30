@@ -3,6 +3,9 @@
 // KernelApi methods are untouched, and that the boundary fails closed on invalid
 // input and when unavailable. Requires the binding build to have run first.
 
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { EvidenceRecord, ProjectState } from "@oh-my-pm/contracts";
 import { describe, expect, it } from "vitest";
 import {
@@ -10,6 +13,13 @@ import {
   createNodeWasmProjectBrainKernelApi,
   createUnavailableProjectBrainKernelApi,
 } from "../src/index.js";
+
+// The canonical version is read from the single source of truth so a version
+// promotion needs no test edit.
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const CANONICAL_VERSION: string = JSON.parse(
+  readFileSync(join(repoRoot, "version.json"), "utf8"),
+).version;
 
 function baseState(): ProjectState {
   return {
@@ -69,7 +79,7 @@ describe("project brain kernel binding (wasm)", () => {
 
   it("keeps the four existing KernelApi methods intact", () => {
     const api = createNodeWasmKernelApi();
-    expect(api.version()).toBe("0.3.0");
+    expect(api.version()).toBe(CANONICAL_VERSION);
     expect(api.decideTransition({ from: "idea", to: "source" }).allowed).toBe(true);
     expect(typeof api.validateJson).toBe("function");
     expect(typeof api.checkUpdatePlan).toBe("function");
