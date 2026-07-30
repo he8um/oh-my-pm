@@ -309,6 +309,36 @@ in place (see Phase 5B).
   data model, architecture, threat model, phased plan, acceptance gates, and the
   formal GO scope decision.
 
+## Phase 5D — v0.4 Project Timeline (active direction)
+
+- **Scope and architecture: locked.** v0.4 builds exactly one capability —
+  **Project Timeline**: a local, bounded, deterministic history of project changes
+  derived from already-committed Project Brain snapshots, in authoritative capture
+  order, exposed through one new CLI subcommand and one new read-only MCP tool.
+- **North Star:** OH MY PM can answer "what changed in this project, and when?"
+  from local committed memory alone — deterministically, bounded and filterable,
+  without capturing anything, writing anything, or uploading anything.
+- **Deliverables:** three bounded contracts (`TimelineEvent`, `TimelineQuery`,
+  `TimelineResult`); one pure deterministic derivation over adjacent committed
+  snapshots reusing the existing Kernel change engine; one read-only,
+  provider-independent Runtime timeline query; the seventh memory subcommand
+  `memory timeline`; the twelfth read-only MCP tool `project_timeline`; installed
+  compatibility/limits/privacy/failure qualification; and a gated stable
+  `v0.4.0` release.
+- **Unchanged by v0.4:** Project Brain schema stays `1`, store format stays `2`,
+  no migration is required, MCP stays stdio-only with **zero** write tools, no
+  project file is written, no project content is uploaded, and there is no
+  registry publication. A store created by the public `v0.3.1` build is read
+  directly with no migration.
+- **Deferred beyond v0.4:** persisted timeline events, timeline editing,
+  controlled write-back, automatic/background capture, watchers, cloud sync,
+  telemetry, dashboards, semantic/vector search, LLM-generated summaries, provider
+  aliases/profiles, and multi-workspace aggregation.
+- See [the v0.4 project timeline](v0.4/README.md) for the locked scope, event
+  model, ordering, query and pagination model, privacy allowlist, corruption
+  behavior, compatibility matrix, CLI/MCP surfaces, validation gates, and release
+  invariants.
+
 ## Phase 6 — Release lifecycle
 
 - Version registry

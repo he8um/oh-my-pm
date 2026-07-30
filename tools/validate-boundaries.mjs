@@ -2892,6 +2892,138 @@ if (trackedFiles.includes("runtime/src/projectbrain/compare.ts")) {
   }
 }
 
+// 10. v0.4 Project Timeline boundary guards. The timeline is DERIVED read-only
+// from already-committed snapshots. These assertions fail closed if a future
+// change tries to persist timeline events, write a project or application-state
+// path from the timeline surface, reach the network or a provider, change the
+// Project Brain schema or store format, or add an MCP write capability.
+//
+// 10a. Timeline persistence is forbidden. No timeline source file may name a
+// store/commit/write/migration operation: a timeline is recomputed per query and
+// never has an on-disk representation.
+const TIMELINE_SOURCE_PREFIXES = [
+  "kernel/crate/src/projectbrain/timeline.rs",
+  "runtime/src/projectbrain/timeline.ts",
+  "cli/src/memory-timeline-format.ts",
+  "mcp-server/src/project-timeline-runner.ts",
+  "mcp-server/src/project-timeline-projector.ts",
+  "mcp-server/src/project-timeline-types.ts",
+  "mcp-server/src/project-timeline-loader.ts",
+];
+// Any tracked file whose basename carries the timeline marker in the product
+// packages is subject to the read-only scan (so a renamed/added module cannot
+// escape it).
+const timelineSources = trackedFiles.filter(
+  (f) =>
+    /(^|\/)(project-)?timeline[a-z-]*\.(ts|rs)$/.test(f) &&
+    /^(kernel|runtime|cli|mcp-server|contracts)\//.test(f) &&
+    !/\/(test|tests)\//.test(f) &&
+    !f.endsWith(".test.ts"),
+);
+const TIMELINE_FORBIDDEN_MARKERS = [
+  // persistence / mutation
+  "commitSnapshotBundle",
+  "writeFile",
+  "mkdir",
+  "rename(",
+  "rmSync",
+  "unlink",
+  "migrateProject",
+  "previewMigration",
+  "exportProject",
+  "deleteProject",
+  "acquireLock",
+  // capture
+  "captureProject",
+  "runtime.capture",
+  // network
+  "fetch(",
+  "http://",
+  "https://",
+  "node:http",
+  "node:net",
+  // provider coupling
+  "@oh-my-pm/providers",
+  "createProviderRegistry",
+];
+for (const file of [...new Set([...TIMELINE_SOURCE_PREFIXES, ...timelineSources])]) {
+  if (!trackedFiles.includes(file)) continue;
+  const contents = readFileSync(file, "utf8");
+  for (const marker of TIMELINE_FORBIDDEN_MARKERS) {
+    if (contents.includes(marker)) {
+      err(
+        `${file} contains a forbidden timeline marker "${marker}"; the timeline is derived read-only and never persists, captures, writes, or reaches a provider/network`,
+      );
+    }
+  }
+}
+// 10b. The pure timeline derivation layer must read no clock, filesystem,
+// environment, randomness, or network — the same purity contract as the rest of
+// the deterministic domain layer.
+const TIMELINE_PURE_LAYERS = [
+  "runtime/src/projectbrain/timeline.ts",
+  "kernel/crate/src/projectbrain/timeline.rs",
+];
+const TIMELINE_PURITY_MARKERS = [
+  "Date.now",
+  "new Date(",
+  "Math.random",
+  "process.env",
+  "node:fs",
+  "node:os",
+  "node:crypto",
+  "SystemTime::now",
+  "std::env",
+  "std::fs",
+];
+for (const file of TIMELINE_PURE_LAYERS) {
+  if (!trackedFiles.includes(file)) continue;
+  const contents = readFileSync(file, "utf8");
+  for (const marker of TIMELINE_PURITY_MARKERS) {
+    if (contents.includes(marker)) {
+      err(`${file} must stay pure; forbidden impurity marker "${marker}"`);
+    }
+  }
+}
+// 10c. The timeline must not change the Project Brain schema or the store format.
+// Both constants are asserted elsewhere; here we forbid a timeline source from
+// naming a different version, so a schema/store bump cannot arrive through this
+// surface.
+for (const file of [...new Set([...TIMELINE_SOURCE_PREFIXES, ...timelineSources])]) {
+  if (!trackedFiles.includes(file)) continue;
+  const contents = readFileSync(file, "utf8");
+  if (/CURRENT_STORE_FORMAT_VERSION\s*=\s*(?!2\b)/.test(contents)) {
+    err(`${file} must not redefine the store format version (v0.4 keeps store format 2)`);
+  }
+  if (/PROJECT_BRAIN_SCHEMA_VERSION\s*[:=]\s*(?!1\b)/.test(contents)) {
+    err(`${file} must not redefine the Project Brain schema version (v0.4 keeps schema 1)`);
+  }
+}
+// 10d. The MCP timeline tool must be read-only: no write annotation, and the
+// project-timeline runner must not statically import the persistence package
+// (the lazy capability-load pattern is mandatory, as for project_changes).
+if (trackedFiles.includes("mcp-server/src/project-timeline-runner.ts")) {
+  const runner = readFileSync("mcp-server/src/project-timeline-runner.ts", "utf8");
+  if (/from\s+["']@oh-my-pm\/project-memory["']/.test(runner)) {
+    err(
+      "mcp-server/src/project-timeline-runner.ts must not statically import @oh-my-pm/project-memory (lazy-load only)",
+    );
+  }
+}
+if (trackedFiles.includes("mcp-server/src/server.ts")) {
+  const server = readFileSync("mcp-server/src/server.ts", "utf8");
+  if (server.includes("project_timeline")) {
+    // The tool must declare the read-only annotation set, exactly as
+    // project_changes does. A destructive/open-world timeline tool is forbidden.
+    if (!/readOnlyHint:\s*true/.test(server)) {
+      err("mcp-server/src/server.ts must declare readOnlyHint: true for project_timeline");
+    }
+    if (/destructiveHint:\s*true/.test(server)) {
+      err("mcp-server/src/server.ts must not declare a destructive MCP tool");
+    }
+  }
+}
+
 if (fail) {
   console.error("validate-boundaries: FAILED");
   process.exit(1);

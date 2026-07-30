@@ -69,6 +69,10 @@ const ALLOWED_TOP_FILES = [
 // truth; every workspace package and the distribution package pin to it.
 const CANONICAL_VERSION = JSON.parse(readFileSync("version.json", "utf8")).version;
 
+// Tracked but not required: public documentation media only (the README hero
+// image). No source, no fixture, no generated output belongs here.
+const OPTIONAL_TOP_FOLDERS = ["assets"];
+
 const FORBIDDEN_TOP_FOLDERS = ["specs", "_dev", "scripts", "brain", "mcp"];
 
 // 1. Required top-level folders exist on disk.
@@ -86,8 +90,17 @@ const trackedTopFolders = new Set(
 for (const folder of trackedTopFolders) {
   if (FORBIDDEN_TOP_FOLDERS.includes(folder)) {
     err(`forbidden top-level folder is tracked: ${folder}/`);
-  } else if (!REQUIRED_FOLDERS.includes(folder)) {
+  } else if (!REQUIRED_FOLDERS.includes(folder) && !OPTIONAL_TOP_FOLDERS.includes(folder)) {
     err(`unexpected top-level folder is tracked: ${folder}/`);
+  }
+}
+
+// 2a. The optional media folder carries public documentation images only.
+const ASSET_EXTENSIONS = [".png", ".jpg", ".jpeg", ".svg", ".webp", ".gif"];
+for (const file of trackedFiles) {
+  if (!file.startsWith("assets/")) continue;
+  if (!ASSET_EXTENSIONS.some((ext) => file.toLowerCase().endsWith(ext))) {
+    err(`assets/ carries public documentation images only: ${file}`);
   }
 }
 
@@ -1056,6 +1069,34 @@ const PHASE_5_SOURCES = [
 ];
 for (const file of PHASE_5_SOURCES) {
   if (!existsSync(file)) err(`Phase 5 file missing: ${file}`);
+}
+
+// 12. v0.4 Project Timeline. The locked scope/architecture document is required,
+// and the timeline surface must not introduce a persisted timeline store: no
+// timeline directory, record type, or store module may exist anywhere. A timeline
+// is derived per query from committed snapshots and has no on-disk form.
+const V04_REQUIRED = ["docs/v0.4/README.md"];
+for (const file of V04_REQUIRED) {
+  if (!existsSync(file)) err(`v0.4 file missing: ${file}`);
+}
+// No persisted-timeline storage may appear in the persistence package or as a
+// top-level store surface.
+const FORBIDDEN_TIMELINE_PERSISTENCE = [
+  "project-memory/src/timeline-store.ts",
+  "project-memory/src/timeline.ts",
+  "project-memory/src/events.ts",
+];
+for (const file of FORBIDDEN_TIMELINE_PERSISTENCE) {
+  if (existsSync(file)) {
+    err(`forbidden persisted-timeline module: ${file} (the timeline is derived, never stored)`);
+  }
+}
+// The persistence package must not learn a timeline record type or directory.
+if (existsSync("project-memory/src/types.ts")) {
+  const memTypes = readFileSync("project-memory/src/types.ts", "utf8");
+  if (/timeline/i.test(memTypes)) {
+    err("project-memory/src/types.ts must stay timeline-free (no persisted timeline records)");
+  }
 }
 
 if (fail) {
