@@ -4,11 +4,11 @@
 
 It is designed for teams that want clearer delivery context, safer execution boundaries, and repeatable validation around project work.
 
-> **Latest stable release:** [`v0.3.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0)
+> **Latest stable release:** [`v0.3.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.1)
 > **Latest prerelease:** [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1)
-> **Source version:** `0.3.0`
+> **Source version:** `0.3.1`
 >
-> [`v0.3.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0) is the latest **stable** release — a non-draft, non-prerelease GitHub Release marked latest, targeting `0d6f9b1…`, carrying exactly three assets. [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) is a published **prerelease** (the v0.3 Project Brain line; not marked latest), targeting `1db4057…`. [`v0.2.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0), [`v0.2.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0-rc.1) and [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) remain preserved historical releases. Node.js 20+ is the only runtime requirement for installed archives. Packages remain private; there is no npm package.
+> [`v0.3.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.1) is the latest **stable** release — a non-draft, non-prerelease GitHub Release marked latest, carrying exactly three assets. It is a CLI usability patch over `v0.3.0` (conventional `--help`, installed `mcp-config`) with no schema, store-format, or MCP capability change. [`v0.3.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0) remains a preserved immutable stable release targeting `0d6f9b1…`. [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) is a published **prerelease** (the v0.3 Project Brain line; not marked latest), targeting `1db4057…`. [`v0.2.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0), [`v0.2.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0-rc.1) and [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) remain preserved historical releases. Node.js 20+ is the only runtime requirement for installed archives. Packages remain private; there is no npm package.
 
 ---
 
@@ -126,7 +126,7 @@ The current next-task workflow extracts explicit unchecked Markdown checklist it
 
 ## Getting started locally
 
-The packages are private and repository-based (there is no registry package), and the latest stable release is [`v0.3.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0). To build from a checkout, see [the getting-started guide](docs/getting-started.md) for the full walkthrough. The short path is:
+The packages are private and repository-based (there is no registry package), and the latest stable release is [`v0.3.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.1). To build from a checkout, see [the getting-started guide](docs/getting-started.md) for the full walkthrough. The short path is:
 
 ```bash
 rustup target add wasm32-unknown-unknown
@@ -146,11 +146,13 @@ oh-my-pm next ./project --markdown
 oh-my-pm handoff ./project --markdown
 ```
 
-Local MCP onboarding is available too — generate a generic stdio client configuration with `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the `0.3.0` source line (published as the latest stable release `v0.3.0`); installed release archives require only Node.js 20+.
+Run `oh-my-pm --help` for the full command reference, or `oh-my-pm <namespace> --help` for a namespace.
+
+MCP onboarding needs no manual path: the installed CLI prints a ready client configuration with `oh-my-pm mcp-config` (add `--markdown` for a documented block, `--name <name>` for a custom server key). From a repository checkout use `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`, which takes an explicit prefix. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the `0.3.1` source line (published as the latest stable release `v0.3.1`); installed release archives require only Node.js 20+.
 
 ### Historical stable release (v0.2.0)
 
-The [`v0.2.0` release](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0) — now superseded as latest stable by [`v0.3.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0) — ships three assets:
+The [`v0.2.0` release](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0) — now superseded as latest stable by [`v0.3.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.1) — ships three assets:
 
 ```text
 oh-my-pm-v0.2.0.tar.gz

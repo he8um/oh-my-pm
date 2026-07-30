@@ -10,10 +10,12 @@ import { runLocalCliProcess } from "../dist/index.js";
 // the runner only for the explicit live github and memory commands; local/
 // offline commands ignore it and use their fixed deterministic clock. The
 // process id is read here too and used only to derive the memory operation id
-// (a bounded, non-displayed, non-persisted staging token).
+// (a bounded, non-displayed, non-persisted staging token). The entry-script path
+// is read here and used only by mcp-config to infer the installed prefix.
 const result = await runLocalCliProcess(process.argv.slice(2), {
   clock: () => new Date().toISOString(),
   processId: process.pid,
+  entryScriptPath: process.argv[1] ?? "",
 });
 
 if (result.stdout !== "") {

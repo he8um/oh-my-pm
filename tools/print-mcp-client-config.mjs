@@ -1,19 +1,32 @@
 #!/usr/bin/env node
-// Read-only generator for a generic stdio MCP client configuration. Prints a
-// config object referencing the installed oh-my-pm-mcp command by absolute
-// path. Never writes to disk, never edits a client application, never embeds a
-// project root, env, cwd, network, or credentials.
+// Read-only generator for a generic stdio MCP client configuration, for
+// REPOSITORY tooling. It takes an explicit --prefix because a source checkout
+// has no installed prefix to infer; the installed public CLI command
+// (`oh-my-pm mcp-config`) infers its own prefix automatically.
+//
+// It duplicates no config-generation behavior: the name rule, the platform
+// command filename, the config object, and both output renderings all come from
+// the CLI package's shared mcp-config module. This tool only resolves the
+// explicit prefix, probes the command, and writes the result.
+//
+// Never writes to disk, never edits a client application, never embeds a project
+// root, env, cwd, network, or credentials.
 
 import { lstatSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 
-const SERVER_NAME_RE = /^[A-Za-z0-9._-]{1,64}$/;
-const isWindows = process.platform === "win32";
+import {
+  MCP_CONFIG_DEFAULT_SERVER_NAME,
+  buildMcpClientConfig,
+  formatMcpClientConfig,
+  installedMcpCommandFileName,
+  isValidMcpServerName,
+} from "../cli/dist/index.js";
 
 function parseArgs(args) {
   let prefix;
   let prefixSeen = false;
-  let name = "oh-my-pm";
+  let name = MCP_CONFIG_DEFAULT_SERVER_NAME;
   let markdown = false;
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
@@ -41,7 +54,7 @@ function parseArgs(args) {
     }
   }
   if (!prefixSeen) return { ok: false, message: "--prefix is required" };
-  if (!SERVER_NAME_RE.test(name)) return { ok: false, message: `invalid --name: ${name}` };
+  if (!isValidMcpServerName(name)) return { ok: false, message: `invalid --name: ${name}` };
   return { ok: true, prefix, name, markdown };
 }
 
@@ -59,60 +72,13 @@ if (!parsed.ok) {
   process.exitCode = 2;
 } else {
   const prefix = isAbsolute(parsed.prefix) ? parsed.prefix : resolve(parsed.prefix);
-  const binDir = join(prefix, "bin");
   // On POSIX the extensionless command; on Windows the .cmd wrapper.
-  const commandPath = join(binDir, isWindows ? "oh-my-pm-mcp.cmd" : "oh-my-pm-mcp");
+  const commandPath = join(prefix, "bin", installedMcpCommandFileName(process.platform));
   if (!isRegularFile(commandPath)) {
     process.stderr.write(`mcp client config error: installed command not found: ${commandPath}\n`);
     process.exitCode = 2;
   } else {
-    const config = {
-      mcpServers: {
-        [parsed.name]: {
-          command: commandPath,
-          args: [],
-        },
-      },
-    };
-    const json = JSON.stringify(config, null, 2);
-    if (parsed.markdown) {
-      process.stdout.write(
-        [
-          "# OH MY PM MCP Client Configuration",
-          "",
-          "Add this stdio server entry to your MCP client's configuration:",
-          "",
-          "```json",
-          json,
-          "```",
-          "",
-          "The server exposes ten read-only tools:",
-          "",
-          "- `project_brief`",
-          "- `project_risks`",
-          "- `project_next`",
-          "- `project_handoff`",
-          "- `github_project_brief`",
-          "- `github_project_risks`",
-          "- `github_project_next`",
-          "- `github_project_handoff`",
-          "- `provider_status`",
-          "- `github_provider_diagnostics`",
-          "",
-          "This configuration is secret-free by design. If you need GitHub",
-          "authentication or a non-default provider configuration file, add the",
-          "process environment variables yourself in your MCP client:",
-          "",
-          "- `OH_MY_PM_GITHUB_TOKEN` — optional GitHub token (never required for",
-          "  public repositories)",
-          "- `OH_MY_PM_PROVIDER_CONFIG` — optional path to a `providers.json` file",
-          "",
-          "OH MY PM never writes these into your client configuration for you.",
-          "",
-        ].join("\n"),
-      );
-    } else {
-      process.stdout.write(`${json}\n`);
-    }
+    const config = buildMcpClientConfig(parsed.name, commandPath);
+    process.stdout.write(formatMcpClientConfig(config, parsed.markdown ? "markdown" : "json"));
   }
 }

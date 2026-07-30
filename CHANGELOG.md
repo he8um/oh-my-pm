@@ -2,6 +2,70 @@
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-07-30
+
+Stable patch release for the v0.3 line: two CLI usability improvements and
+nothing else. It fixes Issues #2 and #3. There is **no schema, store-format, or
+MCP capability change**, and no behavior change to any existing command.
+`v0.3.0` remains immutable and unchanged. No registry publication; all workspace
+packages remain private.
+
+### Added
+
+- **Conventional CLI help (Issue #2)** — `oh-my-pm --help` and `oh-my-pm -h`
+  print bounded, deterministic help to stdout and exit `0`, writing nothing to
+  stderr and ending with exactly one newline. Help lists the real current
+  commands and namespaces, short usage examples, the output modes, and the
+  controlled exit-code meanings. Namespace and command help uses the same form,
+  including `oh-my-pm memory --help` and `oh-my-pm providers --help`. Help
+  performs no network access, creates no file or application-data directory, and
+  reads no token. Added without replacing the existing parser and without a CLI
+  framework; no shell completion, prompts, manpages, colors, paging, analytics,
+  or localization.
+- **Installed MCP client configuration (Issue #3)** — `oh-my-pm mcp-config`
+  prints a generic stdio MCP client configuration for the installed MCP server,
+  supporting `--json` (default), `--markdown`, `--name <name>`, and `--help` /
+  `-h`. It resolves the installed sibling `oh-my-pm-mcp` executable from the
+  actual installed location, so installed users never pass `--prefix`, and emits
+  an absolute command path with `args: []`. It works on POSIX and Windows
+  (including the `.cmd` shim) and follows a relocated prefix instead of embedding
+  an install-time path. It writes no client file and no project file, performs no
+  network access, and includes no token, credential, environment value, project
+  root, provider response, or hidden state. Invalid arguments and a missing
+  installed executable are controlled exit `2`. Markdown output describes exactly
+  the eleven read-only tools, including `project_changes`.
+- Release notes (`docs/releases/v0.3.1.md`).
+- Focused CLI tests for both surfaces (`cli/test/help.test.ts`,
+  `cli/test/mcp-config.test.ts`).
+
+### Changed
+
+- `tools/print-mcp-client-config.mjs` now reuses the shared CLI config-generation
+  module instead of carrying its own copy, so the repository helper and the
+  installed command cannot diverge. It keeps its explicit `--prefix` for
+  repository tooling only.
+- `tools/check-v0.3-installed-project-brain.mjs` extends the existing installed
+  qualification in place (rather than adding a competing suite) to cover
+  installed help, installed `mcp-config`, and prefix relocation.
+- `.github/workflows/release-v0.3.yml` retargeted to the exact version `0.3.1`,
+  gating on the immutable base stable tag `v0.3.0` resolving to its exact
+  published commit. All manual gates are unchanged: `workflow_dispatch` only,
+  `main` only, exact confirmation `RELEASE v0.3.1`, protected `github-release`
+  environment, cross-platform installed qualification, `--latest`, never
+  `--prerelease`, and no registry publication.
+- Canonical version promoted from `0.3.0` to `0.3.1` across `version.json`, every
+  workspace package manifest, the runtime version constants, and the Rust Kernel.
+
+### Unchanged
+
+- Project Brain schema `1`; Project Memory store format `2`.
+- Exactly eleven read-only MCP tools in the same fixed registration order; zero
+  MCP write tools; stdio only.
+- Exactly six memory subcommands.
+- Node.js 20+ installed runtime baseline.
+- The immutable `v0.1.0`, `v0.2.0-rc.1`, `v0.2.0`, `v0.3.0-rc.1`, and `v0.3.0`
+  releases.
+
 ## [0.3.0] - 2026-07-27
 
 Stable **Project Brain** foundation for the v0.3 line — the validated promotion

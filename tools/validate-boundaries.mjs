@@ -132,6 +132,9 @@ for (const file of trackedFiles) {
       "cli/src/node-project-documents.ts",
       "cli/src/project-config.ts",
       "cli/src/provider-config.ts",
+      // The mcp-config existence probe: one read-only lstat of an already-derived
+      // absolute path. It reads no file contents and writes nothing.
+      "cli/src/mcp-config-resolve.ts",
     ]);
     if (
       file.startsWith("cli/src/") &&
@@ -508,6 +511,7 @@ const NODE_CLI_BOUNDARY_FILES = [
   "cli/src/node-project-documents.ts",
   "cli/src/project-config.ts",
   "cli/src/provider-config.ts",
+  "cli/src/mcp-config-resolve.ts",
   "cli/bin/oh-my-pm.mjs",
 ];
 const BOUNDARY_WRITE_APIS = [
@@ -1068,8 +1072,10 @@ const GITHUB_TOKEN_ENV_ALLOWED = new Set([
   "tools/release-bundle-utils.mjs",
   "tools/check-release-install.mjs",
   // The MCP client-config generator names the optional env var in docs prose
-  // only; it never reads it and never writes it into the emitted config.
+  // only; it never reads it and never writes it into the emitted config. The
+  // shared module holds that prose; the repository helper renders through it.
   "tools/print-mcp-client-config.mjs",
+  "cli/src/mcp-config.ts",
   // Phase 6 installed qualification PLANTS the token env var as a privacy
   // sentinel to prove it is never persisted to the store, export, or output.
   "tools/check-v0.3-installed-project-brain.mjs",
@@ -1085,7 +1091,13 @@ const PROVIDER_CONFIG_ENV_ALLOWED = new Set([
   "tools/validate-boundaries.mjs",
   "tools/release-bundle-utils.mjs",
   "tools/check-release-bundle.mjs",
+  // The MCP client-config docs prose names the optional path variable; the
+  // shared module holds that prose and never reads or emits the value.
   "tools/print-mcp-client-config.mjs",
+  "cli/src/mcp-config.ts",
+  // Installed qualification asserts the NAME never enters the emitted config
+  // block; it must name the variable to prove its absence.
+  "tools/check-v0.3-installed-project-brain.mjs",
 ]);
 // Every tracked GitHub production source (provider modules, the CLI adapter and
 // helpers, the MCP runner, and the manual smoke tool), excluding tests/docs.
@@ -1580,22 +1592,36 @@ if (v03Wf !== null) {
   }
 }
 
-// The v0.3 STABLE workflow mirrors the v0.2 stable invariants for the 0.3.0 line:
-// a manually gated stable release that gates on the exact stable version 0.3.0
-// (never a prerelease suffix), publishes a non-prerelease "latest" release (never
-// --prerelease), verifies releases/latest, gates on the validated RC lineage and
-// the recorded GO decision, depends on the cross-platform installed-qualification
-// matrix, targets the exact workflow SHA, grants contents: write exactly once,
-// and uses no registry verb. It must not weaken any of these.
-const v03StableWf = checkReleaseWorkflowCommon(V03_STABLE_RELEASE_WORKFLOW, "RELEASE v0.3.0");
+// The v0.3 STABLE workflow is the ACTIVE v0.3.x stable patch workflow. It gates
+// on the exact current patch version (never a prerelease suffix), publishes a
+// non-prerelease "latest" release (never --prerelease), verifies releases/latest,
+// gates on the immutable base stable tag v0.3.0 resolving to its exact published
+// commit, depends on the cross-platform installed-qualification matrix, targets
+// the exact workflow SHA, grants contents: write exactly once, and uses no
+// registry verb. It must not weaken any of these.
+//
+// The version is read from version.json so a future patch promotion updates one
+// place; the immutable base stable lineage stays pinned.
+const V03_PATCH_VERSION = JSON.parse(readFileSync("version.json", "utf8")).version;
+const V03_BASE_STABLE_TAG = "v0.3.0";
+const V03_BASE_STABLE_SHA = "0d6f9b1c66ac01835e5f7bf2c8512b5beea50014";
+const v03StableWf = checkReleaseWorkflowCommon(
+  V03_STABLE_RELEASE_WORKFLOW,
+  `RELEASE v${V03_PATCH_VERSION}`,
+);
 if (v03StableWf !== null) {
-  // Exact stable version gate on the input (0.3.0, not a prerelease suffix).
-  if (!v03StableWf.includes('!= "0.3.0"')) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must gate on the exact version 0.3.0`);
+  // Exact stable version gate on the input (the patch version, not a prerelease).
+  if (!v03StableWf.includes(`!= "${V03_PATCH_VERSION}"`)) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} must gate on the exact version ${V03_PATCH_VERSION}`);
+  }
+  if (/-rc\./.test(V03_PATCH_VERSION)) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} must not target a prerelease version`);
   }
   // It must never accept a prerelease confirmation string.
   if (v03StableWf.includes("RELEASE v0.3.0-rc.1")) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must use only the stable confirmation string RELEASE v0.3.0`);
+    err(
+      `${V03_STABLE_RELEASE_WORKFLOW} must use only the stable confirmation string RELEASE v${V03_PATCH_VERSION}`,
+    );
   }
   // version.json must be checked against the input version.
   if (
@@ -1622,9 +1648,13 @@ if (v03StableWf !== null) {
   if (!v03StableWf.includes("refusing to overwrite")) {
     err(`${V03_STABLE_RELEASE_WORKFLOW} must refuse when the tag or release already exists`);
   }
-  // It must gate on the validated RC lineage (the GO decision evidence).
-  if (!v03StableWf.includes("GO FOR v0.3.0 STABLE PREPARATION")) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must gate on the recorded stable GO decision`);
+  // It must gate on the immutable base stable lineage: the v0.3.0 tag must still
+  // resolve to its exact published commit before a patch may be published.
+  if (!v03StableWf.includes(V03_BASE_STABLE_TAG)) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} must gate on the base stable tag ${V03_BASE_STABLE_TAG}`);
+  }
+  if (!v03StableWf.includes(V03_BASE_STABLE_SHA)) {
+    err(`${V03_STABLE_RELEASE_WORKFLOW} must pin the base stable commit ${V03_BASE_STABLE_SHA}`);
   }
   // The publish job must depend on the cross-platform installed qualification.
   if (!/needs:\s*\[\s*prepare\s*,\s*installed-qualification\s*\]/.test(v03StableWf)) {
@@ -1636,9 +1666,9 @@ if (v03StableWf !== null) {
   }
   // Exactly the three stable assets are created — and never an RC-named asset.
   for (const asset of [
-    "oh-my-pm-v0.3.0.tar.gz",
-    "oh-my-pm-v0.3.0.zip",
-    "oh-my-pm-v0.3.0-SHA256SUMS.txt",
+    `oh-my-pm-v${V03_PATCH_VERSION}.tar.gz`,
+    `oh-my-pm-v${V03_PATCH_VERSION}.zip`,
+    `oh-my-pm-v${V03_PATCH_VERSION}-SHA256SUMS.txt`,
   ]) {
     if (!v03StableWf.includes(asset)) {
       err(`${V03_STABLE_RELEASE_WORKFLOW} must reference the stable asset: ${asset}`);
@@ -2218,10 +2248,11 @@ if (trackedFiles.includes("kernel/crate/Cargo.toml")) {
 }
 // Version guard: version.json carries the prepared source version. Phases 0–5
 // stayed at 0.2.0; Phase 6 prepared the v0.3 release candidate 0.3.0-rc.1; Phase
-// 7 promotes the validated candidate to the stable 0.3.0. The value must be
+// 7 promoted the validated candidate to the stable 0.3.0; the v0.3.x maintenance
+// line then advances the patch version (currently 0.3.1). The value must be
 // exactly this prepared version (all package manifests and the runtime version
 // constants are checked against it by check-version-consistency).
-const EXPECTED_SOURCE_VERSION = "0.3.0";
+const EXPECTED_SOURCE_VERSION = "0.3.1";
 if (trackedFiles.includes("version.json")) {
   const version = JSON.parse(readFileSync("version.json", "utf8")).version;
   if (version !== EXPECTED_SOURCE_VERSION) {

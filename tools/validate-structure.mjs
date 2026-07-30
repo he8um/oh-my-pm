@@ -209,6 +209,12 @@ const CLI_SOURCES = [
   "cli/test/memory-process.test.ts",
   "cli/test/memory-boundary.test.ts",
   "cli/test/memory-e2e.test.ts",
+  // v0.3.1: the conventional help surface and the installed MCP config command.
+  "cli/src/help.ts",
+  "cli/src/mcp-config.ts",
+  "cli/src/mcp-config-resolve.ts",
+  "cli/test/help.test.ts",
+  "cli/test/mcp-config.test.ts",
 ];
 for (const file of CLI_SOURCES) {
   if (!existsSync(file)) err(`cli foundation file missing: ${file}`);

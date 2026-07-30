@@ -1,6 +1,12 @@
 #[test]
 fn kernel_crate_test_harness_is_available() {
-    assert_eq!(oh_my_pm_kernel::kernel_scaffold_version(), "0.3.0");
+    // The expected version comes from the crate manifest, which
+    // check-version-consistency pins to version.json, so a version promotion
+    // needs no test edit.
+    assert_eq!(
+        oh_my_pm_kernel::kernel_scaffold_version(),
+        env!("CARGO_PKG_VERSION")
+    );
 }
 
 #[test]

@@ -29,7 +29,39 @@ Current commands:
 - `github <brief|risks|next|handoff> [owner/repo] [--source <mode>] [--state <open|closed|all>] [--number <n>] [--query <text>] [--kind <all|issues|pull-requests>] [--limit <1..100>] [--include-comments] [--comment-limit <1..50>] [--include-reviews] [--review-limit <1..20>] [--include-review-comments] [--review-comment-limit <1..20>] [--provider-config <path>]`
 - `providers status [--provider-config <path>]`
 - `providers doctor [github [owner/repo]] [--provider-config <path>] [--confirm-network]`
+- `memory <capture|changes|status|history|export|delete> [options]`
 - `install-preview <root>`
+- `mcp-config [--json|--markdown] [--name <name>]`
+
+## Help
+
+`oh-my-pm --help` and `oh-my-pm -h` print the command reference to stdout and exit
+`0`. The same flags work per namespace and per command, for example
+`oh-my-pm memory --help` and `oh-my-pm providers --help`. Help output is bounded
+and deterministic: it writes nothing to stderr, ends with exactly one newline,
+makes no network request, creates no file or application-data directory, and reads
+no token. Unknown commands and options keep their existing nonzero usage exit
+code.
+
+## `mcp-config`
+
+`oh-my-pm mcp-config` prints a generic stdio MCP client configuration for the
+installed MCP server. Options: `--json` (default), `--markdown`, `--name <name>`
+(default `oh-my-pm`), and `--help` / `-h`.
+
+The installed sibling `oh-my-pm-mcp` executable is resolved from the running CLI's
+own installed location, so an installed user passes no prefix, and the emitted
+absolute command path follows a relocated prefix. The Windows `.cmd` shim is
+selected automatically. The command writes no MCP client file and no project file,
+performs no network access, and includes no token, credential, environment value,
+or project path. An invalid argument or a missing installed executable exits `2`.
+
+From a repository checkout there is no installed prefix to infer; use the
+repository helper with an explicit prefix instead:
+
+```bash
+pnpm mcp:config -- --prefix "$HOME/.local" --markdown
+```
 
 `brief [root]` reads Markdown project documents from a local directory and produces a project status brief through the Runtime, Planner, Skills, and the real WASM Kernel binding. The root defaults to `.` when omitted. Files ending in `.md` or `.markdown` (case-insensitive) are loaded recursively; `.git`, `.hg`, `.svn`, `node_modules`, `dist`, `build`, `coverage`, `target`, `.next`, `.turbo`, and `.cache` directories are ignored anywhere in the tree; symbolic links are never followed and nothing outside the requested root is read. Deterministic limits apply: at most 200 files, 256 KiB per file, and 2 MiB in total. The command is read-only — it never modifies project files, never persists or transmits document content, and requires no external integration. Examples:
 

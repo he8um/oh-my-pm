@@ -334,6 +334,7 @@ async function main() {
   const runCli = makeRunner(prefix, versionDir);
 
   await qualifyBaselineCommands(runCli);
+  await qualifyHelpAndMcpConfig(runCli, prefix);
   await qualifyProjectFixtureJourney(runCli, version);
   await qualifyMcp(prefix, versionDir, release);
   await qualifyDataLocations(runCli, version);
@@ -406,6 +407,167 @@ async function qualifyBaselineCommands(runCli) {
   // A legacy offline command must not create the standard app-data directory and
   // must not load a Project Memory store.
   assert(!existsSync(standardDataRootFor(dataProbe)), "legacy commands create no app-data store");
+}
+
+// ----------------------------------------------------------------------------
+// v0.3.1 — conventional help and the installed MCP client configuration.
+//
+// Help must be a pure, bounded, side-effect-free read: exit 0, stdout only, one
+// trailing newline, no application-data directory, and no token read. mcp-config
+// must resolve the installed sibling executable from the CLI's own installed
+// location with no manual --prefix, emit an absolute command with empty args,
+// leak no secret/environment/project path, write nothing, and fail closed with
+// exit 2 on invalid arguments.
+// ----------------------------------------------------------------------------
+async function qualifyHelpAndMcpConfig(runCli, prefix) {
+  section("cli-help");
+  const dataProbe = scratch("help-data");
+  rmSync(dataProbe, { recursive: true, force: true });
+  // A planted token sentinel must never surface in help or mcp-config output.
+  const tokenSentinel = "ghp_installed_help_sentinel_value";
+  const env = { ...isolatedDataEnv(dataProbe), OH_MY_PM_GITHUB_TOKEN: tokenSentinel };
+
+  for (const flag of ["--help", "-h"]) {
+    const help = runCli([flag], { env });
+    assert(help.code === 0, `installed ${flag} exits 0`);
+    assert(help.stderr === "", `installed ${flag} writes nothing to stderr`);
+    assert(help.stdout.length > 0, `installed ${flag} writes help to stdout`);
+    assert(newlineTerminated(help.stdout), `installed ${flag} output newline-terminated`);
+    assert(!help.stdout.endsWith("\n\n"), `installed ${flag} ends with exactly one newline`);
+    assert(!help.stdout.includes(tokenSentinel), `installed ${flag} leaks no token`);
+    // The real current commands and namespaces are listed.
+    for (const name of ["status", "doctor", "plan", "brief", "risks", "next", "handoff", "memory", "providers", "github", "mcp-config"]) {
+      assert(help.stdout.includes(name), `installed ${flag} lists ${name}`);
+    }
+    assert(help.stdout.includes("Exit codes:"), `installed ${flag} documents exit codes`);
+    assert(help.stdout.includes("--json"), `installed ${flag} documents output modes`);
+    assert(help.stdout.includes("Examples:"), `installed ${flag} includes examples`);
+  }
+
+  // Deterministic across repeated invocations.
+  const firstHelp = runCli(["--help"], { env });
+  const secondHelp = runCli(["--help"], { env });
+  assert(firstHelp.stdout === secondHelp.stdout, "installed help output is deterministic");
+
+  // Namespace help.
+  for (const namespace of ["memory", "providers"]) {
+    const nsHelp = runCli([namespace, "--help"], { env });
+    assert(nsHelp.code === 0, `installed ${namespace} --help exits 0`);
+    assert(nsHelp.stderr === "", `installed ${namespace} --help writes nothing to stderr`);
+    assert(newlineTerminated(nsHelp.stdout), `installed ${namespace} --help newline-terminated`);
+  }
+  const memoryHelp = runCli(["memory", "--help"], { env });
+  for (const sub of ["capture", "changes", "status", "history", "export", "delete"]) {
+    assert(memoryHelp.stdout.includes(sub), `installed memory help lists ${sub}`);
+  }
+
+  // Help creates no application-data directory and no project file.
+  assert(!existsSync(standardDataRootFor(dataProbe)), "installed help creates no app-data store");
+
+  // Unknown argument behavior is unchanged: controlled nonzero usage exit.
+  const unknownOption = runCli(["--totally-unknown"], { env });
+  assert(unknownOption.code === 2, "installed unknown option still exits 2");
+  assert(unknownOption.stdout === "", "installed unknown option writes no stdout");
+  const unknownCommand = runCli(["totally-unknown"], { env });
+  assert(unknownCommand.code === 2, "installed unknown command still exits 2");
+
+  section("cli-mcp-config");
+  const expectedCommand = join(prefix, "bin", isWindows ? "oh-my-pm-mcp.cmd" : "oh-my-pm-mcp");
+
+  const jsonConfig = runCli(["mcp-config"], { env });
+  assert(jsonConfig.code === 0, "installed mcp-config exits 0 with no --prefix");
+  assert(jsonConfig.stderr === "", "installed mcp-config writes nothing to stderr");
+  assert(newlineTerminated(jsonConfig.stdout), "installed mcp-config output newline-terminated");
+  const parsedConfig = safeParse(jsonConfig.stdout);
+  if (assert(parsedConfig !== null, "installed mcp-config emits valid JSON")) {
+    const entry = parsedConfig.mcpServers?.["oh-my-pm"];
+    assert(entry !== undefined, "installed mcp-config uses the default server key");
+    assert(entry?.command === expectedCommand, "installed mcp-config resolves the installed sibling executable");
+    assert(isAbsolute(entry?.command ?? ""), "installed mcp-config command path is absolute");
+    assert(Array.isArray(entry?.args) && entry.args.length === 0, "installed mcp-config emits empty args");
+    assert(
+      JSON.stringify(Object.keys(entry ?? {}).sort()) === JSON.stringify(["args", "command"]),
+      "installed mcp-config emits exactly command and args",
+    );
+    // The resolved executable really exists.
+    assert(isFile(entry?.command ?? ""), "installed mcp-config command path exists");
+  }
+
+  // Deterministic output.
+  const repeatConfig = runCli(["mcp-config"], { env });
+  assert(repeatConfig.stdout === jsonConfig.stdout, "installed mcp-config output is deterministic");
+
+  // Markdown mode: eleven read-only tools, including project_changes.
+  const markdownConfig = runCli(["mcp-config", "--markdown"], { env });
+  assert(markdownConfig.code === 0, "installed mcp-config --markdown exits 0");
+  assert(markdownConfig.stdout.includes("11 read-only tools"), "installed mcp-config --markdown declares eleven read-only tools");
+  assert(markdownConfig.stdout.includes("`project_changes`"), "installed mcp-config --markdown includes project_changes");
+  for (const tool of [
+    "project_brief",
+    "project_risks",
+    "project_next",
+    "project_handoff",
+    "github_project_brief",
+    "github_project_risks",
+    "github_project_next",
+    "github_project_handoff",
+    "provider_status",
+    "github_provider_diagnostics",
+    "project_changes",
+  ]) {
+    assert(markdownConfig.stdout.includes(`\`${tool}\``), `installed mcp-config --markdown lists ${tool}`);
+  }
+  assert(newlineTerminated(markdownConfig.stdout), "installed mcp-config --markdown newline-terminated");
+
+  // A custom valid name.
+  const named = runCli(["mcp-config", "--name", "qual-project"], { env });
+  assert(named.code === 0, "installed mcp-config accepts a valid --name");
+  assert(safeParse(named.stdout)?.mcpServers?.["qual-project"] !== undefined, "installed mcp-config uses the custom name");
+
+  // Controlled exit 2 for invalid arguments.
+  const invalidName = runCli(["mcp-config", "--name", "bad name"], { env });
+  assert(invalidName.code === 2, "installed mcp-config rejects an invalid --name with exit 2");
+  assert(invalidName.stdout === "", "installed mcp-config invalid name writes no stdout");
+  const missingValue = runCli(["mcp-config", "--name"], { env });
+  assert(missingValue.code === 2, "installed mcp-config rejects a missing --name value with exit 2");
+  const unexpectedOption = runCli(["mcp-config", "--vendor-specific"], { env });
+  assert(unexpectedOption.code === 2, "installed mcp-config rejects an unexpected option with exit 2");
+  // --prefix is not part of the installed public surface.
+  const rejectedPrefix = runCli(["mcp-config", "--prefix", prefix], { env });
+  assert(rejectedPrefix.code === 2, "installed mcp-config requires no --prefix and rejects it");
+
+  // No secret, environment value, or project root in the output. A planted token
+  // VALUE must never appear in either mode. The env var NAME appears only in the
+  // Markdown guidance prose, never inside the emitted JSON config block.
+  for (const [label, text] of [
+    ["json", jsonConfig.stdout],
+    ["markdown", markdownConfig.stdout],
+  ]) {
+    assert(!text.includes(tokenSentinel), `installed mcp-config ${label} leaks no token value`);
+    assert(!text.includes(dataProbe), `installed mcp-config ${label} leaks no data directory`);
+    const configBlock =
+      label === "json" ? text : (text.split("```json")[1]?.split("```")[0] ?? "");
+    assert(configBlock.trim() !== "", `installed mcp-config ${label} emits a config block`);
+    assert(
+      !configBlock.includes("OH_MY_PM_GITHUB_TOKEN") &&
+        !configBlock.includes("OH_MY_PM_PROVIDER_CONFIG"),
+      `installed mcp-config ${label} config block names no env var`,
+    );
+    const entry = safeParse(configBlock)?.mcpServers?.["oh-my-pm"];
+    assert(entry !== undefined, `installed mcp-config ${label} config block parses`);
+    assert(
+      entry !== undefined && !("env" in entry) && !("cwd" in entry),
+      `installed mcp-config ${label} emits no env or cwd key`,
+    );
+  }
+  // JSON mode carries no guidance prose, so it names no env var at all.
+  assert(
+    !jsonConfig.stdout.includes("OH_MY_PM_GITHUB_TOKEN"),
+    "installed mcp-config json names no token env var",
+  );
+
+  // No client-file or project write, and no application-data directory.
+  assert(!existsSync(standardDataRootFor(dataProbe)), "installed mcp-config creates no app-data store");
 }
 
 // ----------------------------------------------------------------------------
@@ -1287,6 +1449,56 @@ function qualifySourceIndependenceAndRelocation(prefix, versionDir) {
       assert(isFile(join(binDir, name)), `Windows .cmd shim ${name} present`);
     }
   }
+
+  // v0.3.1: help and mcp-config must keep working from the installed artifact
+  // alone, and mcp-config must track a relocated prefix rather than an embedded
+  // install-time path. The prefix is copied to a new location and exercised
+  // there; the original stays untouched for the remaining checks.
+  section("relocation-help-mcp-config");
+  const relocatedRoot = scratch("relocated-prefix");
+  const relocatedPrefix = join(relocatedRoot, "omp");
+  cpSync(prefix, relocatedPrefix, { recursive: true });
+  if (!isWindows) {
+    for (const name of ["oh-my-pm", "oh-my-pm-mcp"]) {
+      try {
+        chmodSync(join(relocatedPrefix, "bin", name), 0o755);
+      } catch {
+        // best effort: cpSync preserves mode on the supported platforms
+      }
+    }
+  }
+  const relocatedVersionDir = join(
+    relocatedPrefix,
+    "lib",
+    "oh-my-pm",
+    "versions",
+    basename(versionDir),
+  );
+  const relocatedCli = makeRunner(relocatedPrefix, relocatedVersionDir);
+
+  const relocatedHelp = relocatedCli(["--help"]);
+  assert(relocatedHelp.code === 0, "relocated installed help exits 0");
+  assert(relocatedHelp.stderr === "", "relocated installed help writes nothing to stderr");
+
+  const relocatedConfig = relocatedCli(["mcp-config"]);
+  assert(relocatedConfig.code === 0, "relocated installed mcp-config exits 0");
+  const relocatedParsed = safeParse(relocatedConfig.stdout);
+  const relocatedCommand = relocatedParsed?.mcpServers?.["oh-my-pm"]?.command;
+  const expectedRelocated = join(
+    relocatedPrefix,
+    "bin",
+    isWindows ? "oh-my-pm-mcp.cmd" : "oh-my-pm-mcp",
+  );
+  assert(
+    relocatedCommand === expectedRelocated,
+    "relocated installed mcp-config resolves the relocated executable",
+  );
+  assert(isFile(relocatedCommand ?? ""), "relocated mcp-config command path exists");
+  // The relocated output must not point back at the original prefix.
+  assert(
+    !relocatedConfig.stdout.includes(prefix),
+    "relocated mcp-config embeds no install-time prefix",
+  );
 }
 
 // ----------------------------------------------------------------------------

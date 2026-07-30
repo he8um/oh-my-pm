@@ -18,6 +18,8 @@ const NODE_BOUNDARY_FILES = new Set([
   NODE_BOUNDARY_FILE,
   "project-config.ts",
   "provider-config.ts",
+  // The mcp-config existence probe: one read-only lstat, no content read.
+  "mcp-config-resolve.ts",
 ]);
 
 // The CLI process adapter is the approved GitHub boundary: only it may read the

@@ -19,6 +19,13 @@ import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+// The active v0.3.x stable patch version, read from the single source of truth so
+// a patch promotion needs no test edit. The base stable lineage stays pinned.
+const PATCH_VERSION = JSON.parse(
+  readFileSync(join(REPO_ROOT, "version.json"), "utf8"),
+).version;
+const BASE_STABLE_TAG = "v0.3.0";
+const BASE_STABLE_SHA = "0d6f9b1c66ac01835e5f7bf2c8512b5beea50014";
 const RC_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.3-rc.yml");
 const STABLE_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.3.yml");
 const QUAL_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "v0.3-installed-qualification.yml");
@@ -133,9 +140,10 @@ describe("v0.3 stable release workflow (static dry-run)", () => {
   });
 
   it("requires the exact stable version and confirmation string", () => {
-    expect(wf.includes('!= "0.3.0"')).toBe(true);
-    expect(wf.includes("RELEASE v0.3.0")).toBe(true);
-    // Never an RC-suffixed confirmation.
+    expect(wf.includes(`!= "${PATCH_VERSION}"`)).toBe(true);
+    expect(wf.includes(`RELEASE v${PATCH_VERSION}`)).toBe(true);
+    // Never a prerelease-suffixed version or confirmation.
+    expect(PATCH_VERSION).not.toMatch(/-rc\./);
     expect(wf.includes("RELEASE v0.3.0-rc.1")).toBe(false);
   });
 
@@ -147,10 +155,12 @@ describe("v0.3 stable release workflow (static dry-run)", () => {
     expect(wf.includes("releases/latest")).toBe(true);
   });
 
-  it("gates on the validated RC lineage and the recorded GO decision", () => {
-    expect(wf.includes("v0.3.0-rc.1")).toBe(true);
-    expect(wf.includes("1db4057b7dfb31cae7f0d6db593928ee1287ef85")).toBe(true);
-    expect(wf.includes("GO FOR v0.3.0 STABLE PREPARATION")).toBe(true);
+  it("gates on the immutable base stable lineage", () => {
+    // A patch may publish only while the base stable tag still resolves to its
+    // exact published commit, so a rewritten history blocks the release.
+    expect(wf.includes(BASE_STABLE_TAG)).toBe(true);
+    expect(wf.includes(BASE_STABLE_SHA)).toBe(true);
+    expect(/isPrerelease\s*!==\s*false/.test(wf)).toBe(true);
   });
 
   it("depends on the cross-platform installed qualification before publish", () => {
@@ -164,9 +174,9 @@ describe("v0.3 stable release workflow (static dry-run)", () => {
 
   it("references exactly the three stable assets and no RC-named asset", () => {
     for (const asset of [
-      "oh-my-pm-v0.3.0.tar.gz",
-      "oh-my-pm-v0.3.0.zip",
-      "oh-my-pm-v0.3.0-SHA256SUMS.txt",
+      `oh-my-pm-v${PATCH_VERSION}.tar.gz`,
+      `oh-my-pm-v${PATCH_VERSION}.zip`,
+      `oh-my-pm-v${PATCH_VERSION}-SHA256SUMS.txt`,
     ]) {
       expect(wf.includes(asset)).toBe(true);
     }
@@ -193,7 +203,9 @@ describe("v0.3 stable release workflow (static dry-run)", () => {
   });
 
   it("cannot publish without the exact confirmation (the gate is present twice)", () => {
-    const gateCount = (wf.match(/RELEASE v0\.3\.0(?!-rc)/g) || []).length;
+    // The confirmation is re-enforced in the publish job, not only in prepare.
+    const escaped = PATCH_VERSION.replace(/\./g, "\\.");
+    const gateCount = (wf.match(new RegExp(`RELEASE v${escaped}`, "g")) || []).length;
     expect(gateCount).toBeGreaterThanOrEqual(2);
   });
 });
