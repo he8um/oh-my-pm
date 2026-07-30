@@ -12,7 +12,9 @@ It is designed for teams that want clearer delivery context, safer execution bou
 
 > **Latest stable release:** [`v0.3.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.1)
 > **Latest prerelease:** [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1)
-> **Source version:** `0.3.1`
+> **Source version:** `0.4.0` (prepared, not yet published)
+>
+> The source is prepared for **`v0.4.0`**, which adds one capability — **Project Timeline**: a local, bounded, deterministic history of project changes derived read-only from already-captured Project Brain snapshots, exposed through `oh-my-pm memory timeline` and the `project_timeline` MCP tool. It adds no schema change, no store-format change, no migration, no write path, and no registry publication. See the [v0.4.0 release notes](docs/releases/v0.4.0.md) and the [v0.4 architecture](docs/v0.4/README.md).
 >
 > [`v0.3.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.1) is the latest **stable** release — a non-draft, non-prerelease GitHub Release marked latest, carrying exactly three assets. It is a CLI usability patch over `v0.3.0` (conventional `--help`, installed `mcp-config`) with no schema, store-format, or MCP capability change. [`v0.3.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0) remains a preserved immutable stable release targeting `0d6f9b1…`. [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) is a published **prerelease** (the v0.3 Project Brain line; not marked latest), targeting `1db4057…`. [`v0.2.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0), [`v0.2.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0-rc.1) and [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) remain preserved historical releases. Node.js 20+ is the only runtime requirement for installed archives. Packages remain private; there is no npm package.
 
@@ -179,7 +181,7 @@ node .release/oh-my-pm-v0.2.0/bin/oh-my-pm.mjs status
 node .release/oh-my-pm-v0.2.0/bin/oh-my-pm-mcp.mjs
 ```
 
-The bundle contains the compiled packages, the real Rust/WASM Kernel, the four CLI workflows, the ten read-only MCP tools, deterministic `RELEASE.json` metadata, and `SHA256SUMS`. This is the development-build path; the published stable `v0.2.0` release provides the same artifact shape and is the recommended install target for users.
+The bundle contains the compiled packages, the real Rust/WASM Kernel, the four CLI workflows, the twelve read-only MCP tools, deterministic `RELEASE.json` metadata, and `SHA256SUMS`. This is the development-build path; the published stable `v0.2.0` release provides the same artifact shape and is the recommended install target for users.
 
 ### Deterministic release archives
 
@@ -266,8 +268,9 @@ Supported glob operators are `*` (zero or more non-slash characters), `?` (exact
 ## MCP server
 
 OH MY PM exposes its workflows over a read-only MCP stdio server with exactly
-ten tools — four local (filesystem-only), four GitHub (read-only network), and
-two provider diagnostics:
+**twelve** tools and **zero** write tools — four local (filesystem-only), four
+GitHub (read-only network), two provider diagnostics, and two Project Brain
+memory tools:
 
 Local project tools (offline, require a local `root`):
 
@@ -290,6 +293,18 @@ Provider diagnostics tools:
 
 - `provider_status` — offline resolved provider state; reports token presence only
 - `github_provider_diagnostics` — offline GitHub diagnostics; one read-only `GET` only when `confirmNetwork` is set
+
+Project Brain memory tools (offline; read already-captured local memory, need no
+project root, write nothing, and perform no network request):
+
+- `project_changes` — compare the two most recent committed snapshots in
+  authoritative capture order
+- `project_timeline` — a bounded, deterministic history of project changes
+  derived from adjacent committed snapshots, filterable by category and item kind
+  and paginated by capture
+
+No MCP tool writes a project file or application state, and the transport is
+stdio only.
 
 Provider configuration (`providers.json`) is optional, strictly read-only, and
 never stores a secret; see [provider configuration](docs/providers/configuration.md)

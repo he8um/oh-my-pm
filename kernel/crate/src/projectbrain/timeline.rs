@@ -70,7 +70,7 @@ fn resolve_limit(limit: Option<i64>) -> Result<i64, ProjectBrainError> {
     match limit {
         None => Ok(DEFAULT_TIMELINE_LIMIT),
         Some(value) => {
-            if value < MIN_TIMELINE_LIMIT || value > MAX_TIMELINE_LIMIT {
+            if !(MIN_TIMELINE_LIMIT..=MAX_TIMELINE_LIMIT).contains(&value) {
                 return Err(invalid(
                     "limit must be between 1 and 100",
                     "/timelineQuery/limit",
@@ -191,32 +191,47 @@ fn optional(value: &Option<String>) -> CanonicalValue {
 /// identical content in identical positions share an id and any difference in
 /// subject, category, position, or presented value changes it.
 fn derive_event_id(event: &TimelineEventDraft) -> Result<String, ProjectBrainError> {
-    let mut entries: Vec<(String, CanonicalValue)> = Vec::new();
-    entries.push(("projectId".into(), CanonicalValue::str(event.project_id.clone())));
-    entries.push(("snapshotId".into(), CanonicalValue::str(event.snapshot_id.clone())));
-    entries.push((
-        "captureSequence".into(),
-        CanonicalValue::Int(event.capture_sequence),
-    ));
-    entries.push((
-        "eventSequence".into(),
-        CanonicalValue::Int(event.event_sequence),
-    ));
-    entries.push(("capturedAt".into(), CanonicalValue::str(event.captured_at.clone())));
-    entries.push((
-        "category".into(),
-        CanonicalValue::str(category_wire(&event.category)),
-    ));
-    entries.push(("kind".into(), CanonicalValue::str(kind_wire(&event.kind))));
-    entries.push(("subjectId".into(), CanonicalValue::str(event.subject_id.clone())));
-    entries.push((
-        "evidenceCount".into(),
-        CanonicalValue::Int(event.evidence_count),
-    ));
-    entries.push(("title".into(), optional(&event.title)));
-    entries.push(("status".into(), optional(&event.status)));
-    entries.push(("severity".into(), optional(&event.severity)));
-    entries.push(("dueDate".into(), optional(&event.due_date)));
+    // Canonical object keys are sorted on serialization, so this list order is
+    // presentational only; the hashed bytes are key-sorted and stable.
+    let entries: Vec<(String, CanonicalValue)> = vec![
+        (
+            "projectId".into(),
+            CanonicalValue::str(event.project_id.clone()),
+        ),
+        (
+            "snapshotId".into(),
+            CanonicalValue::str(event.snapshot_id.clone()),
+        ),
+        (
+            "captureSequence".into(),
+            CanonicalValue::Int(event.capture_sequence),
+        ),
+        (
+            "eventSequence".into(),
+            CanonicalValue::Int(event.event_sequence),
+        ),
+        (
+            "capturedAt".into(),
+            CanonicalValue::str(event.captured_at.clone()),
+        ),
+        (
+            "category".into(),
+            CanonicalValue::str(category_wire(&event.category)),
+        ),
+        ("kind".into(), CanonicalValue::str(kind_wire(&event.kind))),
+        (
+            "subjectId".into(),
+            CanonicalValue::str(event.subject_id.clone()),
+        ),
+        (
+            "evidenceCount".into(),
+            CanonicalValue::Int(event.evidence_count),
+        ),
+        ("title".into(), optional(&event.title)),
+        ("status".into(), optional(&event.status)),
+        ("severity".into(), optional(&event.severity)),
+        ("dueDate".into(), optional(&event.due_date)),
+    ];
 
     let value = CanonicalValue::Object(entries.into_iter().collect());
     let hex = fingerprint_hex(TIMELINE_EVENT_DOMAIN, &value)?;

@@ -155,8 +155,11 @@ executable exits `2`.
 
 ### `project_changes` example
 
-The v0.3 MCP surface exposes eleven read-only tools; the new one is
-`project_changes`. It accepts no filesystem path — it resolves the standard
+The v0.3 MCP surface exposed eleven read-only tools, of which `project_changes`
+was the new one. (From `v0.4.0` the surface is **twelve** read-only tools, adding
+`project_timeline` — see the
+[v0.4 timeline walkthrough](../v0.4/getting-started-timeline.md).)
+`project_changes` accepts no filesystem path — it resolves the standard
 application-data location itself:
 
 ```json

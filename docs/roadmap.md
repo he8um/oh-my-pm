@@ -311,6 +311,18 @@ in place (see Phase 5B).
 
 ## Phase 5D — v0.4 Project Timeline (active direction)
 
+- **Implemented and prepared for release.** Every phase is implemented and green:
+  the bounded contracts and deterministic Kernel derivation, the read-only Runtime
+  query, the `memory timeline` CLI subcommand, the `project_timeline` MCP tool,
+  the extended profile-aware installed qualification (428/428 checks from each
+  archive, including direct v0.3.1 store compatibility), and the promoted `0.4.0`
+  version with a manually gated `Release v0.4 Stable` workflow. **`v0.4.0` is
+  prepared but not published** — no `v0.4.0` tag or release exists, and
+  `releases/latest` remains `v0.3.1` until publication is separately and
+  explicitly authorized. See the
+  [v0.4.0 release notes](releases/v0.4.0.md), the
+  [publishing runbook](releases/publishing-v0.4.0.md), and the
+  [timeline walkthrough](v0.4/getting-started-timeline.md).
 - **Scope and architecture: locked.** v0.4 builds exactly one capability —
   **Project Timeline**: a local, bounded, deterministic history of project changes
   derived from already-committed Project Brain snapshots, in authoritative capture

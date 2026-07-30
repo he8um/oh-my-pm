@@ -160,7 +160,15 @@ fn events_expose_only_the_allowlisted_projection() {
     )];
     let result = derive(captures, query(PROJECT));
     let serialized = serde_json::to_string(&result).unwrap();
-    for forbidden in ["ev_1", "ev_2", "evidenceRefs", "owner", "priority", "someone", "p1"] {
+    for forbidden in [
+        "ev_1",
+        "ev_2",
+        "evidenceRefs",
+        "owner",
+        "priority",
+        "someone",
+        "p1",
+    ] {
         assert!(
             !serialized.contains(forbidden),
             "serialized timeline leaked \"{forbidden}\": {serialized}"
@@ -215,7 +223,11 @@ fn multiple_events_in_one_capture_get_contiguous_sequences() {
     assert_eq!(sequences, vec![0, 1, 2], "contiguous within the capture");
     // Deterministic order is (item-kind rank, item id, category rank): both
     // tasks precede the risk, and task_a precedes task_b.
-    let subjects: Vec<&str> = result.events.iter().map(|e| e.subject_id.as_str()).collect();
+    let subjects: Vec<&str> = result
+        .events
+        .iter()
+        .map(|e| e.subject_id.as_str())
+        .collect();
     assert_eq!(subjects, vec!["task_a", "task_b", "risk_a"]);
 }
 
@@ -258,7 +270,11 @@ fn three_capture_fixture() -> Vec<TimelineCapture> {
         capture(
             3,
             "2026-03-03T00:00:00Z",
-            vec![change(ChangeCategory::Resolved, StateItemKind::Task, "task_a")],
+            vec![change(
+                ChangeCategory::Resolved,
+                StateItemKind::Task,
+                "task_a",
+            )],
         ),
         capture(
             4,
@@ -293,7 +309,11 @@ fn event_ids_are_deterministic_and_distinct() {
     let ids_b: Vec<&str> = b.events.iter().map(|e| e.event_id.as_str()).collect();
     assert_eq!(ids_a, ids_b, "ids are stable across runs");
     let unique: std::collections::BTreeSet<&str> = ids_a.iter().copied().collect();
-    assert_eq!(unique.len(), ids_a.len(), "distinct events have distinct ids");
+    assert_eq!(
+        unique.len(),
+        ids_a.len(),
+        "distinct events have distinct ids"
+    );
     for id in &ids_a {
         assert!(id.starts_with("event:sha256:"), "unexpected id form: {id}");
         assert_eq!(id.len(), "event:sha256:".len() + 64);
@@ -313,7 +333,9 @@ fn event_ids_are_filter_independent() {
         let matching = unfiltered
             .events
             .iter()
-            .find(|e| e.subject_id == event.subject_id && e.capture_sequence == event.capture_sequence)
+            .find(|e| {
+                e.subject_id == event.subject_id && e.capture_sequence == event.capture_sequence
+            })
             .expect("a filtered event also appears unfiltered");
         assert_eq!(matching.event_id, event.event_id);
         assert_eq!(matching.event_sequence, event.event_sequence);
@@ -651,7 +673,11 @@ fn a_removal_presents_the_previous_value() {
 /// optional fields.
 #[test]
 fn a_change_without_values_produces_a_valueless_event() {
-    let mut bare = change(ChangeCategory::EvidenceChanged, StateItemKind::Decision, "dec_a");
+    let mut bare = change(
+        ChangeCategory::EvidenceChanged,
+        StateItemKind::Decision,
+        "dec_a",
+    );
     bare.current_value = None;
     bare.previous_value = None;
     let captures = vec![capture(2, "2026-03-02T00:00:00Z", vec![bare])];
@@ -711,5 +737,8 @@ fn golden_fixture_matches_across_languages() {
         query: fixture.input.query,
     };
     let actual = derive_project_timeline(&input).unwrap();
-    assert_eq!(actual, fixture.expected, "native derivation matches the fixture");
+    assert_eq!(
+        actual, fixture.expected,
+        "native derivation matches the fixture"
+    );
 }

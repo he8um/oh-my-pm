@@ -891,6 +891,9 @@ const ALLOWED_RELEASE_WORKFLOWS = new Set([
   // v0.3 RC release workflow (manually gated prerelease, validated in detail by
   // validate-boundaries.mjs). It legitimately uses gh release / tags.
   "release-v0.3-rc.yml",
+  // v0.4 STABLE release workflow (manually gated stable, validated in detail by
+  // validate-boundaries.mjs). It is the ACTIVE stable release workflow.
+  "release-v0.4.yml",
   // v0.3 STABLE release workflow (manually gated stable, validated in detail by
   // validate-boundaries.mjs). It legitimately uses gh release / tags.
   "release-v0.3.yml",
@@ -1088,6 +1091,11 @@ for (const file of PHASE_5_SOURCES) {
 // is derived per query from committed snapshots and has no on-disk form.
 const V04_REQUIRED = [
   "docs/v0.4/README.md",
+  // Phase 7: release documentation for the prepared v0.4.0 stable release.
+  "docs/releases/v0.4.0.md",
+  "docs/releases/publishing-v0.4.0.md",
+  "docs/v0.4/getting-started-timeline.md",
+  ".github/workflows/release-v0.4.yml",
   // Phase 2: the deterministic derivation, its tests, and the cross-language
   // golden fixture shared by the native and WASM assertions.
   "kernel/crate/src/projectbrain/timeline.rs",

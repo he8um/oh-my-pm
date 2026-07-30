@@ -2,6 +2,93 @@
 
 ## [Unreleased]
 
+## [0.4.0]
+
+Stable release opening the v0.4 line. It adds **one** main capability —
+**Project Timeline** — and changes nothing else. There is **no schema change, no
+store-format change, and no migration**; a Project Brain store created by the
+public `v0.3.1` build is read directly. `v0.3.1` remains immutable and unchanged.
+No registry publication; all workspace packages remain private.
+
+### Added
+
+- **Project Timeline** — a local, bounded, deterministic history of project
+  changes **derived** from already-committed Project Brain snapshots. Each query
+  reads the store's authoritative capture chronology, compares adjacent committed
+  snapshots through the existing deterministic change engine, and projects the
+  results into sanitized events. A timeline is recomputed per query and is never
+  stored: there is no timeline file, record type, or store.
+- **Three bounded contracts** — `TimelineEvent`, `TimelineQuery` and
+  `TimelineResult`, added to the existing `projectbrain` contract domain and
+  generated deterministically to TypeScript and Rust. `category` and `kind` reuse
+  the existing ChangeSet taxonomy exactly (twelve change categories, six item
+  kinds); no second taxonomy was introduced.
+- **Deterministic Kernel derivation** — orders events by `captureSequence` then
+  `eventSequence`, derives `eventId` from canonical domain-separated inputs,
+  assigns `eventSequence` over the full change order before filtering (so an
+  event's id never depends on which filter the caller passed), applies filters
+  before the limit, and paginates by whole captures so a page never splits a
+  capture and never duplicates or skips an event. Exposed through one new WASM
+  export and one new binding method; the four original `KernelApi` methods are
+  untouched. It reads no clock, filesystem, environment, network, or randomness.
+- **Read-only Runtime timeline query** — provider-independent. Zero writes, zero
+  locks, no directory creation, no capture, migration, export, delete, provider
+  call, or network. There is no fallback to a lexical snapshot-id order and no
+  fallback to timestamps while a capture sequence exists; a store exposing no
+  authoritative chronology fails closed instead.
+- **`oh-my-pm memory timeline`** — the seventh and last memory subcommand, with
+  `--project-id` (required), `--data-dir`, `--limit <1-100>` (default 20),
+  `--before-sequence`, `--category`, `--kind`, `--json`, `--markdown`, and
+  `--help` / `-h`. Read-only: no `--apply` exists. Exits `0` on success and `2`
+  on any usage error, writes stdout only on success, ends with exactly one
+  newline, is byte-identical across repeated runs, and needs no project root or
+  project config. Markdown groups events by capture under fixed headings and
+  invents no summary.
+- **`project_timeline` MCP tool** — the twelfth and last read-only stdio tool,
+  appended after the existing eleven. Declares `readOnlyHint: true` and
+  `destructiveHint: false`, and lazy-loads the memory dependency on its own path
+  only, exactly as `project_changes` does.
+
+### Changed
+
+- **Release profile promoted to v0.4** — release line `v0.4`, profile
+  `project-brain-timeline`, twelve MCP tools, seven memory subcommands,
+  `mcpReadTools: 2`, `mcpWriteTools: 0`, schema `1`, store format `2`,
+  `storeMigrationRequired: false`, `timelinePersistence: false`.
+- **Every release verifier is profile-aware** — the bundle verifier, install core
+  and installed-release checker resolve the surface from the artifact's own
+  declared profile and still fail closed on an unknown one, so the historical
+  v0.2 (ten-tool) and v0.3 (eleven-tool) surfaces remain resolvable by one
+  installer.
+- **Installed MCP configuration output** now truthfully declares twelve read-only
+  tools and lists `project_timeline`.
+- **Installed qualification extended in place** rather than duplicated: the
+  existing harness became profile-aware and gained `timeline-cli`,
+  `timeline-mcp` and `v0.3.1-compatibility` sections. The continuous
+  qualification workflow is now `v0.4-installed-qualification.yml` and pins the
+  expected profile.
+- **Source version promoted** `0.3.1` → `0.4.0` across `version.json`, every
+  workspace manifest, the runtime version constants, and the Rust/WASM Kernel.
+
+### Unchanged
+
+- Project Brain schema stays `1`; Project Memory store format stays `2`; **no
+  migration is required**, and a v0.3.1-shaped store is never migrated, backed
+  up, or reported as `migrationRequired`.
+- The six existing memory subcommands and eleven existing MCP tools keep their
+  exact names, options, output shapes, registration order and exit codes.
+- MCP stays **stdio only** with **zero** write tools.
+- No project file is written and no project content is uploaded.
+- No automatic capture, watcher, scheduler, cloud sync, telemetry, dashboard, web
+  UI, semantic or vector search, LLM-generated summary, new provider, provider
+  alias or profile, and no registry publication.
+
+### Fixed
+
+- `tools/validate-structure.mjs` now registers the tracked `assets/` media folder
+  (public documentation images only). It had been tracked without registration
+  since the README hero image landed, which failed `pnpm validate`.
+
 ## [0.3.1] - 2026-07-30
 
 Stable patch release for the v0.3 line: two CLI usability improvements and

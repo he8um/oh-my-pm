@@ -1371,6 +1371,9 @@ const RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.2-rc.yml";
 const STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.2.yml";
 const V03_RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.3-rc.yml";
 const V03_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.3.yml";
+// The ACTIVE stable release workflow. The v0.3 stable workflow above is
+// historical and immutable; the active-line policy below applies to this file.
+const ACTIVE_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.4.yml";
 
 /** Shared manual-gate policy applied to every dedicated release workflow. */
 function checkReleaseWorkflowCommon(path, confirmation) {
@@ -1600,27 +1603,28 @@ if (v03Wf !== null) {
 // the exact workflow SHA, grants contents: write exactly once, and uses no
 // registry verb. It must not weaken any of these.
 //
-// The version is read from version.json so a future patch promotion updates one
-// place; the immutable base stable lineage stays pinned.
+// The version is read from version.json so a version promotion updates one
+// place; the immutable base stable lineage stays pinned. The ACTIVE stable line
+// is v0.4, whose base stable tag is the published v0.3.1.
 const V03_PATCH_VERSION = JSON.parse(readFileSync("version.json", "utf8")).version;
-const V03_BASE_STABLE_TAG = "v0.3.0";
-const V03_BASE_STABLE_SHA = "0d6f9b1c66ac01835e5f7bf2c8512b5beea50014";
+const V03_BASE_STABLE_TAG = "v0.3.1";
+const V03_BASE_STABLE_SHA = "81d869ed4cf690de0da46ab25d1abe65f85df155";
 const v03StableWf = checkReleaseWorkflowCommon(
-  V03_STABLE_RELEASE_WORKFLOW,
+  ACTIVE_STABLE_RELEASE_WORKFLOW,
   `RELEASE v${V03_PATCH_VERSION}`,
 );
 if (v03StableWf !== null) {
   // Exact stable version gate on the input (the patch version, not a prerelease).
   if (!v03StableWf.includes(`!= "${V03_PATCH_VERSION}"`)) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must gate on the exact version ${V03_PATCH_VERSION}`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must gate on the exact version ${V03_PATCH_VERSION}`);
   }
   if (/-rc\./.test(V03_PATCH_VERSION)) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must not target a prerelease version`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must not target a prerelease version`);
   }
   // It must never accept a prerelease confirmation string.
   if (v03StableWf.includes("RELEASE v0.3.0-rc.1")) {
     err(
-      `${V03_STABLE_RELEASE_WORKFLOW} must use only the stable confirmation string RELEASE v${V03_PATCH_VERSION}`,
+      `${ACTIVE_STABLE_RELEASE_WORKFLOW} must use only the stable confirmation string RELEASE v${V03_PATCH_VERSION}`,
     );
   }
   // version.json must be checked against the input version.
@@ -1628,41 +1632,41 @@ if (v03StableWf !== null) {
     !v03StableWf.includes("require('./version.json').version") &&
     !v03StableWf.includes('require("./version.json").version')
   ) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must verify version.json equals the input version`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must verify version.json equals the input version`);
   }
   // Stable, never prerelease: --latest and never --prerelease.
   if (v03StableWf.includes("--prerelease")) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must never use --prerelease (it is a stable release)`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must never use --prerelease (it is a stable release)`);
   }
   if (!v03StableWf.includes("--latest")) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must create the stable release with --latest`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must create the stable release with --latest`);
   }
   if (!/isPrerelease\s*!==\s*false/.test(v03StableWf)) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must verify the published release isPrerelease === false`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must verify the published release isPrerelease === false`);
   }
   // Latest-stable verification against releases/latest.
   if (!v03StableWf.includes("releases/latest")) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must verify releases/latest resolves to the stable tag`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must verify releases/latest resolves to the stable tag`);
   }
   // Existence refusal before creating tag/release.
   if (!v03StableWf.includes("refusing to overwrite")) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must refuse when the tag or release already exists`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must refuse when the tag or release already exists`);
   }
   // It must gate on the immutable base stable lineage: the v0.3.0 tag must still
   // resolve to its exact published commit before a patch may be published.
   if (!v03StableWf.includes(V03_BASE_STABLE_TAG)) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must gate on the base stable tag ${V03_BASE_STABLE_TAG}`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must gate on the base stable tag ${V03_BASE_STABLE_TAG}`);
   }
   if (!v03StableWf.includes(V03_BASE_STABLE_SHA)) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must pin the base stable commit ${V03_BASE_STABLE_SHA}`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must pin the base stable commit ${V03_BASE_STABLE_SHA}`);
   }
   // The publish job must depend on the cross-platform installed qualification.
   if (!/needs:\s*\[\s*prepare\s*,\s*installed-qualification\s*\]/.test(v03StableWf)) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} publish must depend on the installed-qualification matrix`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} publish must depend on the installed-qualification matrix`);
   }
   // The release must target the exact workflow commit SHA, not floating main.
   if (!v03StableWf.includes('--target "$GITHUB_SHA"')) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must target the exact workflow commit SHA`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must target the exact workflow commit SHA`);
   }
   // Exactly the three stable assets are created — and never an RC-named asset.
   for (const asset of [
@@ -1671,7 +1675,7 @@ if (v03StableWf !== null) {
     `oh-my-pm-v${V03_PATCH_VERSION}-SHA256SUMS.txt`,
   ]) {
     if (!v03StableWf.includes(asset)) {
-      err(`${V03_STABLE_RELEASE_WORKFLOW} must reference the stable asset: ${asset}`);
+      err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must reference the stable asset: ${asset}`);
     }
   }
   for (const rcAsset of [
@@ -1680,13 +1684,13 @@ if (v03StableWf !== null) {
     "oh-my-pm-v0.3.0-rc.1-SHA256SUMS.txt",
   ]) {
     if (v03StableWf.includes(rcAsset)) {
-      err(`${V03_STABLE_RELEASE_WORKFLOW} must not publish an RC-named asset: ${rcAsset}`);
+      err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must not publish an RC-named asset: ${rcAsset}`);
     }
   }
   // contents: write granted exactly once (publish job only).
   const v03WriteKeyCount = (v03StableWf.match(/^\s+contents: write\s*$/gm) || []).length;
   if (v03WriteKeyCount !== 1) {
-    err(`${V03_STABLE_RELEASE_WORKFLOW} must grant contents: write exactly once (publish job only)`);
+    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must grant contents: write exactly once (publish job only)`);
   }
 }
 
@@ -1709,6 +1713,7 @@ const RELEASE_PUBLISH_ALLOWED = new Set([
   STABLE_RELEASE_WORKFLOW,
   V03_RC_RELEASE_WORKFLOW,
   V03_STABLE_RELEASE_WORKFLOW,
+  ACTIVE_STABLE_RELEASE_WORKFLOW,
   "docs/releases/publishing-v0.1.0.md",
   "docs/releases/publishing-v0.2.0-rc.1.md",
   "docs/releases/publishing-v0.2.0.md",
@@ -2249,13 +2254,12 @@ if (trackedFiles.includes("kernel/crate/Cargo.toml")) {
     }
   }
 }
-// Version guard: version.json carries the prepared source version. Phases 0–5
-// stayed at 0.2.0; Phase 6 prepared the v0.3 release candidate 0.3.0-rc.1; Phase
-// 7 promoted the validated candidate to the stable 0.3.0; the v0.3.x maintenance
-// line then advances the patch version (currently 0.3.1). The value must be
+// Version guard: version.json carries the prepared source version. The v0.3 line
+// reached the stable 0.3.1; the v0.4 Project Timeline line then promoted the
+// source to 0.4.0 once every phase was implemented and green. The value must be
 // exactly this prepared version (all package manifests and the runtime version
 // constants are checked against it by check-version-consistency).
-const EXPECTED_SOURCE_VERSION = "0.3.1";
+const EXPECTED_SOURCE_VERSION = "0.4.0";
 if (trackedFiles.includes("version.json")) {
   const version = JSON.parse(readFileSync("version.json", "utf8")).version;
   if (version !== EXPECTED_SOURCE_VERSION) {

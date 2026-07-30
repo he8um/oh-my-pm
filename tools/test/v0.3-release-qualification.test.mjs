@@ -24,10 +24,14 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PATCH_VERSION = JSON.parse(
   readFileSync(join(REPO_ROOT, "version.json"), "utf8"),
 ).version;
-const BASE_STABLE_TAG = "v0.3.0";
-const BASE_STABLE_SHA = "0d6f9b1c66ac01835e5f7bf2c8512b5beea50014";
+// The immutable base stable lineage the ACTIVE release workflow must gate on.
+// The v0.4 line builds on the published v0.3.1 stable.
+const BASE_STABLE_TAG = "v0.3.1";
+const BASE_STABLE_SHA = "81d869ed4cf690de0da46ab25d1abe65f85df155";
 const RC_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.3-rc.yml");
-const STABLE_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.3.yml");
+// The ACTIVE stable release workflow, whose gates are asserted against the
+// canonical source version. The v0.3 stable workflow is historical and immutable.
+const STABLE_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.4.yml");
 const QUAL_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "v0.4-installed-qualification.yml");
 
 function read(p) {
@@ -113,7 +117,7 @@ describe("v0.3 RC release workflow (static dry-run)", () => {
   });
 });
 
-describe("v0.3 stable release workflow (static dry-run)", () => {
+describe("active stable release workflow (static dry-run)", () => {
   const wf = read(STABLE_WORKFLOW);
 
   it("triggers on workflow_dispatch only, never push/pr/schedule/release", () => {
