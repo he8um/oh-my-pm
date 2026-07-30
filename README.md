@@ -1,7 +1,13 @@
 # OH MY PM
 
 **OH MY PM** is a local project intelligence system for structured project and product delivery.
-
+<p align="center">
+  <img
+    src="./assets/readme/oh-my-pm-hero.png"
+    alt="OH MY PM — AI-ready project and product management toolkit"
+    width="100%"
+  />
+</p>
 It is designed for teams that want clearer delivery context, safer execution boundaries, and repeatable validation around project work.
 
 > **Latest stable release:** [`v0.3.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.1)
