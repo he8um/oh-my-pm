@@ -32,3 +32,7 @@ pub const MAX_COVERAGE_GAPS: usize = 1_000;
 pub const MAX_CHANGES: usize = 50_000;
 /// Maximum byte length of any canonical serialization the Kernel will hash.
 pub const MAX_CANONICAL_BYTES: usize = 32 * 1024 * 1024;
+/// Maximum number of adjacent snapshot comparisons a single timeline derivation
+/// will consume (v0.4). A store with more captures still works: the Runtime
+/// reads a bounded window of the chronology rather than the whole history.
+pub const MAX_TIMELINE_CAPTURES: usize = 1_000;

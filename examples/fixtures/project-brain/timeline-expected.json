@@ -1,0 +1,253 @@
+{
+  "input": {
+    "captures": [
+      {
+        "snapshotId": "snap_2",
+        "captureSequence": 2,
+        "capturedAt": "2026-03-02T00:00:00Z",
+        "changeSet": {
+          "projectId": "pb_timeline_project",
+          "previousSnapshotId": "snap_1",
+          "currentSnapshotId": "snap_2",
+          "comparedAt": "2026-03-01T00:00:00Z",
+          "changes": [
+            {
+              "category": "added",
+              "itemKind": "task",
+              "itemId": "task_a",
+              "evidenceRefs": [
+                "ev_1",
+                "ev_2"
+              ],
+              "currentValue": {
+                "kind": "task",
+                "id": "task_a",
+                "title": "Some title",
+                "evidenceRefs": [
+                  "ev_1",
+                  "ev_2"
+                ],
+                "status": "open",
+                "severity": "high",
+                "owner": "someone",
+                "dueDate": "2026-09-01",
+                "priority": "p1"
+              }
+            },
+            {
+              "category": "added",
+              "itemKind": "risk",
+              "itemId": "risk_a",
+              "evidenceRefs": [
+                "ev_1",
+                "ev_2"
+              ],
+              "currentValue": {
+                "kind": "risk",
+                "id": "risk_a",
+                "title": "Some title",
+                "evidenceRefs": [
+                  "ev_1",
+                  "ev_2"
+                ],
+                "status": "open",
+                "severity": "high",
+                "owner": "someone",
+                "dueDate": "2026-09-01",
+                "priority": "p1"
+              }
+            }
+          ],
+          "schemaVersion": 1
+        }
+      },
+      {
+        "snapshotId": "snap_3",
+        "captureSequence": 3,
+        "capturedAt": "2026-03-03T00:00:00Z",
+        "changeSet": {
+          "projectId": "pb_timeline_project",
+          "previousSnapshotId": "snap_2",
+          "currentSnapshotId": "snap_3",
+          "comparedAt": "2026-03-01T00:00:00Z",
+          "changes": [
+            {
+              "category": "resolved",
+              "itemKind": "task",
+              "itemId": "task_a",
+              "evidenceRefs": [
+                "ev_1",
+                "ev_2"
+              ],
+              "currentValue": {
+                "kind": "task",
+                "id": "task_a",
+                "title": "Some title",
+                "evidenceRefs": [
+                  "ev_1",
+                  "ev_2"
+                ],
+                "status": "open",
+                "severity": "high",
+                "owner": "someone",
+                "dueDate": "2026-09-01",
+                "priority": "p1"
+              }
+            }
+          ],
+          "schemaVersion": 1
+        }
+      },
+      {
+        "snapshotId": "snap_4",
+        "captureSequence": 4,
+        "capturedAt": "2026-03-04T00:00:00Z",
+        "changeSet": {
+          "projectId": "pb_timeline_project",
+          "previousSnapshotId": "snap_3",
+          "currentSnapshotId": "snap_4",
+          "comparedAt": "2026-03-01T00:00:00Z",
+          "changes": [
+            {
+              "category": "stale",
+              "itemKind": "risk",
+              "itemId": "risk_a",
+              "evidenceRefs": [
+                "ev_1",
+                "ev_2"
+              ],
+              "currentValue": {
+                "kind": "risk",
+                "id": "risk_a",
+                "title": "Some title",
+                "evidenceRefs": [
+                  "ev_1",
+                  "ev_2"
+                ],
+                "status": "open",
+                "severity": "high",
+                "owner": "someone",
+                "dueDate": "2026-09-01",
+                "priority": "p1"
+              }
+            },
+            {
+              "category": "added",
+              "itemKind": "blocker",
+              "itemId": "blk_a",
+              "evidenceRefs": [
+                "ev_1",
+                "ev_2"
+              ],
+              "currentValue": {
+                "kind": "blocker",
+                "id": "blk_a",
+                "title": "Some title",
+                "evidenceRefs": [
+                  "ev_1",
+                  "ev_2"
+                ],
+                "status": "open",
+                "severity": "high",
+                "owner": "someone",
+                "dueDate": "2026-09-01",
+                "priority": "p1"
+              }
+            }
+          ],
+          "schemaVersion": 1
+        }
+      }
+    ],
+    "query": {
+      "projectId": "pb_timeline_project"
+    }
+  },
+  "expected": {
+    "projectId": "pb_timeline_project",
+    "eventCount": 5,
+    "hasMore": false,
+    "events": [
+      {
+        "eventId": "event:sha256:104d776b913a59694e0acb0e3d59eca67e9c8e975e8c70c49d5f2ee734290bbc",
+        "projectId": "pb_timeline_project",
+        "snapshotId": "snap_4",
+        "captureSequence": 4,
+        "eventSequence": 0,
+        "capturedAt": "2026-03-04T00:00:00Z",
+        "category": "stale",
+        "kind": "risk",
+        "subjectId": "risk_a",
+        "evidenceCount": 2,
+        "title": "Some title",
+        "status": "open",
+        "severity": "high",
+        "dueDate": "2026-09-01"
+      },
+      {
+        "eventId": "event:sha256:25fd82ce12ff2a4665be32f0bdf87fa5b981879f66794f05396f69a52b7f3c3c",
+        "projectId": "pb_timeline_project",
+        "snapshotId": "snap_4",
+        "captureSequence": 4,
+        "eventSequence": 1,
+        "capturedAt": "2026-03-04T00:00:00Z",
+        "category": "added",
+        "kind": "blocker",
+        "subjectId": "blk_a",
+        "evidenceCount": 2,
+        "title": "Some title",
+        "status": "open",
+        "severity": "high",
+        "dueDate": "2026-09-01"
+      },
+      {
+        "eventId": "event:sha256:b09315e59dc5e97a617fadb03480efc9c35c35fe8e0a31a02103ee3de88336b2",
+        "projectId": "pb_timeline_project",
+        "snapshotId": "snap_3",
+        "captureSequence": 3,
+        "eventSequence": 0,
+        "capturedAt": "2026-03-03T00:00:00Z",
+        "category": "resolved",
+        "kind": "task",
+        "subjectId": "task_a",
+        "evidenceCount": 2,
+        "title": "Some title",
+        "status": "open",
+        "severity": "high",
+        "dueDate": "2026-09-01"
+      },
+      {
+        "eventId": "event:sha256:689321f4b4461ece83a0be884560d479cecc7dceeb9239e06f569d0a9a24034f",
+        "projectId": "pb_timeline_project",
+        "snapshotId": "snap_2",
+        "captureSequence": 2,
+        "eventSequence": 0,
+        "capturedAt": "2026-03-02T00:00:00Z",
+        "category": "added",
+        "kind": "task",
+        "subjectId": "task_a",
+        "evidenceCount": 2,
+        "title": "Some title",
+        "status": "open",
+        "severity": "high",
+        "dueDate": "2026-09-01"
+      },
+      {
+        "eventId": "event:sha256:7b4b7ef6c8189c98950216984ec61663d2ad9470ad184f55bfacfbe87a8bf3c8",
+        "projectId": "pb_timeline_project",
+        "snapshotId": "snap_2",
+        "captureSequence": 2,
+        "eventSequence": 1,
+        "capturedAt": "2026-03-02T00:00:00Z",
+        "category": "added",
+        "kind": "risk",
+        "subjectId": "risk_a",
+        "evidenceCount": 2,
+        "title": "Some title",
+        "status": "open",
+        "severity": "high",
+        "dueDate": "2026-09-01"
+      }
+    ]
+  }
+}

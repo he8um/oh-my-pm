@@ -100,8 +100,10 @@ fn flatten_items(
     Ok(map)
 }
 
-/// The fixed category rank used for final ordering.
-fn category_rank(category: &ChangeCategory) -> u8 {
+/// The fixed category rank used for final ordering. Public so the v0.4 timeline
+/// derivation reuses this exact ordering instead of restating it (a second copy
+/// could silently drift from the diff's own change order).
+pub fn category_rank(category: &ChangeCategory) -> u8 {
     match category {
         ChangeCategory::Added => 0,
         ChangeCategory::Removed => 1,

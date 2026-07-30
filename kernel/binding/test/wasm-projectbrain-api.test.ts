@@ -6,7 +6,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { EvidenceRecord, ProjectState } from "@oh-my-pm/contracts";
+import type { EvidenceRecord, ProjectState, TimelineResult } from "@oh-my-pm/contracts";
 import { describe, expect, it } from "vitest";
 import {
   createNodeWasmKernelApi,
@@ -62,13 +62,15 @@ function baseEvidence(): EvidenceRecord {
 }
 
 describe("project brain kernel binding (wasm)", () => {
-  it("exposes exactly the seven approved operations", () => {
+  it("exposes exactly the eight approved operations", () => {
     const api = createNodeWasmProjectBrainKernelApi();
     expect(Object.keys(api).sort()).toEqual(
       [
         "deriveEvidenceId",
         "deriveFreshness",
         "deriveProjectIdentity",
+        // v0.4: the pure Project Timeline derivation.
+        "deriveProjectTimeline",
         "diffProjectSnapshots",
         "finalizeProjectSnapshot",
         "finalizeProjectState",
@@ -143,6 +145,56 @@ describe("project brain kernel binding (wasm)", () => {
     if (r.ok) expect(r.value.stateFingerprint).toMatch(/^sha256:/);
   });
 
+  // --- v0.4 Project Timeline derivation through the WASM boundary ----------
+
+  it("derives an empty valid timeline when there is no adjacent pair", () => {
+    const r = createNodeWasmProjectBrainKernelApi().deriveProjectTimeline({
+      captures: [],
+      query: { projectId: "proj-1" },
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value).toEqual({
+        projectId: "proj-1",
+        eventCount: 0,
+        hasMore: false,
+        events: [],
+      });
+    }
+  });
+
+  it("reproduces the committed golden timeline fixture exactly", () => {
+    // The SAME fixture is asserted natively in
+    // kernel/crate/tests/projectbrain_timeline.rs, so any divergence between
+    // the Rust and WASM paths fails one of the two tests.
+    const fixture = JSON.parse(
+      readFileSync(
+        join(repoRoot, "examples", "fixtures", "project-brain", "timeline-expected.json"),
+        "utf8",
+      ),
+    ) as { input: Parameters<ReturnType<typeof createNodeWasmProjectBrainKernelApi>["deriveProjectTimeline"]>[0]; expected: TimelineResult };
+    const r = createNodeWasmProjectBrainKernelApi().deriveProjectTimeline(fixture.input);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value).toEqual(fixture.expected);
+      // Byte-stable across repeated derivations.
+      const again = createNodeWasmProjectBrainKernelApi().deriveProjectTimeline(fixture.input);
+      expect(again.ok && JSON.stringify(again.value)).toBe(JSON.stringify(r.value));
+    }
+  });
+
+  it("rejects an out-of-range timeline limit with a typed failure", () => {
+    const r = createNodeWasmProjectBrainKernelApi().deriveProjectTimeline({
+      captures: [],
+      query: { projectId: "proj-1", limit: 101 },
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error.code).toBe("OMP-K-PB-1002");
+      expect(r.error.path).toBe("/timelineQuery/limit");
+    }
+  });
+
   it("returns a typed failure envelope for invalid JSON input", () => {
     // A ProjectState missing required fields fails Kernel validation, not a throw.
     const r = createNodeWasmProjectBrainKernelApi().finalizeProjectState(
@@ -167,6 +219,7 @@ describe("project brain kernel binding (wasm)", () => {
         maxFutureSkewSeconds: 0,
       }),
       api.finalizeProjectState(baseState()),
+      api.deriveProjectTimeline({ captures: [], query: { projectId: "proj-1" } }),
     ];
     for (const r of results) {
       expect(r.ok).toBe(false);

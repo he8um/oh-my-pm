@@ -2152,10 +2152,10 @@ if (trackedFiles.includes("mcp-server/src/project-changes-runner.ts")) {
     }
   }
 }
-// Phase 3 Kernel binding surface. The Kernel WASM binding gains the seven
-// approved Project Brain exports (11 total: the original 4 plus these 7) and no
-// others. The original four exports must remain, and no export outside the
-// approved allowlist may appear.
+// Kernel binding surface. The Kernel WASM binding carries the seven approved
+// v0.3 Project Brain exports plus the single v0.4 Project Timeline derivation
+// (12 total: the original 4 plus these 8) and no others. The original four
+// exports must remain, and no export outside the approved allowlist may appear.
 const APPROVED_PB_WASM_EXPORTS = [
   "deriveProjectIdentity",
   "fingerprintMinimizedContent",
@@ -2164,6 +2164,9 @@ const APPROVED_PB_WASM_EXPORTS = [
   "finalizeProjectState",
   "finalizeProjectSnapshot",
   "diffProjectSnapshots",
+  // v0.4: the pure, read-only Project Timeline derivation. It consumes
+  // already-computed ChangeSets and persists nothing.
+  "deriveProjectTimeline",
 ];
 const ORIGINAL_WASM_EXPORTS = [
   "kernelVersion",
@@ -2177,7 +2180,7 @@ if (trackedFiles.includes("kernel/crate/src/wasm.rs")) {
   const allowed = new Set([...ORIGINAL_WASM_EXPORTS, ...APPROVED_PB_WASM_EXPORTS]);
   if (exportNames.length !== allowed.size) {
     err(
-      `kernel/crate/src/wasm.rs must expose exactly ${allowed.size} WASM exports in Phase 3 (found ${exportNames.length})`,
+      `kernel/crate/src/wasm.rs must expose exactly ${allowed.size} WASM exports (found ${exportNames.length})`,
     );
   }
   for (const name of ORIGINAL_WASM_EXPORTS) {
@@ -2213,7 +2216,7 @@ if (trackedFiles.includes("kernel/binding/src/index.ts")) {
       }
     }
   }
-  // The seven approved binding methods must appear on the ProjectBrainKernelApi
+  // Every approved binding method must appear on the ProjectBrainKernelApi
   // surface and nowhere else may a new binding method be introduced.
   if (trackedFiles.includes("kernel/binding/src/projectbrain.ts")) {
     const pb = readFileSync("kernel/binding/src/projectbrain.ts", "utf8");
