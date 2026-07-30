@@ -1075,7 +1075,18 @@ for (const file of PHASE_5_SOURCES) {
 // and the timeline surface must not introduce a persisted timeline store: no
 // timeline directory, record type, or store module may exist anywhere. A timeline
 // is derived per query from committed snapshots and has no on-disk form.
-const V04_REQUIRED = ["docs/v0.4/README.md"];
+const V04_REQUIRED = [
+  "docs/v0.4/README.md",
+  // Phase 2: the deterministic derivation, its tests, and the cross-language
+  // golden fixture shared by the native and WASM assertions.
+  "kernel/crate/src/projectbrain/timeline.rs",
+  "kernel/crate/tests/projectbrain_timeline.rs",
+  "contracts/test/projecttimeline.test.ts",
+  "examples/fixtures/project-brain/timeline-expected.json",
+  // Phase 3: the read-only Runtime timeline query and its tests.
+  "runtime/src/projectbrain/timeline.ts",
+  "runtime/test/projectbrain-timeline.test.ts",
+];
 for (const file of V04_REQUIRED) {
   if (!existsSync(file)) err(`v0.4 file missing: ${file}`);
 }

@@ -6,6 +6,7 @@
 
 import { captureProject } from "./capture.js";
 import { compareProject } from "./compare.js";
+import { timelineProject } from "./timeline.js";
 import type {
   CaptureProjectInput,
   CaptureProjectResult,
@@ -13,6 +14,8 @@ import type {
   CompareProjectResult,
   ProjectBrainRuntime,
   ProjectBrainRuntimeDeps,
+  TimelineProjectInput,
+  TimelineProjectResult,
 } from "./types.js";
 
 /** Create a Project Brain Runtime from its dependency ports. */
@@ -25,6 +28,9 @@ export function createProjectBrainRuntime(
     },
     compare(input: CompareProjectInput): Promise<CompareProjectResult> {
       return compareProject(deps, input);
+    },
+    timeline(input: TimelineProjectInput): Promise<TimelineProjectResult> {
+      return timelineProject(deps, input);
     },
   };
 }

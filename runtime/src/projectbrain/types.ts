@@ -7,6 +7,7 @@
 // memory port; Kernel semantics solely through the Kernel binding port.
 
 import type {
+  ChangeCategory,
   ChangeSet,
   EvidenceRecord,
   Freshness,
@@ -16,9 +17,12 @@ import type {
   ProjectSnapshot,
   ProjectState,
   ProviderRequest,
+  StateItemKind,
+  TimelineResult,
 } from "@oh-my-pm/contracts";
 import type {
   DeriveFreshnessInput,
+  DeriveProjectTimelineInput,
   DiffProjectSnapshotsInput,
   FingerprintContentInput,
   ProjectBrainKernelResult,
@@ -54,6 +58,10 @@ export interface ProjectBrainKernelPort {
   diffProjectSnapshots(
     input: DiffProjectSnapshotsInput,
   ): ProjectBrainKernelResult<ChangeSet>;
+  /** The pure v0.4 Project Timeline derivation. */
+  deriveProjectTimeline(
+    input: DeriveProjectTimelineInput,
+  ): ProjectBrainKernelResult<TimelineResult>;
 }
 
 // --- Memory port -----------------------------------------------------------
@@ -63,10 +71,23 @@ export interface ProjectBrainKernelPort {
 // implementation through this port; it never imports or constructs the Node
 // persistence adapter.
 
-/** A stored snapshot summary, as returned by the memory port. */
+/**
+ * A stored snapshot summary, as returned by the memory port in authoritative
+ * capture chronology (oldest first).
+ *
+ * `capturedAt` and `sequence` are the store's own authoritative chronology
+ * fields (store format 2). They are optional at the type level only so the port
+ * stays structurally compatible with a store that predates the chronology; the
+ * v0.4 timeline query REQUIRES both and fails closed when either is absent
+ * rather than falling back to a lexical id order or a timestamp comparison.
+ */
 export interface MemorySnapshotSummary {
   readonly snapshotId: string;
   readonly isLatest: boolean;
+  /** The capture time from the authoritative history entry. */
+  readonly capturedAt?: string;
+  /** The contiguous 1-based capture ordinal; the authoritative chronology. */
+  readonly sequence?: number;
 }
 
 /** The minimal manifest fields the Runtime reads. */
@@ -243,10 +264,55 @@ export interface CompareProjectResult {
   readonly trace: readonly ProjectBrainTraceEntry[];
 }
 
+// --- Timeline input / result (v0.4) ----------------------------------------
+
+/**
+ * A read-only timeline request. It carries NO path, data directory, token,
+ * apply, migrate, confirm, or force field: a timeline query cannot mutate
+ * anything and cannot choose a filesystem location.
+ */
+export interface TimelineProjectInput {
+  readonly requestId: string;
+  readonly projectId: string;
+  /** The comparison boundary timestamp used by each adjacent diff. */
+  readonly comparedAt: string;
+  /** Page size (1..100). Omitted uses the documented default of 20. */
+  readonly limit?: number;
+  /** Exclusive upper bound on captureSequence for pagination. */
+  readonly beforeSequence?: number;
+  readonly category?: ChangeCategory;
+  readonly kind?: StateItemKind;
+  readonly stalenessPolicy: {
+    readonly evidenceStaleAfterSeconds: number;
+    readonly maxFutureSkewSeconds: number;
+  };
+}
+
+/**
+ * Timeline status. `noPriorMemory` reports that no store exists for the project;
+ * it still carries a valid EMPTY result so a caller never has to special-case a
+ * missing timeline. `derived` covers both a populated and a legitimately empty
+ * timeline. `failed` never carries a partial result.
+ */
+export type TimelineStatus = "derived" | "noPriorMemory" | "failed";
+
+/** Timeline result (sanitized). */
+export interface TimelineProjectResult {
+  readonly requestId: string;
+  readonly status: TimelineStatus;
+  readonly projectId: string;
+  /** Present on every non-failed status; absent only on failure. */
+  readonly result?: TimelineResult;
+  readonly error?: ProjectBrainRuntimeErrorEnvelope;
+  readonly trace: readonly ProjectBrainTraceEntry[];
+}
+
 /** The Project Brain Runtime API. */
 export interface ProjectBrainRuntime {
   capture(input: CaptureProjectInput): Promise<CaptureProjectResult>;
   compare(input: CompareProjectInput): Promise<CompareProjectResult>;
+  /** The read-only v0.4 Project Timeline query. */
+  timeline(input: TimelineProjectInput): Promise<TimelineProjectResult>;
 }
 
 /** Re-exported candidate type for the evidence pipeline. */
