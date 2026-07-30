@@ -121,20 +121,37 @@ oh-my-pm memory changes . --project-id my-project \
 
 ## 7. Configure an MCP client
 
-The MCP server speaks stdio only. Point your MCP client at the installed shim:
+The MCP server speaks stdio only. The installed CLI prints a ready configuration
+for your own installation — no prefix argument and no manual path editing:
+
+```sh
+oh-my-pm mcp-config              # JSON (default)
+oh-my-pm mcp-config --markdown   # the same JSON in a documented Markdown block
+oh-my-pm mcp-config --name my-project   # a custom server key
+```
+
+It emits a generic stdio entry with an absolute command path and empty `args`:
 
 ```json
 {
   "mcpServers": {
     "oh-my-pm": {
-      "command": "/absolute/path/to/prefix/bin/oh-my-pm-mcp"
+      "command": "/absolute/path/to/prefix/bin/oh-my-pm-mcp",
+      "args": []
     }
   }
 }
 ```
 
-On Windows use the `.cmd` shim or invoke Node against the installed
-`oh-my-pm-mcp.mjs` entrypoint directly.
+The absolute path is resolved from the running CLI's own installed location, so it
+stays correct if you move the whole prefix. On Windows the command is the
+`oh-my-pm-mcp.cmd` shim; the correct one is selected for you.
+
+`mcp-config` is preview-only: it writes no client file and no project file,
+performs no network access, and never includes a token, credential, environment
+value, or project path. Copy the entry into your client yourself and reload the
+client as that client requires. An invalid argument or a missing installed
+executable exits `2`.
 
 ### `project_changes` example
 

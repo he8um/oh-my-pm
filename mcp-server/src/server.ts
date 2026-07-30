@@ -31,7 +31,7 @@ import type {
 } from "./types.js";
 
 export const OH_MY_PM_MCP_SERVER_NAME = "oh-my-pm";
-export const OH_MY_PM_MCP_SERVER_VERSION = "0.3.0";
+export const OH_MY_PM_MCP_SERVER_VERSION = "0.3.1";
 
 // --- Public structured result shapes -------------------------------------
 

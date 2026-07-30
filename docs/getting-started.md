@@ -172,19 +172,30 @@ No secret is ever allowed in the file; the token stays in `OH_MY_PM_GITHUB_TOKEN
 
 ## MCP onboarding
 
-Generate a generic stdio MCP client configuration:
+The installed CLI prints a configuration for its own installation, with no prefix
+argument required:
+
+```bash
+oh-my-pm mcp-config              # JSON (default)
+oh-my-pm mcp-config --markdown   # the same JSON in a documented Markdown block
+oh-my-pm mcp-config --name my-project   # a custom server key
+```
+
+From a repository checkout — which has no installed prefix to infer — the
+repository helper takes an explicit prefix instead:
 
 ```bash
 pnpm mcp:config -- --prefix "$HOME/.local" --markdown
 ```
 
-Then:
+Both print the same generic stdio entry (absolute command path, empty `args`) and
+write nothing. Then:
 
 - copy the generated stdio server entry into your MCP client's configuration manually
 - reload or restart the client as that client requires
 - do not place a project path in the server configuration
 - pass the project `root` when invoking a local tool
-- exactly ten tools are available: `project_brief`, `project_risks`, `project_next`, `project_handoff`, `github_project_brief`, `github_project_risks`, `github_project_next`, `github_project_handoff`, `provider_status`, `github_provider_diagnostics`
+- exactly eleven read-only tools are available: `project_brief`, `project_risks`, `project_next`, `project_handoff`, `github_project_brief`, `github_project_risks`, `github_project_next`, `github_project_handoff`, `provider_status`, `github_provider_diagnostics`, `project_changes`
 - the four local tools stay filesystem-local; the four GitHub tools perform read-only outbound API requests only when called; `provider_status` is offline and `github_provider_diagnostics` reaches the network only with `confirmNetwork: true`
 - supply `OH_MY_PM_GITHUB_TOKEN` and (optionally) `OH_MY_PM_PROVIDER_CONFIG` to the MCP server process environment only if you need them — the generator never inserts secrets or a config path
 
