@@ -21,6 +21,8 @@ import { createDefaultSkillRegistry } from "@oh-my-pm/skills";
 import { runCli } from "./cli.js";
 import { readGitHubTokenFromEnvironment } from "./github-token.js";
 import { formatHelp, resolveHelpRequest } from "./help.js";
+import { runMcpConfigCommand } from "./mcp-config.js";
+import { installedCommandExists } from "./mcp-config-resolve.js";
 import { formatMemoryOutcome, memoryOutcomeExitCode } from "./memory-format.js";
 import { runMemoryProcess } from "./memory-process.js";
 import type { MemoryProcessOptions } from "./memory-process.js";
@@ -85,6 +87,18 @@ export type LocalCliProcessOptions = {
    * uses it instead of dynamically importing the Node Project Memory adapter.
    */
   memoryStoreFactory?: MemoryProcessOptions["storeFactory"];
+  /**
+   * The CLI entry-script path, read at the process boundary. The `mcp-config`
+   * command infers the installed prefix from it; nothing else uses it. When
+   * omitted the ambient entry script is used.
+   */
+  entryScriptPath?: string;
+  /**
+   * Existence predicate for the installed sibling MCP command, used only by
+   * `mcp-config`. Injected by tests to stay offline and platform-independent;
+   * production uses the read-only stat boundary (mcp-config-resolve.ts).
+   */
+  commandExists?: (path: string) => boolean;
 };
 
 // Default local runtime identity. Deterministic: no real clock, no randomness.
@@ -127,9 +141,17 @@ function ambientEnv(): Readonly<Record<string, string | undefined>> {
   return proc?.env ?? {};
 }
 
-type NodeProcess = { platform?: NodeJS.Platform; cwd?: () => string };
+type NodeProcess = { platform?: NodeJS.Platform; cwd?: () => string; argv?: string[] };
 function ambientProcess(): NodeProcess {
   return (globalThis as { process?: NodeProcess }).process ?? {};
+}
+/**
+ * The entry-script path of the running CLI process. Read only here, at the
+ * process boundary, and consumed only by `mcp-config` to infer the installed
+ * prefix. It is never printed and never used to resolve project documents.
+ */
+function ambientEntryScriptPath(): string {
+  return ambientProcess().argv?.[1] ?? "";
 }
 function ambientPlatform(): NodeJS.Platform {
   return ambientProcess().platform ?? "linux";
@@ -340,6 +362,17 @@ export async function runLocalCliProcess(
   const helpTopic = resolveHelpRequest(args);
   if (helpTopic !== null) {
     return { exitCode: 0, stdout: formatHelp(helpTopic), stderr: "" };
+  }
+
+  // mcp-config is a local, read-only, print-only command. It resolves the
+  // installed sibling executable from this process's own installed location and
+  // never reaches the parser, the Runtime, a provider, or the network.
+  if (args.length > 0 && args[0] === "mcp-config") {
+    return runMcpConfigCommand(args.slice(1), {
+      entryScriptPath: options?.entryScriptPath ?? ambientEntryScriptPath(),
+      platform: options?.platform ?? ambientPlatform(),
+      commandExists: options?.commandExists ?? installedCommandExists,
+    });
   }
 
   const parsed = parseCliArgs([...args]);

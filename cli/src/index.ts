@@ -24,6 +24,27 @@ export {
 } from "./help.js";
 export type { HelpTopic } from "./help.js";
 export {
+  MCP_CONFIG_COMMAND_NAME,
+  MCP_CONFIG_DEFAULT_SERVER_NAME,
+  MCP_CONFIG_READ_ONLY_TOOLS,
+  buildMcpClientConfig,
+  candidateInstalledBinDirectories,
+  formatMcpClientConfig,
+  installedMcpCommandFileName,
+  isValidMcpServerName,
+  parseMcpConfigArgs,
+  resolveInstalledMcpCommand,
+  runMcpConfigCommand,
+} from "./mcp-config.js";
+export type {
+  McpClientConfig,
+  McpCommandResolution,
+  McpCommandResolutionInput,
+  McpConfigCommandResult,
+  McpConfigOutputMode,
+  McpConfigParseResult,
+} from "./mcp-config.js";
+export {
   formatInstallerPreview,
   runInstallerPreview,
 } from "./install-preview.js";

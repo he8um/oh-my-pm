@@ -132,6 +132,9 @@ for (const file of trackedFiles) {
       "cli/src/node-project-documents.ts",
       "cli/src/project-config.ts",
       "cli/src/provider-config.ts",
+      // The mcp-config existence probe: one read-only lstat of an already-derived
+      // absolute path. It reads no file contents and writes nothing.
+      "cli/src/mcp-config-resolve.ts",
     ]);
     if (
       file.startsWith("cli/src/") &&
@@ -508,6 +511,7 @@ const NODE_CLI_BOUNDARY_FILES = [
   "cli/src/node-project-documents.ts",
   "cli/src/project-config.ts",
   "cli/src/provider-config.ts",
+  "cli/src/mcp-config-resolve.ts",
   "cli/bin/oh-my-pm.mjs",
 ];
 const BOUNDARY_WRITE_APIS = [
