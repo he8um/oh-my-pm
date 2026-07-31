@@ -50,6 +50,8 @@ const ALLOWED_TOP_FILES = [
   "Cargo.lock",
   "Cargo.toml",
   "CHANGELOG.md",
+  // v0.5: the single source of truth for the public command names.
+  "command-surface.json",
   "CODE_OF_CONDUCT.md",
   "CONTRIBUTING.md",
   "LICENSE",
@@ -1138,6 +1140,20 @@ if (existsSync("project-memory/src/types.ts")) {
   if (/timeline/i.test(memTypes)) {
     err("project-memory/src/types.ts must stay timeline-free (no persisted timeline records)");
   }
+}
+
+// 9. v0.5 command surface. The public command names live in exactly one
+// machine-readable manifest at the repository root, with a tool-side loader and
+// a consistency validator. Every other surface that restates a command name is
+// checked against the manifest by tools/validate-command-surface.mjs.
+const V05_COMMAND_SURFACE_REQUIRED = [
+  "command-surface.json",
+  "tools/command-surface.mjs",
+  "tools/validate-command-surface.mjs",
+  "tools/test/command-surface.test.mjs",
+];
+for (const file of V05_COMMAND_SURFACE_REQUIRED) {
+  if (!existsSync(file)) err(`v0.5 command-surface file missing: ${file}`);
 }
 
 if (fail) {

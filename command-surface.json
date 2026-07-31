@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "product": "oh-my-pm",
+  "canonical": {
+    "cli": "ohmypm",
+    "mcp": "ohmypm-mcp",
+    "installer": "ohmypm-install"
+  },
+  "legacyAliases": {
+    "cli": ["oh-my-pm"],
+    "mcp": ["oh-my-pm-mcp"],
+    "installer": ["oh-my-pm-install"]
+  },
+  "deprecatedSince": "0.5.0",
+  "removalScheduled": false
+}
