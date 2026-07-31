@@ -216,14 +216,24 @@ for (const rel of REQUIRED_ENTRYPOINTS) {
     if (key !== COMMAND_SURFACE.product) {
       err(`${rel}: MCP_CONFIG_DEFAULT_SERVER_NAME must remain "${COMMAND_SURFACE.product}"`);
     }
-    const command = extractStringConstant(source, "MCP_CONFIG_COMMAND_NAME");
-    if (command !== CANONICAL_MCP) {
-      err(`${rel}: MCP_CONFIG_COMMAND_NAME "${command}" != "${CANONICAL_MCP}"`);
+    // The command name must come from the CLI's command-surface module rather
+    // than a second literal, so there is exactly one place to change. Checking
+    // for the import (not a literal) is what enforces that.
+    if (!/from\s+"\.\/command-surface\.js"/.test(source)) {
+      err(`${rel}: must import the command names from ./command-surface.js`);
     }
-    const legacy = extractStringArray(source, "MCP_CONFIG_LEGACY_COMMAND_NAMES");
-    if (legacy === null) err(`${rel}: MCP_CONFIG_LEGACY_COMMAND_NAMES not found`);
-    else if (!same(legacy, LEGACY_MCP)) {
-      err(`${rel}: MCP_CONFIG_LEGACY_COMMAND_NAMES ${JSON.stringify(legacy)} != ${JSON.stringify(LEGACY_MCP)}`);
+    if (!/MCP_CONFIG_COMMAND_NAME\s*=\s*CANONICAL_MCP_COMMAND/.test(source)) {
+      err(`${rel}: MCP_CONFIG_COMMAND_NAME must be CANONICAL_MCP_COMMAND`);
+    }
+    if (!/MCP_CONFIG_LEGACY_COMMAND_NAMES[^=]*=\s*LEGACY_MCP_COMMANDS/.test(source)) {
+      err(`${rel}: MCP_CONFIG_LEGACY_COMMAND_NAMES must be LEGACY_MCP_COMMANDS`);
+    }
+    // A generated configuration must never hard-code a deprecated executable.
+    for (const legacyName of LEGACY_MCP) {
+      const literal = new RegExp(`=\\s*"${legacyName}"`);
+      if (literal.test(source)) {
+        err(`${rel}: must not assign the deprecated command name "${legacyName}" as a literal`);
+      }
     }
   }
 }

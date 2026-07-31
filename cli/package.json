@@ -12,7 +12,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "oh-my-pm": "./bin/oh-my-pm.mjs"
+    "ohmypm": "./bin/ohmypm.mjs"
   },
   "exports": {
     ".": {

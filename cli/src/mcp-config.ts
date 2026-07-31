@@ -5,16 +5,33 @@
 // testable and deterministic.
 //
 // The generated configuration is a generic stdio MCP server entry pointing at
-// the installed `oh-my-pm-mcp` command by absolute path with an empty argument
+// the installed `ohmypm-mcp` command by absolute path with an empty argument
 // vector. It never contains a token, credential, environment value, project
 // root, provider response, or hidden state, and it is never written anywhere:
-// the caller prints it and the user pastes it into their own client.
+// the caller prints it and the user pastes it into their own client. Nothing
+// here rewrites a configuration file the user owns.
 
-/** The default MCP server key. Bounded and validated like every other name. */
+import {
+  CANONICAL_MCP_COMMAND,
+  LEGACY_MCP_COMMANDS,
+} from "./command-surface.js";
+
+/**
+ * The default MCP server key. This is a *product identity*, not a command, so
+ * v0.5 deliberately leaves it as `oh-my-pm`: an existing client configuration
+ * keeps the same server key and only its `command` value needs regenerating.
+ */
 export const MCP_CONFIG_DEFAULT_SERVER_NAME = "oh-my-pm";
 
 /** The installed sibling MCP command, without a platform extension. */
-export const MCP_CONFIG_COMMAND_NAME = "oh-my-pm-mcp";
+export const MCP_CONFIG_COMMAND_NAME = CANONICAL_MCP_COMMAND;
+
+/**
+ * Deprecated MCP executable names. A configuration that still invokes one of
+ * these keeps working through the compatibility alias, so it is recognized as
+ * legacy-but-functional rather than reported as broken.
+ */
+export const MCP_CONFIG_LEGACY_COMMAND_NAMES: readonly string[] = LEGACY_MCP_COMMANDS;
 
 /**
  * The bounded server-name rule. Identical to the repository helper's existing
@@ -99,14 +116,19 @@ function separatorOf(path: string): string {
  *
  * Two installed shapes are supported, both derived purely from the entry path:
  *
- *  1. A released, installed artifact. The command shim at `<prefix>/bin/oh-my-pm`
- *     runs `<prefix>/lib/oh-my-pm/versions/<version>/bin/oh-my-pm.mjs`, so the
+ *  1. A released, installed artifact. The command shim at `<prefix>/bin/ohmypm`
+ *     runs `<prefix>/lib/oh-my-pm/versions/<version>/bin/ohmypm.mjs`, so the
  *     entry script sits four levels below the prefix. The sibling MCP command is
- *     `<prefix>/bin/oh-my-pm-mcp`.
+ *     `<prefix>/bin/ohmypm-mcp`.
  *  2. A locally installed development shim, whose entry script is the package's
- *     own `<root>/cli/bin/oh-my-pm.mjs`. There is no `<prefix>/bin` above it, so
+ *     own `<root>/cli/bin/ohmypm.mjs`. There is no `<prefix>/bin` above it, so
  *     this shape yields no candidate and the caller reports the installed
  *     executable as missing — a controlled exit 2 rather than a wrong path.
+ *
+ * The match is on the *directory* shape only, never on the entry filename, so a
+ * deprecated `oh-my-pm` shim resolves the same installed prefix as the canonical
+ * `ohmypm` shim. The `lib/oh-my-pm` segment is an installation path and is
+ * deliberately unchanged by the v0.5 command migration.
  *
  * Returning candidates (rather than one path) keeps the resolution total: the
  * caller probes them in order and the first existing regular file wins. Pure.
@@ -114,8 +136,8 @@ function separatorOf(path: string): string {
 export function candidateInstalledBinDirectories(entryScriptPath: string): string[] {
   const separator = separatorOf(entryScriptPath);
   const segments = segmentsOf(entryScriptPath);
-  // <prefix>/lib/oh-my-pm/versions/<version>/bin/oh-my-pm.mjs
-  //   -> drop: oh-my-pm.mjs, bin, <version>, versions, oh-my-pm, lib
+  // <prefix>/lib/oh-my-pm/versions/<version>/bin/<cli>.mjs
+  //   -> drop: <cli>.mjs, bin, <version>, versions, oh-my-pm, lib
   const candidates: string[] = [];
   if (
     segments.length >= 7 &&
@@ -151,8 +173,67 @@ export type McpCommandResolution =
   | { ok: true; commandPath: string }
   | { ok: false; message: string };
 
+// ---------------------------------------------------------------------------
+// Legacy configuration recognition.
+// ---------------------------------------------------------------------------
+
 /**
- * Resolve the absolute installed `oh-my-pm-mcp` command path from the CLI's own
+ * How an existing MCP client configuration's `command` value relates to the
+ * v0.5 command surface.
+ *
+ *  - `canonical`: already invokes the canonical `ohmypm-mcp`.
+ *  - `legacy`: invokes a deprecated alias. It still works through the
+ *    compatibility shim, so this is explicitly *not* a broken configuration —
+ *    only one that should be regenerated.
+ *  - `unrecognized`: names some other executable entirely; this module makes no
+ *    claim about it.
+ */
+export type McpConfigCommandClassification = "canonical" | "legacy" | "unrecognized";
+
+/** Strip a directory prefix and a Windows `.cmd`/`.exe` suffix. Pure. */
+function commandBaseName(command: string): string {
+  const segments = segmentsOf(command);
+  const last = segments[segments.length - 1] ?? "";
+  const lowered = last.toLowerCase();
+  for (const extension of [".cmd", ".exe", ".bat", ".mjs"]) {
+    if (lowered.endsWith(extension)) {
+      return last.slice(0, last.length - extension.length);
+    }
+  }
+  return last;
+}
+
+/**
+ * Classify a configured MCP `command` value. Accepts a bare command name, an
+ * absolute or relative path, and a Windows shim filename. Pure.
+ */
+export function classifyMcpConfigCommand(command: string): McpConfigCommandClassification {
+  const base = commandBaseName(command);
+  if (base === MCP_CONFIG_COMMAND_NAME) return "canonical";
+  if (MCP_CONFIG_LEGACY_COMMAND_NAMES.includes(base)) return "legacy";
+  return "unrecognized";
+}
+
+/**
+ * Guidance for a configuration that still invokes a deprecated executable. The
+ * wording states plainly that the configuration keeps working, so a user is
+ * never told to fix something that is not broken. Returns null when the
+ * configuration already uses the canonical command or is unrecognized.
+ *
+ * This is advice only. OH MY PM never rewrites a client configuration file the
+ * user owns; regenerating one is always an explicit `mcp-config` invocation.
+ */
+export function legacyMcpConfigGuidance(command: string): string | null {
+  if (classifyMcpConfigCommand(command) !== "legacy") return null;
+  const base = commandBaseName(command);
+  return (
+    `\`${base}\` is a deprecated compatibility alias and still works. ` +
+    `Regenerate this configuration to use \`${MCP_CONFIG_COMMAND_NAME}\`.`
+  );
+}
+
+/**
+ * Resolve the absolute installed canonical MCP command path from the CLI's own
  * installed location. Probes each derived candidate with the injected predicate
  * and returns the first hit. A miss is a controlled failure, never a guess.
  */

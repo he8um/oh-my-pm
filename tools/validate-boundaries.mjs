@@ -512,6 +512,9 @@ const NODE_CLI_BOUNDARY_FILES = [
   "cli/src/project-config.ts",
   "cli/src/provider-config.ts",
   "cli/src/mcp-config-resolve.ts",
+  "cli/bin/ohmypm.mjs",
+  // v0.5: the deprecated compatibility alias is held to the same boundary rules
+  // as the canonical entrypoint -- it runs the same runner in-process.
   "cli/bin/oh-my-pm.mjs",
 ];
 const BOUNDARY_WRITE_APIS = [

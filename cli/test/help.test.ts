@@ -4,6 +4,10 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  CANONICAL_CLI_COMMAND,
+  LEGACY_CLI_COMMANDS,
+} from "../src/command-surface.js";
+import {
   HELP_TOPICS,
   formatHelp,
   isHelpFlag,
@@ -127,7 +131,35 @@ describe("help text", () => {
     expect(text).toContain("--markdown");
     expect(text).toContain("Exit codes:");
     expect(text).toContain("Examples:");
-    expect(text).toContain("oh-my-pm status");
+    expect(text).toContain("ohmypm status");
+  });
+
+  it("presents ohmypm as the only executable in every topic", () => {
+    // v0.5: `ohmypm` is canonical. A deprecated alias may never appear in help
+    // as an equal alternative, in any topic, in any usage line or example.
+    //
+    // The one permitted occurrence of the string "oh-my-pm" is the default MCP
+    // *server key*, which is a product identity rather than a command and is
+    // deliberately unchanged. Stripping that exact phrase first keeps this
+    // assertion strict about commands without banning the product name.
+    const serverKeyPhrase = "server key (default: oh-my-pm)";
+    for (const topic of HELP_TOPICS) {
+      const text = formatHelp(topic).split(serverKeyPhrase).join("");
+      for (const legacy of LEGACY_CLI_COMMANDS) {
+        expect(text, `${topic} help must not present "${legacy}"`).not.toContain(legacy);
+      }
+    }
+  });
+
+  it("uses the canonical command in every usage line", () => {
+    for (const topic of HELP_TOPICS) {
+      const text = formatHelp(topic);
+      const usageLines = text
+        .split("\n")
+        .filter((line) => line.startsWith("  ") && line.trim().startsWith(CANONICAL_CLI_COMMAND));
+      expect(usageLines.length, `${topic} help must show a ${CANONICAL_CLI_COMMAND} usage line`)
+        .toBeGreaterThan(0);
+    }
   });
 
   it("memory help lists exactly the seven subcommands", () => {
@@ -234,7 +266,7 @@ describe("help through the process runner", () => {
   it("never resolves an installed MCP command for help", async () => {
     const probed: string[] = [];
     const result = await runLocalCliProcess(["mcp-config", "--help"], {
-      entryScriptPath: "/opt/omp/lib/oh-my-pm/versions/0.3.1/bin/oh-my-pm.mjs",
+      entryScriptPath: "/opt/omp/lib/oh-my-pm/versions/0.3.1/bin/ohmypm.mjs",
       platform: "linux",
       commandExists: (path) => {
         probed.push(path);

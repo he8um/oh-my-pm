@@ -6,7 +6,14 @@
 // The help surface is a description of the CLI that already exists; it adds no
 // command, option, or behavior of its own.
 
+import { CANONICAL_CLI_COMMAND } from "./command-surface.js";
 import { MEMORY_SUBCOMMANDS } from "./memory-types.js";
+
+// The canonical CLI command, bound once so every usage line, example, and
+// namespace pointer in this file renders the same name. Help never presents a
+// deprecated compatibility alias as an equal alternative: a legacy wrapper
+// prints this same canonical help after its stderr deprecation warning.
+const CLI = CANONICAL_CLI_COMMAND;
 
 /** Help topics: the top level plus every namespace that has its own grammar. */
 export const HELP_TOPICS = [
@@ -77,7 +84,7 @@ function topHelp(): string {
     "OH MY PM — local project intelligence for structured project delivery.",
     "",
     "Usage:",
-    "  oh-my-pm <command> [options]",
+    `  ${CLI} <command> [options]`,
     "",
     "Project commands:",
     "  status                    report runtime and kernel status",
@@ -107,21 +114,21 @@ function topHelp(): string {
     ...EXIT_CODES,
     "",
     "Examples:",
-    "  oh-my-pm status",
-    "  oh-my-pm brief . --markdown",
-    "  oh-my-pm github risks owner/repo --limit 20",
-    "  oh-my-pm providers status --json",
-    "  oh-my-pm memory status --json",
-    "  oh-my-pm mcp-config",
+    `  ${CLI} status`,
+    `  ${CLI} brief . --markdown`,
+    `  ${CLI} github risks owner/repo --limit 20`,
+    `  ${CLI} providers status --json`,
+    `  ${CLI} memory status --json`,
+    `  ${CLI} mcp-config`,
     "",
-    "Run `oh-my-pm <namespace> --help` for namespace details.",
+    `Run \`${CLI} <namespace> --help\` for namespace details.`,
   ]);
 }
 
 function githubHelp(): string {
   return block([
     "Usage:",
-    "  oh-my-pm github <brief|risks|next|handoff> [owner/repo] [options]",
+    `  ${CLI} github <brief|risks|next|handoff> [owner/repo] [options]`,
     "",
     "Reads a GitHub repository through the read-only provider. The repository and",
     "limits may come from provider configuration when not given explicitly.",
@@ -149,17 +156,17 @@ function githubHelp(): string {
     ...EXIT_CODES,
     "",
     "Examples:",
-    "  oh-my-pm github brief owner/repo",
-    "  oh-my-pm github risks owner/repo --limit 20 --json",
-    "  oh-my-pm github next owner/repo --state open --include-comments",
+    `  ${CLI} github brief owner/repo`,
+    `  ${CLI} github risks owner/repo --limit 20 --json`,
+    `  ${CLI} github next owner/repo --state open --include-comments`,
   ]);
 }
 
 function providersHelp(): string {
   return block([
     "Usage:",
-    "  oh-my-pm providers status [options]",
-    "  oh-my-pm providers doctor [github [owner/repo]] [options]",
+    `  ${CLI} providers status [options]`,
+    `  ${CLI} providers doctor [github [owner/repo]] [options]`,
     "",
     "Inspects provider configuration and health. Both subcommands are offline by",
     "default; no token value is ever printed.",
@@ -177,17 +184,17 @@ function providersHelp(): string {
     ...EXIT_CODES,
     "",
     "Examples:",
-    "  oh-my-pm providers status",
-    "  oh-my-pm providers status --json",
-    "  oh-my-pm providers doctor",
-    "  oh-my-pm providers doctor github owner/repo --confirm-network",
+    `  ${CLI} providers status`,
+    `  ${CLI} providers status --json`,
+    `  ${CLI} providers doctor`,
+    `  ${CLI} providers doctor github owner/repo --confirm-network`,
   ]);
 }
 
 function memoryHelp(): string {
   return block([
     "Usage:",
-    `  oh-my-pm memory <${MEMORY_SUBCOMMANDS.join("|")}> [options]`,
+    `  ${CLI} memory <${MEMORY_SUBCOMMANDS.join("|")}> [options]`,
     "",
     "Local Project Brain memory. Every subcommand is preview-first: a mutating",
     "operation runs only with an explicit --apply, and `delete --apply` also",
@@ -222,20 +229,20 @@ function memoryHelp(): string {
     ...EXIT_CODES,
     "",
     "Examples:",
-    "  oh-my-pm memory status --json",
-    "  oh-my-pm memory capture --root .",
-    "  oh-my-pm memory capture --root . --apply",
-    "  oh-my-pm memory changes --markdown",
-    "  oh-my-pm memory history --limit 5",
-    "  oh-my-pm memory timeline --project-id my-project",
-    "  oh-my-pm memory timeline --project-id my-project --kind risk --limit 10",
+    `  ${CLI} memory status --json`,
+    `  ${CLI} memory capture --root .`,
+    `  ${CLI} memory capture --root . --apply`,
+    `  ${CLI} memory changes --markdown`,
+    `  ${CLI} memory history --limit 5`,
+    `  ${CLI} memory timeline --project-id my-project`,
+    `  ${CLI} memory timeline --project-id my-project --kind risk --limit 10`,
   ]);
 }
 
 function mcpConfigHelp(): string {
   return block([
     "Usage:",
-    "  oh-my-pm mcp-config [--json|--markdown] [--name <name>]",
+    `  ${CLI} mcp-config [--json|--markdown] [--name <name>]`,
     "",
     "Prints a generic stdio MCP client configuration for the installed OH MY PM",
     "MCP server. The configuration is a preview only: no client file is written,",
@@ -253,16 +260,16 @@ function mcpConfigHelp(): string {
     "  2    invalid argument, or the installed MCP executable was not found",
     "",
     "Examples:",
-    "  oh-my-pm mcp-config",
-    "  oh-my-pm mcp-config --markdown",
-    "  oh-my-pm mcp-config --name my-project",
+    `  ${CLI} mcp-config`,
+    `  ${CLI} mcp-config --markdown`,
+    `  ${CLI} mcp-config --name my-project`,
   ]);
 }
 
 function projectCommandHelp(command: string, summary: string): string {
   return block([
     "Usage:",
-    `  oh-my-pm ${command} [root] [--json|--markdown]`,
+    `  ${CLI} ${command} [root] [--json|--markdown]`,
     "",
     summary,
     "The project root defaults to the current directory and is read only.",
@@ -277,15 +284,15 @@ function projectCommandHelp(command: string, summary: string): string {
     ...EXIT_CODES,
     "",
     "Examples:",
-    `  oh-my-pm ${command}`,
-    `  oh-my-pm ${command} . --markdown`,
+    `  ${CLI} ${command}`,
+    `  ${CLI} ${command} . --markdown`,
   ]);
 }
 
 function simpleCommandHelp(command: string, summary: string): string {
   return block([
     "Usage:",
-    `  oh-my-pm ${command} [--json|--markdown]`,
+    `  ${CLI} ${command} [--json|--markdown]`,
     "",
     summary,
     "",
@@ -299,8 +306,8 @@ function simpleCommandHelp(command: string, summary: string): string {
     ...EXIT_CODES,
     "",
     "Examples:",
-    `  oh-my-pm ${command}`,
-    `  oh-my-pm ${command} --json`,
+    `  ${CLI} ${command}`,
+    `  ${CLI} ${command} --json`,
   ]);
 }
 
@@ -333,7 +340,7 @@ export function formatHelp(topic: HelpTopic): string {
     case "plan":
       return block([
         "Usage:",
-        "  oh-my-pm plan <request> [--json|--markdown]",
+        `  ${CLI} plan <request> [--json|--markdown]`,
         "",
         "Derives a plan from a short free-text request. The request is one or more",
         "words and is never written to disk.",
@@ -348,13 +355,13 @@ export function formatHelp(topic: HelpTopic): string {
         ...EXIT_CODES,
         "",
         "Examples:",
-        "  oh-my-pm plan ship the release",
-        '  oh-my-pm plan "reduce onboarding time" --json',
+        `  ${CLI} plan ship the release`,
+        `  ${CLI} plan "reduce onboarding time" --json`,
       ]);
     case "install-preview":
       return block([
         "Usage:",
-        "  oh-my-pm install-preview <root> [--json|--markdown]",
+        `  ${CLI} install-preview <root> [--json|--markdown]`,
         "",
         "Previews a local installation under <root>. This is always a dry run: it",
         "writes nothing and installs nothing.",
@@ -369,8 +376,8 @@ export function formatHelp(topic: HelpTopic): string {
         ...EXIT_CODES,
         "",
         "Examples:",
-        "  oh-my-pm install-preview .",
-        "  oh-my-pm install-preview . --json",
+        `  ${CLI} install-preview .`,
+        `  ${CLI} install-preview . --json`,
       ]);
     case "top":
       return topHelp();

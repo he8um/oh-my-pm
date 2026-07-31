@@ -201,6 +201,8 @@ const CLI_SOURCES = [
   "cli/test/cli.test.ts",
   "cli/test/purity.test.ts",
   "cli/README.md",
+  "cli/bin/ohmypm.mjs",
+  // v0.5: retained deprecated compatibility alias.
   "cli/bin/oh-my-pm.mjs",
   "cli/test/bin.test.ts",
   "cli/test/local-runtime-smoke.test.ts",
@@ -211,6 +213,8 @@ const CLI_SOURCES = [
   "cli/src/project-document-rules.ts",
   "cli/test/project-document-rules.test.ts",
   "cli/src/project-config.ts",
+  // v0.5: the CLI-side view of the canonical command names.
+  "cli/src/command-surface.ts",
   "cli/test/project-config.test.ts",
   // v0.3 Phase 4: the preview-first `memory` CLI surface.
   "cli/src/memory-types.ts",

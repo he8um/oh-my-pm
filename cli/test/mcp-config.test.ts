@@ -17,10 +17,10 @@ import {
 
 // A POSIX and a Windows installed entry-script path, in the exact shape the
 // release installer creates: <prefix>/lib/oh-my-pm/versions/<version>/bin/…
-const POSIX_ENTRY = "/opt/omp/lib/oh-my-pm/versions/0.3.1/bin/oh-my-pm.mjs";
-const POSIX_MCP = "/opt/omp/bin/oh-my-pm-mcp";
-const WINDOWS_ENTRY = "C:\\Tools\\omp\\lib\\oh-my-pm\\versions\\0.3.1\\bin\\oh-my-pm.mjs";
-const WINDOWS_MCP = "C:\\Tools\\omp\\bin\\oh-my-pm-mcp.cmd";
+const POSIX_ENTRY = "/opt/omp/lib/oh-my-pm/versions/0.3.1/bin/ohmypm.mjs";
+const POSIX_MCP = "/opt/omp/bin/ohmypm-mcp";
+const WINDOWS_ENTRY = "C:\\Tools\\omp\\lib\\oh-my-pm\\versions\\0.3.1\\bin\\ohmypm.mjs";
+const WINDOWS_MCP = "C:\\Tools\\omp\\bin\\ohmypm-mcp.cmd";
 
 /** Run mcp-config against an injected installed layout. Never touches disk. */
 async function run(
@@ -107,15 +107,15 @@ describe("installed prefix inference", () => {
   });
 
   it("derives nothing from a non-installed entry script", () => {
-    for (const path of ["", "/repo/cli/bin/oh-my-pm.mjs", "/usr/local/bin/oh-my-pm", "oh-my-pm.mjs"]) {
+    for (const path of ["", "/repo/cli/bin/ohmypm.mjs", "/usr/local/bin/ohmypm", "ohmypm.mjs"]) {
       expect(candidateInstalledBinDirectories(path)).toEqual([]);
     }
   });
 
   it("selects the platform-correct command filename", () => {
-    expect(installedMcpCommandFileName("linux")).toBe("oh-my-pm-mcp");
-    expect(installedMcpCommandFileName("darwin")).toBe("oh-my-pm-mcp");
-    expect(installedMcpCommandFileName("win32")).toBe("oh-my-pm-mcp.cmd");
+    expect(installedMcpCommandFileName("linux")).toBe("ohmypm-mcp");
+    expect(installedMcpCommandFileName("darwin")).toBe("ohmypm-mcp");
+    expect(installedMcpCommandFileName("win32")).toBe("ohmypm-mcp.cmd");
   });
 
   it("resolves the POSIX command from the installed prefix", () => {
@@ -286,8 +286,8 @@ describe("mcp-config through the process runner", () => {
   });
 
   it("needs no --prefix: the prefix comes from the CLI's own location", async () => {
-    const relocated = "/srv/other/lib/oh-my-pm/versions/0.3.1/bin/oh-my-pm.mjs";
-    const relocatedMcp = "/srv/other/bin/oh-my-pm-mcp";
+    const relocated = "/srv/other/lib/oh-my-pm/versions/0.3.1/bin/ohmypm.mjs";
+    const relocatedMcp = "/srv/other/bin/ohmypm-mcp";
     const result = await run([], {
       entryScriptPath: relocated,
       exists: [relocatedMcp],
