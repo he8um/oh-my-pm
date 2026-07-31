@@ -12,7 +12,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "oh-my-pm-mcp": "./bin/oh-my-pm-mcp.mjs"
+    "ohmypm-mcp": "./bin/ohmypm-mcp.mjs"
   },
   "exports": {
     ".": {

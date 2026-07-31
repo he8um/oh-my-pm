@@ -38,7 +38,7 @@ describe("print-mcp-client-config command", () => {
     const config = JSON.parse(result.stdout);
     expect(Object.keys(config.mcpServers)).toEqual(["oh-my-pm"]);
     const entry = config.mcpServers["oh-my-pm"];
-    expect(entry.command).toBe(join(prefix, "bin", "oh-my-pm-mcp"));
+    expect(entry.command).toBe(join(prefix, "bin", "ohmypm-mcp"));
     expect(entry.args).toEqual([]);
     // No env/cwd/root/network fields.
     expect(Object.keys(entry).sort()).toEqual(["args", "command"]);

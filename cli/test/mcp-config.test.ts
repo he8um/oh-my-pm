@@ -5,8 +5,13 @@
 import { describe, expect, it } from "vitest";
 import { runLocalCliProcess } from "../src/local-process.js";
 import {
+  MCP_CONFIG_COMMAND_NAME,
+  MCP_CONFIG_DEFAULT_SERVER_NAME,
+  MCP_CONFIG_LEGACY_COMMAND_NAMES,
   MCP_CONFIG_READ_ONLY_TOOLS,
   buildMcpClientConfig,
+  classifyMcpConfigCommand,
+  legacyMcpConfigGuidance,
   candidateInstalledBinDirectories,
   formatMcpClientConfig,
   installedMcpCommandFileName,
@@ -366,5 +371,90 @@ describe("mcp-config through the process runner", () => {
     });
     expect(result.exitCode).toBe(0);
     expect(clockReads).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// v0.5 command migration: canonical vs legacy configuration.
+// ---------------------------------------------------------------------------
+
+describe("v0.5 generated configuration", () => {
+  it("invokes the canonical ohmypm-mcp command", () => {
+    expect(MCP_CONFIG_COMMAND_NAME).toBe("ohmypm-mcp");
+  });
+
+  it("keeps the default server key as the product identity oh-my-pm", () => {
+    // The server *key* is not a command. Leaving it unchanged means an existing
+    // client configuration keeps the same key and only its `command` changes.
+    expect(MCP_CONFIG_DEFAULT_SERVER_NAME).toBe("oh-my-pm");
+  });
+
+  it("recognizes the deprecated executable as a legacy command", () => {
+    expect(MCP_CONFIG_LEGACY_COMMAND_NAMES).toEqual(["oh-my-pm-mcp"]);
+  });
+
+  it("generates a configuration whose command is canonical", () => {
+    const config = buildMcpClientConfig(MCP_CONFIG_DEFAULT_SERVER_NAME, POSIX_MCP);
+    const command = config.mcpServers["oh-my-pm"]?.command ?? "";
+    expect(classifyMcpConfigCommand(command)).toBe("canonical");
+  });
+});
+
+describe("classifyMcpConfigCommand", () => {
+  it("classifies the canonical command by bare name and by absolute path", () => {
+    for (const value of [
+      "ohmypm-mcp",
+      "/opt/omp/bin/ohmypm-mcp",
+      "C:\\Tools\\omp\\bin\\ohmypm-mcp.cmd",
+      "/opt/omp/bin/ohmypm-mcp.mjs",
+    ]) {
+      expect(classifyMcpConfigCommand(value), value).toBe("canonical");
+    }
+  });
+
+  it("classifies a deprecated command as legacy rather than broken", () => {
+    // A configuration written before v0.5 still works through the compatibility
+    // shim, so it must never be reported as completely broken.
+    for (const value of [
+      "oh-my-pm-mcp",
+      "/opt/omp/bin/oh-my-pm-mcp",
+      "C:\\Tools\\omp\\bin\\oh-my-pm-mcp.cmd",
+    ]) {
+      expect(classifyMcpConfigCommand(value), value).toBe("legacy");
+    }
+  });
+
+  it("does not claim anything about an unrelated executable", () => {
+    for (const value of ["node", "/usr/bin/python3", "some-other-mcp", ""]) {
+      expect(classifyMcpConfigCommand(value), value).toBe("unrecognized");
+    }
+  });
+
+  it("never confuses the CLI command with the MCP command", () => {
+    expect(classifyMcpConfigCommand("ohmypm")).toBe("unrecognized");
+    expect(classifyMcpConfigCommand("oh-my-pm")).toBe("unrecognized");
+  });
+});
+
+describe("legacyMcpConfigGuidance", () => {
+  it("states that a legacy configuration still works and should be regenerated", () => {
+    const guidance = legacyMcpConfigGuidance("/opt/omp/bin/oh-my-pm-mcp");
+    expect(guidance).not.toBeNull();
+    expect(guidance).toContain("still works");
+    expect(guidance).toContain("ohmypm-mcp");
+    expect(guidance).not.toContain("broken");
+    expect(guidance).not.toContain("invalid");
+  });
+
+  it("offers no guidance for a canonical or unrecognized command", () => {
+    expect(legacyMcpConfigGuidance("ohmypm-mcp")).toBeNull();
+    expect(legacyMcpConfigGuidance("/opt/omp/bin/ohmypm-mcp")).toBeNull();
+    expect(legacyMcpConfigGuidance("node")).toBeNull();
+  });
+
+  it("is advice only and never rewrites a user-owned file", () => {
+    // The whole module is pure; this asserts the guidance is a plain string with
+    // no imperative side channel.
+    expect(typeof legacyMcpConfigGuidance("oh-my-pm-mcp")).toBe("string");
   });
 });

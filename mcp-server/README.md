@@ -25,14 +25,16 @@ The only transport is local **stdio**. There is no HTTP, SSE, host, port, networ
 Start the server (development, from the repository):
 
 ```bash
-node mcp-server/bin/oh-my-pm-mcp.mjs
+node mcp-server/bin/ohmypm-mcp.mjs
 ```
 
 After a local installation (see [the getting-started guide](../docs/getting-started.md)), the server is available through the installed command once `<prefix>/bin` is on PATH:
 
 ```bash
-oh-my-pm-mcp
+ohmypm-mcp
 ```
+
+The former `oh-my-pm-mcp` name remains as a deprecated compatibility alias, so an existing client configuration keeps working without being edited. It prints a deprecation warning to stderr only -- never to stdout, which is reserved for MCP protocol messages. No removal is scheduled. See [the v0.5 migration guide](../docs/v0.5/README.md).
 
 Generate a generic stdio client configuration for the installed command:
 
@@ -137,7 +139,7 @@ Each tool reuses the CLI's configured document loader: it reads only `<root>/oh-
   "mcpServers": {
     "oh-my-pm": {
       "command": "node",
-      "args": ["/absolute/path/to/oh-my-pm/mcp-server/bin/oh-my-pm-mcp.mjs"]
+      "args": ["/absolute/path/to/oh-my-pm/mcp-server/bin/ohmypm-mcp.mjs"]
     }
   }
 }

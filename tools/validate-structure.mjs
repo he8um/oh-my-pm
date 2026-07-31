@@ -388,9 +388,13 @@ const MCP_SERVER_SOURCES = [
   "mcp-server/src/project-tool-runner.ts",
   "mcp-server/src/server.ts",
   "mcp-server/src/index.ts",
+  "mcp-server/bin/ohmypm-mcp.mjs",
+  // v0.5: retained deprecated compatibility alias.
   "mcp-server/bin/oh-my-pm-mcp.mjs",
   "mcp-server/test/project-tool-runner.test.ts",
   "mcp-server/test/server.test.ts",
+  // v0.5: canonical + deprecated-alias protocol safety.
+  "mcp-server/test/command-alias.test.ts",
   "tools/check-mcp-server.mjs",
 ];
 for (const file of MCP_SERVER_SOURCES) {

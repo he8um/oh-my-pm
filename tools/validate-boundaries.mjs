@@ -655,11 +655,17 @@ for (const file of MCP_SOURCE_FILES) {
     }
   }
 }
-// The MCP bin wrapper: no stdout writing or startup banner; stderr/exitCode ok.
-const MCP_BIN = "mcp-server/bin/oh-my-pm-mcp.mjs";
-if (!trackedFiles.includes(MCP_BIN)) {
-  err(`mcp bin wrapper is not tracked: ${MCP_BIN}`);
-} else {
+// The MCP bin wrappers: no stdout writing or startup banner; stderr/exitCode ok.
+// v0.5 ships the canonical entrypoint plus a deprecated compatibility alias.
+// Both are held to the identical rule, because the stdout ban is exactly what
+// keeps the JSON-RPC stream protocol-safe -- including for the alias, whose
+// deprecation warning must reach stderr only.
+const MCP_BINS = ["mcp-server/bin/ohmypm-mcp.mjs", "mcp-server/bin/oh-my-pm-mcp.mjs"];
+for (const MCP_BIN of MCP_BINS) {
+  if (!trackedFiles.includes(MCP_BIN)) {
+    err(`mcp bin wrapper is not tracked: ${MCP_BIN}`);
+    continue;
+  }
   const contents = readFileSync(MCP_BIN, "utf8");
   for (const marker of ["process.stdout", "console.log", "console.error", "process.env", "fetch(", "child_process"]) {
     if (contents.includes(marker)) {
@@ -2130,11 +2136,12 @@ if (trackedFiles.includes("mcp-server/src/server.ts")) {
     err("mcp-server/src/server.ts must not statically import @oh-my-pm/project-memory");
   }
 }
-// The MCP bin must not statically import the project-memory package either.
-if (trackedFiles.includes("mcp-server/bin/oh-my-pm-mcp.mjs")) {
-  const bin = readFileSync("mcp-server/bin/oh-my-pm-mcp.mjs", "utf8");
+// Neither MCP bin may statically import the project-memory package.
+for (const mcpBin of ["mcp-server/bin/ohmypm-mcp.mjs", "mcp-server/bin/oh-my-pm-mcp.mjs"]) {
+  if (!trackedFiles.includes(mcpBin)) continue;
+  const bin = readFileSync(mcpBin, "utf8");
   if (bin.includes("@oh-my-pm/project-memory")) {
-    err("mcp-server/bin/oh-my-pm-mcp.mjs must not reference @oh-my-pm/project-memory");
+    err(`${mcpBin} must not reference @oh-my-pm/project-memory`);
   }
 }
 // The project_changes runner must not import a provider, call capture/commit/
