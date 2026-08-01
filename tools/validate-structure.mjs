@@ -66,6 +66,10 @@ const ALLOWED_TOP_FILES = [
   "rust-toolchain.toml",
   "tsconfig.base.json",
   "version.json",
+  // v0.5.2: test topology. Separates the parallel unit project from the
+  // serialized release/archive/install project so those suites cannot race
+  // over shared workspace build output while computing bundle checksums.
+  "vitest.workspace.mjs",
 ];
 
 // Canonical current-development version. version.json is the single source of
