@@ -29,9 +29,10 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     commit-message:
+      # The scope is already part of the prefix. Adding `include: scope` makes
+      # Dependabot append it a second time -- "chore(deps)(deps): ...".
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
-      include: scope
     groups:
       # The quality toolchain moves together and cannot affect the shipped
       # artifact: none of it is a runtime dependency.
@@ -70,7 +71,6 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(deps)"
-      include: scope
     groups:
       cargo-minor-patch:
         applies-to: version-updates
@@ -98,7 +98,6 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "ci(deps)"
-      include: scope
     groups:
       actions-minor-patch:
         applies-to: version-updates
