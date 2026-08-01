@@ -21,7 +21,7 @@ import {
   DEFAULT_PROJECT_DOCUMENT_MAX_FILES,
   DEFAULT_PROJECT_DOCUMENT_MAX_TOTAL_BYTES,
   loadMarkdownProjectDocuments,
-} from "../src/index.js";
+} from "../src/node/index.js";
 
 const roots: string[] = [];
 

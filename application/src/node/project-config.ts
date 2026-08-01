@@ -11,16 +11,16 @@ import {
   DEFAULT_PROJECT_DOCUMENT_MAX_FILES,
   DEFAULT_PROJECT_DOCUMENT_MAX_TOTAL_BYTES,
   loadMarkdownProjectDocuments,
-} from "./node-project-documents.js";
-import type { ProjectDocumentLoadResult } from "./node-project-documents.js";
+} from "./project-documents.js";
+import type { ProjectDocumentLoadResult } from "./project-documents.js";
 import {
   DEFAULT_PROJECT_DOCUMENT_INCLUDE,
   validateLocalProjectConfig,
-} from "./project-document-rules.js";
+} from "../project-document-rules.js";
 import type {
   LocalProjectConfigErrorCode,
   ResolvedLocalProjectDocumentConfig,
-} from "./project-document-rules.js";
+} from "../project-document-rules.js";
 
 export const OH_MY_PM_PROJECT_CONFIG_FILENAME = "oh-my-pm.config.json";
 export const OH_MY_PM_PROJECT_CONFIG_VERSION = 1;

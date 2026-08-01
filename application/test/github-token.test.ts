@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GITHUB_TOKEN_ENV, readGitHubTokenFromEnvironment } from "../src/index.js";
+import { GITHUB_TOKEN_ENV, readGitHubTokenFromEnvironment } from "../src/node/index.js";
 
 describe("readGitHubTokenFromEnvironment", () => {
   it("reads the token from the exact env variable name", () => {

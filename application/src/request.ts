@@ -1,11 +1,11 @@
 import type { JsonValue, RuntimeRequest } from "@oh-my-pm/contracts";
 import { createGitHubProviderRequest } from "@oh-my-pm/providers";
 import type { GitHubSourceSelection } from "@oh-my-pm/providers";
-import { DEFAULT_PROJECT_DOCUMENT_MAX_FILES } from "./node-project-documents.js";
-import type { GitHubCliOperation, RuntimeCliCommand } from "./types.js";
+import { DEFAULT_PROJECT_DOCUMENT_MAX_FILES } from "./project-document-limits.js";
+import type { ProjectWorkflowOperation, RuntimeWorkflowCommand } from "./types.js";
 
 export type GitHubWorkflowRequestInput = {
-  operation: GitHubCliOperation;
+  operation: ProjectWorkflowOperation;
   repository: string;
   selection: GitHubSourceSelection;
   caller: "cli" | "mcp";
@@ -58,8 +58,19 @@ export function createGitHubRuntimeRequest(input: GitHubWorkflowRequestInput): R
   };
 }
 
-/** Deterministic RuntimeRequest for a CLI command: no time, no randomness. */
-export function createRuntimeRequest(command: RuntimeCliCommand, input?: string): RuntimeRequest {
+/**
+ * Deterministic RuntimeRequest for a project workflow: no time, no randomness.
+ *
+ * The `cli-` request id prefix and the `"cli"` payload source are a fixed part
+ * of the observable response contract, shared by every presentation surface —
+ * the MCP local project tools have always issued exactly these requests. They
+ * are deliberately not parameterized by caller: changing them would change the
+ * `id` field of published CLI JSON output.
+ */
+export function createRuntimeRequest(
+  command: RuntimeWorkflowCommand,
+  input?: string,
+): RuntimeRequest {
   if (command === "plan") {
     return {
       id: "cli-plan",

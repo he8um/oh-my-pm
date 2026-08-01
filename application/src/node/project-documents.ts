@@ -1,7 +1,8 @@
-// Explicit Node CLI boundary: read-only Markdown project document loading.
-// This is the only CLI source file allowed to import node:fs and node:path,
-// and it reads only. It never writes, never follows symbolic links, never
-// leaves the resolved root, and never logs or persists document content.
+// Explicit Node application boundary: read-only Markdown project document
+// loading. This is one of the few application source files allowed to import
+// node:fs and node:path, and it reads only. It never writes, never follows
+// symbolic links, never leaves the resolved root, and never logs or persists
+// document content.
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve, sep } from "node:path";
@@ -10,7 +11,12 @@ import {
   DEFAULT_PROJECT_DOCUMENT_EXCLUDE,
   DEFAULT_PROJECT_DOCUMENT_INCLUDE,
   matchesLocalProjectDocumentRules,
-} from "./project-document-rules.js";
+} from "../project-document-rules.js";
+import {
+  DEFAULT_PROJECT_DOCUMENT_MAX_BYTES_PER_FILE,
+  DEFAULT_PROJECT_DOCUMENT_MAX_FILES,
+  DEFAULT_PROJECT_DOCUMENT_MAX_TOTAL_BYTES,
+} from "../project-document-limits.js";
 
 export type ProjectDocumentLoadWarningCode =
   | "project_root_not_found"
@@ -44,9 +50,13 @@ export type ProjectDocumentLoadResult = {
   warnings: ProjectDocumentLoadWarning[];
 };
 
-export const DEFAULT_PROJECT_DOCUMENT_MAX_FILES = 200;
-export const DEFAULT_PROJECT_DOCUMENT_MAX_BYTES_PER_FILE = 256 * 1024;
-export const DEFAULT_PROJECT_DOCUMENT_MAX_TOTAL_BYTES = 2 * 1024 * 1024;
+// Re-exported so existing consumers of the Node loader keep a single import
+// site; the values themselves live in the Node-free core limits module.
+export {
+  DEFAULT_PROJECT_DOCUMENT_MAX_BYTES_PER_FILE,
+  DEFAULT_PROJECT_DOCUMENT_MAX_FILES,
+  DEFAULT_PROJECT_DOCUMENT_MAX_TOTAL_BYTES,
+};
 
 const IGNORED_DIRECTORIES: ReadonlySet<string> = new Set([
   ".git",

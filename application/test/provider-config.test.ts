@@ -6,8 +6,8 @@ import {
   MAX_PROVIDER_CONFIG_BYTES,
   loadProviderConfig,
   resolveProviderConfigLocation,
-} from "../src/provider-config.js";
-import type { ProviderConfigResolutionInput } from "../src/provider-config.js";
+} from "../src/node/provider-config.js";
+import type { ProviderConfigResolutionInput } from "../src/node/provider-config.js";
 
 const tmpRoots: string[] = [];
 function tempDir(): string {

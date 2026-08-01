@@ -1,0 +1,35 @@
+{
+  "name": "@oh-my-pm/application",
+  "version": "0.5.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@oh-my-pm/contracts": "workspace:*",
+    "@oh-my-pm/kernel": "workspace:*",
+    "@oh-my-pm/project-memory": "workspace:*",
+    "@oh-my-pm/providers": "workspace:*",
+    "@oh-my-pm/runtime": "workspace:*",
+    "@oh-my-pm/skills": "workspace:*"
+  }
+}

@@ -1,4 +1,5 @@
 packages:
+  - "application"
   - "contracts"
   - "kernel/binding"
   - "runtime"
