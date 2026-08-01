@@ -1,24 +1,13 @@
 import type { JsonValue, RuntimeResponse } from "@oh-my-pm/contracts";
-import { createGitHubRuntimeRequest, formatRuntimeResponse } from "@oh-my-pm/application";
-import {
-  loadProviderConfig,
-  readGitHubTokenFromEnvironment,
-} from "@oh-my-pm/application/node";
-import { createNodeWasmKernelApi } from "@oh-my-pm/kernel";
-import {
-  createGitHubProvider,
-  createNodeGitHubHttpTransport,
-  createProviderRegistry,
-  resolveGitHubProviderSettings,
-  resolveGitHubSourceSelection,
-} from "@oh-my-pm/providers";
+import { formatRuntimeResponse, runGitHubProjectWorkflow } from "@oh-my-pm/application";
+import type { GitHubWorkflowInput } from "@oh-my-pm/application";
+import { createNodeGitHubProjectDeps } from "@oh-my-pm/application/node";
+import type { NodeGitHubProjectDepsOptions } from "@oh-my-pm/application/node";
 import type {
   GitHubHttpTransport,
   GitHubSourceSelection,
   ResolvedProviderConfig,
 } from "@oh-my-pm/providers";
-import { createRuntime } from "@oh-my-pm/runtime";
-import { createDefaultSkillRegistry } from "@oh-my-pm/skills";
 import type {
   McpGitHubOperation,
   McpGitHubSelectionSummary,
@@ -26,12 +15,14 @@ import type {
   McpGitHubToolInput,
   McpGitHubToolName,
 } from "./types.js";
+import { OH_MY_PM_MCP_VERSION } from "./version.js";
 
-// Deterministic runtime identity for the GitHub MCP surface. The live github
-// tools resolve the invocation timestamp once at the tool-call boundary; the
-// fixed value below is an explicitly named test fixture only, never the
-// production default. Overdue classification uses the resolved invocation time.
-export const MCP_GITHUB_RUNTIME_VERSION = "0.3.0";
+// Deterministic runtime identity for the GitHub MCP surface, derived from the
+// package's single canonical version. The live github tools resolve the
+// invocation timestamp once at the tool-call boundary; the fixed value below is
+// an explicitly named test fixture only, never the production default. Overdue
+// classification uses the resolved invocation time.
+export const MCP_GITHUB_RUNTIME_VERSION = OH_MY_PM_MCP_VERSION;
 /** Fixed timestamp for deterministic tests only; not a production default. */
 export const MCP_GITHUB_TEST_NOW = "2026-01-01T00:00:00.000Z";
 export const MCP_GITHUB_DEFAULT_LIMIT = 50;
@@ -89,47 +80,70 @@ function isRecord(value: JsonValue | undefined): value is Record<string, JsonVal
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function extractOutput(response: RuntimeResponse): JsonValue | undefined {
-  if (!isRecord(response.data)) return undefined;
-  const output = response.data["output"];
-  return output === undefined ? undefined : output;
-}
+// Output extraction, the ambient environment/platform/cwd reads, and the
+// transport/Runtime composition all moved behind the shared application use case
+// and its Node boundary. This adapter no longer consults the ambient process.
 
-function ambientEnv(): Readonly<Record<string, string | undefined>> {
-  const proc = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
-  return proc?.env ?? {};
-}
-
-type NodeProcess = { platform?: NodeJS.Platform; cwd?: () => string };
-function ambientPlatform(): NodeJS.Platform {
-  return (globalThis as { process?: NodeProcess }).process?.platform ?? "linux";
-}
-function ambientCwd(): string {
-  const proc = (globalThis as { process?: NodeProcess }).process;
-  return typeof proc?.cwd === "function" ? proc.cwd() : "/";
+/** Map the bounded MCP tool input onto the shared application workflow input. */
+function toWorkflowInput(input: McpGitHubToolInput): GitHubWorkflowInput {
+  return {
+    ...(input.repository !== undefined ? { repository: input.repository } : {}),
+    ...(input.source !== undefined ? { source: input.source } : {}),
+    ...(input.state !== undefined ? { state: input.state } : {}),
+    ...(input.number !== undefined ? { number: input.number } : {}),
+    ...(input.query !== undefined ? { query: input.query } : {}),
+    ...(input.kind !== undefined ? { kind: input.kind } : {}),
+    ...(input.limit !== undefined ? { limit: input.limit } : {}),
+    ...(input.includeComments !== undefined ? { includeComments: input.includeComments } : {}),
+    ...(input.commentLimit !== undefined ? { commentLimit: input.commentLimit } : {}),
+    ...(input.includeReviews !== undefined ? { includeReviews: input.includeReviews } : {}),
+    ...(input.reviewLimit !== undefined ? { reviewLimit: input.reviewLimit } : {}),
+    ...(input.includeReviewComments !== undefined
+      ? { includeReviewComments: input.includeReviewComments }
+      : {}),
+    ...(input.reviewCommentLimit !== undefined
+      ? { reviewCommentLimit: input.reviewCommentLimit }
+      : {}),
+  };
 }
 
 /**
- * Resolve provider configuration for a GitHub MCP tool call. A directly
- * injected config wins (offline unit tests). Otherwise the read-only loader
- * resolves the environment/OS-standard location — the agent cannot supply an
- * arbitrary config path. Returns null config when a present config is invalid.
+ * Compose the Node dependency options for a GitHub MCP tool call.
+ *
+ * Deliberately never sets `providerConfigPath`: an agent must not be able to
+ * point the server at an arbitrary configuration file, so the read-only loader
+ * only ever resolves the environment/OS-standard location. A directly injected
+ * `providerConfig` still wins for offline unit tests. The token, transport, and
+ * clock reads all stay deferred inside the composed closures until the shared use
+ * case has validated every controlled input.
  */
-function resolveMcpProviderConfig(
+function nodeDepsOptions(
   options: ExecuteMcpGitHubToolOptions | undefined,
-): { config: ResolvedProviderConfig | null; message?: string } {
-  if (options?.providerConfig !== undefined) {
-    return { config: options.providerConfig };
-  }
-  const load = loadProviderConfig({
-    env: options?.env ?? ambientEnv(),
-    platform: options?.platform ?? ambientPlatform(),
-    cwd: options?.cwd ?? ambientCwd(),
-  });
-  if (!load.ok) {
-    return { config: null, message: load.message };
-  }
-  return { config: load.config };
+): NodeGitHubProjectDepsOptions {
+  return {
+    caller: "mcp",
+    version: MCP_GITHUB_RUNTIME_VERSION,
+    ...(options?.providerConfig !== undefined ? { providerConfig: options.providerConfig } : {}),
+    ...(options?.transport !== undefined ? { githubTransport: options.transport } : {}),
+    ...(options?.token !== undefined ? { githubToken: options.token } : {}),
+    ...(options?.env !== undefined ? { env: options.env } : {}),
+    ...(options?.platform !== undefined ? { platform: options.platform } : {}),
+    ...(options?.cwd !== undefined ? { cwd: options.cwd } : {}),
+    now: mcpNowAccessor(options),
+  };
+}
+
+/**
+ * The invocation-timestamp accessor: an explicit `now`, then an injected
+ * `clock`, then the real clock — read at most once per tool call, and only after
+ * validation succeeds. Overdue classification uses this value.
+ */
+function mcpNowAccessor(options: ExecuteMcpGitHubToolOptions | undefined): () => string {
+  const fixed = options?.now;
+  if (fixed !== undefined) return () => fixed;
+  const clock = options?.clock;
+  if (clock !== undefined) return () => clock();
+  return () => new Date().toISOString();
 }
 
 /** Public comment metadata: identity and provenance only, never the body. */
@@ -352,129 +366,28 @@ export async function executeMcpGitHubTool(
   input: McpGitHubToolInput,
   options?: ExecuteMcpGitHubToolOptions,
 ): Promise<McpGitHubToolExecution> {
-  const requestedRepository = input.repository ?? "";
-
-  // 1. Resolve provider configuration (agent cannot supply a config path). An
-  // invalid present config fails before any transport construction.
-  const resolved = resolveMcpProviderConfig(options);
-  if (resolved.config === null) {
-    return {
-      ok: false,
-      operation,
-      repository: requestedRepository,
-      code: "github_invalid_config",
-      message: resolved.message ?? "provider configuration is invalid",
-    };
-  }
-
-  // 2. Resolve effective repository plus source/state/limit defaults; a disabled
-  // provider or unresolved repository fails here, before any transport is built.
-  const settings = resolveGitHubProviderSettings({
-    config: resolved.config,
-    overrides: {
-      ...(input.repository !== undefined ? { repository: input.repository } : {}),
-      ...(input.limit !== undefined ? { limit: input.limit } : {}),
-    },
-  });
-  if (!settings.ok) {
-    const code =
-      settings.code === "github_provider_disabled"
-        ? "github_provider_disabled"
-        : settings.code === "github_limit_invalid"
-          ? "github_invalid_limit"
-          : "github_invalid_repository";
-    return { ok: false, operation, repository: requestedRepository, code, message: settings.message };
-  }
-  const resolvedRepository = settings.repository;
-
-  // 3. Resolve the source selection from configured defaults plus tool inputs.
-  // A controlled selection error fails here, before any transport is built.
-  const selectionResult = resolveGitHubSourceSelection({
-    defaults: { source: settings.defaultSource, state: settings.defaultState, limit: settings.limit },
-    overrides: {
-      ...(input.source !== undefined ? { source: input.source } : {}),
-      ...(input.state !== undefined ? { state: input.state } : {}),
-      ...(input.number !== undefined ? { number: input.number } : {}),
-      ...(input.query !== undefined ? { query: input.query } : {}),
-      ...(input.kind !== undefined ? { kind: input.kind } : {}),
-      ...(input.limit !== undefined ? { limit: input.limit } : {}),
-      ...(input.includeComments !== undefined ? { includeComments: input.includeComments } : {}),
-      ...(input.commentLimit !== undefined ? { commentLimit: input.commentLimit } : {}),
-      ...(input.includeReviews !== undefined ? { includeReviews: input.includeReviews } : {}),
-      ...(input.reviewLimit !== undefined ? { reviewLimit: input.reviewLimit } : {}),
-      ...(input.includeReviewComments !== undefined
-        ? { includeReviewComments: input.includeReviewComments }
-        : {}),
-      ...(input.reviewCommentLimit !== undefined
-        ? { reviewCommentLimit: input.reviewCommentLimit }
-        : {}),
-    },
-  });
-  if (!selectionResult.ok) {
-    return {
-      ok: false,
-      operation,
-      repository: resolvedRepository,
-      code: selectionResult.code,
-      message: selectionResult.message,
-    };
-  }
-  const selection = selectionResult.selection;
-
-  let transport = options?.transport;
-  if (transport === undefined) {
-    const token =
-      options?.token ?? readGitHubTokenFromEnvironment(options?.env ?? ambientEnv());
-    transport = createNodeGitHubHttpTransport({ token, productVersion: MCP_GITHUB_RUNTIME_VERSION });
-  }
-
-  // Resolve the invocation timestamp exactly once, at this explicit tool-call
-  // boundary: an injected `now`, then an injected `clock`, then the real clock.
-  // Overdue classification uses this value.
-  const now = options?.now ?? options?.clock?.() ?? new Date().toISOString();
-
-  const providers = createProviderRegistry([
-    createGitHubProvider({ transport, productVersion: MCP_GITHUB_RUNTIME_VERSION }),
-  ]);
-  const runtime = createRuntime({
-    kernel: createNodeWasmKernelApi(),
-    providers,
-    skills: createDefaultSkillRegistry(),
-    version: MCP_GITHUB_RUNTIME_VERSION,
-    now,
-  });
-
-  const request = createGitHubRuntimeRequest({
+  // The whole GitHub pipeline — provider-configuration resolution, repository and
+  // limit validation, source selection, fail-closed ordering, transport creation,
+  // Runtime composition, and execution — is the shared application use case. This
+  // adapter contributes only the MCP-specific parts: the agent-safe dependency
+  // options (no arbitrary config path), and the sanitized public projection below.
+  const result = await runGitHubProjectWorkflow(
     operation,
-    repository: resolvedRepository,
-    selection,
-    caller: "mcp",
-  });
-  const response = await runtime.handle(request);
+    toWorkflowInput(input),
+    createNodeGitHubProjectDeps(nodeDepsOptions(options)),
+  );
 
-  if (!response.ok) {
-    const code =
-      isRecord(response.data) && typeof response.data["providerCode"] === "string"
-        ? response.data["providerCode"]
-        : (response.error?.code ?? "github_runtime_failed");
-    const message =
-      isRecord(response.data) && typeof response.data["message"] === "string"
-        ? response.data["message"]
-        : (response.error?.message ?? "github workflow failed");
-    return { ok: false, operation, repository: resolvedRepository, code, message };
-  }
-
-  const output = extractOutput(response);
-  if (output === undefined) {
+  if (!result.ok) {
     return {
       ok: false,
       operation,
-      repository: resolvedRepository,
-      code: "github_output_invalid",
-      message: "runtime response did not include a tool output",
+      repository: result.repository,
+      code: result.code,
+      message: result.message,
     };
   }
 
+  const { response, selection, repository: resolvedRepository, output } = result;
   const { summary, sources } = projectSources(response);
   const markdown = formatRuntimeResponse(response, "markdown");
   // Bound the public source list by the selection's effective limit (item and

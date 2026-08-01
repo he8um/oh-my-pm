@@ -36,9 +36,11 @@ import type {
   McpProjectToolName,
   McpProjectToolSuccess,
 } from "./types.js";
+import { OH_MY_PM_MCP_VERSION } from "./version.js";
 
 export const OH_MY_PM_MCP_SERVER_NAME = "oh-my-pm";
-export const OH_MY_PM_MCP_SERVER_VERSION = "0.5.1";
+// The advertised server version comes from the package's single canonical source.
+export const OH_MY_PM_MCP_SERVER_VERSION = OH_MY_PM_MCP_VERSION;
 
 // --- Public structured result shapes -------------------------------------
 
