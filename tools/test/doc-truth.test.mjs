@@ -177,22 +177,29 @@ describe("the release-state contract is validated", () => {
     expect(state.sourceVersion).toBe(version);
   });
 
-  it("records the real published stable tag and commit", () => {
-    // The recorded stable must be the tag the release workflow pins as its base
-    // lineage, so the offline contract cannot drift from the gate that enforces
-    // it at publish time.
+  it("records a full, real commit for the published stable", () => {
+    // Before publication this asserted the contract equalled the release
+    // workflow's pinned BASE_TAG/BASE_SHA. After publication the contract has
+    // moved on to v0.5.2 while the workflow still pins v0.5.1 as the immutable
+    // base it was released FROM -- so the two are now deliberately different,
+    // and the base lineage is asserted separately below.
     const { state } = loadReleaseState(repoRoot);
+    expect(state.latestStableCommit).toMatch(/^[0-9a-f]{40}$/);
+    expect(state.latestStableTag).toBe(`v${state.latestStableVersion}`);
+  });
+
+  it("keeps the release workflow's immutable base lineage intact", () => {
     const workflow = readFileSync(
       join(repoRoot, ".github", "workflows", "release-v0.5.yml"),
       "utf8",
     );
-    expect(workflow).toContain(`BASE_TAG=${state.latestStableTag}`);
-    expect(workflow).toContain(`BASE_SHA=${state.latestStableCommit}`);
+    expect(workflow).toContain("BASE_TAG=v0.5.1");
+    expect(workflow).toContain("BASE_SHA=49e2cbbc7590af52e648b615c6245ce3cbcee0e9");
   });
 
   it("catches a stale latest stable version", () => {
     withTemporaryEdit("release-state.json", (text) =>
-      text.replace('"latestStableVersion": "0.5.1"', '"latestStableVersion": "0.4.0"'),
+      text.replace('"latestStableVersion": "0.5.2"', '"latestStableVersion": "0.4.0"'),
     );
     const result = runValidator();
     expect(result.status).toBe(1);
@@ -201,7 +208,7 @@ describe("the release-state contract is validated", () => {
 
   it("catches a wrong stable tag", () => {
     withTemporaryEdit("release-state.json", (text) =>
-      text.replace('"latestStableTag": "v0.5.1"', '"latestStableTag": "v0.4.0"'),
+      text.replace('"latestStableTag": "v0.5.2"', '"latestStableTag": "v0.4.0"'),
     );
     const result = runValidator();
     expect(result.status).toBe(1);
@@ -219,9 +226,10 @@ describe("the release-state contract is validated", () => {
 
   it("catches a prepared source that claims to be the latest stable", () => {
     // "prepared" and "latestStableVersion == sourceVersion" are contradictory:
-    // a prepared version is by definition not published.
+    // a prepared version is by definition not published. The contract is now
+    // published, so the state is flipped back to prepared to recreate it.
     withTemporaryEdit("release-state.json", (text) =>
-      text.replace('"latestStableVersion": "0.5.1"', '"latestStableVersion": "0.5.2"'),
+      text.replace('"sourceState": "published"', '"sourceState": "prepared"'),
     );
     const result = runValidator();
     expect(result.status).toBe(1);
@@ -230,10 +238,7 @@ describe("the release-state contract is validated", () => {
 
   it("catches a published source that still names a publication target", () => {
     withTemporaryEdit("release-state.json", (text) =>
-      text
-        .replace('"sourceState": "prepared"', '"sourceState": "published"')
-        .replace('"latestStableVersion": "0.5.1"', '"latestStableVersion": "0.5.2"')
-        .replace('"latestStableTag": "v0.5.1"', '"latestStableTag": "v0.5.2"'),
+      text.replace('"publicationTarget": null', '"publicationTarget": "v0.5.2"'),
     );
     const result = runValidator();
     expect(result.status).toBe(1);
@@ -243,8 +248,8 @@ describe("the release-state contract is validated", () => {
   it("catches a published source whose latest stable is an older release", () => {
     withTemporaryEdit("release-state.json", (text) =>
       text
-        .replace('"sourceState": "prepared"', '"sourceState": "published"')
-        .replace('"publicationTarget": "v0.5.2"', '"publicationTarget": null'),
+        .replace('"latestStableVersion": "0.5.2"', '"latestStableVersion": "0.5.1"')
+        .replace('"latestStableTag": "v0.5.2"', '"latestStableTag": "v0.5.1"'),
     );
     const result = runValidator();
     expect(result.status).toBe(1);
@@ -282,6 +287,15 @@ describe("active documentation must agree with the release state", () => {
   });
 
   it("catches an unpublished source described as the current stable", () => {
+    // Flip the contract back to prepared: the claim is only wrong while the
+    // source is unpublished, which is exactly the state this guards.
+    withTemporaryEdit("release-state.json", (text) =>
+      text
+        .replace('"sourceState": "published"', '"sourceState": "prepared"')
+        .replace('"latestStableVersion": "0.5.2"', '"latestStableVersion": "0.5.1"')
+        .replace('"latestStableTag": "v0.5.2"', '"latestStableTag": "v0.5.1"')
+        .replace('"publicationTarget": null', '"publicationTarget": "v0.5.2"'),
+    );
     withTemporaryEdit("README.md", (text) => `${text}\n\nv0.5.2 is the latest stable release.\n`);
     const result = runValidator();
     expect(result.status).toBe(1);
@@ -309,7 +323,11 @@ describe("active documentation must agree with the release state", () => {
 
   it("catches a missing release note for the publication target", () => {
     withTemporaryEdit("release-state.json", (text) =>
-      text.replace('"publicationTarget": "v0.5.2"', '"publicationTarget": "v0.5.9"'),
+      text
+        .replace('"sourceState": "published"', '"sourceState": "prepared"')
+        .replace('"latestStableVersion": "0.5.2"', '"latestStableVersion": "0.5.1"')
+        .replace('"latestStableTag": "v0.5.2"', '"latestStableTag": "v0.5.1"')
+        .replace('"publicationTarget": null', '"publicationTarget": "v0.5.9"'),
     );
     const result = runValidator();
     expect(result.status).toBe(1);
@@ -396,10 +414,10 @@ describe("the security policy is checked", () => {
   });
 
   it("catches SECURITY.md that stops naming the supported stable", () => {
-    withTemporaryEdit("SECURITY.md", (text) => text.replaceAll("0.5.1", "0.0.0"));
+    withTemporaryEdit("SECURITY.md", (text) => text.replaceAll("0.5.2", "0.0.0"));
     const result = runValidator();
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/must name the supported stable release v0\.5\.1/);
+    expect(result.stderr).toMatch(/must name the supported stable release v0\.5\.2/);
   });
 
   it("catches an invented security email address", () => {
@@ -483,5 +501,97 @@ describe("the support policy is checked", () => {
     const result = runValidator();
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/must route security reports away from public issues/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Post-publication truth (Issue #30, after v0.5.2 was published).
+// ---------------------------------------------------------------------------
+
+describe("the published state is recorded and enforced", () => {
+  it("records v0.5.2 as published and as the latest stable", () => {
+    const { state, errors } = loadReleaseState(repoRoot);
+    expect(errors).toEqual([]);
+    expect(state.sourceState).toBe("published");
+    expect(state.sourceVersion).toBe("0.5.2");
+    expect(state.latestStableVersion).toBe("0.5.2");
+    expect(state.latestStableTag).toBe("v0.5.2");
+    expect(state.publicationTarget).toBeNull();
+  });
+
+  it("records the exact dereferenced tag commit", () => {
+    // Not the tag object and not a guess: the commit the tag resolves to, which
+    // is also the release targetCommitish and the commit the workflow ran on.
+    const { state } = loadReleaseState(repoRoot);
+    expect(state.latestStableCommit).toMatch(/^[0-9a-f]{40}$/);
+    expect(state.latestStableCommit).toBe("6c915e0ebea8fa6cb4c6f791c1b0dc621e745361");
+  });
+
+  it("allows source state and latest stable to be equal once published", () => {
+    // This is the whole point of the published state: before publication the
+    // loader forbids it, after publication it requires it.
+    const { state, errors } = loadReleaseState(repoRoot);
+    expect(state.latestStableVersion).toBe(state.sourceVersion);
+    expect(errors).toEqual([]);
+  });
+
+  it("catches a published v0.5.2 described as unpublished", () => {
+    withTemporaryEdit(
+      "README.md",
+      (text) => `${text}\n\nv0.5.2 is prepared but not yet published.\n`,
+    );
+    const result = runValidator();
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/describes v0\.5\.2 as unpublished/);
+  });
+
+  it("catches the latest stable regressing to v0.5.1", () => {
+    withTemporaryEdit("README.md", (text) => `${text}\n\nThe latest stable release is v0.5.1.\n`);
+    const result = runValidator();
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/names v0\.5\.1 as the current latest stable/);
+  });
+
+  it("requires publicationTarget to be null while published", () => {
+    withTemporaryEdit("release-state.json", (text) =>
+      text.replace('"publicationTarget": null', '"publicationTarget": "v0.5.3"'),
+    );
+    const result = runValidator();
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/publicationTarget is "v0\.5\.3"; it must be null/);
+  });
+
+  it("requires the security policy's supported stable to equal the latest stable", () => {
+    withTemporaryEdit("SECURITY.md", (text) => text.replaceAll("0.5.2", "0.5.1"));
+    const result = runValidator();
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/must name the supported stable release v0\.5\.2/);
+  });
+
+  it("points installation guidance at the published release", () => {
+    // A getting-started guide that still offers the previous archive sends new
+    // users to a superseded artifact.
+    const guide = readFileSync(join(repoRoot, "docs", "getting-started.md"), "utf8");
+    expect(guide).toContain("releases/tag/v0.5.2");
+    const readme = readFileSync(join(repoRoot, "README.md"), "utf8");
+    expect(readme).toContain("releases/tag/v0.5.2");
+  });
+
+  it("keeps the post-publication validation record", () => {
+    const record = readFileSync(
+      join(repoRoot, "docs", "releases", "v0.5.2-post-publication-validation.md"),
+      "utf8",
+    );
+    // The evidence that matters: tag commit, latest status, and checksums.
+    expect(record).toContain("6c915e0ebea8fa6cb4c6f791c1b0dc621e745361");
+    expect(record).toContain("v0.5.2");
+    expect(record).toMatch(/[0-9a-f]{64}\s+oh-my-pm-v0\.5\.2\.tar\.gz/);
+  });
+
+  it("leaves the v0.5.1 release documentation unchanged", () => {
+    // v0.5.1 is now superseded but remains published and immutable; its release
+    // note must keep describing its own release.
+    const note = readFileSync(join(repoRoot, "docs", "releases", "v0.5.1.md"), "utf8");
+    expect(note).toContain("0.5.1");
   });
 });
