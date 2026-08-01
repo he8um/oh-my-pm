@@ -2,6 +2,76 @@
 
 ## [Unreleased]
 
+## [0.5.2]
+
+Maintenance release, **prepared but not yet published**. It fixes one internal
+architecture problem and adds **no user-facing capability**: the GitHub-backed
+project workflow was duplicated across presentation adapters, because the MCP
+server reimplemented the shared pipeline and the CLI assembled its own Runtime
+rather than consuming the shared use case.
+
+**No public behavior changes.** No new command, no changed CLI syntax or output,
+no changed MCP tool, schema, annotation, or tool order, no Project Brain schema
+change, no Project Memory format change, no storage path change, and **no
+migration is required**. It includes no Dashboard.
+
+Verified by pre/post byte-parity fixtures across 39 CLI cases and 25 MCP cases,
+plus a full MCP protocol-surface capture over real stdio JSON-RPC.
+
+### Added
+
+- `cli/src/github-process.ts` — the focused CLI GitHub adapter. It owns only CLI
+  concerns and composes no Kernel, Runtime, providers, skills, or transport.
+- `mcp-server/src/version.ts` — the single canonical MCP version identity
+  (`OH_MY_PM_MCP_VERSION`), consumed by the server handshake, the project tool
+  runner, the GitHub tool runner, and the provider diagnostics runner.
+- Architecture guards in `tools/validate-boundaries.mjs`: neither GitHub adapter
+  may name the Kernel/Runtime/provider/skill/transport constructors or resolve
+  provider settings and source selection itself, both must call the shared use
+  case, the core use case may not construct a Node transport or read
+  process/clock/filesystem state or hardcode a caller identity, and the MCP
+  package may declare only one version literal.
+- Application ordering tests that count dependency invocations, proving an
+  invalid config, disabled provider, invalid repository, invalid limit, or
+  invalid source selection creates no transport, reads no token, and reads no
+  clock — and that a valid request creates the transport and reads the clock
+  exactly once each.
+- `docs/releases/v0.5.2.md` and `docs/releases/publishing-v0.5.2.md`.
+
+### Changed
+
+- `@oh-my-pm/application` owns GitHub workflow sequencing, effective provider
+  settings, repository validation, source selection, limit resolution,
+  fail-closed ordering, Runtime composition, request construction, execution, and
+  output extraction. The CLI and MCP GitHub adapters consume it.
+- The shared dependency contract is now lazy and caller-aware: `caller` is a
+  required injected value, and `createTransport()` replaces the eagerly-resolved
+  `transport`/`token` pair. The optional `OH_MY_PM_GITHUB_TOKEN` read moved
+  inside the transport factory closure, so composing dependencies no longer
+  touches the environment before validation.
+- `@oh-my-pm/application/node` owns the provider-config load, the token
+  environment read, platform/cwd resolution, real transport construction, and
+  real clock access for the GitHub path.
+- The MCP GitHub runner keeps only the agent-safe dependency options and the
+  sanitized public projection. It no longer consults the ambient process, so it
+  drops off the token-environment allowlist.
+- The CLI purity test is **stricter**: `local-process.ts` no longer reads the
+  environment or builds a transport, so its GitHub boundary exemption is removed
+  and both CLI GitHub files are held to the strictest rules.
+- The active v0.5 release workflow targets the v0.5.2 candidate and verifies
+  `v0.5.1` as the immutable base stable lineage.
+
+### Fixed
+
+- The shared GitHub use case hardcoded `caller: "mcp"`. It was only reachable
+  from MCP, so nothing had broken yet, but routing the CLI through it would have
+  silently mislabelled every CLI request identity and payload source.
+- Three stale independent version literals: `MCP_GITHUB_RUNTIME_VERSION` and
+  `MCP_PROVIDER_DIAGNOSTICS_VERSION` both declared `"0.3.0"` against a `0.5.1`
+  source, and the server and project tool runner each restated the version. All
+  now derive from `OH_MY_PM_MCP_VERSION`. These values only fed the outbound user
+  agent and the server handshake, so no observable output changed.
+
 ## [0.5.1]
 
 Maintenance release. It fixes two internal problems and adds **no user-facing

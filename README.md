@@ -10,14 +10,16 @@
 </p>
 It is designed for teams that want clearer delivery context, safer execution boundaries, and repeatable validation around project work.
 
-> **Latest stable release:** [`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0)
-> **Source version:** `0.5.1` (prepared, not yet published)
+> **Latest stable release:** [`v0.5.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.1)
+> **Source version:** `0.5.2` (prepared, not yet published)
 >
-> The source is prepared for **`v0.5.1`**, a **maintenance release** that corrects active documentation and introduces `@oh-my-pm/application` as the shared application boundary, so the CLI and MCP server become presentation adapters over the same use cases. It changes **no** public behavior: no new command, no changed CLI syntax or JSON output, no changed MCP tool or schema, no Project Brain schema change, no Project Memory format change, and **no migration**. It includes no Dashboard. See the [v0.5.1 release notes](docs/releases/v0.5.1.md), the [v0.5.1 scope](docs/v0.5/v0.5.1-scope.md), and [the application boundary](docs/v0.5/application-boundary.md).
+> The source is prepared for **`v0.5.2`**, a **maintenance release** whose scope is centralizing the GitHub-backed project workflow in `@oh-my-pm/application`, so the CLI and MCP surfaces consume the same application use case instead of each rebuilding the Runtime pipeline. It changes **no** public behavior: no new command, no changed CLI syntax or JSON output, no changed MCP tool, schema, annotation or tool order, no Project Brain schema change, no Project Memory format change, and **no migration**. It includes no Dashboard. See the [v0.5.2 release notes](docs/releases/v0.5.2.md).
+>
+> [`v0.5.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.1) is the latest **stable** release and the **first published stable of the v0.5 line**. It corrected active documentation and introduced `@oh-my-pm/application` as the shared application boundary, so the CLI and MCP server became presentation adapters over the same use cases, with no public behavior change. See the [v0.5.1 release notes](docs/releases/v0.5.1.md), the [v0.5.1 scope](docs/v0.5/v0.5.1-scope.md), and [the application boundary](docs/v0.5/application-boundary.md).
 >
 > **`v0.5.0` was never published.** It was merged to `main` as a source candidate and is superseded by `v0.5.1`; no `v0.5.0` tag or GitHub release exists. v0.5.0 introduced the **CLI command namespace migration**: the canonical command family is `ohmypm`, `ohmypm-mcp` and `ohmypm-install`, with the former `oh-my-pm` family retained as deprecated compatibility aliases and no removal scheduled. That is **not** a product rename — the package scope, environment variables, installation paths, data directories, release archive names and MCP server key are all unchanged. See the [v0.5 migration guide](docs/v0.5/README.md).
 >
-> [`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0) is the latest **stable** release, adding **Project Timeline**: a local, bounded, deterministic history of project changes derived read-only from already-captured Project Brain snapshots, exposed through `ohmypm memory timeline` and the `project_timeline` MCP tool. See the [v0.4.0 release notes](docs/releases/v0.4.0.md) and the [v0.4 architecture](docs/v0.4/README.md).
+> [`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0) is a preserved stable release, adding **Project Timeline**: a local, bounded, deterministic history of project changes derived read-only from already-captured Project Brain snapshots, exposed through `ohmypm memory timeline` and the `project_timeline` MCP tool. See the [v0.4.0 release notes](docs/releases/v0.4.0.md) and the [v0.4 architecture](docs/v0.4/README.md).
 >
 > [`v0.3.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.1) is a preserved stable release — a CLI usability patch over `v0.3.0` (conventional `--help`, installed `mcp-config`) with no schema, store-format, or MCP capability change. [`v0.3.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0) remains a preserved immutable stable release targeting `0d6f9b1…`. [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) is a published **prerelease** (the v0.3 Project Brain line; not marked latest), targeting `1db4057…`. [`v0.2.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0), [`v0.2.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0-rc.1) and [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) remain preserved historical releases. Node.js 20+ is the only runtime requirement for installed archives. Packages remain private; there is no npm package.
 
@@ -151,7 +153,7 @@ The current next-task workflow extracts explicit unchecked Markdown checklist it
 
 ## Getting started locally
 
-The packages are private and repository-based (there is no registry package), and the latest stable release is [`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0). To build from a checkout, see [the getting-started guide](docs/getting-started.md) for the full walkthrough. The short path is:
+The packages are private and repository-based (there is no registry package), and the latest stable release is [`v0.5.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.1). To build from a checkout, see [the getting-started guide](docs/getting-started.md) for the full walkthrough. The short path is:
 
 ```bash
 rustup target add wasm32-unknown-unknown
@@ -173,13 +175,13 @@ ohmypm handoff ./project --markdown
 
 Run `ohmypm --help` for the full command reference, or `ohmypm <namespace> --help` for a namespace.
 
-MCP onboarding needs no manual path: the installed CLI prints a ready client configuration with `ohmypm mcp-config` (add `--markdown` for a documented block, `--name <name>` for a custom server key). From a repository checkout use `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`, which takes an explicit prefix. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the source line in `version.json`; the latest published stable release is [`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0). Installed release archives require only Node.js 20+.
+MCP onboarding needs no manual path: the installed CLI prints a ready client configuration with `ohmypm mcp-config` (add `--markdown` for a documented block, `--name <name>` for a custom server key). From a repository checkout use `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`, which takes an explicit prefix. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the source line in `version.json`; the latest published stable release is [`v0.5.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.1). Installed release archives require only Node.js 20+.
 
 ### Historical stable release (v0.2.0)
 
-> Historical. The current install target is [`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0).
+> Historical. The current install target is [`v0.5.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.1).
 
-The [`v0.2.0` release](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0) — superseded as latest stable by [`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0) — ships three assets:
+The [`v0.2.0` release](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0) — superseded as latest stable by [`v0.5.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.1) — ships three assets:
 
 ```text
 oh-my-pm-v0.2.0.tar.gz
@@ -395,11 +397,11 @@ Five release lines have shipped. What is built and released today:
 | Twelve read-only MCP tools, zero write tools | shipped |
 | Local installation and release bundles | shipped |
 | Deterministic archives and cross-platform installed qualification | shipped |
-| Shared application boundary (`@oh-my-pm/application`) | v0.5.1, prepared |
+| Shared application boundary (`@oh-my-pm/application`) | v0.5.1, published |
 | Local Project Dashboard | planned for v0.6, not implemented |
 
-Active maintenance scope is **v0.5.1**: documentation truth and the application
-boundary. See [`ROADMAP.md`](ROADMAP.md) and [`docs/roadmap.md`](docs/roadmap.md).
+Active maintenance scope is **v0.5.2**: the shared GitHub application boundary.
+See [`ROADMAP.md`](ROADMAP.md) and [`docs/roadmap.md`](docs/roadmap.md).
 
 ---
 

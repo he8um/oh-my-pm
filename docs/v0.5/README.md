@@ -13,10 +13,11 @@
 > **never published** — no `v0.5.0` tag or GitHub release exists. It is
 > superseded by [`v0.5.1`](../releases/v0.5.1.md), a maintenance release that
 > corrects documentation and introduces the shared application boundary while
-> changing no public behavior. If published, v0.5.1 would be the first published
-> stable of the v0.5 line; [`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0)
-> remains the latest published stable. This guide describes the command
-> migration, which v0.5.1 carries forward unchanged.
+> changing no public behavior. **`v0.5.1` is the first published stable of the
+> v0.5 line and the latest published stable.**
+> [`v0.5.2`](../releases/v0.5.2.md), which centralizes the GitHub-backed workflow
+> in that application boundary, is prepared but **not yet published**. This guide
+> describes the command migration, which both patches carry forward unchanged.
 
 ## What changed
 

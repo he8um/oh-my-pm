@@ -1634,11 +1634,12 @@ if (v03Wf !== null) {
 // place; the immutable base stable lineage stays pinned. The ACTIVE stable line
 // is v0.4, whose base stable tag is the published v0.3.1.
 const V03_PATCH_VERSION = JSON.parse(readFileSync("version.json", "utf8")).version;
-// The base stable release the ACTIVE line builds on. v0.5 follows v0.4.0, so the
-// active workflow must verify that published release still exists unchanged
-// before it publishes on top of it.
-const V03_BASE_STABLE_TAG = "v0.4.0";
-const V03_BASE_STABLE_SHA = "0540a78576222227f276c627c518095ef43f2b50";
+// The base stable release the ACTIVE line builds on. v0.5.2 follows the published
+// v0.5.1 stable, so the active workflow must verify that published release still
+// exists unchanged before it publishes on top of it. (v0.5.1 superseded v0.4.0 as
+// the base stable when it became the first published stable of the v0.5 line.)
+const V03_BASE_STABLE_TAG = "v0.5.1";
+const V03_BASE_STABLE_SHA = "49e2cbbc7590af52e648b615c6245ce3cbcee0e9";
 const v03StableWf = checkReleaseWorkflowCommon(
   ACTIVE_STABLE_RELEASE_WORKFLOW,
   `RELEASE v${V03_PATCH_VERSION}`,
@@ -2293,10 +2294,12 @@ if (trackedFiles.includes("kernel/crate/Cargo.toml")) {
 // Version guard: version.json carries the prepared source version. The v0.4
 // Project Timeline line reached the stable 0.4.0; the v0.5 CLI command namespace
 // line promoted the source to 0.5.0, which merged but was never published; the
-// v0.5.1 maintenance release then promoted it to 0.5.1. The value must be
-// exactly this prepared version (all package manifests and the runtime version
-// constants are checked against it by check-version-consistency).
-const EXPECTED_SOURCE_VERSION = "0.5.1";
+// v0.5.1 maintenance release then promoted it to 0.5.1 and became the first
+// published stable of the v0.5 line; the v0.5.2 GitHub application-boundary
+// maintenance release promotes it to 0.5.2, prepared but not yet published. The
+// value must be exactly this prepared version (all package manifests and the
+// runtime version constants are checked against it by check-version-consistency).
+const EXPECTED_SOURCE_VERSION = "0.5.2";
 if (trackedFiles.includes("version.json")) {
   const version = JSON.parse(readFileSync("version.json", "utf8")).version;
   if (version !== EXPECTED_SOURCE_VERSION) {
