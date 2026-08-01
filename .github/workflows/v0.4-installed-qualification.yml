@@ -12,11 +12,14 @@ name: v0.4 Installed Qualification
 # It creates no tag, no GitHub Release, no registry artifact. It grants only
 # contents: read. It uploads a workflow artifact (the prepared archives) so every
 # OS tests identical bytes — never independently rebuilt per OS.
+#
+# SUPERSEDED by v0.5-installed-qualification.yml. The v0.5 source builds the
+# "ohmypm-cli-namespace" profile, so this workflow's pinned v0.4 profile no longer
+# matches the current source and it must not gate every push/PR. Its content is
+# otherwise unchanged and it stays dispatchable, so the v0.4 surface can still be
+# qualified deliberately against a v0.4 artifact.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -161,8 +161,26 @@ export function resolveReleaseArchivePlan(options) {
     { id: "bundle_basename", ok: basename(bundleDirectory) === RELEASE_ARCHIVE_BUNDLE_NAME },
     { id: "release_json", ok: isRegularFile(join(bundleDirectory, "RELEASE.json")) },
     { id: "internal_sha256sums", ok: isRegularFile(join(bundleDirectory, "SHA256SUMS")) },
-    { id: "cli_entrypoint", ok: isRegularFile(join(bundleDirectory, "bin", "oh-my-pm.mjs")) },
-    { id: "mcp_entrypoint", ok: isRegularFile(join(bundleDirectory, "bin", "oh-my-pm-mcp.mjs")) },
+    { id: "cli_entrypoint", ok: isRegularFile(join(bundleDirectory, "bin", "ohmypm.mjs")) },
+    { id: "mcp_entrypoint", ok: isRegularFile(join(bundleDirectory, "bin", "ohmypm-mcp.mjs")) },
+    {
+      id: "installer_entrypoint",
+      ok: isRegularFile(join(bundleDirectory, "bin", "ohmypm-install.mjs")),
+    },
+    // v0.5: the deprecated compatibility aliases are shipped intentionally, so a
+    // missing alias entrypoint blocks archiving just like a missing canonical one.
+    {
+      id: "legacy_cli_entrypoint",
+      ok: isRegularFile(join(bundleDirectory, "bin", "oh-my-pm.mjs")),
+    },
+    {
+      id: "legacy_mcp_entrypoint",
+      ok: isRegularFile(join(bundleDirectory, "bin", "oh-my-pm-mcp.mjs")),
+    },
+    {
+      id: "legacy_installer_entrypoint",
+      ok: isRegularFile(join(bundleDirectory, "bin", "oh-my-pm-install.mjs")),
+    },
     {
       id: "bundled_wasm",
       ok: isRegularFile(
@@ -299,8 +317,17 @@ function normalizeStaging(bundleRoot) {
     if (entry.kind === "dir") {
       chmodSync(entry.abs, 0o755);
     } else if (entry.kind === "file") {
-      const isBin =
-        entry.rel === "bin/oh-my-pm.mjs" || entry.rel === "bin/oh-my-pm-mcp.mjs";
+      // Every shipped command entrypoint keeps mode 755: the canonical commands,
+      // the installer, and the deprecated compatibility aliases. Everything else
+      // is normalized to 644 so archives stay byte-reproducible.
+      const isBin = [
+        "bin/ohmypm.mjs",
+        "bin/ohmypm-mcp.mjs",
+        "bin/ohmypm-install.mjs",
+        "bin/oh-my-pm.mjs",
+        "bin/oh-my-pm-mcp.mjs",
+        "bin/oh-my-pm-install.mjs",
+      ].includes(entry.rel);
       chmodSync(entry.abs, isBin ? 0o755 : 0o644);
     }
     // Normalize timestamps for every entry, including symlinks (lutimes does

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Preview-first local installer for the oh-my-pm and oh-my-pm-mcp command
-// shims. Preview by default; writes only with --apply, and only inside
-// <prefix>/bin. No PATH edits, no shell-profile edits, no network, no env.
+// Preview-first local installer for the ohmypm and ohmypm-mcp command shims, plus
+// the retained deprecated compatibility aliases. Preview by default; writes only
+// with --apply, and only inside <prefix>/bin. No PATH edits, no shell-profile
+// edits, no network, no env.
 
 import {
   applyLocalInstallPlan,

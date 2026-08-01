@@ -50,6 +50,8 @@ const ALLOWED_TOP_FILES = [
   "Cargo.lock",
   "Cargo.toml",
   "CHANGELOG.md",
+  // v0.5: the single source of truth for the public command names.
+  "command-surface.json",
   "CODE_OF_CONDUCT.md",
   "CONTRIBUTING.md",
   "LICENSE",
@@ -199,6 +201,8 @@ const CLI_SOURCES = [
   "cli/test/cli.test.ts",
   "cli/test/purity.test.ts",
   "cli/README.md",
+  "cli/bin/ohmypm.mjs",
+  // v0.5: retained deprecated compatibility alias.
   "cli/bin/oh-my-pm.mjs",
   "cli/test/bin.test.ts",
   "cli/test/local-runtime-smoke.test.ts",
@@ -209,6 +213,8 @@ const CLI_SOURCES = [
   "cli/src/project-document-rules.ts",
   "cli/test/project-document-rules.test.ts",
   "cli/src/project-config.ts",
+  // v0.5: the CLI-side view of the canonical command names.
+  "cli/src/command-surface.ts",
   "cli/test/project-config.test.ts",
   // v0.3 Phase 4: the preview-first `memory` CLI surface.
   "cli/src/memory-types.ts",
@@ -382,9 +388,13 @@ const MCP_SERVER_SOURCES = [
   "mcp-server/src/project-tool-runner.ts",
   "mcp-server/src/server.ts",
   "mcp-server/src/index.ts",
+  "mcp-server/bin/ohmypm-mcp.mjs",
+  // v0.5: retained deprecated compatibility alias.
   "mcp-server/bin/oh-my-pm-mcp.mjs",
   "mcp-server/test/project-tool-runner.test.ts",
   "mcp-server/test/server.test.ts",
+  // v0.5: canonical + deprecated-alias protocol safety.
+  "mcp-server/test/command-alias.test.ts",
   "tools/check-mcp-server.mjs",
 ];
 for (const file of MCP_SERVER_SOURCES) {
@@ -413,6 +423,9 @@ const RELEASE_BUNDLE_SOURCES = [
   "CHANGELOG.md",
   "distribution/package.json",
   "distribution/README.md",
+  "distribution/bin/ohmypm.mjs",
+  "distribution/bin/ohmypm-mcp.mjs",
+  // v0.5: retained deprecated compatibility aliases.
   "distribution/bin/oh-my-pm.mjs",
   "distribution/bin/oh-my-pm-mcp.mjs",
   "cli/src/local-process.ts",
@@ -471,6 +484,8 @@ for (const file of GITHUB_FEATURE_SOURCES) {
 // 7g7. Portable release-bundle installer surfaces, repository wrapper,
 // read-only installed-state verifier, and their tests.
 const RELEASE_INSTALL_SOURCES = [
+  "distribution/bin/ohmypm-install.mjs",
+  // v0.5: retained deprecated compatibility alias.
   "distribution/bin/oh-my-pm-install.mjs",
   "distribution/libexec/release-install-core.mjs",
   "distribution/libexec/release-install-core.test.mjs",
@@ -892,8 +907,12 @@ const ALLOWED_RELEASE_WORKFLOWS = new Set([
   // validate-boundaries.mjs). It legitimately uses gh release / tags.
   "release-v0.3-rc.yml",
   // v0.4 STABLE release workflow (manually gated stable, validated in detail by
-  // validate-boundaries.mjs). It is the ACTIVE stable release workflow.
+  // validate-boundaries.mjs). Superseded as the active workflow by v0.5 and kept
+  // historically accurate.
   "release-v0.4.yml",
+  // v0.5 STABLE release workflow (manually gated stable, validated in detail by
+  // validate-boundaries.mjs). It is the ACTIVE stable release workflow.
+  "release-v0.5.yml",
   // v0.3 STABLE release workflow (manually gated stable, validated in detail by
   // validate-boundaries.mjs). It legitimately uses gh release / tags.
   "release-v0.3.yml",
@@ -917,6 +936,11 @@ if (!existsSync(join(workflowsDir, "release-v0.3.yml"))) {
 // The non-publishing installed-qualification workflow must exist. It is not
 // release-named and carries no publish markers (enforced by the generic scan
 // below), so it needs no release-workflow allowance.
+// The ACTIVE installed-qualification workflow is v0.5; the v0.4 one is retained
+// as historical content and is dispatch-only.
+if (!existsSync(join(workflowsDir, "v0.5-installed-qualification.yml"))) {
+  err(".github/workflows/v0.5-installed-qualification.yml missing");
+}
 if (!existsSync(join(workflowsDir, "v0.4-installed-qualification.yml"))) {
   err(".github/workflows/v0.4-installed-qualification.yml missing");
 }
@@ -1138,6 +1162,35 @@ if (existsSync("project-memory/src/types.ts")) {
   if (/timeline/i.test(memTypes)) {
     err("project-memory/src/types.ts must stay timeline-free (no persisted timeline records)");
   }
+}
+
+// 9. v0.5 command surface. The public command names live in exactly one
+// machine-readable manifest at the repository root, with a tool-side loader and
+// a consistency validator. Every other surface that restates a command name is
+// checked against the manifest by tools/validate-command-surface.mjs.
+const V05_COMMAND_SURFACE_REQUIRED = [
+  "command-surface.json",
+  "tools/command-surface.mjs",
+  "tools/validate-command-surface.mjs",
+  "tools/validate-command-references.mjs",
+  "tools/test/command-surface.test.mjs",
+  "tools/test/command-references.test.mjs",
+  "tools/test/command-manifest-consistency.test.mjs",
+  "tools/test/command-upgrade-compatibility.test.mjs",
+  "cli/test/command-alias.test.ts",
+  "mcp-server/test/command-alias.test.ts",
+  // The v0.5 release line gets its own workflow and qualification test; the
+  // published v0.1-v0.4 workflows are never rewritten.
+  ".github/workflows/release-v0.5.yml",
+  ".github/workflows/v0.5-installed-qualification.yml",
+  "tools/test/v0.5-release-qualification.test.mjs",
+  // v0.5 migration guide, release notes, and publishing runbook.
+  "docs/v0.5/README.md",
+  "docs/releases/v0.5.0.md",
+  "docs/releases/publishing-v0.5.0.md",
+];
+for (const file of V05_COMMAND_SURFACE_REQUIRED) {
+  if (!existsSync(file)) err(`v0.5 command-surface file missing: ${file}`);
 }
 
 if (fail) {

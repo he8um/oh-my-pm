@@ -1,31 +1,58 @@
 // Tool-only local installation planning and application helpers. This is the
-// one module allowed to write files (only inside <prefix>/bin, only the four
-// planned command shims). It never touches project documents, shell profiles,
+// one module allowed to write files (only inside <prefix>/bin, only the planned
+// command shims: a POSIX and a .cmd launcher for each canonical command and each
+// deprecated compatibility alias). It never touches project documents, shell profiles,
 // MCP client configs, the network, environment variables, or package source.
 
 import { chmodSync, existsSync, lstatSync, mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-export const LOCAL_COMMAND_NAMES = ["oh-my-pm", "oh-my-pm-mcp"];
+// The v0.5 command surface. Canonical commands come first so the ordering itself
+// records which names are primary. Checked against command-surface.json by
+// tools/validate-command-surface.mjs.
+export const LOCAL_CANONICAL_COMMAND_NAMES = ["ohmypm", "ohmypm-mcp"];
+export const LOCAL_LEGACY_COMMAND_NAMES = ["oh-my-pm", "oh-my-pm-mcp"];
+
+/**
+ * Every locally installed command, canonical first then the deprecated
+ * compatibility aliases. Install creates all of these; uninstall removes all of
+ * these.
+ */
+export const LOCAL_COMMAND_NAMES = [
+  ...LOCAL_CANONICAL_COMMAND_NAMES,
+  ...LOCAL_LEGACY_COMMAND_NAMES,
+];
 
 // The repository root is derived from this module's location (tools/), never
 // from the current working directory, so plans are stable regardless of cwd.
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
+// Each command's shim launches its *own* entry script. A deprecated alias points
+// at the alias entrypoint, not the canonical one, because that is the file that
+// prints the stderr deprecation warning before delegating.
 const COMMAND_TARGETS = {
+  ohmypm: join(REPO_ROOT, "cli", "bin", "ohmypm.mjs"),
+  "ohmypm-mcp": join(REPO_ROOT, "mcp-server", "bin", "ohmypm-mcp.mjs"),
   "oh-my-pm": join(REPO_ROOT, "cli", "bin", "oh-my-pm.mjs"),
   "oh-my-pm-mcp": join(REPO_ROOT, "mcp-server", "bin", "oh-my-pm-mcp.mjs"),
 };
 
+// Reason codes stay stable per role (cli/mcp) and gain a legacy_ prefix for the
+// compatibility aliases, so an existing consumer of the canonical codes is
+// unaffected.
 const TARGET_MISSING_REASON = {
-  "oh-my-pm": "local_install_cli_target_missing",
-  "oh-my-pm-mcp": "local_install_mcp_target_missing",
+  ohmypm: "local_install_cli_target_missing",
+  "ohmypm-mcp": "local_install_mcp_target_missing",
+  "oh-my-pm": "local_install_legacy_cli_target_missing",
+  "oh-my-pm-mcp": "local_install_legacy_mcp_target_missing",
 };
 
 const SHIM_EXISTS_REASON = {
-  "oh-my-pm": "local_install_cli_shim_exists",
-  "oh-my-pm-mcp": "local_install_mcp_shim_exists",
+  ohmypm: "local_install_cli_shim_exists",
+  "ohmypm-mcp": "local_install_mcp_shim_exists",
+  "oh-my-pm": "local_install_legacy_cli_shim_exists",
+  "oh-my-pm-mcp": "local_install_legacy_mcp_shim_exists",
 };
 
 /** Parse install CLI args deterministically. No filesystem or env access. */
@@ -207,7 +234,7 @@ function writeShimAtomically(shimPath, content, executable) {
 }
 
 /**
- * Apply a plan: create only <prefix>/bin and the four planned shim paths,
+ * Apply a plan: create only <prefix>/bin and the planned shim paths,
  * atomically. Refuses when the plan is not applicable. Returns a structured
  * result; never throws for normal validation/write failures and never includes
  * file contents.

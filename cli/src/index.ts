@@ -26,12 +26,15 @@ export type { HelpTopic } from "./help.js";
 export {
   MCP_CONFIG_COMMAND_NAME,
   MCP_CONFIG_DEFAULT_SERVER_NAME,
+  MCP_CONFIG_LEGACY_COMMAND_NAMES,
   MCP_CONFIG_READ_ONLY_TOOLS,
   buildMcpClientConfig,
   candidateInstalledBinDirectories,
+  classifyMcpConfigCommand,
   formatMcpClientConfig,
   installedMcpCommandFileName,
   isValidMcpServerName,
+  legacyMcpConfigGuidance,
   parseMcpConfigArgs,
   resolveInstalledMcpCommand,
   runMcpConfigCommand,
@@ -40,10 +43,24 @@ export type {
   McpClientConfig,
   McpCommandResolution,
   McpCommandResolutionInput,
+  McpConfigCommandClassification,
   McpConfigCommandResult,
   McpConfigOutputMode,
   McpConfigParseResult,
 } from "./mcp-config.js";
+// v0.5: the canonical command names and the deprecation-warning helper shared by
+// every compatibility wrapper.
+export {
+  CANONICAL_CLI_COMMAND,
+  CANONICAL_INSTALLER_COMMAND,
+  CANONICAL_MCP_COMMAND,
+  COMMAND_DEPRECATED_SINCE,
+  LEGACY_CLI_COMMANDS,
+  LEGACY_INSTALLER_COMMANDS,
+  LEGACY_MCP_COMMANDS,
+  canonicalCommandForAlias,
+  commandDeprecationWarning,
+} from "./command-surface.js";
 export {
   formatInstallerPreview,
   runInstallerPreview,

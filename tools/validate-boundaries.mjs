@@ -512,6 +512,9 @@ const NODE_CLI_BOUNDARY_FILES = [
   "cli/src/project-config.ts",
   "cli/src/provider-config.ts",
   "cli/src/mcp-config-resolve.ts",
+  "cli/bin/ohmypm.mjs",
+  // v0.5: the deprecated compatibility alias is held to the same boundary rules
+  // as the canonical entrypoint -- it runs the same runner in-process.
   "cli/bin/oh-my-pm.mjs",
 ];
 const BOUNDARY_WRITE_APIS = [
@@ -652,11 +655,17 @@ for (const file of MCP_SOURCE_FILES) {
     }
   }
 }
-// The MCP bin wrapper: no stdout writing or startup banner; stderr/exitCode ok.
-const MCP_BIN = "mcp-server/bin/oh-my-pm-mcp.mjs";
-if (!trackedFiles.includes(MCP_BIN)) {
-  err(`mcp bin wrapper is not tracked: ${MCP_BIN}`);
-} else {
+// The MCP bin wrappers: no stdout writing or startup banner; stderr/exitCode ok.
+// v0.5 ships the canonical entrypoint plus a deprecated compatibility alias.
+// Both are held to the identical rule, because the stdout ban is exactly what
+// keeps the JSON-RPC stream protocol-safe -- including for the alias, whose
+// deprecation warning must reach stderr only.
+const MCP_BINS = ["mcp-server/bin/ohmypm-mcp.mjs", "mcp-server/bin/oh-my-pm-mcp.mjs"];
+for (const MCP_BIN of MCP_BINS) {
+  if (!trackedFiles.includes(MCP_BIN)) {
+    err(`mcp bin wrapper is not tracked: ${MCP_BIN}`);
+    continue;
+  }
   const contents = readFileSync(MCP_BIN, "utf8");
   for (const marker of ["process.stdout", "console.log", "console.error", "process.env", "fetch(", "child_process"]) {
     if (contents.includes(marker)) {
@@ -823,7 +832,11 @@ for (const file of RELEASE_TOOLS) {
 
 // The distribution bin entrypoints are thin adapters: no repo path, no build
 // logic, no filesystem writes, no network.
+// v0.5 ships canonical entrypoints plus deprecated compatibility aliases; all of
+// them are held to the identical thin-adapter rule.
 const DISTRIBUTION_BINS = [
+  "distribution/bin/ohmypm.mjs",
+  "distribution/bin/ohmypm-mcp.mjs",
   "distribution/bin/oh-my-pm.mjs",
   "distribution/bin/oh-my-pm-mcp.mjs",
 ];
@@ -1037,7 +1050,7 @@ if (trackedFiles.includes(RELEASE_INSTALL_VERIFIER)) {
   }
   // The installed .mjs entrypoints (not node_modules/.bin, not source repo)
   // must be the Windows launch target.
-  if (!verifier.includes('join(versionDir, "bin", "oh-my-pm.mjs")')) {
+  if (!verifier.includes('join(versionDir, "bin", "ohmypm.mjs")')) {
     err(`${RELEASE_INSTALL_VERIFIER} must launch the installed CLI .mjs entrypoint from the version directory`);
   }
   if (verifier.includes("node_modules/.bin")) {
@@ -1371,9 +1384,12 @@ const RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.2-rc.yml";
 const STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.2.yml";
 const V03_RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.3-rc.yml";
 const V03_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.3.yml";
-// The ACTIVE stable release workflow. The v0.3 stable workflow above is
+// The v0.4 stable workflow, now historical: v0.5 supersedes it as the active
+// line. It stays tracked and unmodified so published history remains accurate.
+const V04_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.4.yml";
+// The ACTIVE stable release workflow. Every earlier stable workflow above is
 // historical and immutable; the active-line policy below applies to this file.
-const ACTIVE_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.4.yml";
+const ACTIVE_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.5.yml";
 
 /** Shared manual-gate policy applied to every dedicated release workflow. */
 function checkReleaseWorkflowCommon(path, confirmation) {
@@ -1607,8 +1623,11 @@ if (v03Wf !== null) {
 // place; the immutable base stable lineage stays pinned. The ACTIVE stable line
 // is v0.4, whose base stable tag is the published v0.3.1.
 const V03_PATCH_VERSION = JSON.parse(readFileSync("version.json", "utf8")).version;
-const V03_BASE_STABLE_TAG = "v0.3.1";
-const V03_BASE_STABLE_SHA = "81d869ed4cf690de0da46ab25d1abe65f85df155";
+// The base stable release the ACTIVE line builds on. v0.5 follows v0.4.0, so the
+// active workflow must verify that published release still exists unchanged
+// before it publishes on top of it.
+const V03_BASE_STABLE_TAG = "v0.4.0";
+const V03_BASE_STABLE_SHA = "0540a78576222227f276c627c518095ef43f2b50";
 const v03StableWf = checkReleaseWorkflowCommon(
   ACTIVE_STABLE_RELEASE_WORKFLOW,
   `RELEASE v${V03_PATCH_VERSION}`,
@@ -1622,7 +1641,7 @@ if (v03StableWf !== null) {
     err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must not target a prerelease version`);
   }
   // It must never accept a prerelease confirmation string.
-  if (v03StableWf.includes("RELEASE v0.3.0-rc.1")) {
+  if (v03StableWf.includes("RELEASE v0.4.0") || v03StableWf.includes("RELEASE v0.3.0-rc.1")) {
     err(
       `${ACTIVE_STABLE_RELEASE_WORKFLOW} must use only the stable confirmation string RELEASE v${V03_PATCH_VERSION}`,
     );
@@ -1713,12 +1732,17 @@ const RELEASE_PUBLISH_ALLOWED = new Set([
   STABLE_RELEASE_WORKFLOW,
   V03_RC_RELEASE_WORKFLOW,
   V03_STABLE_RELEASE_WORKFLOW,
+  V04_STABLE_RELEASE_WORKFLOW,
   ACTIVE_STABLE_RELEASE_WORKFLOW,
   "docs/releases/publishing-v0.1.0.md",
   "docs/releases/publishing-v0.2.0-rc.1.md",
   "docs/releases/publishing-v0.2.0.md",
   "docs/releases/publishing-v0.3.0-rc.1.md",
   "docs/releases/publishing-v0.3.0.md",
+  "docs/releases/publishing-v0.4.0.md",
+  // v0.5 publishing runbook and release notes.
+  "docs/releases/publishing-v0.5.0.md",
+  "docs/releases/v0.5.0.md",
   "docs/releases/v0.1.0.md",
   "docs/releases/v0.2.0.md",
   "docs/releases/v0.3.0-rc.1.md",
@@ -2127,11 +2151,12 @@ if (trackedFiles.includes("mcp-server/src/server.ts")) {
     err("mcp-server/src/server.ts must not statically import @oh-my-pm/project-memory");
   }
 }
-// The MCP bin must not statically import the project-memory package either.
-if (trackedFiles.includes("mcp-server/bin/oh-my-pm-mcp.mjs")) {
-  const bin = readFileSync("mcp-server/bin/oh-my-pm-mcp.mjs", "utf8");
+// Neither MCP bin may statically import the project-memory package.
+for (const mcpBin of ["mcp-server/bin/ohmypm-mcp.mjs", "mcp-server/bin/oh-my-pm-mcp.mjs"]) {
+  if (!trackedFiles.includes(mcpBin)) continue;
+  const bin = readFileSync(mcpBin, "utf8");
   if (bin.includes("@oh-my-pm/project-memory")) {
-    err("mcp-server/bin/oh-my-pm-mcp.mjs must not reference @oh-my-pm/project-memory");
+    err(`${mcpBin} must not reference @oh-my-pm/project-memory`);
   }
 }
 // The project_changes runner must not import a provider, call capture/commit/
@@ -2254,12 +2279,13 @@ if (trackedFiles.includes("kernel/crate/Cargo.toml")) {
     }
   }
 }
-// Version guard: version.json carries the prepared source version. The v0.3 line
-// reached the stable 0.3.1; the v0.4 Project Timeline line then promoted the
-// source to 0.4.0 once every phase was implemented and green. The value must be
-// exactly this prepared version (all package manifests and the runtime version
-// constants are checked against it by check-version-consistency).
-const EXPECTED_SOURCE_VERSION = "0.4.0";
+// Version guard: version.json carries the prepared source version. The v0.4
+// Project Timeline line reached the stable 0.4.0; the v0.5 CLI command namespace
+// line then promoted the source to 0.5.0 once the migration was implemented and
+// green. The value must be exactly this prepared version (all package manifests
+// and the runtime version constants are checked against it by
+// check-version-consistency).
+const EXPECTED_SOURCE_VERSION = "0.5.0";
 if (trackedFiles.includes("version.json")) {
   const version = JSON.parse(readFileSync("version.json", "utf8")).version;
   if (version !== EXPECTED_SOURCE_VERSION) {

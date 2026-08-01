@@ -351,6 +351,30 @@ in place (see Phase 5B).
   behavior, compatibility matrix, CLI/MCP surfaces, validation gates, and release
   invariants.
 
+## v0.5 — CLI command namespace
+
+- **Canonical commands:** `ohmypm`, `ohmypm-mcp`, `ohmypm-install`.
+- **Deprecated compatibility aliases:** `oh-my-pm`, `oh-my-pm-mcp`,
+  `oh-my-pm-install`. Each forwards to the same implementation after a
+  stderr-only deprecation warning. **No removal is scheduled.**
+- **Not a product rename.** The product name, repository, package scope
+  `@oh-my-pm/*`, environment prefix `OH_MY_PM_*`, Rust identifiers, installation
+  directory `lib/oh-my-pm/`, release archives `oh-my-pm-vX.Y.Z`, project config
+  filename, data directories, MCP server key `oh-my-pm`, and error-code namespace
+  are all unchanged.
+- **No data migration.** Project Brain schema stays 1 and store format stays 2; a
+  v0.4 store is read directly.
+- **Single source of truth:** `command-surface.json`, enforced by
+  `pnpm validate:commands` and `pnpm validate:references`.
+- **Release line `v0.5`, bundle profile `ohmypm-cli-namespace`** — same runtime
+  surface as v0.4 (twelve read-only MCP tools, seven memory subcommands, zero
+  write tools).
+- **Explicitly not in v0.5:** any Dashboard work, any new feature, any CLI
+  hierarchy change, and any change to behavior, schemas, output contracts, storage
+  formats, or MCP protocol behavior.
+- See [the v0.5 command namespace guide](v0.5/README.md) for the migration
+  behavior, upgrade path, and deprecation policy.
+
 ## Phase 6 — Release lifecycle
 
 - Version registry

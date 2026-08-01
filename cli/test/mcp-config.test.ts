@@ -5,8 +5,13 @@
 import { describe, expect, it } from "vitest";
 import { runLocalCliProcess } from "../src/local-process.js";
 import {
+  MCP_CONFIG_COMMAND_NAME,
+  MCP_CONFIG_DEFAULT_SERVER_NAME,
+  MCP_CONFIG_LEGACY_COMMAND_NAMES,
   MCP_CONFIG_READ_ONLY_TOOLS,
   buildMcpClientConfig,
+  classifyMcpConfigCommand,
+  legacyMcpConfigGuidance,
   candidateInstalledBinDirectories,
   formatMcpClientConfig,
   installedMcpCommandFileName,
@@ -17,10 +22,10 @@ import {
 
 // A POSIX and a Windows installed entry-script path, in the exact shape the
 // release installer creates: <prefix>/lib/oh-my-pm/versions/<version>/bin/…
-const POSIX_ENTRY = "/opt/omp/lib/oh-my-pm/versions/0.3.1/bin/oh-my-pm.mjs";
-const POSIX_MCP = "/opt/omp/bin/oh-my-pm-mcp";
-const WINDOWS_ENTRY = "C:\\Tools\\omp\\lib\\oh-my-pm\\versions\\0.3.1\\bin\\oh-my-pm.mjs";
-const WINDOWS_MCP = "C:\\Tools\\omp\\bin\\oh-my-pm-mcp.cmd";
+const POSIX_ENTRY = "/opt/omp/lib/oh-my-pm/versions/0.3.1/bin/ohmypm.mjs";
+const POSIX_MCP = "/opt/omp/bin/ohmypm-mcp";
+const WINDOWS_ENTRY = "C:\\Tools\\omp\\lib\\oh-my-pm\\versions\\0.3.1\\bin\\ohmypm.mjs";
+const WINDOWS_MCP = "C:\\Tools\\omp\\bin\\ohmypm-mcp.cmd";
 
 /** Run mcp-config against an injected installed layout. Never touches disk. */
 async function run(
@@ -107,15 +112,15 @@ describe("installed prefix inference", () => {
   });
 
   it("derives nothing from a non-installed entry script", () => {
-    for (const path of ["", "/repo/cli/bin/oh-my-pm.mjs", "/usr/local/bin/oh-my-pm", "oh-my-pm.mjs"]) {
+    for (const path of ["", "/repo/cli/bin/ohmypm.mjs", "/usr/local/bin/ohmypm", "ohmypm.mjs"]) {
       expect(candidateInstalledBinDirectories(path)).toEqual([]);
     }
   });
 
   it("selects the platform-correct command filename", () => {
-    expect(installedMcpCommandFileName("linux")).toBe("oh-my-pm-mcp");
-    expect(installedMcpCommandFileName("darwin")).toBe("oh-my-pm-mcp");
-    expect(installedMcpCommandFileName("win32")).toBe("oh-my-pm-mcp.cmd");
+    expect(installedMcpCommandFileName("linux")).toBe("ohmypm-mcp");
+    expect(installedMcpCommandFileName("darwin")).toBe("ohmypm-mcp");
+    expect(installedMcpCommandFileName("win32")).toBe("ohmypm-mcp.cmd");
   });
 
   it("resolves the POSIX command from the installed prefix", () => {
@@ -286,8 +291,8 @@ describe("mcp-config through the process runner", () => {
   });
 
   it("needs no --prefix: the prefix comes from the CLI's own location", async () => {
-    const relocated = "/srv/other/lib/oh-my-pm/versions/0.3.1/bin/oh-my-pm.mjs";
-    const relocatedMcp = "/srv/other/bin/oh-my-pm-mcp";
+    const relocated = "/srv/other/lib/oh-my-pm/versions/0.3.1/bin/ohmypm.mjs";
+    const relocatedMcp = "/srv/other/bin/ohmypm-mcp";
     const result = await run([], {
       entryScriptPath: relocated,
       exists: [relocatedMcp],
@@ -366,5 +371,90 @@ describe("mcp-config through the process runner", () => {
     });
     expect(result.exitCode).toBe(0);
     expect(clockReads).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// v0.5 command migration: canonical vs legacy configuration.
+// ---------------------------------------------------------------------------
+
+describe("v0.5 generated configuration", () => {
+  it("invokes the canonical ohmypm-mcp command", () => {
+    expect(MCP_CONFIG_COMMAND_NAME).toBe("ohmypm-mcp");
+  });
+
+  it("keeps the default server key as the product identity oh-my-pm", () => {
+    // The server *key* is not a command. Leaving it unchanged means an existing
+    // client configuration keeps the same key and only its `command` changes.
+    expect(MCP_CONFIG_DEFAULT_SERVER_NAME).toBe("oh-my-pm");
+  });
+
+  it("recognizes the deprecated executable as a legacy command", () => {
+    expect(MCP_CONFIG_LEGACY_COMMAND_NAMES).toEqual(["oh-my-pm-mcp"]);
+  });
+
+  it("generates a configuration whose command is canonical", () => {
+    const config = buildMcpClientConfig(MCP_CONFIG_DEFAULT_SERVER_NAME, POSIX_MCP);
+    const command = config.mcpServers["oh-my-pm"]?.command ?? "";
+    expect(classifyMcpConfigCommand(command)).toBe("canonical");
+  });
+});
+
+describe("classifyMcpConfigCommand", () => {
+  it("classifies the canonical command by bare name and by absolute path", () => {
+    for (const value of [
+      "ohmypm-mcp",
+      "/opt/omp/bin/ohmypm-mcp",
+      "C:\\Tools\\omp\\bin\\ohmypm-mcp.cmd",
+      "/opt/omp/bin/ohmypm-mcp.mjs",
+    ]) {
+      expect(classifyMcpConfigCommand(value), value).toBe("canonical");
+    }
+  });
+
+  it("classifies a deprecated command as legacy rather than broken", () => {
+    // A configuration written before v0.5 still works through the compatibility
+    // shim, so it must never be reported as completely broken.
+    for (const value of [
+      "oh-my-pm-mcp",
+      "/opt/omp/bin/oh-my-pm-mcp",
+      "C:\\Tools\\omp\\bin\\oh-my-pm-mcp.cmd",
+    ]) {
+      expect(classifyMcpConfigCommand(value), value).toBe("legacy");
+    }
+  });
+
+  it("does not claim anything about an unrelated executable", () => {
+    for (const value of ["node", "/usr/bin/python3", "some-other-mcp", ""]) {
+      expect(classifyMcpConfigCommand(value), value).toBe("unrecognized");
+    }
+  });
+
+  it("never confuses the CLI command with the MCP command", () => {
+    expect(classifyMcpConfigCommand("ohmypm")).toBe("unrecognized");
+    expect(classifyMcpConfigCommand("oh-my-pm")).toBe("unrecognized");
+  });
+});
+
+describe("legacyMcpConfigGuidance", () => {
+  it("states that a legacy configuration still works and should be regenerated", () => {
+    const guidance = legacyMcpConfigGuidance("/opt/omp/bin/oh-my-pm-mcp");
+    expect(guidance).not.toBeNull();
+    expect(guidance).toContain("still works");
+    expect(guidance).toContain("ohmypm-mcp");
+    expect(guidance).not.toContain("broken");
+    expect(guidance).not.toContain("invalid");
+  });
+
+  it("offers no guidance for a canonical or unrecognized command", () => {
+    expect(legacyMcpConfigGuidance("ohmypm-mcp")).toBeNull();
+    expect(legacyMcpConfigGuidance("/opt/omp/bin/ohmypm-mcp")).toBeNull();
+    expect(legacyMcpConfigGuidance("node")).toBeNull();
+  });
+
+  it("is advice only and never rewrites a user-owned file", () => {
+    // The whole module is pure; this asserts the guidance is a plain string with
+    // no imperative side channel.
+    expect(typeof legacyMcpConfigGuidance("oh-my-pm-mcp")).toBe("string");
   });
 });

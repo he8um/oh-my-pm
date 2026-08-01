@@ -220,7 +220,7 @@ describe("memory timeline — help", () => {
 
 // --- end to end ------------------------------------------------------------
 
-const BIN = join(dirname(fileURLToPath(import.meta.url)), "..", "bin", "oh-my-pm.mjs");
+const BIN = join(dirname(fileURLToPath(import.meta.url)), "..", "bin", "ohmypm.mjs");
 const PROJECT_ID = "timeline-e2e-project";
 
 type Run = { status: number; stdout: string; stderr: string };

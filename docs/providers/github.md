@@ -108,14 +108,14 @@ next tasks) `priority`, but never raw issue/PR bodies. See
 
 ```bash
 # Public repository (no token needed):
-oh-my-pm github brief owner/repository --markdown
-oh-my-pm github risks owner/repository --markdown
-oh-my-pm github next owner/repository --markdown
-oh-my-pm github handoff owner/repository --markdown
+ohmypm github brief owner/repository --markdown
+ohmypm github risks owner/repository --markdown
+ohmypm github next owner/repository --markdown
+ohmypm github handoff owner/repository --markdown
 
 # Private repository or higher rate limit:
 export OH_MY_PM_GITHUB_TOKEN="<fine-grained read-only token>"
-oh-my-pm github brief owner/private-repository --limit 50 --markdown
+ohmypm github brief owner/private-repository --limit 50 --markdown
 ```
 
 ## MCP tools
@@ -166,7 +166,7 @@ explicitly confirmed single-request GitHub access diagnostic are available. See
 
 ## Local workflows remain offline
 
-Running `oh-my-pm status`, `oh-my-pm doctor`, and the Markdown project workflows
+Running `ohmypm status`, `ohmypm doctor`, and the Markdown project workflows
 (`brief`, `risks`, `next`, `handoff` over a local project root) makes no network
 request and reads no token. Only the explicit `github` command and
 `github_project_*` tools reach the network, and only over read-only HTTPS to

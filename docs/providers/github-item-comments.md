@@ -28,7 +28,7 @@ The following are **explicitly excluded** in this phase:
 ### CLI
 
 ```bash
-oh-my-pm github risks owner/repo \
+ohmypm github risks owner/repo \
   --source item \
   --number 123 \
   --include-comments \

@@ -22,6 +22,11 @@ import {
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// The canonical installed command pair comes from the shipped install core -- the
+// same module the installer and the installed-state verifier use -- so the bundle
+// metadata can never advertise a command set the installer does not create.
+import { RELEASE_INSTALL_CANONICAL_COMMANDS } from "../distribution/libexec/release-install-core.mjs";
+
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Canonical version, read once from version.json (single source of truth). */
@@ -50,9 +55,23 @@ export const KERNEL_GENERATED_NODE_ASSETS = [
 /** Deterministic list of prerequisite files the bundle assembly requires. */
 function prerequisiteDefinitions() {
   return [
-    { id: "distribution_cli_bin", path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm.mjs") },
-    { id: "distribution_mcp_bin", path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm-mcp.mjs") },
-    { id: "distribution_install_bin", path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm-install.mjs") },
+    { id: "distribution_cli_bin", path: join(REPO_ROOT, "distribution", "bin", "ohmypm.mjs") },
+    { id: "distribution_mcp_bin", path: join(REPO_ROOT, "distribution", "bin", "ohmypm-mcp.mjs") },
+    { id: "distribution_install_bin", path: join(REPO_ROOT, "distribution", "bin", "ohmypm-install.mjs") },
+    // v0.5: the deprecated compatibility aliases are shipped intentionally, so a
+    // missing alias entrypoint blocks the bundle just like a missing canonical one.
+    {
+      id: "distribution_legacy_cli_bin",
+      path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm.mjs"),
+    },
+    {
+      id: "distribution_legacy_mcp_bin",
+      path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm-mcp.mjs"),
+    },
+    {
+      id: "distribution_legacy_install_bin",
+      path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm-install.mjs"),
+    },
     { id: "release_install_core", path: join(REPO_ROOT, "distribution", "libexec", "release-install-core.mjs") },
     { id: "release_bundle_verifier", path: join(REPO_ROOT, "tools", "check-release-bundle.mjs") },
     { id: "cli_dist", path: join(REPO_ROOT, "cli", "dist", "index.js") },
@@ -448,18 +467,25 @@ export function formatReleaseBundlePlan(plan, mode) {
 // exact canonical origin string.
 const GITHUB_ORIGIN = `${"https"}://api.github.com`;
 
-// Explicit v0.4 release profile. The historical v0.2 bundle shipped ten MCP
-// tools and no Project Memory package, and the historical v0.3 bundle shipped
-// eleven; both published artifacts are immutable and are never rewritten. The
-// current source prepares the "project-brain-timeline" profile: TWELVE read-only
-// MCP tools (the ten historical tools plus project_changes and the new
-// project_timeline), the bundled @oh-my-pm/project-memory package, SEVEN
-// installed memory subcommands, Project Brain schema 1 (unchanged), and Project
-// Memory store format 2 (unchanged, so no migration is required). Verifiers read
-// these fields from the bundle's own RELEASE.json and fail closed on an unknown
-// profile — they never branch on the version string.
-const RELEASE_LINE = "v0.4";
-const BUNDLE_PROFILE = "project-brain-timeline";
+// Explicit v0.5 release profile. Every previously published bundle is immutable
+// and is never rewritten: v0.2 shipped ten MCP tools and no Project Memory
+// package, v0.3 shipped eleven, and v0.4 shipped twelve under the
+// "project-brain-timeline" profile.
+//
+// The current source prepares the "ohmypm-cli-namespace" profile. Its *runtime*
+// surface is deliberately identical to v0.4 -- the same TWELVE read-only MCP
+// tools, the same bundled @oh-my-pm/project-memory package, the same SEVEN
+// installed memory subcommands, Project Brain schema 1 and Project Memory store
+// format 2 both unchanged, so no data migration is required. What changes is the
+// command surface: `ohmypm`, `ohmypm-mcp`, and `ohmypm-install` are canonical,
+// and the former names are retained as deprecated compatibility aliases.
+//
+// A new profile (rather than reusing v0.4's) is what lets a verifier distinguish
+// a bundle that ships both command families from one that ships only the old
+// names. Verifiers read these fields from the bundle's own RELEASE.json and fail
+// closed on an unknown profile -- they never branch on the version string.
+const RELEASE_LINE = "v0.5";
+const BUNDLE_PROFILE = "ohmypm-cli-namespace";
 const MEMORY_SUBCOMMANDS = [
   "capture",
   "changes",
@@ -494,7 +520,23 @@ const RELEASE_METADATA = {
   releaseLine: RELEASE_LINE,
   bundleProfile: BUNDLE_PROFILE,
   expectedMcpToolCount: V03_MCP_TOOLS.length,
-  commands: ["oh-my-pm", "oh-my-pm-mcp"],
+  // v0.5: canonical commands and deprecated compatibility aliases are declared as
+  // distinct fields. A single flat list would present the aliases as equals.
+  // `commands` keeps its historical name and now holds the canonical pair, so an
+  // existing reader of that field sees the primary commands.
+  commands: [...RELEASE_INSTALL_CANONICAL_COMMANDS],
+  canonicalCommands: {
+    cli: "ohmypm",
+    mcp: "ohmypm-mcp",
+    installer: "ohmypm-install",
+  },
+  legacyAliases: {
+    cli: ["oh-my-pm"],
+    mcp: ["oh-my-pm-mcp"],
+    installer: ["oh-my-pm-install"],
+  },
+  commandsDeprecatedSince: "0.5.0",
+  commandRemovalScheduled: false,
   cliWorkflows: ["brief", "risks", "next", "handoff"],
   githubWorkflows: ["brief", "risks", "next", "handoff"],
   mcpTools: V03_MCP_TOOLS,
@@ -590,7 +632,7 @@ const RELEASE_METADATA = {
     tokenValuesReported: false,
   },
   installer: {
-    entrypoint: "bin/oh-my-pm-install.mjs",
+    entrypoint: "bin/ohmypm-install.mjs",
     previewFirst: true,
     prefixRequired: true,
     applyFlag: "--apply",
@@ -712,7 +754,13 @@ function inspectBundleSafety(bundleRoot) {
   // checkout. It ships dist-only (its "files" field is ["dist"]); raw src/test
   // are rejected by the first-party leak check above. Fail closed here if the
   // package or its compiled entrypoint is absent.
-  if (BUNDLE_PROFILE === "project-brain" || BUNDLE_PROFILE === "project-brain-timeline") {
+  // The v0.5 "ohmypm-cli-namespace" profile keeps the v0.4 runtime surface, so it
+  // requires the bundled Project Memory package just as v0.3/v0.4 do.
+  if (
+    BUNDLE_PROFILE === "project-brain" ||
+    BUNDLE_PROFILE === "project-brain-timeline" ||
+    BUNDLE_PROFILE === "ohmypm-cli-namespace"
+  ) {
     const pmDir = join(bundleRoot, "node_modules", "@oh-my-pm", "project-memory");
     const pmManifest = join(pmDir, "package.json");
     const pmEntry = join(pmDir, "dist", "index.js");
@@ -777,7 +825,7 @@ function inspectBundleSafety(bundleRoot) {
     "claude_desktop" + "_config",
     "mcp" + dot + "json",
   ];
-  for (const rel of ["bin/oh-my-pm-install.mjs", "libexec/release-install-core.mjs", "libexec/check-release-bundle.mjs"]) {
+  for (const rel of ["bin/ohmypm-install.mjs", "libexec/release-install-core.mjs", "libexec/check-release-bundle.mjs"]) {
     const abs = join(bundleRoot, ...rel.split("/"));
     if (!isRegularFile(abs)) {
       errors.push(`installer surface missing from bundle: ${rel}`);
@@ -873,7 +921,7 @@ export function applyReleaseBundlePlan(plan) {
     // the three approved generated assets are staged explicitly below. An
     // entirely missing Kernel package is a genuine deploy failure and is not
     // repairable.
-    const deployedBin = join(tempDir, "bin", "oh-my-pm.mjs");
+    const deployedBin = join(tempDir, "bin", "ohmypm.mjs");
     const deployedKernelPackage = join(tempDir, "node_modules", "@oh-my-pm", "kernel");
     const deployedKernelManifest = join(deployedKernelPackage, "package.json");
     if (!isRegularFile(deployedBin) || !isRegularFile(deployedKernelManifest)) {
@@ -964,7 +1012,7 @@ export function applyReleaseBundlePlan(plan) {
 
     // Fail fast if the installer surfaces did not make it into the bundle.
     for (const rel of [
-      join("bin", "oh-my-pm-install.mjs"),
+      join("bin", "ohmypm-install.mjs"),
       join("libexec", "release-install-core.mjs"),
       join("libexec", "check-release-bundle.mjs"),
     ]) {
@@ -976,7 +1024,14 @@ export function applyReleaseBundlePlan(plan) {
 
     // Ensure the bin entrypoints are executable on POSIX.
     if (process.platform !== "win32") {
-      for (const bin of ["oh-my-pm.mjs", "oh-my-pm-mcp.mjs", "oh-my-pm-install.mjs"]) {
+      for (const bin of [
+        "ohmypm.mjs",
+        "ohmypm-mcp.mjs",
+        "ohmypm-install.mjs",
+        "oh-my-pm.mjs",
+        "oh-my-pm-mcp.mjs",
+        "oh-my-pm-install.mjs",
+      ]) {
         const binPath = join(tempDir, "bin", bin);
         if (isRegularFile(binPath)) chmodSync(binPath, 0o755);
       }

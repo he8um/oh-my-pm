@@ -2,6 +2,98 @@
 
 ## [Unreleased]
 
+## [0.5.0]
+
+Stable release opening the v0.5 line. It changes **one** thing — the name you
+type. The canonical CLI command family becomes `ohmypm`, `ohmypm-mcp` and
+`ohmypm-install`; the former `oh-my-pm` family is retained as deprecated
+compatibility aliases with **no removal scheduled**.
+
+This is a CLI command namespace migration, **not a product rename**. There is
+**no schema change, no store-format change, and no data migration**: Project Brain
+schema stays at 1 and store format at 2, so a store created by the public `v0.4.0`
+build is read directly. `v0.4.0` remains immutable and unchanged. No registry
+publication; all workspace packages remain private.
+
+### Changed
+
+- **`ohmypm` is the canonical CLI**, `ohmypm-mcp` the canonical MCP stdio server,
+  and `ohmypm-install` the canonical release-bundle installer. Every active help
+  line, usage string, example, error hint, README snippet, and document now shows
+  the canonical command. Help renders from a single constant rather than a
+  hard-coded name.
+- **Newly generated MCP configuration invokes `ohmypm-mcp`.** The server
+  registration **key** deliberately remains `oh-my-pm` — it is a product identity,
+  not a command — so an existing client entry keeps its key and only the `command`
+  value needs regenerating.
+- **A local or release installation creates all eight command shims** — the two
+  canonical installed commands plus the two deprecated aliases, each with a POSIX
+  and a Windows `.cmd` launcher. The installed manifest records `commands`
+  (canonical) and `legacyCommands` separately.
+- **Release line `v0.5` with the new bundle profile `ohmypm-cli-namespace`.**
+  `RELEASE.json` declares `canonicalCommands` and `legacyAliases` as distinct
+  fields plus `commandsDeprecatedSince` and `commandRemovalScheduled`, so no
+  reader can mistake an alias for a primary command. Previously published profiles
+  keep resolving and an unknown profile still fails closed.
+
+### Added
+
+- **`command-surface.json`** at the repository root: the single machine-readable
+  source of truth for the public command names, distinguishing canonical commands
+  from legacy aliases.
+- **`pnpm validate:commands`** proves the command names restated in package
+  manifests, both installers, release metadata, the installed-state verifier, and
+  generated MCP configuration still agree with the manifest. Those surfaces cannot
+  import it at runtime — the CLI and MCP packages are deliberately pure and the
+  release-install core must run from inside an extracted bundle — so the check is
+  what makes the single-source-of-truth claim enforceable.
+- **`pnpm validate:references`** fails when an active README, help file, example,
+  installer message, or generated configuration reintroduces a deprecated command
+  as the primary one. It is precise about product identity: the product name
+  appears legitimately as a package scope, path segment, environment prefix,
+  config filename, archive name, and server key, so the check matches only the
+  shapes a command *invocation* takes.
+- **Legacy MCP configuration recognition** — `classifyMcpConfigCommand` and
+  `legacyMcpConfigGuidance` report a pre-v0.5 configuration as
+  legacy-but-functional and recommend regeneration, never as broken. No
+  user-owned configuration file is ever rewritten.
+- **`.github/workflows/release-v0.5.yml`** — the manually gated v0.5 stable
+  release workflow. Nothing is published by adding it.
+
+### Deprecated
+
+- **`oh-my-pm`, `oh-my-pm-mcp` and `oh-my-pm-install`** are deprecated
+  compatibility aliases as of 0.5.0. **No removal is scheduled.**
+
+  Each alias runs the same implementation in the same process, forwarding
+  arguments, stdin, environment, working directory, exit code, and signal
+  behavior unchanged; no application logic is duplicated. The deprecation warning
+  goes to **stderr only**, which is what keeps two machine-readable contracts
+  intact: `--json` stdout stays a parseable document, and the MCP server's stdout
+  stays JSON-RPC protocol-safe. An alias prints the canonical help.
+
+  The aliases never appear in help output, README examples, generated
+  configuration, or installation instructions.
+
+### Preserved
+
+- Product name **OH MY PM**, repository `he8um/oh-my-pm`, package scope
+  `@oh-my-pm/*`, environment prefix `OH_MY_PM_*`, Rust identifiers `oh_my_pm_*`,
+  installation directory `lib/oh-my-pm/versions/<version>/`, release archives
+  `oh-my-pm-vX.Y.Z`, project config filename `oh-my-pm.config.json`, provider
+  config directories, Project Brain data directories, the MCP server key
+  `oh-my-pm`, and the error-code namespace — all unchanged.
+
+### Non-goals
+
+- **No Dashboard work.** No dashboard is designed, implemented, or planned in this
+  release.
+- No product, repository, package, or environment-variable rename.
+- No new CLI command, subcommand, option, or output mode.
+- No change to command behavior, JSON schemas, output contracts, storage formats,
+  project-memory formats, MCP protocol behavior, or public APIs.
+- No storage or data-format migration.
+
 ## [0.4.0]
 
 Stable release opening the v0.4 line. It adds **one** main capability —

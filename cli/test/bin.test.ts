@@ -8,15 +8,66 @@ import { describe, expect, it } from "vitest";
 
 const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const pkgJson = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8"));
-const binSource = readFileSync(join(pkgDir, "bin", "oh-my-pm.mjs"), "utf8");
+const binSource = readFileSync(join(pkgDir, "bin", "ohmypm.mjs"), "utf8");
+const legacyBinSource = readFileSync(join(pkgDir, "bin", "oh-my-pm.mjs"), "utf8");
 const localProcessSource = readFileSync(join(pkgDir, "src", "local-process.ts"), "utf8");
 const readme = readFileSync(join(pkgDir, "README.md"), "utf8");
 
 describe("cli package bin metadata", () => {
-  it("stays private with a local bin entry and no publish config", () => {
+  it("stays private with a canonical bin entry and no publish config", () => {
     expect(pkgJson.private).toBe(true);
-    expect(pkgJson.bin["oh-my-pm"]).toBe("./bin/oh-my-pm.mjs");
+    expect(pkgJson.bin["ohmypm"]).toBe("./bin/ohmypm.mjs");
     expect(pkgJson.publishConfig).toBeUndefined();
+  });
+
+  it("exposes only the canonical command, not the compatibility alias", () => {
+    // The deprecated names are a *distribution* concern: a workspace consumer of
+    // @oh-my-pm/cli must not silently gain a deprecated executable.
+    expect(Object.keys(pkgJson.bin)).toEqual(["ohmypm"]);
+  });
+});
+
+describe("legacy cli wrapper source", () => {
+  it("is a compatibility alias over the same runner, not a second implementation", () => {
+    expect(legacyBinSource.startsWith("#!/usr/bin/env node")).toBe(true);
+    expect(legacyBinSource).toContain('from "../dist/index.js"');
+    expect(legacyBinSource).toContain("runLocalCliProcess");
+    expect(legacyBinSource).toContain("process.argv.slice(2)");
+  });
+
+  it("emits the deprecation warning to stderr and never to stdout", () => {
+    // The order matters: the warning is written before any runner output, and
+    // only ever through process.stderr. A `--json` command's stdout must stay
+    // parseable, so a warning on stdout would corrupt a machine-readable
+    // contract.
+    expect(legacyBinSource).toContain("process.stderr.write(`${commandDeprecationWarning(");
+    const stdoutWrites = legacyBinSource.match(/process\.stdout\.write\(([^)]*)\)/g) ?? [];
+    expect(stdoutWrites).toEqual(["process.stdout.write(result.stdout)"]);
+    expect(legacyBinSource).not.toContain("process.stdout.write(`");
+  });
+
+  it("derives the warning from the shared helper rather than restating the text", () => {
+    expect(legacyBinSource).toContain("commandDeprecationWarning");
+    expect(legacyBinSource).not.toContain("is a deprecated compatibility alias.");
+  });
+
+  it("forwards the exit code and does not spawn a child process", () => {
+    // Running in-process is what preserves stdin, the environment, the working
+    // directory, and signal handling exactly.
+    expect(legacyBinSource).toContain("process.exitCode = result.exitCode");
+    for (const forbidden of ["child_process", "spawn", "execFile", "process.exit("]) {
+      expect(legacyBinSource, `legacy wrapper must not contain "${forbidden}"`).not.toContain(
+        forbidden,
+      );
+    }
+  });
+
+  it("does not invoke the canonical wrapper, so the two can never recurse", () => {
+    // Both wrappers import the shared runner directly. Neither imports or
+    // executes the other, so there is no path for an alias to re-enter itself.
+    const importSpecifiers = [...legacyBinSource.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]);
+    expect(importSpecifiers).toEqual(["../dist/index.js"]);
+    expect(legacyBinSource).not.toContain('import("');
   });
 });
 

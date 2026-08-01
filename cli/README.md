@@ -4,18 +4,20 @@ Private CLI package for OH MY PM.
 
 The package exposes side-effect-free CLI core utilities and a local Node.js wrapper.
 
-The local wrapper is available as `oh-my-pm` inside the workspace after packages are built and linked by pnpm. It is private and is not published.
+The local wrapper is available as `ohmypm` inside the workspace after packages are built and linked by pnpm. It is private and is not published.
 
-After a local installation (see [the getting-started guide](../docs/getting-started.md)), the same commands are available through the installed `oh-my-pm` shim once `<prefix>/bin` is on PATH:
+The former `oh-my-pm` name remains as a deprecated compatibility alias: it forwards to the same implementation after printing a deprecation warning to stderr. No removal is scheduled. See [the v0.5 migration guide](../docs/v0.5/README.md).
+
+After a local installation (see [the getting-started guide](../docs/getting-started.md)), the same commands are available through the installed `ohmypm` shim once `<prefix>/bin` is on PATH:
 
 ```bash
-oh-my-pm brief ./project --markdown
-oh-my-pm risks ./project --markdown
-oh-my-pm next ./project --markdown
-oh-my-pm handoff ./project --markdown
+ohmypm brief ./project --markdown
+ohmypm risks ./project --markdown
+ohmypm next ./project --markdown
+ohmypm handoff ./project --markdown
 ```
 
-For development inside the repository, invoke the wrapper directly with `node cli/bin/oh-my-pm.mjs <command>` as shown in the examples below.
+For development inside the repository, invoke the wrapper directly with `node cli/bin/ohmypm.mjs <command>` as shown in the examples below.
 
 Current commands:
 
@@ -35,9 +37,9 @@ Current commands:
 
 ## Help
 
-`oh-my-pm --help` and `oh-my-pm -h` print the command reference to stdout and exit
+`ohmypm --help` and `ohmypm -h` print the command reference to stdout and exit
 `0`. The same flags work per namespace and per command, for example
-`oh-my-pm memory --help` and `oh-my-pm providers --help`. Help output is bounded
+`ohmypm memory --help` and `ohmypm providers --help`. Help output is bounded
 and deterministic: it writes nothing to stderr, ends with exactly one newline,
 makes no network request, creates no file or application-data directory, and reads
 no token. Unknown commands and options keep their existing nonzero usage exit
@@ -45,11 +47,11 @@ code.
 
 ## `mcp-config`
 
-`oh-my-pm mcp-config` prints a generic stdio MCP client configuration for the
+`ohmypm mcp-config` prints a generic stdio MCP client configuration for the
 installed MCP server. Options: `--json` (default), `--markdown`, `--name <name>`
 (default `oh-my-pm`), and `--help` / `-h`.
 
-The installed sibling `oh-my-pm-mcp` executable is resolved from the running CLI's
+The installed sibling `ohmypm-mcp` executable is resolved from the running CLI's
 own installed location, so an installed user passes no prefix, and the emitted
 absolute command path follows a relocated prefix. The Windows `.cmd` shim is
 selected automatically. The command writes no MCP client file and no project file,
@@ -66,45 +68,45 @@ pnpm mcp:config -- --prefix "$HOME/.local" --markdown
 `brief [root]` reads Markdown project documents from a local directory and produces a project status brief through the Runtime, Planner, Skills, and the real WASM Kernel binding. The root defaults to `.` when omitted. Files ending in `.md` or `.markdown` (case-insensitive) are loaded recursively; `.git`, `.hg`, `.svn`, `node_modules`, `dist`, `build`, `coverage`, `target`, `.next`, `.turbo`, and `.cache` directories are ignored anywhere in the tree; symbolic links are never followed and nothing outside the requested root is read. Deterministic limits apply: at most 200 files, 256 KiB per file, and 2 MiB in total. The command is read-only — it never modifies project files, never persists or transmits document content, and requires no external integration. Examples:
 
 ```bash
-node cli/bin/oh-my-pm.mjs brief
-node cli/bin/oh-my-pm.mjs brief ./my-project
-node cli/bin/oh-my-pm.mjs brief examples/fixtures/markdown-project --json
-node cli/bin/oh-my-pm.mjs brief examples/fixtures/markdown-project --markdown
+node cli/bin/ohmypm.mjs brief
+node cli/bin/ohmypm.mjs brief ./my-project
+node cli/bin/ohmypm.mjs brief examples/fixtures/markdown-project --json
+node cli/bin/ohmypm.mjs brief examples/fixtures/markdown-project --markdown
 ```
 
 `risks [root]` reads the same Markdown project documents with the same loader, limits, ignored directories, and read-only guarantees as `brief`, and produces a project risk report through the Runtime, Planner, the `extractRisks` skill, and the real WASM Kernel binding. The root defaults to `.` when omitted; brief, JSON, and Markdown output modes are supported. Detection is deterministic and **line-level**: each risk is the actual list item or explicit marker under a recognized risk heading (English or Persian), never a document-title collapse. Blocker headings/markers map to high severity, risk and dependency to medium, concerns and known issues to low. Checked (resolved) items and fenced code are excluded, and false-positive guards apply (`unblocked` is not `blocked`). Output may carry optional `owner`, `due`, and (for GitHub) `url`/`repository`/`number` metadata. No LLM, no fuzzy matcher, no network, no writes. Examples:
 
 ```bash
-node cli/bin/oh-my-pm.mjs risks
-node cli/bin/oh-my-pm.mjs risks ./my-project
-node cli/bin/oh-my-pm.mjs risks examples/fixtures/markdown-project --json
-node cli/bin/oh-my-pm.mjs risks examples/fixtures/markdown-project --markdown
+node cli/bin/ohmypm.mjs risks
+node cli/bin/ohmypm.mjs risks ./my-project
+node cli/bin/ohmypm.mjs risks examples/fixtures/markdown-project --json
+node cli/bin/ohmypm.mjs risks examples/fixtures/markdown-project --markdown
 ```
 
 `next [root]` reads the same Markdown project documents with the same loader, limits, and read-only guarantees as `brief` and `risks`, and derives next tasks through the Runtime, Planner, the `deriveNextTasks` skill, and the real WASM Kernel binding. The root defaults to `.` when omitted; brief, JSON, and Markdown output modes are supported. Tasks come from unchecked Markdown checklist items (`- [ ]`, `* [ ]`, `+ [ ]`), list items under recognized action headings (`next steps`, `action items`, `tasks`, `todo`, and Persian equivalents), and explicit action markers (`Action:`, `Todo:`, `اقدام:`, …), in document and line order. A leading priority marker (`[P0]`, `Critical:`, `بحرانی:`, …) is stripped from the title and recorded as `priority`. Checked items are ignored, risk-section items and arbitrary prose never become tasks, duplicate task text is deduped, and at most ten tasks are returned. No LLM, no network, no writes. Examples:
 
 ```bash
-node cli/bin/oh-my-pm.mjs next
-node cli/bin/oh-my-pm.mjs next ./my-project
-node cli/bin/oh-my-pm.mjs next examples/fixtures/markdown-project --json
-node cli/bin/oh-my-pm.mjs next examples/fixtures/markdown-project --markdown
+node cli/bin/ohmypm.mjs next
+node cli/bin/ohmypm.mjs next ./my-project
+node cli/bin/ohmypm.mjs next examples/fixtures/markdown-project --json
+node cli/bin/ohmypm.mjs next examples/fixtures/markdown-project --markdown
 ```
 
 `handoff [root]` reads the same Markdown project documents with the same loader, limits, ignored directories, and read-only guarantees as `brief`, `risks`, and `next`, and assembles a deterministic project handoff through the Runtime, Planner, the `createHandoff` skill, and the real WASM Kernel binding. The root defaults to `.` when omitted; brief, JSON, and Markdown output modes are supported. The handoff always contains four sections in a fixed order — Summary, Open Tasks, Risks, and Decisions — plus the project title (inferred from the first document) and the deterministic generation timestamp supplied by the Runtime. Section content comes from exact, normalized Markdown headings: Summary reads `summary`, `overview`, `current objective`, `objective`, `active`, `current status`, and `next milestone`; Risks read `risk`, `risks`, `blocked`, `blocker`, `blockers`, `constraint`, `constraints`, and `delivery constraints`; Decisions read `decision`, `decisions`, and `decision log`. Open Tasks are the unchecked single-line Markdown checkboxes (`- [ ]`, `* [ ]`, `+ [ ]`); checked boxes (`- [x]`, `- [X]`) are excluded and plain document titles never become tasks. Each section is capped at five items, deduplicated in first-occurrence order. No LLM, no network, no writes. Examples:
 
 ```bash
-node cli/bin/oh-my-pm.mjs handoff
-node cli/bin/oh-my-pm.mjs handoff ./my-project
-node cli/bin/oh-my-pm.mjs handoff examples/fixtures/markdown-project --json
-node cli/bin/oh-my-pm.mjs handoff examples/fixtures/markdown-project --markdown
+node cli/bin/ohmypm.mjs handoff
+node cli/bin/ohmypm.mjs handoff ./my-project
+node cli/bin/ohmypm.mjs handoff examples/fixtures/markdown-project --json
+node cli/bin/ohmypm.mjs handoff examples/fixtures/markdown-project --markdown
 ```
 
 `github <brief|risks|next|handoff> [owner/repo] [--limit <1..100>] [--provider-config <path>] [--json|--markdown]` runs the same four workflows against a GitHub repository through the strictly read-only GitHub provider. Unlike the local workflows, this command reaches the network — and only when invoked: it issues `GET`-only requests to `api.github.com` (REST API version `2026-03-10`) for repository metadata, open issues, and pull requests, normalizes them, and feeds them through the same Runtime, Planner, Skills, and WASM Kernel pipeline. The repository must be a bare `owner/repository` (URLs, `.git` suffixes, and path traversal are rejected). The repository and `--limit` are optional at parse time because provider configuration may supply a `defaultRepository` and `defaultLimit`; explicit values always override configuration, and `--limit` accepts `1..100` and defaults to `50`. Authentication is optional: public repositories work without a token, and a token is supplied only through the `OH_MY_PM_GITHUB_TOKEN` environment variable — there is no `--token` argument, and the token is never printed or persisted. The provider never writes to GitHub. See [the GitHub provider guide](../docs/providers/github.md). Examples:
 
 ```bash
-oh-my-pm github brief owner/repository --markdown
-oh-my-pm github risks owner/repository --limit 25 --json
-oh-my-pm github risks --markdown   # uses providers.json defaultRepository
+ohmypm github brief owner/repository --markdown
+ohmypm github risks owner/repository --limit 25 --json
+ohmypm github risks --markdown   # uses providers.json defaultRepository
 ```
 
 ## GitHub source selection
@@ -123,11 +125,11 @@ The `item` source can optionally include a single issue/PR's ordinary conversati
 | search          | yes   | yes   | no     | yes   | yes  |
 
 ```bash
-oh-my-pm github brief owner/repository --source repository --markdown
-oh-my-pm github risks owner/repository --source issues --state open --limit 50 --markdown
-oh-my-pm github handoff owner/repository --source pull-requests --state closed --limit 25 --markdown
-oh-my-pm github brief owner/repository --source item --number 123 --markdown
-oh-my-pm github risks owner/repository --source search --query "release blocker" --kind all --state open --markdown
+ohmypm github brief owner/repository --source repository --markdown
+ohmypm github risks owner/repository --source issues --state open --limit 50 --markdown
+ohmypm github handoff owner/repository --source pull-requests --state closed --limit 25 --markdown
+ohmypm github brief owner/repository --source item --number 123 --markdown
+ohmypm github risks owner/repository --source search --query "release blocker" --kind all --state open --markdown
 ```
 
 `item` auto-detects issue vs. pull request. Search terms cannot override the provider-injected repository/state/kind scope. Provider configuration may set `defaultSource` and `defaultState`; explicit CLI values always override them. See [GitHub source selection](../docs/providers/github-source-selection.md).
@@ -143,9 +145,9 @@ The `github` and `providers` commands read an optional, strictly read-only provi
 Diagnostics never print a token value, a raw provider response, an absolute config path, or raw configuration text. See [provider configuration](../docs/providers/configuration.md) and [provider diagnostics](../docs/providers/diagnostics.md). Examples:
 
 ```bash
-oh-my-pm providers status --markdown
-oh-my-pm providers doctor --markdown
-oh-my-pm providers doctor github he8um/oh-my-pm --confirm-network --markdown
+ohmypm providers status --markdown
+ohmypm providers doctor --markdown
+ohmypm providers doctor github he8um/oh-my-pm --confirm-network --markdown
 ```
 
 ## Local project configuration
@@ -182,8 +184,8 @@ Example config:
 ```
 
 ```bash
-node cli/bin/oh-my-pm.mjs brief ./my-project
-node cli/bin/oh-my-pm.mjs handoff ./my-project --markdown
+node cli/bin/ohmypm.mjs brief ./my-project
+node cli/bin/ohmypm.mjs handoff ./my-project --markdown
 ```
 
 The configuration is read-only: it never enables filesystem writes, never executes code, never reads environment variables, and never reaches outside the selected project root.

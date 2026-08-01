@@ -1,0 +1,157 @@
+name: v0.5 Installed Qualification
+
+# Non-publishing continuous qualification of the v0.5 installed artifact. On every
+# push/PR to main it prepares ONE deterministic candidate archive set on Linux and
+# then qualifies that SAME prepared artifact on Linux, macOS, and Windows by
+# extracting it, installing it under a temporary prefix, and running the installed
+# Project Brain CLI + MCP journeys (including the Project Timeline CLI and MCP
+# surfaces and direct v0.4 store compatibility), privacy checks, and project-byte
+# checks. The expected release profile is pinned so a job can never silently
+# qualify the wrong surface.
+#
+# v0.5 pins the "ohmypm-cli-namespace" profile. Its runtime surface is identical to
+# v0.4's "project-brain-timeline"; only the command names migrated. This workflow
+# supersedes v0.4-installed-qualification.yml, which is left byte-unchanged as
+# historical content.
+#
+# It creates no tag, no GitHub Release, no registry artifact. It grants only
+# contents: read. It uploads a workflow artifact (the prepared archives) so every
+# OS tests identical bytes — never independently rebuilt per OS.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-artifact:
+    name: Prepare candidate artifact
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.4.0
+        with:
+          version: 9.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy, rustfmt
+
+      - name: Install wasm-bindgen CLI
+        run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build contracts
+        run: pnpm build:contracts
+
+      - name: Build kernel
+        run: pnpm build:kernel
+
+      - name: Build
+        run: pnpm build
+
+      - name: Assemble and verify the candidate bundle and archives
+        run: |
+          VERSION="$(node -p "require('./version.json').version")"
+          BUNDLE_OUT="$RUNNER_TEMP/bundle"
+          ASSETS="$RUNNER_TEMP/release-assets"
+
+          node tools/build-release-bundle.mjs --output "$BUNDLE_OUT" --apply
+          node tools/check-release-bundle.mjs --bundle "$BUNDLE_OUT/oh-my-pm-v$VERSION"
+          node tools/build-release-archives.mjs --bundle "$BUNDLE_OUT/oh-my-pm-v$VERSION" --output "$ASSETS" --apply
+          node tools/check-release-archives.mjs --assets "$ASSETS"
+          node tools/check-release-archive-reproducibility.mjs --bundle "$BUNDLE_OUT/oh-my-pm-v$VERSION"
+          # Normalize the artifact name so downstream matrix jobs are version-agnostic.
+          mkdir -p "$RUNNER_TEMP/candidate"
+          cp "$ASSETS/oh-my-pm-v$VERSION.tar.gz" "$RUNNER_TEMP/candidate/"
+          cp "$ASSETS/oh-my-pm-v$VERSION.zip" "$RUNNER_TEMP/candidate/"
+          cp "$ASSETS/oh-my-pm-v$VERSION-SHA256SUMS.txt" "$RUNNER_TEMP/candidate/"
+
+      - name: Upload candidate artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: v0.5-candidate-artifact
+          path: ${{ runner.temp }}/candidate/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
+
+  installed-qualification:
+    name: Installed qualification (${{ matrix.os }})
+    needs: prepare-artifact
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          # The matrix jobs run only Node against the prepared artifact; no
+          # package manager is installed, so disable the package-manager cache.
+          package-manager-cache: false
+
+      - name: Download candidate artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: v0.5-candidate-artifact
+          path: candidate
+
+      - name: Verify checksum and qualify the installed artifact (POSIX)
+        if: runner.os != 'Windows'
+        run: |
+          VERSION="$(node -p "require('./version.json').version")"
+          cd candidate
+          shasum -a 256 -c "oh-my-pm-v$VERSION-SHA256SUMS.txt"
+          cd ..
+          node tools/check-v0.3-installed-project-brain.mjs \
+            --archive "candidate/oh-my-pm-v$VERSION.tar.gz" \
+            --work "$RUNNER_TEMP/qual-work" \
+            --profile ohmypm-cli-namespace
+
+      - name: Verify checksum and qualify the installed artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = node -p "require('./version.json').version"
+          Push-Location candidate
+          $sums = Get-Content "oh-my-pm-v$version-SHA256SUMS.txt"
+          foreach ($line in $sums) {
+            if ($line.Trim() -eq "") { continue }
+            $parts = $line -split "\s+", 2
+            $expected = $parts[0]
+            $file = $parts[1].Trim()
+            $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLower()
+            if ($actual -ne $expected) { throw "checksum mismatch for $file" }
+          }
+          Pop-Location
+          node tools/check-v0.3-installed-project-brain.mjs `
+            --archive "candidate/oh-my-pm-v$version.zip" `
+            --work "$env:RUNNER_TEMP/qual-work" `
+            --profile ohmypm-cli-namespace
+          if ($LASTEXITCODE -ne 0) { throw "installed qualification failed" }

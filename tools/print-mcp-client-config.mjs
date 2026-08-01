@@ -2,7 +2,7 @@
 // Read-only generator for a generic stdio MCP client configuration, for
 // REPOSITORY tooling. It takes an explicit --prefix because a source checkout
 // has no installed prefix to infer; the installed public CLI command
-// (`oh-my-pm mcp-config`) infers its own prefix automatically.
+// (`ohmypm mcp-config`) infers its own prefix automatically.
 //
 // It duplicates no config-generation behavior: the name rule, the platform
 // command filename, the config object, and both output renderings all come from

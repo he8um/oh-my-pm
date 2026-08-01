@@ -129,13 +129,13 @@ without falling back to configuration.
 With a configured default repository and limit you can run:
 
 ```bash
-oh-my-pm github risks --markdown
+ohmypm github risks --markdown
 ```
 
 Explicit values still win:
 
 ```bash
-oh-my-pm github next another-owner/another-repo --limit 25 --markdown
+ohmypm github next another-owner/another-repo --limit 25 --markdown
 ```
 
 ## Local vs provider configuration

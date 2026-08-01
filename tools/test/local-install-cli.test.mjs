@@ -42,7 +42,9 @@ describe("install-local command", () => {
     const result = run(["--prefix", prefix, "--apply"]);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("OH MY PM local install: applied");
-    expect(readdirSync(join(prefix, "bin")).length).toBe(4);
+    // Eight shims: two canonical commands plus two deprecated compatibility
+    // aliases, each in POSIX and .cmd form.
+    expect(readdirSync(join(prefix, "bin")).length).toBe(8);
   });
 
   it("emits one valid JSON object with a trailing newline", () => {

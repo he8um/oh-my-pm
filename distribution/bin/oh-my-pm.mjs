@@ -1,14 +1,23 @@
 #!/usr/bin/env node
-// Portable OH MY PM CLI entrypoint. Thin process adapter over the public
-// runLocalCliProcess runner; contains no repository-relative path, no build
-// logic, and no project parsing.
+// Deprecated compatibility alias for the portable OH MY PM CLI. The canonical
+// command is `ohmypm`; this name is retained so an existing script keeps working.
+// No removal is scheduled.
+//
+// This wrapper duplicates no application logic: it runs the same public
+// runLocalCliProcess runner as the canonical entrypoint, in-process, and
+// forwards argv, stdout, stderr, and the exit code unchanged. Contains no
+// repository-relative path, no build logic, and no project parsing.
+//
+// The deprecation warning goes to stderr and only to stderr, so a `--json`
+// invocation's stdout stays a complete, parseable document.
 
-import { runLocalCliProcess } from "@oh-my-pm/cli";
+import { commandDeprecationWarning, runLocalCliProcess } from "@oh-my-pm/cli";
 
-// The real clock is read only here, at the process boundary, and is consumed by
-// the runner only for the explicit live github command; local/offline commands
-// ignore it and use their fixed deterministic clock. The entry-script path is
-// read here and used only by mcp-config to infer the installed prefix.
+process.stderr.write(`${commandDeprecationWarning("oh-my-pm")}\n`);
+
+// Identical boundary wiring to bin/ohmypm.mjs: the real clock is read only here
+// and consumed only by the explicit live github command; the entry-script path is
+// used only by mcp-config to infer the installed prefix.
 const result = await runLocalCliProcess(process.argv.slice(2), {
   clock: () => new Date().toISOString(),
   entryScriptPath: process.argv[1] ?? "",
