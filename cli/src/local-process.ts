@@ -9,22 +9,16 @@ import {
   createNodeProviderDiagnosticsDeps,
   loadConfiguredMarkdownProjectDocuments,
   loadProviderConfig,
-  readGitHubTokenFromEnvironment,
 } from "@oh-my-pm/application/node";
 import type { ProviderConfigLoadResult } from "@oh-my-pm/application/node";
 import { createNodeWasmKernelApi } from "@oh-my-pm/kernel";
 import {
-  createGitHubProvider,
   createLocalProvider,
-  createNodeGitHubHttpTransport,
   createProviderRegistry,
   defaultProviderConfig,
-  resolveGitHubProviderSettings,
-  resolveGitHubSourceSelection,
 } from "@oh-my-pm/providers";
 import type {
   GitHubHttpTransport,
-  GitHubSourceSelection,
   LocalProviderItemInput,
   Provider,
   ResolvedProviderConfig,
@@ -32,6 +26,7 @@ import type {
 import { createRuntime } from "@oh-my-pm/runtime";
 import { createDefaultSkillRegistry } from "@oh-my-pm/skills";
 import { runCli } from "./cli.js";
+import { runGitHubCliCommand } from "./github-process.js";
 import { formatHelp, resolveHelpRequest } from "./help.js";
 import { runMcpConfigCommand } from "./mcp-config.js";
 import { installedCommandExists } from "./mcp-config-resolve.js";
@@ -134,10 +129,11 @@ const SEED_ITEMS: LocalProviderItemInput[] = [
 
 const PROJECT_COMMANDS: ReadonlySet<string> = new Set(["brief", "risks", "next", "handoff"]);
 
-// The environment is read ONLY on the explicit github command path, ONLY to
-// obtain the optional OH_MY_PM_GITHUB_TOKEN, and ONLY when no token/transport
-// is injected. All local-only commands never touch the environment. This is
-// the approved CLI process-adapter token boundary (see validate-boundaries).
+// v0.5.2: the GitHub token boundary moved to @oh-my-pm/application/node, so this
+// adapter no longer reads the environment for a token at all. The ambient
+// environment is still forwarded — never inspected here — to the provider
+// configuration loader used by the `providers` diagnostics commands. All
+// local-only commands never touch the environment.
 function ambientEnv(): Readonly<Record<string, string | undefined>> {
   const proc = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
   return proc?.env ?? {};
@@ -323,80 +319,34 @@ export async function runLocalCliProcess(
     return { exitCode, stdout: "", stderr: rendered };
   }
 
+  // The github command is handled entirely by the focused CLI GitHub adapter,
+  // which routes through the shared @oh-my-pm/application GitHub use case. It
+  // never reaches the local Runtime composition below, so this module builds no
+  // GitHub provider, transport, or Runtime for it.
+  if (parsed.ok && parsed.command === "github") {
+    return runGitHubCliCommand(parsed, parsed.outputMode, {
+      version,
+      ...(options?.now !== undefined ? { now: options.now } : {}),
+      ...(options?.clock !== undefined ? { clock: options.clock } : {}),
+      ...(options?.githubToken !== undefined ? { githubToken: options.githubToken } : {}),
+      ...(options?.githubTransport !== undefined
+        ? { githubTransport: options.githubTransport }
+        : {}),
+      ...(options?.env !== undefined ? { env: options.env } : {}),
+      ...(options?.platform !== undefined ? { platform: options.platform } : {}),
+      ...(options?.cwd !== undefined ? { cwd: options.cwd } : {}),
+      ...(options?.providerConfig !== undefined ? { providerConfig: options.providerConfig } : {}),
+    });
+  }
+
   let providerItems: LocalProviderItemInput[] = [...SEED_ITEMS];
   const providers: Provider[] = [];
 
-  // Local/offline workflows always use the fixed clock. The live github command
-  // resolves the current timestamp exactly once, only after the command is
-  // parsed, from the explicitly injected `now` or the injected real `clock`;
-  // this module never reads the clock itself (see validate-boundaries).
-  let now = LOCAL_FIXED_NOW;
-  let githubOverride: { repository: string; selection: GitHubSourceSelection } | undefined;
+  // Local/offline workflows always use the fixed clock; this module never reads
+  // the clock itself (see validate-boundaries).
+  const now = LOCAL_FIXED_NOW;
 
-  if (parsed.ok && parsed.command === "github") {
-    // 1-3. Resolve provider config and effective repository/limit BEFORE any
-    // token read, clock read, or transport construction. A config/provider
-    // failure fails closed here with exit 2 and never contacts the network.
-    const { config, load } = resolveProviderConfig(parsed.providerConfigPath, options);
-    if (load !== null && !load.ok) {
-      return { exitCode: 2, stdout: "", stderr: `invalid provider config: ${load.message}\n` };
-    }
-    const settings = resolveGitHubProviderSettings({
-      config,
-      overrides: {
-        ...(parsed.repository !== undefined ? { repository: parsed.repository } : {}),
-        ...(parsed.limit !== undefined ? { limit: parsed.limit } : {}),
-      },
-    });
-    if (!settings.ok) {
-      return { exitCode: 2, stdout: "", stderr: `github provider: ${settings.message}\n` };
-    }
-
-    // Resolve the source selection from configured defaults plus explicit CLI
-    // overrides. A controlled selection error fails closed (exit 2) before any
-    // token read or transport construction.
-    const selectionResult = resolveGitHubSourceSelection({
-      defaults: {
-        source: settings.defaultSource,
-        state: settings.defaultState,
-        limit: settings.limit,
-      },
-      overrides: {
-        ...(parsed.source !== undefined ? { source: parsed.source } : {}),
-        ...(parsed.state !== undefined ? { state: parsed.state } : {}),
-        ...(parsed.number !== undefined ? { number: parsed.number } : {}),
-        ...(parsed.query !== undefined ? { query: parsed.query } : {}),
-        ...(parsed.kind !== undefined ? { kind: parsed.kind } : {}),
-        ...(parsed.limit !== undefined ? { limit: parsed.limit } : {}),
-        ...(parsed.includeComments !== undefined ? { includeComments: parsed.includeComments } : {}),
-        ...(parsed.commentLimit !== undefined ? { commentLimit: parsed.commentLimit } : {}),
-        ...(parsed.includeReviews !== undefined ? { includeReviews: parsed.includeReviews } : {}),
-        ...(parsed.reviewLimit !== undefined ? { reviewLimit: parsed.reviewLimit } : {}),
-        ...(parsed.includeReviewComments !== undefined
-          ? { includeReviewComments: parsed.includeReviewComments }
-          : {}),
-        ...(parsed.reviewCommentLimit !== undefined
-          ? { reviewCommentLimit: parsed.reviewCommentLimit }
-          : {}),
-      },
-    });
-    if (!selectionResult.ok) {
-      return { exitCode: 2, stdout: "", stderr: `github source: ${selectionResult.message}\n` };
-    }
-    githubOverride = { repository: settings.repository, selection: selectionResult.selection };
-
-    // Only after a valid selection: read the clock, then the optional token,
-    // then construct the transport. Injected transport wins so tests stay offline.
-    now = options?.now ?? options?.clock?.() ?? LOCAL_FIXED_NOW;
-    let transport = options?.githubTransport;
-    if (transport === undefined) {
-      const token =
-        options?.githubToken ??
-        readGitHubTokenFromEnvironment(options?.env ?? ambientEnv());
-      transport = createNodeGitHubHttpTransport({ token, productVersion: version });
-    }
-    providers.push(createGitHubProvider({ transport, productVersion: version }));
-  } else if (parsed.ok && PROJECT_COMMANDS.has(parsed.command)) {
+  if (parsed.ok && PROJECT_COMMANDS.has(parsed.command)) {
     // The document load and its failure classification are the shared
     // application behavior; this adapter only renders the outcome. Errors report
     // the root exactly as the user typed it, never a resolved internal absolute
@@ -421,9 +371,6 @@ export async function runLocalCliProcess(
     now,
   });
 
-  const result = await runCli([...args], {
-    runtime,
-    ...(githubOverride !== undefined ? { github: githubOverride } : {}),
-  });
+  const result = await runCli([...args], { runtime });
   return { exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr };
 }
