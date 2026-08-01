@@ -41,6 +41,13 @@ const RUST_KEYWORDS = new Set([
 ]);
 const rustIdent = (s) => (RUST_KEYWORDS.has(s) ? `r#${s}` : s);
 
+// rustfmt's default `fn_call_width`: a call whose argument list is wider than
+// this is broken with one argument per line, regardless of the 100-column
+// max_width. Generated Rust is emitted pre-wrapped so `cargo fmt --all --check`
+// passes without a post-generation format step, which would otherwise make
+// codegen depend on an installed rustfmt.
+const RUST_FN_CALL_WIDTH = 60;
+
 // ---------------------------------------------------------------------------
 // Load and validate schemas
 // ---------------------------------------------------------------------------
@@ -409,9 +416,18 @@ function rustValue(type, value) {
     return `vec![${value.map((v) => rustValue(type.array, v)).join(", ")}]`;
   }
   if (type.map) {
+    // rustfmt's max_width is 100 columns. A call that would exceed it is broken
+    // with one argument per line, so the emitter produces that form directly
+    // rather than leaving generated code that `cargo fmt --check` rejects.
     const inserts = Object.keys(value)
       .sort()
-      .map((k) => `map.insert(${JSON.stringify(k)}.to_string(), ${rustValue(type.map, value[k])});`);
+      .map((k) => {
+        const key = `${JSON.stringify(k)}.to_string()`;
+        const entry = rustValue(type.map, value[k]);
+        const args = `${key}, ${entry}`;
+        if (args.length <= RUST_FN_CALL_WIDTH) return `map.insert(${args});`;
+        return `map.insert(\n            ${key},\n            ${entry},\n        );`;
+      });
     return `{\n        let mut map = BTreeMap::new();\n        ${inserts.join("\n        ")}\n        map\n    }`;
   }
   const target = registry.get(type.ref);
@@ -453,13 +469,19 @@ function domainUsesMap(schema) {
 
 function emitRustDomain(schema) {
   const lines = [HEADER];
+  // Imports are emitted in rustfmt's canonical order so `cargo fmt --check`
+  // passes on generated output. rustfmt groups by leading segment and sorts
+  // those groups `self` < `super` < `crate` < external crates, so the
+  // `super::` imports precede `serde`/`std`. A single imported name is emitted
+  // without braces, which is the form rustfmt normalizes to.
+  const imports = domainExternalRefs(schema);
+  for (const [domain, names] of imports) {
+    const items = names.length === 1 ? names[0] : `{${names.join(", ")}}`;
+    lines.push(`use super::${domain}::${items};`);
+  }
   const hasSerdeItems = schema.declarations.some((d) => ["enum", "struct", "union"].includes(d.kind));
   if (hasSerdeItems) lines.push("use serde::{Deserialize, Serialize};");
   if (domainUsesMap(schema)) lines.push("use std::collections::BTreeMap;");
-  const imports = domainExternalRefs(schema);
-  for (const [domain, names] of imports) {
-    lines.push(`use super::${domain}::{${names.join(", ")}};`);
-  }
   lines.push("");
   for (const decl of schema.declarations) {
     switch (decl.kind) {
