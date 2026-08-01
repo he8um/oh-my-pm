@@ -63,21 +63,90 @@ export function formatReleaseArchiveChecksumLines(entries) {
     .map(({ filename, digest }) => `${digest}  ${filename}`);
 }
 
-/** Locate a GNU tar binary ("tar" then "gtar"); null when none is GNU tar. */
-function findGnuTar() {
-  for (const candidate of ["tar", "gtar"]) {
-    const probe = spawnSync(candidate, ["--version"], { encoding: "utf8" });
-    if (probe.status === 0 && typeof probe.stdout === "string" && probe.stdout.includes("GNU tar")) {
-      return candidate;
-    }
+/**
+ * Spawn error codes that mean "the machine was momentarily out of a resource",
+ * not "the executable does not exist". Under a loaded CI runner a spawn can fail
+ * for these reasons even though the utility is installed and working, so they
+ * are retried a bounded number of times and never reported as a missing
+ * prerequisite. ENOENT is deliberately absent: it is the one code that proves
+ * absence, and it is never retried.
+ */
+const TRANSIENT_SPAWN_ERROR_CODES = Object.freeze(["EAGAIN", "EMFILE", "ENFILE", "ENOMEM"]);
+
+/** Maximum probe attempts. Only explicitly transient spawn errors are retried. */
+const UTILITY_PROBE_MAX_ATTEMPTS = 3;
+
+/**
+ * Probe a single utility once and classify the outcome. Returns one of:
+ *   { kind: "available", command }
+ *   { kind: "missing",   command, code: "ENOENT" }
+ *   { kind: "failed",    command, code?, status?, signal? }
+ *
+ * `isAvailable` receives the raw spawn result and decides whether the process
+ * satisfied the utility's probe contract, so a utility that runs but reports an
+ * unexpected result is "failed", never "available".
+ */
+function probeUtilityOnce(command, args, isAvailable, spawn) {
+  const probe = spawn(command, args, { encoding: "utf8" });
+
+  if (probe.error !== undefined && probe.error !== null) {
+    const code = probe.error.code;
+    if (code === "ENOENT") return { kind: "missing", command, code: "ENOENT" };
+    return { kind: "failed", command, code };
   }
-  return null;
+  if (isAvailable(probe)) return { kind: "available", command };
+  return {
+    kind: "failed",
+    command,
+    status: probe.status ?? undefined,
+    signal: probe.signal ?? undefined,
+  };
 }
 
-/** True when a utility is present and runnable (probe returns without spawn error). */
-function hasUtility(command, versionArgs = ["--version"]) {
-  const probe = spawnSync(command, versionArgs, { encoding: "utf8" });
-  return probe.error === undefined;
+/**
+ * Probe a utility with a bounded retry over transient spawn errors only.
+ * A genuine ENOENT returns immediately; a non-zero exit is not retried
+ * indefinitely; the final classification is preserved either way.
+ */
+export function probeUtility(command, options = {}) {
+  const {
+    args = ["--version"],
+    isAvailable = (probe) => probe.status === 0,
+    spawn = spawnSync,
+    maxAttempts = UTILITY_PROBE_MAX_ATTEMPTS,
+  } = options;
+
+  let last = { kind: "failed", command };
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    last = probeUtilityOnce(command, args, isAvailable, spawn);
+    if (last.kind === "available" || last.kind === "missing") return last;
+    // Retry only explicitly classified transient spawn errors.
+    if (!TRANSIENT_SPAWN_ERROR_CODES.includes(last.code)) return last;
+  }
+  return last;
+}
+
+/**
+ * Locate a GNU tar binary ("tar" then "gtar").
+ *
+ * Returns { kind: "available", command } for the first GNU tar found. A
+ * transient probe failure is reported as { kind: "failed" } rather than being
+ * silently taken as proof that GNU tar is absent; "missing" is returned only
+ * when every candidate genuinely resolved to ENOENT (or ran but is not GNU tar).
+ */
+export function probeGnuTar(options = {}) {
+  const { spawn = spawnSync, maxAttempts = UTILITY_PROBE_MAX_ATTEMPTS } = options;
+  const isGnuTar = (probe) =>
+    probe.status === 0 && typeof probe.stdout === "string" && probe.stdout.includes("GNU tar");
+
+  let firstFailure;
+  for (const candidate of ["tar", "gtar"]) {
+    const result = probeUtility(candidate, { args: ["--version"], isAvailable: isGnuTar, spawn, maxAttempts });
+    if (result.kind === "available") return result;
+    // A transient/unclassified failure must not be downgraded to "missing".
+    if (result.kind === "failed" && firstFailure === undefined) firstFailure = result;
+  }
+  return firstFailure ?? { kind: "missing", command: "tar", code: "ENOENT" };
 }
 
 /** Parse archive CLI args deterministically. No filesystem access. */
@@ -150,12 +219,26 @@ export function resolveReleaseArchivePlan(options) {
   const outputRoot = isAbsolute(options.output) ? options.output : resolve(options.output);
   const apply = options.apply === true;
   const force = options.force === true;
+  // Test-only seam: lets utility-probe classification be exercised
+  // deterministically instead of depending on host machine state.
+  const spawnUtility = options.spawnUtility ?? spawnSync;
 
   const tarPath = join(outputRoot, RELEASE_ARCHIVE_TAR_NAME);
   const zipPath = join(outputRoot, RELEASE_ARCHIVE_ZIP_NAME);
   const sumsPath = join(outputRoot, RELEASE_ARCHIVE_SUMS_NAME);
 
-  const gnuTar = findGnuTar();
+  // Utility probes are classified three ways: available, genuinely missing
+  // (ENOENT), or probe-failed. A probe failure keeps its own reason so a loaded
+  // machine can never be misreported as lacking an installed tool.
+  const tarProbe = probeGnuTar({ spawn: spawnUtility });
+  const gnuTar = tarProbe.kind === "available" ? tarProbe.command : null;
+  const utilityProbes = [
+    { id: "gnu_tar", probe: tarProbe },
+    { id: "gzip", probe: probeUtility("gzip", { spawn: spawnUtility }) },
+    { id: "zip", probe: probeUtility("zip", { args: ["-v"], spawn: spawnUtility }) },
+    { id: "unzip", probe: probeUtility("unzip", { args: ["-v"], spawn: spawnUtility }) },
+  ];
+
   const prerequisites = [
     { id: "bundle_directory", ok: isDirectory(bundleDirectory) },
     { id: "bundle_basename", ok: basename(bundleDirectory) === RELEASE_ARCHIVE_BUNDLE_NAME },
@@ -187,10 +270,6 @@ export function resolveReleaseArchivePlan(options) {
         join(bundleDirectory, "node_modules", "@oh-my-pm", "kernel", "generated-node", "oh_my_pm_kernel_bg.wasm"),
       ),
     },
-    { id: "gnu_tar", ok: gnuTar !== null },
-    { id: "gzip", ok: hasUtility("gzip") },
-    { id: "zip", ok: hasUtility("zip", ["-v"]) },
-    { id: "unzip", ok: hasUtility("unzip", ["-v"]) },
   ];
 
   const reasons = [];
@@ -200,6 +279,19 @@ export function resolveReleaseArchivePlan(options) {
       reasons.push(`release_archive_prerequisite_missing:${prerequisite.id}`);
       ok = false;
     }
+  }
+  // Utility prerequisites are appended after the bundle-content checks so the
+  // deterministic reason order matches the previous prerequisite ordering.
+  for (const { id, probe } of utilityProbes) {
+    if (probe.kind === "available") continue;
+    if (probe.kind === "missing") {
+      reasons.push(`release_archive_prerequisite_missing:${id}`);
+    } else {
+      // Distinct, path-free reason: the tool may well exist, but the probe
+      // could not establish it. Never silently treated as missing.
+      reasons.push(`release_archive_prerequisite_probe_failed:${id}`);
+    }
+    ok = false;
   }
 
   const targets = [tarPath, zipPath, sumsPath];
