@@ -45,14 +45,24 @@ It reports what would be created under `<prefix>/bin` and exits without touching
 pnpm local:install -- --prefix "$HOME/.local" --apply
 ```
 
-This writes only four command shims under `<prefix>/bin`:
+This writes only command shims under `<prefix>/bin` — the canonical commands plus
+the deprecated compatibility aliases retained from v0.4, each with a POSIX and a
+Windows `.cmd` launcher:
 
 ```text
-<prefix>/bin/oh-my-pm
+<prefix>/bin/ohmypm
+<prefix>/bin/ohmypm.cmd
+<prefix>/bin/ohmypm-mcp
+<prefix>/bin/ohmypm-mcp.cmd
+<prefix>/bin/oh-my-pm            # deprecated alias for ohmypm
 <prefix>/bin/oh-my-pm.cmd
-<prefix>/bin/oh-my-pm-mcp
+<prefix>/bin/oh-my-pm-mcp        # deprecated alias for ohmypm-mcp
 <prefix>/bin/oh-my-pm-mcp.cmd
 ```
+
+Use `ohmypm` and `ohmypm-mcp`. The `oh-my-pm` family still works but prints a
+deprecation warning to stderr; see [the v0.5 migration guide](v0.5/README.md). No
+removal is scheduled.
 
 Nothing else is written. If a shim already exists, the apply is blocked; rerun with `--apply --force` only after you have inspected the existing shim.
 
@@ -85,10 +95,10 @@ The verifier is read-only. It confirms the four shims exist with the exact expec
 ## CLI workflows
 
 ```bash
-oh-my-pm brief ./project --markdown
-oh-my-pm risks ./project --markdown
-oh-my-pm next ./project --markdown
-oh-my-pm handoff ./project --markdown
+ohmypm brief ./project --markdown
+ohmypm risks ./project --markdown
+ohmypm next ./project --markdown
+ohmypm handoff ./project --markdown
 ```
 
 Each command reads an optional `oh-my-pm.config.json` at the project root to select which Markdown documents are analyzed. See [the CLI guide](../cli/README.md) for the full configuration and glob rules. These local workflows are fully offline: no network request is made and no token is read.
@@ -101,12 +111,12 @@ The same four workflows can run against a GitHub repository through the explicit
 
 ```bash
 # Public repository — no token needed:
-oh-my-pm github brief owner/repository --markdown
-oh-my-pm github risks owner/repository --limit 25 --markdown
+ohmypm github brief owner/repository --markdown
+ohmypm github risks owner/repository --limit 25 --markdown
 
 # Private repository or higher rate limit:
 export OH_MY_PM_GITHUB_TOKEN="<fine-grained read-only token>"
-oh-my-pm github next owner/private-repository --markdown
+ohmypm github next owner/private-repository --markdown
 ```
 
 The provider is strictly read-only (`GET`-only to `api.github.com`, REST API version `2026-03-10`). The token is optional, supplied only through `OH_MY_PM_GITHUB_TOKEN`, and never accepted as a CLI argument or printed. `--limit` accepts `1..100` (default 50). See [the GitHub provider guide](providers/github.md).
@@ -114,13 +124,13 @@ The provider is strictly read-only (`GET`-only to `api.github.com`, REST API ver
 `--source` selects exactly which context to analyze (default `overview`):
 
 ```bash
-oh-my-pm github brief owner/repository --source repository --markdown
-oh-my-pm github risks owner/repository --source issues --state open --markdown
-oh-my-pm github handoff owner/repository --source pull-requests --state closed --markdown
-oh-my-pm github brief owner/repository --source item --number 123 --markdown
-oh-my-pm github risks owner/repository --source item --number 123 --include-comments --comment-limit 20 --markdown
-oh-my-pm github risks owner/repository --source item --number 123 --include-reviews --review-limit 10 --include-review-comments --review-comment-limit 10 --markdown
-oh-my-pm github risks owner/repository --source search --query "release blocker" --kind all --markdown
+ohmypm github brief owner/repository --source repository --markdown
+ohmypm github risks owner/repository --source issues --state open --markdown
+ohmypm github handoff owner/repository --source pull-requests --state closed --markdown
+ohmypm github brief owner/repository --source item --number 123 --markdown
+ohmypm github risks owner/repository --source item --number 123 --include-comments --comment-limit 20 --markdown
+ohmypm github risks owner/repository --source item --number 123 --include-reviews --review-limit 10 --include-review-comments --review-comment-limit 10 --markdown
+ohmypm github risks owner/repository --source search --query "release blocker" --kind all --markdown
 ```
 
 `item` auto-detects issue vs. pull request; `search` terms never override the injected repository/state/kind scope. The `item` source can optionally include ordinary conversation comments with `--include-comments` (disabled by default) and `--comment-limit` (`1..50`, default `20`) — see [GitHub item comments](providers/github-item-comments.md). A pull-request `item` can additionally include bounded review submissions (`--include-reviews` / `--review-limit`, `1..20`, default `10`) and inline review comments (`--include-review-comments` / `--review-comment-limit`), disabled by default and only when the item is a pull request — see [GitHub pull-request reviews](providers/github-pr-reviews.md). Provider configuration may set `defaultSource`/`defaultState`. See [GitHub source selection](providers/github-source-selection.md).
@@ -145,25 +155,25 @@ Provider configuration is optional and strictly read-only. Create the file yours
 Place it at `~/.config/oh-my-pm/providers.json` (POSIX) or `%APPDATA%\oh-my-pm\providers.json` (Windows), or point at it explicitly:
 
 ```bash
-oh-my-pm providers status \
+ohmypm providers status \
   --provider-config ./providers.json \
   --markdown
 
 # With a configured default repository:
-oh-my-pm github risks --markdown
+ohmypm github risks --markdown
 ```
 
 Inspect and validate resolved provider state without touching the network:
 
 ```bash
-oh-my-pm providers status --markdown
-oh-my-pm providers doctor --markdown
+ohmypm providers status --markdown
+ohmypm providers doctor --markdown
 ```
 
 To verify GitHub connectivity, opt in explicitly — this performs exactly one read-only repository-metadata request:
 
 ```bash
-oh-my-pm providers doctor github \
+ohmypm providers doctor github \
   --confirm-network \
   --markdown
 ```
@@ -176,9 +186,9 @@ The installed CLI prints a configuration for its own installation, with no prefi
 argument required:
 
 ```bash
-oh-my-pm mcp-config              # JSON (default)
-oh-my-pm mcp-config --markdown   # the same JSON in a documented Markdown block
-oh-my-pm mcp-config --name my-project   # a custom server key
+ohmypm mcp-config              # JSON (default)
+ohmypm mcp-config --markdown   # the same JSON in a documented Markdown block
+ohmypm mcp-config --name my-project   # a custom server key
 ```
 
 From a repository checkout — which has no installed prefix to infer — the
@@ -231,12 +241,12 @@ sha256sum -c oh-my-pm-v0.2.0-SHA256SUMS.txt   # checksum verification is require
 tar -xzf oh-my-pm-v0.2.0.tar.gz               # or: unzip oh-my-pm-v0.2.0.zip
 
 # Preview writes nothing and requires an explicit --prefix.
-node ./oh-my-pm-v0.2.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local"
+node ./oh-my-pm-v0.2.0/bin/ohmypm-install.mjs --prefix "$HOME/.local"
 # Apply installs a versioned, source-independent copy under the prefix.
-node ./oh-my-pm-v0.2.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local" --apply
+node ./oh-my-pm-v0.2.0/bin/ohmypm-install.mjs --prefix "$HOME/.local" --apply
 
 export PATH="$HOME/.local/bin:$PATH"           # add it yourself; the installer never edits PATH
-oh-my-pm status                                # reports version 0.2.0, kernel 0.2.0
+ohmypm status                                # reports version 0.2.0, kernel 0.2.0
 ```
 
 Each archive expands to a single `oh-my-pm-v0.2.0/` directory. See [the v0.2.0 release notes](releases/v0.2.0.md), [the post-stable closure report](releases/v0.2.0-post-stable-closure.md), and [the v0.2.x maintenance policy](releases/v0.2.x-maintenance-policy.md). The [full self-installer walkthrough](#self-installing-a-v02-development-bundle) covers preview/apply/force semantics and the installed layout. The earlier [`v0.1.0` release](releases/v0.1.0.md) remains available as a preserved historical stable.
@@ -253,9 +263,9 @@ pnpm release:bundle -- --output .release --apply
 This produces `.release/oh-my-pm-v0.2.0/`, which is movable anywhere and runs standalone on Node.js 20+:
 
 ```bash
-node ./oh-my-pm-v0.2.0/bin/oh-my-pm.mjs status
-node ./oh-my-pm-v0.2.0/bin/oh-my-pm.mjs brief ./project --markdown
-node ./oh-my-pm-v0.2.0/bin/oh-my-pm-mcp.mjs
+node ./oh-my-pm-v0.2.0/bin/ohmypm.mjs status
+node ./oh-my-pm-v0.2.0/bin/ohmypm.mjs brief ./project --markdown
+node ./oh-my-pm-v0.2.0/bin/ohmypm-mcp.mjs
 ```
 
 Every portable bundle contains a complete, prebuilt Node-loadable Rust/WASM Kernel binding (the JS glue, the WASM binary, and a CommonJS manifest). End users need only Node.js 20+ — no Rust toolchain and no `wasm-bindgen`. Bundle assembly validates and stages that binding identically on Ubuntu, macOS, and Windows; installation copies the already verified bundle and never rebuilds the Kernel. The generated binding is build output and is never committed to the repository.
@@ -286,19 +296,19 @@ sha256sum -c oh-my-pm-v0.2.0-SHA256SUMS.txt   # verify checksums first
 tar -xzf oh-my-pm-v0.2.0.tar.gz               # or: unzip oh-my-pm-v0.2.0.zip
 
 # Preview writes nothing and requires an explicit --prefix.
-node ./oh-my-pm-v0.2.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local"
+node ./oh-my-pm-v0.2.0/bin/ohmypm-install.mjs --prefix "$HOME/.local"
 
 # Apply installs the versioned copy and the four command shims.
-node ./oh-my-pm-v0.2.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local" --apply
+node ./oh-my-pm-v0.2.0/bin/ohmypm-install.mjs --prefix "$HOME/.local" --apply
 
 export PATH="$HOME/.local/bin:$PATH"                # add it yourself; the installer never edits PATH
 
-oh-my-pm status
-oh-my-pm brief ./project --markdown
+ohmypm status
+ohmypm brief ./project --markdown
 # GitHub opt-in (read-only; network only when invoked; token optional, env-only):
-oh-my-pm github brief owner/repository --markdown
+ohmypm github brief owner/repository --markdown
 # Installed stdio MCP server, absolute command:
-"$HOME/.local/bin/oh-my-pm-mcp"
+"$HOME/.local/bin/ohmypm-mcp"
 ```
 
 ### Installed layout
@@ -308,9 +318,13 @@ Apply produces a self-contained tree under the prefix:
 ```text
 <prefix>/
 ├── bin/
-│   ├── oh-my-pm            # POSIX shim → ../lib/oh-my-pm/versions/<version>/bin/oh-my-pm.mjs
-│   ├── oh-my-pm.cmd        # Windows shim → ..\lib\oh-my-pm\versions\<version>\bin\oh-my-pm.mjs
-│   ├── oh-my-pm-mcp
+│   ├── ohmypm             # POSIX shim → ../lib/oh-my-pm/versions/<version>/bin/ohmypm.mjs
+│   ├── ohmypm.cmd         # Windows shim → ..\lib\oh-my-pm\versions\<version>\bin\ohmypm.mjs
+│   ├── ohmypm-mcp
+│   ├── ohmypm-mcp.cmd
+│   ├── oh-my-pm           # deprecated alias for ohmypm (warns on stderr)
+│   ├── oh-my-pm.cmd
+│   ├── oh-my-pm-mcp       # deprecated alias for ohmypm-mcp
 │   └── oh-my-pm-mcp.cmd
 └── lib/
     └── oh-my-pm/
@@ -344,8 +358,8 @@ pnpm release:install:check -- --prefix "$HOME/.local"
 The read-only verifier validates the manifest, the versioned bundle, the four shims, then runs the installed CLI (`status` plus the four workflows) and the installed MCP server over stdio. Outside a checkout, verify directly with the installed commands:
 
 ```bash
-oh-my-pm status
-oh-my-pm brief ./project --markdown
+ohmypm status
+ohmypm brief ./project --markdown
 ```
 
 Maintainers with a checkout can also install any explicitly supplied verified bundle through the repository wrapper:
@@ -365,13 +379,25 @@ pnpm release:install -- --bundle <path-to-bundle> --prefix "$HOME/.local" --appl
 
 ## Uninstall
 
-There is no uninstall command yet. Remove exactly these files:
+There is no uninstall command yet. Remove exactly these files — the canonical
+commands and the deprecated compatibility aliases:
 
 ```text
+<prefix>/bin/ohmypm
+<prefix>/bin/ohmypm.cmd
+<prefix>/bin/ohmypm-mcp
+<prefix>/bin/ohmypm-mcp.cmd
 <prefix>/bin/oh-my-pm
 <prefix>/bin/oh-my-pm.cmd
 <prefix>/bin/oh-my-pm-mcp
 <prefix>/bin/oh-my-pm-mcp.cmd
+```
+
+An installation made by v0.4 has only the four `oh-my-pm` shims; remove those.
+Then remove the product directory:
+
+```text
+<prefix>/lib/oh-my-pm/
 ```
 
 Do not delete unrelated contents of `<prefix>`.

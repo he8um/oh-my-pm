@@ -1167,7 +1167,13 @@ const V05_COMMAND_SURFACE_REQUIRED = [
   "command-surface.json",
   "tools/command-surface.mjs",
   "tools/validate-command-surface.mjs",
+  "tools/validate-command-references.mjs",
   "tools/test/command-surface.test.mjs",
+  "tools/test/command-references.test.mjs",
+  "tools/test/command-manifest-consistency.test.mjs",
+  "tools/test/command-upgrade-compatibility.test.mjs",
+  "cli/test/command-alias.test.ts",
+  "mcp-server/test/command-alias.test.ts",
   // The v0.5 release line gets its own workflow and qualification test; the
   // published v0.1-v0.4 workflows are never rewritten.
   ".github/workflows/release-v0.5.yml",

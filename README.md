@@ -14,7 +14,7 @@ It is designed for teams that want clearer delivery context, safer execution bou
 > **Latest prerelease:** [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1)
 > **Source version:** `0.4.0` (prepared, not yet published)
 >
-> The source is prepared for **`v0.4.0`**, which adds one capability — **Project Timeline**: a local, bounded, deterministic history of project changes derived read-only from already-captured Project Brain snapshots, exposed through `oh-my-pm memory timeline` and the `project_timeline` MCP tool. It adds no schema change, no store-format change, no migration, no write path, and no registry publication. See the [v0.4.0 release notes](docs/releases/v0.4.0.md) and the [v0.4 architecture](docs/v0.4/README.md).
+> The source is prepared for **`v0.4.0`**, which adds one capability — **Project Timeline**: a local, bounded, deterministic history of project changes derived read-only from already-captured Project Brain snapshots, exposed through `ohmypm memory timeline` and the `project_timeline` MCP tool. It adds no schema change, no store-format change, no migration, no write path, and no registry publication. See the [v0.4.0 release notes](docs/releases/v0.4.0.md) and the [v0.4 architecture](docs/v0.4/README.md).
 >
 > [`v0.3.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.1) is the latest **stable** release — a non-draft, non-prerelease GitHub Release marked latest, carrying exactly three assets. It is a CLI usability patch over `v0.3.0` (conventional `--help`, installed `mcp-config`) with no schema, store-format, or MCP capability change. [`v0.3.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0) remains a preserved immutable stable release targeting `0d6f9b1…`. [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) is a published **prerelease** (the v0.3 Project Brain line; not marked latest), targeting `1db4057…`. [`v0.2.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0), [`v0.2.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0-rc.1) and [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) remain preserved historical releases. Node.js 20+ is the only runtime requirement for installed archives. Packages remain private; there is no npm package.
 
@@ -63,10 +63,10 @@ See [`docs/architecture.md`](docs/architecture.md).
 After building the workspace, OH MY PM can read Markdown documents from a local project directory and generate a project status brief, a project risk report, a next-task list, or a full project handoff:
 
 ```bash
-node cli/bin/oh-my-pm.mjs brief ./examples/fixtures/markdown-project --markdown
-node cli/bin/oh-my-pm.mjs risks ./examples/fixtures/markdown-project --markdown
-node cli/bin/oh-my-pm.mjs next ./examples/fixtures/markdown-project --markdown
-node cli/bin/oh-my-pm.mjs handoff ./examples/fixtures/markdown-project --markdown
+node cli/bin/ohmypm.mjs brief ./examples/fixtures/markdown-project --markdown
+node cli/bin/ohmypm.mjs risks ./examples/fixtures/markdown-project --markdown
+node cli/bin/ohmypm.mjs next ./examples/fixtures/markdown-project --markdown
+node cli/bin/ohmypm.mjs handoff ./examples/fixtures/markdown-project --markdown
 ```
 
 `brief` gives a local project overview from document-level project status. `risks` reports deterministic, line-level risk signals from recognized Markdown risk headings and explicit markers (English and Persian) — each risk is the actual risk line, never a document-title collapse. `next` derives next tasks from unchecked Markdown checklists, list items under recognized action headings, and explicit action markers, stripping any priority marker. `handoff` assembles a project's objective, active work, open tasks, risks, milestones, and decisions from deterministic Markdown sections into a titled handoff with a fixed Summary / Open Tasks / Risks / Decisions layout. Every workflow is read-only and local-only: no context is uploaded, no project file is modified, and no external integration or LLM is required.
@@ -81,11 +81,11 @@ only when you invoke it:
 
 ```bash
 # Public repository (no token needed):
-oh-my-pm github brief owner/repository --markdown
+ohmypm github brief owner/repository --markdown
 
 # Private repository or higher rate limit:
 export OH_MY_PM_GITHUB_TOKEN="<fine-grained read-only token>"
-oh-my-pm github brief owner/private-repository --limit 50 --markdown
+ohmypm github brief owner/private-repository --limit 50 --markdown
 ```
 
 The GitHub provider is strictly read-only: `GET`-only requests to a fixed origin
@@ -109,11 +109,11 @@ and only when the selected item is a pull request; see
 [GitHub source selection](docs/providers/github-source-selection.md):
 
 ```bash
-oh-my-pm github risks owner/repository --source issues --state open --markdown
-oh-my-pm github brief owner/repository --source item --number 123 --markdown
-oh-my-pm github risks owner/repository --source item --number 123 --include-comments --comment-limit 20 --markdown
-oh-my-pm github risks owner/repository --source item --number 123 --include-reviews --review-limit 10 --include-review-comments --review-comment-limit 10 --markdown
-oh-my-pm github risks owner/repository --source search --query "release blocker" --markdown
+ohmypm github risks owner/repository --source issues --state open --markdown
+ohmypm github brief owner/repository --source item --number 123 --markdown
+ohmypm github risks owner/repository --source item --number 123 --include-comments --comment-limit 20 --markdown
+ohmypm github risks owner/repository --source item --number 123 --include-reviews --review-limit 10 --include-review-comments --review-comment-limit 10 --markdown
+ohmypm github risks owner/repository --source search --query "release blocker" --markdown
 ```
 
 Scope at a glance:
@@ -148,15 +148,15 @@ pnpm local:check -- --prefix "$HOME/.local"            # read-only verification
 Once `<prefix>/bin` is on your PATH, the installed CLI exposes the four read-only project workflows:
 
 ```bash
-oh-my-pm brief ./project --markdown
-oh-my-pm risks ./project --markdown
-oh-my-pm next ./project --markdown
-oh-my-pm handoff ./project --markdown
+ohmypm brief ./project --markdown
+ohmypm risks ./project --markdown
+ohmypm next ./project --markdown
+ohmypm handoff ./project --markdown
 ```
 
-Run `oh-my-pm --help` for the full command reference, or `oh-my-pm <namespace> --help` for a namespace.
+Run `ohmypm --help` for the full command reference, or `ohmypm <namespace> --help` for a namespace.
 
-MCP onboarding needs no manual path: the installed CLI prints a ready client configuration with `oh-my-pm mcp-config` (add `--markdown` for a documented block, `--name <name>` for a custom server key). From a repository checkout use `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`, which takes an explicit prefix. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the `0.3.1` source line (published as the latest stable release `v0.3.1`); installed release archives require only Node.js 20+.
+MCP onboarding needs no manual path: the installed CLI prints a ready client configuration with `ohmypm mcp-config` (add `--markdown` for a documented block, `--name <name>` for a custom server key). From a repository checkout use `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`, which takes an explicit prefix. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the `0.3.1` source line (published as the latest stable release `v0.3.1`); installed release archives require only Node.js 20+.
 
 ### Historical stable release (v0.2.0)
 
@@ -177,8 +177,8 @@ A maintainer can assemble a self-contained, versioned bundle from `main` that ru
 ```bash
 pnpm build
 pnpm release:bundle -- --output .release --apply   # writes .release/oh-my-pm-v0.2.0/
-node .release/oh-my-pm-v0.2.0/bin/oh-my-pm.mjs status
-node .release/oh-my-pm-v0.2.0/bin/oh-my-pm-mcp.mjs
+node .release/oh-my-pm-v0.2.0/bin/ohmypm.mjs status
+node .release/oh-my-pm-v0.2.0/bin/ohmypm-mcp.mjs
 ```
 
 The bundle contains the compiled packages, the real Rust/WASM Kernel, the four CLI workflows, the twelve read-only MCP tools, deterministic `RELEASE.json` metadata, and `SHA256SUMS`. This is the development-build path; the published stable `v0.2.0` release provides the same artifact shape and is the recommended install target for users.
@@ -197,7 +197,7 @@ Both archives expand to a single `oh-my-pm-v<version>/` directory and re-pass th
 
 ### Self-installation from a v0.2 bundle
 
-Every portable `0.2.0` bundle ships a preview-first installer at `bin/oh-my-pm-install.mjs`. Download and verify the archive, extract it, preview the installation, then apply it into an explicit prefix:
+Every portable `0.2.0` bundle ships a preview-first installer at `bin/ohmypm-install.mjs`. Download and verify the archive, extract it, preview the installation, then apply it into an explicit prefix:
 
 ```bash
 # Verify checksums first (both archives):
@@ -207,20 +207,20 @@ tar -xzf oh-my-pm-v0.2.0.tar.gz
 # or: unzip oh-my-pm-v0.2.0.zip
 
 # Preview writes nothing.
-node ./oh-my-pm-v0.2.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local"
+node ./oh-my-pm-v0.2.0/bin/ohmypm-install.mjs --prefix "$HOME/.local"
 
 # Apply installs a versioned, source-independent copy under the prefix.
-node ./oh-my-pm-v0.2.0/bin/oh-my-pm-install.mjs --prefix "$HOME/.local" --apply
+node ./oh-my-pm-v0.2.0/bin/ohmypm-install.mjs --prefix "$HOME/.local" --apply
 
 # Add the prefix bin to PATH yourself — the installer never edits it.
 export PATH="$HOME/.local/bin:$PATH"
 
-oh-my-pm status
-oh-my-pm brief ./project --markdown
+ohmypm status
+ohmypm brief ./project --markdown
 # GitHub opt-in (read-only, network only when invoked):
-oh-my-pm github brief owner/repository --markdown
+ohmypm github brief owner/repository --markdown
 # Installed stdio MCP server (absolute command, ten tools):
-"$HOME/.local/bin/oh-my-pm-mcp"
+"$HOME/.local/bin/ohmypm-mcp"
 ```
 
 Installation is preview-first and requires an explicit `--prefix`; `--apply` is required for any write, and `--force` replaces only the exact managed targets (it is not a version-policy engine). The installer never downloads anything, never edits your PATH, shell profiles, or MCP client configuration, and never writes to project files. After a successful apply the installation is independent of the extracted bundle — you may move or delete the archive and extraction directory, and the installed commands (and the whole prefix, if relocated) keep working. The optional `OH_MY_PM_GITHUB_TOKEN` stays environment-only. This is the recommended install path for the published stable `v0.2.0` release; the earlier `v0.1.0` stable is manual extraction (its immutable archive predates this installer).
@@ -313,7 +313,7 @@ and [provider diagnostics](docs/providers/diagnostics.md).
 After building the workspace, start the server with:
 
 ```bash
-node mcp-server/bin/oh-my-pm-mcp.mjs
+node mcp-server/bin/ohmypm-mcp.mjs
 ```
 
 The local tools respect `oh-my-pm.config.json` and stay filesystem-local. The
@@ -331,14 +331,14 @@ empty `args` (this is the recommended form for release users):
 {
   "mcpServers": {
     "oh-my-pm": {
-      "command": "/absolute/path/to/prefix/bin/oh-my-pm-mcp",
+      "command": "/absolute/path/to/prefix/bin/ohmypm-mcp",
       "args": []
     }
   }
 }
 ```
 
-Replace the placeholder with your installed `<prefix>/bin/oh-my-pm-mcp` path. The
+Replace the placeholder with your installed `<prefix>/bin/ohmypm-mcp` path. The
 optional `OH_MY_PM_GITHUB_TOKEN` is supplied only through the server process
 environment, never inside this configuration. For a repository build, run the
 server directly instead:
@@ -349,7 +349,7 @@ server directly instead:
     "oh-my-pm": {
       "command": "node",
       "args": [
-        "/absolute/path/to/oh-my-pm/mcp-server/bin/oh-my-pm-mcp.mjs"
+        "/absolute/path/to/oh-my-pm/mcp-server/bin/ohmypm-mcp.mjs"
       ]
     }
   }
