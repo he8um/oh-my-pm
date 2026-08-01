@@ -324,3 +324,57 @@ describe("github offline e2e — MCP PR reviews / review comments", () => {
     expect(JSON.stringify(await run())).toBe(JSON.stringify(await run()));
   });
 });
+
+// v0.5.2 (Issue #31): the CLI and MCP GitHub surfaces are presentation adapters
+// over ONE shared application use case. These tests live here, outside both
+// packages, because they assert a property of the pair — neither package may
+// depend on the other to satisfy them.
+describe("github shared application boundary — cross-surface", () => {
+  it("routes both surfaces through the same use case with distinct caller identities", async () => {
+    // The identity is observable: the CLI response id and the MCP request id are
+    // derived from the injected caller, so the two surfaces stay distinguishable
+    // while sharing every line of workflow logic.
+    const { transport: cliTransport, paths: cliPaths } = transportWithLog();
+    const cliResult = await runLocalCliProcess(["github", "brief", SLUG, "--json"], {
+      githubTransport: cliTransport,
+      now: NOW,
+      providerConfig: OFFLINE_CONFIG,
+    });
+    expect(cliResult.exitCode, cliResult.stderr).toBe(0);
+    expect(JSON.parse(cliResult.stdout).id).toBe("cli-github-brief");
+
+    const { transport: mcpTransport, paths: mcpPaths } = transportWithLog();
+    const mcpResult = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG },
+      { transport: mcpTransport, providerConfig: OFFLINE_CONFIG, now: NOW },
+    );
+    expect(mcpResult.ok).toBe(true);
+
+    // Same shared pipeline ⇒ the same provider read sequence from both surfaces.
+    expect(cliPaths).toEqual(mcpPaths);
+  });
+
+  it("fails closed on both surfaces without issuing any request", async () => {
+    // The shared use case resolves configuration, repository, and selection before
+    // a transport can exist, so an invalid selection is offline on both surfaces.
+    const { transport: cliTransport, paths: cliPaths } = transportWithLog();
+    const cliResult = await runLocalCliProcess(
+      ["github", "brief", SLUG, "--source", "item", "--json"],
+      { githubTransport: cliTransport, now: NOW, providerConfig: OFFLINE_CONFIG },
+    );
+    expect(cliResult.exitCode).toBe(2);
+    expect(cliPaths).toEqual([]);
+
+    const { transport: mcpTransport, paths: mcpPaths } = transportWithLog();
+    const mcpResult = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, source: "item" },
+      { transport: mcpTransport, providerConfig: OFFLINE_CONFIG, now: NOW },
+    );
+    expect(mcpResult.ok).toBe(false);
+    if (mcpResult.ok) return;
+    expect(mcpResult.code).toBe("github_number_required");
+    expect(mcpPaths).toEqual([]);
+  });
+});

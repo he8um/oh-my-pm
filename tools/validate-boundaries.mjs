@@ -1076,14 +1076,15 @@ const GITHUB_NETWORK_BOUNDARY = new Set([
 // Files allowed to reference the token environment variable at the process
 // boundary (CLI adapter, CLI token helper, MCP runner, manual smoke).
 const GITHUB_TOKEN_ENV_ALLOWED = new Set([
-  "cli/src/local-process.ts",
   // v0.5.1: the token boundary moved to the application Node surface; the CLI
   // index re-exports its public constant.
+  // v0.5.2: the CLI and MCP GitHub adapters dropped off this list entirely — the
+  // only token read left is the lazy one inside the application Node transport
+  // factory, so neither presentation adapter names the variable any more.
   "application/src/node/github-token.ts",
   "application/src/node/index.ts",
   "application/src/node/deps.ts",
   "cli/src/index.ts",
-  "mcp-server/src/github-tool-runner.ts",
   "tools/check-github-provider-live.mjs",
   "tools/validate-boundaries.mjs",
   // These carry the env var NAME in deterministic release metadata (tokenEnv)
@@ -3282,6 +3283,97 @@ if (trackedFiles.includes("application/src/memory-process.ts")) {
   const orchestrator = codeOf("application/src/memory-process.ts");
   if (!orchestrator.includes('import("@oh-my-pm/project-memory")')) {
     err("application/src/memory-process.ts must own the lazy Project Memory import");
+  }
+}
+
+// 10h. v0.5.2: the GitHub-backed workflow is composed ONCE, in the application
+// package. The CLI and MCP GitHub adapters are presentation only — they map input
+// in and project output out — so neither may rebuild the Runtime pipeline. This
+// is the guard that keeps Issue #31's duplication from returning.
+const GITHUB_ADAPTERS = ["cli/src/github-process.ts", "mcp-server/src/github-tool-runner.ts"];
+// Composition entry points that belong to the application use case alone.
+const FORBIDDEN_GITHUB_COMPOSITION = [
+  "createNodeWasmKernelApi",
+  "createGitHubProvider",
+  "createNodeGitHubHttpTransport",
+  "createProviderRegistry",
+  "createRuntime",
+  "createDefaultSkillRegistry",
+];
+for (const file of GITHUB_ADAPTERS) {
+  if (!trackedFiles.includes(file)) {
+    err(`${file} is missing (expected the focused GitHub presentation adapter)`);
+    continue;
+  }
+  const code = codeOf(file);
+  for (const marker of FORBIDDEN_GITHUB_COMPOSITION) {
+    if (code.includes(marker)) {
+      err(
+        `${file} must not compose the GitHub Runtime pipeline ("${marker}"); ` +
+          "consume the shared @oh-my-pm/application GitHub use case instead",
+      );
+    }
+  }
+  // Both adapters must actually route through the shared use case.
+  if (!code.includes("runGitHubProjectWorkflow")) {
+    err(`${file} must call runGitHubProjectWorkflow from @oh-my-pm/application`);
+  }
+  // Neither adapter may resolve provider settings or source selection itself.
+  for (const marker of ["resolveGitHubProviderSettings", "resolveGitHubSourceSelection"]) {
+    if (code.includes(marker)) {
+      err(`${file} must not resolve GitHub ${marker} itself (the application use case owns it)`);
+    }
+  }
+}
+
+// 10i. The core application GitHub use case stays Node-free and offline until the
+// caller's injected boundary says otherwise: it constructs no Node transport and
+// reads no process/clock state directly.
+const GITHUB_USE_CASE = "application/src/github-project.ts";
+if (trackedFiles.includes(GITHUB_USE_CASE)) {
+  const code = codeOf(GITHUB_USE_CASE);
+  for (const marker of [
+    "createNodeGitHubHttpTransport",
+    "process.env",
+    "process.argv",
+    "Date.now",
+    "new Date",
+    'from "node:fs"',
+  ]) {
+    if (code.includes(marker)) {
+      err(`${GITHUB_USE_CASE} must not reference "${marker}" (inject it through GitHubProjectDeps)`);
+    }
+  }
+  // The caller identity must be injected, never hardcoded: a literal caller would
+  // silently mislabel one of the two presentation surfaces. Only a *value*
+  // assignment is a violation — the `caller: "cli" | "mcp"` type declaration on
+  // GitHubProjectDeps is exactly how the identity is required from the adapter.
+  if (/caller:\s*["'](?:cli|mcp)["']\s*[,)}]/.test(code)) {
+    err(`${GITHUB_USE_CASE} must not hardcode a caller identity; use deps.caller`);
+  }
+  if (!code.includes("deps.caller")) {
+    err(`${GITHUB_USE_CASE} must pass the injected deps.caller into the request factory`);
+  }
+}
+
+// 10j. The MCP package has exactly ONE version literal. The GitHub runner used to
+// carry a stale independent "0.3.0"; every MCP surface now derives from the
+// canonical constant so they cannot drift apart again.
+const MCP_VERSION_MODULE = "mcp-server/src/version.ts";
+if (!trackedFiles.includes(MCP_VERSION_MODULE)) {
+  err(`${MCP_VERSION_MODULE} is missing (expected the canonical MCP version source)`);
+} else {
+  for (const file of MCP_SRC) {
+    if (file.endsWith(".test.ts") || file === MCP_VERSION_MODULE) continue;
+    const code = codeOf(file);
+    // A quoted semver literal assigned to a *_VERSION constant is the drift shape.
+    const match = /_VERSION\s*(?::\s*string\s*)?=\s*["'](\d+\.\d+\.\d+)["']/.exec(code);
+    if (match !== null) {
+      err(
+        `${file} declares an independent version literal "${match[1]}"; ` +
+          `derive it from OH_MY_PM_MCP_VERSION in ${MCP_VERSION_MODULE}`,
+      );
+    }
   }
 }
 
