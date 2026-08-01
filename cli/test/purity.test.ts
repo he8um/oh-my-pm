@@ -15,11 +15,11 @@ const srcDir = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
 // mcp-config existence probe: one read-only lstat, no content read.
 const NODE_BOUNDARY_FILES = new Set(["mcp-config-resolve.ts"]);
 
-// The CLI process adapter is the approved GitHub boundary: only it may read the
-// ambient environment (for the optional OH_MY_PM_GITHUB_TOKEN) and construct the
-// production GitHub transport, and it does so only on the explicit github
-// command. It is still forbidden filesystem writes and all other I/O markers.
-const GITHUB_BOUNDARY_FILE = "local-process.ts";
+// v0.5.2: the CLI no longer has a GitHub boundary file. The token read, the
+// production transport construction, and the Runtime composition all moved
+// behind @oh-my-pm/application and its Node boundary, so github-process.ts and
+// local-process.ts are both held to the strictest rules — including no
+// process.env, no real clock, and no transport construction.
 
 // v0.5.1: the memory process boundary moved to @oh-my-pm/application, which
 // enforces its own boundary. The CLI now only parses the memory grammar and
@@ -94,24 +94,7 @@ describe("cli purity", () => {
     for (const file of files) {
       const contents = readFileSync(join(srcDir, file), "utf8");
       let forbiddenForFile: string[];
-      if (file === GITHUB_BOUNDARY_FILE) {
-        // The process adapter may read the ambient environment for the token
-        // and may reference the fixed GitHub origin indirectly through the
-        // provider factory, but it must never write files, spawn processes, or
-        // fetch directly. It performs no filesystem read of documents itself.
-        forbiddenForFile = [
-          ...WRITE_APIS,
-          "child_process",
-          "fetch(",
-          "XMLHttpRequest",
-          "Date.now",
-          "new Date",
-          "Math.random",
-          "console.",
-          "executeInstall",
-          "executeRollback",
-        ];
-      } else if (NODE_BOUNDARY_FILES.has(file)) {
+      if (NODE_BOUNDARY_FILES.has(file)) {
         forbiddenForFile = [...FORBIDDEN, ...WRITE_APIS];
       } else {
         forbiddenForFile = [...FS_READ_IMPORTS, ...FORBIDDEN, ...WRITE_APIS];

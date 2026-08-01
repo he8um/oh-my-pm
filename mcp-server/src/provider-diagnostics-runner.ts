@@ -22,8 +22,12 @@ import {
   resolveGitHubProviderSettings,
 } from "@oh-my-pm/providers";
 import type { GitHubHttpTransport, ResolvedProviderConfig } from "@oh-my-pm/providers";
+import { OH_MY_PM_MCP_VERSION } from "./version.js";
 
-export const MCP_PROVIDER_DIAGNOSTICS_VERSION = "0.3.0";
+// Derived from the package's single canonical version. This was a third stale
+// independent literal ("0.3.0"); it only ever feeds the outbound user agent, so
+// deriving it keeps every MCP surface reporting one truthful identity.
+export const MCP_PROVIDER_DIAGNOSTICS_VERSION = OH_MY_PM_MCP_VERSION;
 
 export type McpProviderDiagnosticsOptions = {
   /** Injected transport wins so tests stay offline. */

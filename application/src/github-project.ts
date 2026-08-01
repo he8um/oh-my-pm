@@ -14,7 +14,6 @@ import type { JsonValue, RuntimeResponse } from "@oh-my-pm/contracts";
 import { createNodeWasmKernelApi } from "@oh-my-pm/kernel";
 import {
   createGitHubProvider,
-  createNodeGitHubHttpTransport,
   createProviderRegistry,
   resolveGitHubProviderSettings,
   resolveGitHubSourceSelection,
@@ -84,19 +83,32 @@ export type GitHubWorkflowResult = GitHubWorkflowSuccess | GitHubWorkflowFailure
 
 export type GitHubProjectDeps = {
   /**
+   * Which presentation adapter is calling. Preserved into the Runtime request
+   * identity (`<caller>-github-<operation>`) and the payload source, so the CLI
+   * and MCP surfaces stay observably distinct. Never defaulted here: a hardcoded
+   * caller would silently mislabel one of the two surfaces.
+   */
+  caller: "cli" | "mcp";
+  /**
    * Resolves provider configuration. Returns a null config with a sanitized
    * message when a present configuration is invalid. Injected so the core
    * surface stays Node-free; `@oh-my-pm/application/node` supplies the real
    * read-only loader.
    */
   resolveProviderConfig: () => { config: ResolvedProviderConfig | null; message?: string };
-  /** Injected transport; when omitted a real Node HTTPS transport is built. */
-  transport?: GitHubHttpTransport;
-  /** Optional token used only to build the transport. Never returned. */
-  token?: string;
+  /**
+   * Builds the GitHub transport. Called at most once, and only after provider
+   * configuration, repository, limit, and source selection have all validated,
+   * so a controlled failure never reads a token nor opens a transport. The Node
+   * boundary (`@oh-my-pm/application/node`) supplies the real factory, which is
+   * also where the optional token environment read happens — lazily, inside this
+   * closure. This core module never constructs a Node transport itself.
+   */
+  createTransport: () => GitHubHttpTransport;
   /**
    * Resolves the invocation timestamp exactly once, at the caller's explicit
-   * boundary. Overdue classification uses this value.
+   * boundary, and only after validation succeeds. Overdue classification uses
+   * this value.
    */
   now: () => string;
   /** Runtime identity reported in responses. */
@@ -204,13 +216,10 @@ export async function runGitHubProjectWorkflow(
   }
   const selection = selectionResult.selection;
 
-  // Only now: build the transport (optionally with a token) and read the clock.
-  const transport =
-    deps.transport ??
-    createNodeGitHubHttpTransport({
-      ...(deps.token !== undefined ? { token: deps.token } : {}),
-      productVersion: deps.version,
-    });
+  // Only now, with every controlled input validated: build the transport (the
+  // token read happens lazily inside this factory) and read the clock exactly
+  // once. Everything above this line is offline by construction.
+  const transport = deps.createTransport();
   const now = deps.now();
 
   const runtime =
@@ -226,7 +235,7 @@ export async function runGitHubProjectWorkflow(
     });
 
   const response = await runtime.handle(
-    createGitHubRuntimeRequest({ operation, repository, selection, caller: "mcp" }),
+    createGitHubRuntimeRequest({ operation, repository, selection, caller: deps.caller }),
   );
 
   if (!response.ok) {
@@ -234,13 +243,13 @@ export async function runGitHubProjectWorkflow(
       isRecord(response.data) && typeof response.data["providerCode"] === "string"
         ? response.data["providerCode"]
         : (response.error?.code ?? "github_runtime_failed");
-    return {
-      ok: false,
-      operation,
-      repository,
-      code,
-      message: response.error?.message ?? "runtime execution failed",
-    };
+    // The sanitized provider message, when present, is more specific than the
+    // generic runtime error; both adapters surface it in preference.
+    const message =
+      isRecord(response.data) && typeof response.data["message"] === "string"
+        ? response.data["message"]
+        : (response.error?.message ?? "runtime execution failed");
+    return { ok: false, operation, repository, code, message };
   }
 
   const output = extractOutput(response);

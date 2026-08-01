@@ -11,8 +11,8 @@ Every entry below carries one of five explicit states:
 | **Out of scope** | deliberately excluded |
 
 The latest **published** stable release is
-[`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0). The active
-maintenance scope is **v0.5.1**.
+[`v0.5.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.1). The active
+maintenance scope is **v0.5.2**, prepared but not yet published.
 
 Phases 0 through 6 below are the historical implementation log for the v0.1
 through v0.4 lines. Everything in them is **Shipped** unless a later section
@@ -389,12 +389,12 @@ in place (see Phase 5B).
   hierarchy change, and any change to behavior, schemas, output contracts, storage
   formats, or MCP protocol behavior.
 - **Never published.** The v0.5.0 work merged to `main`, but no `v0.5.0` tag or
-  GitHub release exists. It is superseded by v0.5.1; the latest published stable
-  remains `v0.4.0`.
+  GitHub release exists. It is superseded by v0.5.1, which became the first
+  published stable of the v0.5 line.
 - See [the v0.5 command namespace guide](v0.5/README.md) for the migration
   behavior, upgrade path, and deprecation policy.
 
-## v0.5.1 — Documentation truth and the application boundary (Active maintenance)
+## v0.5.1 — Documentation truth and the application boundary (Shipped)
 
 - **Patch release. No public behavior change.** No new command, no changed CLI
   syntax or JSON output, no changed MCP tool, schema, or annotation, no Project
@@ -410,13 +410,46 @@ in place (see Phase 5B).
   typed use cases, and the MCP server no longer depends on `@oh-my-pm/cli`.
 - **Release line `v0.5`, bundle profile `ohmypm-cli-namespace`** — retained
   unchanged, because the user-facing runtime surface is unchanged.
-- **First published stable of the v0.5 line, if published.** v0.5.1 supersedes
-  the unpublished 0.5.0 candidate; `v0.4.0` remains the immutable base lineage.
+- **First published stable of the v0.5 line.** v0.5.1 supersedes the unpublished
+  0.5.0 candidate and is now the immutable base lineage for v0.5.2.
 - **Explicitly not in v0.5.1:** any Dashboard, web UI, HTTP server, or API; any
   new command, MCP tool, provider, or schema change; and any registry
   publication.
 - See [the v0.5.1 scope](v0.5/v0.5.1-scope.md) and
   [the application boundary](v0.5/application-boundary.md).
+
+## v0.5.2 — The shared GitHub application boundary (Active maintenance)
+
+- **Patch release. No public behavior change.** No new command, no changed CLI
+  syntax or JSON output, no changed MCP tool, schema, annotation, or tool order,
+  no Project Brain schema change, no Project Memory format change, no storage
+  path change, and no migration.
+- **One shared GitHub use case.** `@oh-my-pm/application` owns GitHub workflow
+  sequencing, effective provider settings, repository validation, source
+  selection, limit resolution, fail-closed ordering, Runtime composition, request
+  construction, and output extraction. The CLI and MCP GitHub adapters consume it
+  instead of each rebuilding the Runtime pipeline, and neither composes a Kernel,
+  Runtime, provider registry, skill registry, or Node transport any more.
+- **Node composition behind the application Node boundary.**
+  `@oh-my-pm/application/node` owns the provider-config load, the optional token
+  environment read, platform/cwd resolution, real transport construction, and
+  real clock access. The token read is lazy: a controlled failure reads no token,
+  opens no transport, and reads no clock.
+- **One canonical MCP version.** The stale independent
+  `MCP_GITHUB_RUNTIME_VERSION = "0.3.0"` is removed; every MCP surface derives
+  from `OH_MY_PM_MCP_VERSION`.
+- **Release line `v0.5`, bundle profile `ohmypm-cli-namespace`** — retained
+  unchanged, because the user-facing runtime surface is unchanged.
+- **Prepared but not yet published.** `v0.5.1` remains the latest published
+  stable and the immutable base lineage.
+- **Explicitly not in v0.5.2:** any Dashboard, web UI, HTTP server, or API; any
+  new command, MCP tool, provider, or schema change; any GitHub mutation
+  capability; and any registry publication.
+- **Remaining v0.5.2 scope tracked separately:** documentation and governance
+  truth (#30), CI and quality policy (#32), and CODEOWNERS and hosted
+  protections (#33).
+- See [the v0.5.2 release notes](releases/v0.5.2.md) and
+  [the publishing runbook](releases/publishing-v0.5.2.md).
 
 ## Phase 6 — Release lifecycle
 
@@ -428,9 +461,9 @@ in place (see Phase 5B).
 ## v0.6 — Local Project Dashboard (Planned)
 
 A local read-only Dashboard over the same application use cases the CLI and MCP
-server consume. v0.5.1 establishes the `@oh-my-pm/application` boundary it would
+server consume. The v0.5 patches establish the `@oh-my-pm/application` boundary it would
 depend on; nothing about the Dashboard itself is designed or implemented, and
-v0.5.1 contains no Dashboard, web UI, HTTP server, or UI dependency.
+v0.5.2 contains no Dashboard, web UI, HTTP server, or UI dependency.
 
 ## Out of scope
 

@@ -44,6 +44,15 @@ export type NodeDepsOptions = {
   now?: () => string;
 };
 
+/**
+ * Options for the composed GitHub workflow dependencies. The caller identity is
+ * required: each presentation adapter names itself, so neither surface can be
+ * silently mislabelled by a default.
+ */
+export type NodeGitHubProjectDepsOptions = NodeDepsOptions & {
+  caller: "cli" | "mcp";
+};
+
 type NodeProcess = {
   env?: Record<string, string | undefined>;
   platform?: NodeJS.Platform;
@@ -136,10 +145,22 @@ export function createNodeLocalProjectDeps(options: NodeDepsOptions): LocalProje
   };
 }
 
-/** Node dependencies for the GitHub project workflows. */
-export function createNodeGitHubProjectDeps(options: NodeDepsOptions): GitHubProjectDeps {
-  const token = resolveToken(options);
+/**
+ * Node dependencies for the GitHub project workflows.
+ *
+ * `caller` identifies the presentation adapter so the CLI and MCP request
+ * identities stay distinct. The token read and the transport construction are
+ * both deferred into `createTransport`, which the use case invokes only after
+ * provider configuration, repository, limit, and source selection have all
+ * validated — so a controlled failure never touches the environment, the
+ * network, or the clock. An injected transport short-circuits both, keeping
+ * tests offline without an environment read.
+ */
+export function createNodeGitHubProjectDeps(
+  options: NodeGitHubProjectDepsOptions,
+): GitHubProjectDeps {
   return {
+    caller: options.caller,
     resolveProviderConfig: () => {
       const resolution = resolveNodeProviderConfig(options);
       return resolution.ok
@@ -149,8 +170,14 @@ export function createNodeGitHubProjectDeps(options: NodeDepsOptions): GitHubPro
             ...(resolution.message !== undefined ? { message: resolution.message } : {}),
           };
     },
-    ...(options.githubTransport !== undefined ? { transport: options.githubTransport } : {}),
-    ...(token !== undefined ? { token } : {}),
+    createTransport: () => {
+      if (options.githubTransport !== undefined) return options.githubTransport;
+      const token = resolveToken(options);
+      return createNodeGitHubHttpTransport({
+        ...(token !== undefined ? { token } : {}),
+        productVersion: options.version,
+      });
+    },
     now: options.now ?? (() => new Date().toISOString()),
     version: options.version,
   };

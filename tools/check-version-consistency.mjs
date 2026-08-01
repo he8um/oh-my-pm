@@ -119,8 +119,10 @@ function main() {
 
   // 3. Known public runtime version constants (JS) and the Rust Kernel version.
   const constantChecks = [
-    { file: "mcp-server/src/server.ts", constant: "OH_MY_PM_MCP_SERVER_VERSION" },
-    { file: "mcp-server/src/project-tool-runner.ts", constant: "MCP_PROJECT_RUNTIME_VERSION" },
+    // The MCP package has exactly one version literal: every MCP surface (the
+    // server handshake, the project tool runner, and the GitHub tool runner)
+    // derives its identity from this canonical constant.
+    { file: "mcp-server/src/version.ts", constant: "OH_MY_PM_MCP_VERSION" },
     { file: "cli/src/local-process.ts", constant: "DEFAULT_VERSION" },
   ];
   for (const { file, constant } of constantChecks) {

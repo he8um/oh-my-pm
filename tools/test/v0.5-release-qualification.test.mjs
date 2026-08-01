@@ -24,8 +24,8 @@ const wf = read(RELEASE_WORKFLOW);
 
 // The prepared version is DERIVED from version.json, never restated here: the
 // workflow must always target the version the source actually carries, and a
-// bump must not require editing this test. (v0.5.1 is the prepared version;
-// v0.5.0 merged but was never published.)
+// bump must not require editing this test. (v0.5.2 is the prepared version;
+// v0.5.1 is the published base stable; v0.5.0 merged but was never published.)
 const VERSION = JSON.parse(read(join(REPO_ROOT, "version.json"))).version;
 
 describe("v0.5 release workflow safety", () => {
@@ -70,9 +70,9 @@ describe("v0.5 release workflow safety", () => {
     expect(wf.includes("refusing to overwrite")).toBe(true);
   });
 
-  it("verifies the v0.4.0 base stable lineage without modifying it", () => {
-    expect(wf.includes("BASE_TAG=v0.4.0")).toBe(true);
-    expect(wf.includes("0540a78576222227f276c627c518095ef43f2b50")).toBe(true);
+  it("verifies the v0.5.1 base stable lineage without modifying it", () => {
+    expect(wf.includes("BASE_TAG=v0.5.1")).toBe(true);
+    expect(wf.includes("49e2cbbc7590af52e648b615c6245ce3cbcee0e9")).toBe(true);
   });
 
   it("publishes to no package registry", () => {

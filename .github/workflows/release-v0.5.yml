@@ -1,7 +1,15 @@
 name: Release v0.5 Stable
 
 # Manually gated STABLE release workflow for the v0.5 line. It builds and verifies
-# the exact 0.5.1 self-contained "ohmypm-cli-namespace" portable artifact.
+# the exact 0.5.2 self-contained "ohmypm-cli-namespace" portable artifact.
+#
+# v0.5.2 is a MAINTENANCE PATCH over the published v0.5.1 stable. Its scope is
+# internal architecture only: the GitHub-backed project workflow is composed once
+# in @oh-my-pm/application, so the CLI and MCP surfaces consume the same
+# application use case instead of each rebuilding the Runtime pipeline. There is
+# no new or removed command, no CLI syntax change, no MCP tool/schema/annotation/
+# order change, no Project Brain schema change, no Project Memory format change,
+# and no data migration.
 #
 # v0.5 is a CLI command namespace migration, not a product rename. The artifact's
 # runtime surface is identical to v0.4 — TWELVE read-only MCP tools, zero write
@@ -12,7 +20,7 @@ name: Release v0.5 Stable
 # deprecated compatibility aliases with no removal scheduled.
 #
 # Product identity is deliberately unchanged: the archives remain
-# oh-my-pm-v0.5.1.{tar.gz,zip}, the installation directory remains
+# oh-my-pm-v0.5.2.{tar.gz,zip}, the installation directory remains
 # lib/oh-my-pm/versions/<version>/, the package scope remains @oh-my-pm/*, the
 # environment prefix remains OH_MY_PM_*, and the MCP server key remains
 # oh-my-pm.
@@ -21,8 +29,8 @@ name: Release v0.5 Stable
 # confirmed, environment-approved publish run — creates an immutable,
 # non-prerelease GitHub Release marked "latest" targeting the exact workflow
 # commit SHA. It publishes to no registry, and it never modifies the immutable
-# v0.1.0 / v0.2.0-rc.1 / v0.2.0 / v0.3.0-rc.1 / v0.3.0 / v0.3.1 / v0.4.0 releases
-# or the historical workflows.
+# v0.1.0 / v0.2.0-rc.1 / v0.2.0 / v0.3.0-rc.1 / v0.3.0 / v0.3.1 / v0.4.0 / v0.5.1
+# releases or the historical workflows.
 #
 # Manually triggered only. There is no push, pull_request, release, schedule, or
 # tag trigger. The prepare and qualification jobs cannot write repository
@@ -35,7 +43,7 @@ on:
       version:
         description: Canonical version without v prefix
         required: true
-        default: "0.5.1"
+        default: "0.5.2"
         type: string
       publish:
         # publish=false is the DRY RUN: prepare, deterministic assets, and the
@@ -47,7 +55,7 @@ on:
         default: false
         type: boolean
       confirmation:
-        description: Type RELEASE v0.5.1 when publish is enabled
+        description: Type RELEASE v0.5.2 when publish is enabled
         required: false
         default: ""
         type: string
@@ -79,12 +87,12 @@ jobs:
           INPUT_PUBLISH: ${{ inputs.publish }}
           INPUT_CONFIRMATION: ${{ inputs.confirmation }}
         run: |
-          if [ "$INPUT_VERSION" != "0.5.1" ]; then
-            echo "Only version 0.5.1 is accepted by this workflow (got $INPUT_VERSION)" >&2
+          if [ "$INPUT_VERSION" != "0.5.2" ]; then
+            echo "Only version 0.5.2 is accepted by this workflow (got $INPUT_VERSION)" >&2
             exit 1
           fi
-          if [ "$INPUT_PUBLISH" = "true" ] && [ "$INPUT_CONFIRMATION" != "RELEASE v0.5.1" ]; then
-            echo "publish requires confirmation exactly equal to: RELEASE v0.5.1" >&2
+          if [ "$INPUT_PUBLISH" = "true" ] && [ "$INPUT_CONFIRMATION" != "RELEASE v0.5.2" ]; then
+            echo "publish requires confirmation exactly equal to: RELEASE v0.5.2" >&2
             exit 1
           fi
 
@@ -107,8 +115,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          BASE_TAG=v0.4.0
-          BASE_SHA=0540a78576222227f276c627c518095ef43f2b50
+          BASE_TAG=v0.5.1
+          BASE_SHA=49e2cbbc7590af52e648b615c6245ce3cbcee0e9
           # The base stable tag must still exist on origin.
           if ! git ls-remote --exit-code --tags origin "refs/tags/$BASE_TAG" >/dev/null 2>&1; then
             echo "Required base stable tag $BASE_TAG does not exist on origin" >&2
@@ -128,8 +136,8 @@ jobs:
             if (meta.isPrerelease !== false) { console.error("base stable must remain non-prerelease"); process.exit(1); }
             if (meta.isDraft !== false) { console.error("base stable must remain non-draft"); process.exit(1); }
           '
-          # The v0.5.1 release notes must exist.
-          test -f docs/releases/v0.5.1.md
+          # The v0.5.2 release notes must exist.
+          test -f docs/releases/v0.5.2.md
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4.4.0
@@ -266,11 +274,11 @@ jobs:
       - name: Upload release assets artifact
         uses: actions/upload-artifact@v7
         with:
-          name: oh-my-pm-v0.5.1-release-assets
+          name: oh-my-pm-v0.5.2-release-assets
           path: |
-            ${{ runner.temp }}/release-assets/oh-my-pm-v0.5.1.tar.gz
-            ${{ runner.temp }}/release-assets/oh-my-pm-v0.5.1.zip
-            ${{ runner.temp }}/release-assets/oh-my-pm-v0.5.1-SHA256SUMS.txt
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.5.2.tar.gz
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.5.2.zip
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.5.2-SHA256SUMS.txt
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
@@ -302,7 +310,7 @@ jobs:
       - name: Download prepared release assets
         uses: actions/download-artifact@v7
         with:
-          name: oh-my-pm-v0.5.1-release-assets
+          name: oh-my-pm-v0.5.2-release-assets
           path: release-assets
 
       - name: Verify checksum then qualify the installed artifact (POSIX)
@@ -408,12 +416,12 @@ jobs:
           INPUT_VERSION: ${{ inputs.version }}
           INPUT_CONFIRMATION: ${{ inputs.confirmation }}
         run: |
-          if [ "$INPUT_VERSION" != "0.5.1" ]; then
-            echo "Only version 0.5.1 is accepted by this workflow (got $INPUT_VERSION)" >&2
+          if [ "$INPUT_VERSION" != "0.5.2" ]; then
+            echo "Only version 0.5.2 is accepted by this workflow (got $INPUT_VERSION)" >&2
             exit 1
           fi
-          if [ "$INPUT_CONFIRMATION" != "RELEASE v0.5.1" ]; then
-            echo "publish requires confirmation exactly equal to: RELEASE v0.5.1" >&2
+          if [ "$INPUT_CONFIRMATION" != "RELEASE v0.5.2" ]; then
+            echo "publish requires confirmation exactly equal to: RELEASE v0.5.2" >&2
             exit 1
           fi
 
@@ -430,22 +438,22 @@ jobs:
       - name: Download release assets
         uses: actions/download-artifact@v7
         with:
-          name: oh-my-pm-v0.5.1-release-assets
+          name: oh-my-pm-v0.5.2-release-assets
           path: release-assets
 
       - name: Re-verify archive checksums
         run: |
           cd release-assets
-          sha256sum -c oh-my-pm-v0.5.1-SHA256SUMS.txt
+          sha256sum -c oh-my-pm-v0.5.2-SHA256SUMS.txt
 
       - name: Ensure release notes exist
-        run: test -f docs/releases/v0.5.1.md
+        run: test -f docs/releases/v0.5.2.md
 
       - name: Ensure tag and release do not already exist
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=v0.5.1
+          TAG=v0.5.2
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
             echo "Tag $TAG already exists on origin; refusing to overwrite" >&2
             exit 1
@@ -459,10 +467,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          BASE_TAG=v0.4.0
-          BASE_SHA=0540a78576222227f276c627c518095ef43f2b50
+          BASE_TAG=v0.5.1
+          BASE_SHA=49e2cbbc7590af52e648b615c6245ce3cbcee0e9
           if ! git ls-remote --exit-code --tags origin "refs/tags/$BASE_TAG" >/dev/null 2>&1; then
-            echo "Base stable tag $BASE_TAG no longer exists; refusing to publish v0.5.1" >&2
+            echo "Base stable tag $BASE_TAG no longer exists; refusing to publish v0.5.2" >&2
             exit 1
           fi
           BASE_RESOLVED="$(git ls-remote --tags origin "refs/tags/$BASE_TAG" | awk '{print $1}')"
@@ -481,30 +489,30 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v0.5.1" \
-            "release-assets/oh-my-pm-v0.5.1.tar.gz" \
-            "release-assets/oh-my-pm-v0.5.1.zip" \
-            "release-assets/oh-my-pm-v0.5.1-SHA256SUMS.txt" \
+          gh release create "v0.5.2" \
+            "release-assets/oh-my-pm-v0.5.2.tar.gz" \
+            "release-assets/oh-my-pm-v0.5.2.zip" \
+            "release-assets/oh-my-pm-v0.5.2-SHA256SUMS.txt" \
             --target "$GITHUB_SHA" \
-            --title "OH MY PM v0.5.1" \
-            --notes-file "docs/releases/v0.5.1.md" \
+            --title "OH MY PM v0.5.2" \
+            --notes-file "docs/releases/v0.5.2.md" \
             --latest
 
       - name: Verify published stable release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          META="$(gh release view v0.5.1 --json tagName,isDraft,isPrerelease,assets)"
+          META="$(gh release view v0.5.2 --json tagName,isDraft,isPrerelease,assets)"
           echo "$META"
           echo "$META" | node -e '
             const meta = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
             const expected = [
-              "oh-my-pm-v0.5.1-SHA256SUMS.txt",
-              "oh-my-pm-v0.5.1.tar.gz",
-              "oh-my-pm-v0.5.1.zip",
+              "oh-my-pm-v0.5.2-SHA256SUMS.txt",
+              "oh-my-pm-v0.5.2.tar.gz",
+              "oh-my-pm-v0.5.2.zip",
             ].sort();
             const names = (meta.assets || []).map((a) => a.name).sort();
-            if (meta.tagName !== "v0.5.1") { console.error("bad tag"); process.exit(1); }
+            if (meta.tagName !== "v0.5.2") { console.error("bad tag"); process.exit(1); }
             if (meta.isDraft !== false) { console.error("draft must be false"); process.exit(1); }
             if (meta.isPrerelease !== false) { console.error("prerelease must be false"); process.exit(1); }
             if (JSON.stringify(names) !== JSON.stringify(expected)) { console.error("asset mismatch"); process.exit(1); }
@@ -516,8 +524,8 @@ jobs:
         run: |
           LATEST="$(gh api repos/${GITHUB_REPOSITORY}/releases/latest --jq .tag_name)"
           echo "latest release: $LATEST"
-          if [ "$LATEST" != "v0.5.1" ]; then
-            echo "releases/latest is $LATEST, expected v0.5.1" >&2
+          if [ "$LATEST" != "v0.5.2" ]; then
+            echo "releases/latest is $LATEST, expected v0.5.2" >&2
             exit 1
           fi
 
@@ -527,13 +535,13 @@ jobs:
         run: |
           DL="$RUNNER_TEMP/published"
           mkdir -p "$DL"
-          gh release download v0.5.1 --dir "$DL"
+          gh release download v0.5.2 --dir "$DL"
           cd "$DL"
-          sha256sum -c oh-my-pm-v0.5.1-SHA256SUMS.txt
+          sha256sum -c oh-my-pm-v0.5.2-SHA256SUMS.txt
 
       - name: Print release URL to summary
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          URL="$(gh release view v0.5.1 --json url --jq .url)"
+          URL="$(gh release view v0.5.2 --json url --jq .url)"
           echo "Published stable release: $URL" >> "$GITHUB_STEP_SUMMARY"

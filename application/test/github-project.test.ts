@@ -13,6 +13,7 @@ import {
   runGitHubProjectWorkflow,
 } from "../src/index.js";
 import type { GitHubProjectDeps } from "../src/index.js";
+import { createNodeGitHubProjectDeps } from "../src/node/index.js";
 
 function enabledConfig(): ResolvedProviderConfig {
   const base = defaultProviderConfig();
@@ -63,8 +64,9 @@ function deps(
   captured: { requests: unknown[] } = { requests: [] },
 ): GitHubProjectDeps {
   return {
+    caller: "mcp",
     resolveProviderConfig: () => ({ config: enabledConfig() }),
-    transport: forbiddenTransport(),
+    createTransport: () => forbiddenTransport(),
     now: () => "2026-01-01T00:00:00.000Z",
     version: "0.5.1",
     createRuntime: () => stubRuntime(captured),
@@ -83,6 +85,21 @@ describe("github project workflows", () => {
     expect(result.now).toBe("2026-01-01T00:00:00.000Z");
     expect(result.selection).toBeDefined();
     expect((captured.requests[0] as { id: string }).id).toBe("mcp-github-brief");
+  });
+
+  it("preserves the injected caller identity instead of hardcoding one", async () => {
+    // Regression guard for the duplicated-composition era, when the shared use
+    // case hardcoded caller: "mcp" and silently mislabelled every CLI request.
+    for (const [caller, expected] of [
+      ["cli", "cli-github-brief"],
+      ["mcp", "mcp-github-brief"],
+    ] as const) {
+      const captured = { requests: [] as unknown[] };
+      const result = await getGitHubProjectBrief({}, deps({ caller }, captured));
+      expect(result.ok).toBe(true);
+      expect((captured.requests[0] as { id: string }).id).toBe(expected);
+      expect((captured.requests[0] as { payload: { source: string } }).payload.source).toBe(caller);
+    }
   });
 
   it("routes each of the four operations", async () => {
@@ -161,7 +178,18 @@ describe("github fail-closed ordering", () => {
   });
 
   it("never returns a token in a result", async () => {
-    const result = await getGitHubProjectBrief({}, deps({ token: "ghp_supersecret_value" }));
+    // The token only ever exists inside the transport factory closure, so a
+    // result can never carry it.
+    const result = await getGitHubProjectBrief(
+      {},
+      deps({
+        createTransport: () => {
+          const token = "ghp_supersecret_value";
+          void token;
+          return forbiddenTransport();
+        },
+      }),
+    );
     expect(JSON.stringify(result)).not.toContain("ghp_supersecret_value");
   });
 
@@ -185,5 +213,140 @@ describe("github fail-closed ordering", () => {
     if (result.ok) return;
     expect(result.code).toBe("github_forbidden");
     expect(result.message).toBe("provider refused");
+  });
+});
+
+// Ordering is a security property: a controlled failure must be resolved fully
+// offline. These tests count the dependency invocations directly, so a future
+// refactor that moves a token read, transport construction, or clock read above
+// validation fails here rather than in production.
+describe("github dependency-invocation ordering", () => {
+  type Counters = { transports: number; tokens: number; clocks: number };
+
+  /**
+   * Dependencies that count every side-effecting access. `tokens` models the
+   * environment read that the Node boundary performs lazily inside the transport
+   * factory, so "never reads the token" is observable from the core surface.
+   */
+  function countingDeps(
+    over: Partial<GitHubProjectDeps> = {},
+  ): { deps: GitHubProjectDeps; counts: Counters } {
+    const counts: Counters = { transports: 0, tokens: 0, clocks: 0 };
+    const base: GitHubProjectDeps = {
+      caller: "mcp",
+      resolveProviderConfig: () => ({ config: enabledConfig() }),
+      createTransport: () => {
+        counts.transports += 1;
+        counts.tokens += 1;
+        return forbiddenTransport();
+      },
+      now: () => {
+        counts.clocks += 1;
+        return "2026-01-01T00:00:00.000Z";
+      },
+      version: "0.5.1",
+      createRuntime: () => stubRuntime({ requests: [] }),
+      ...over,
+    };
+    return { deps: base, counts };
+  }
+
+  const controlledFailures: ReadonlyArray<
+    readonly [string, Partial<GitHubProjectDeps>, Parameters<typeof runGitHubProjectWorkflow>[1]]
+  > = [
+    [
+      "invalid provider config",
+      { resolveProviderConfig: () => ({ config: null, message: "config is not valid JSON" }) },
+      {},
+    ],
+    [
+      "disabled provider",
+      { resolveProviderConfig: () => ({ config: githubConfig({ enabled: false }) }) },
+      {},
+    ],
+    ["invalid repository", {}, { repository: "not-a-slug" }],
+    ["invalid limit", {}, { limit: 0 }],
+    ["invalid source selection", {}, { source: "search", query: "" }],
+  ];
+
+  for (const [label, over, input] of controlledFailures) {
+    it(`does not create a transport, read a token, or read the clock on ${label}`, async () => {
+      const { deps: injected, counts } = countingDeps(over);
+      const result = await runGitHubProjectWorkflow("brief", input, injected);
+      expect(result.ok).toBe(false);
+      expect(counts.transports).toBe(0);
+      expect(counts.tokens).toBe(0);
+      expect(counts.clocks).toBe(0);
+    });
+  }
+
+  it("creates the transport exactly once and reads the clock exactly once on success", async () => {
+    const { deps: injected, counts } = countingDeps();
+    const result = await runGitHubProjectWorkflow("brief", {}, injected);
+    expect(result.ok).toBe(true);
+    expect(counts.transports).toBe(1);
+    expect(counts.clocks).toBe(1);
+  });
+
+  it("an injected transport avoids the token/environment read entirely", async () => {
+    // Exercised through the real Node dependency factory: with a transport
+    // injected, the composed closure must short-circuit before consulting the
+    // environment, which is what keeps the offline suites offline. The env map is
+    // a getter-trapped proxy, so any read at all fails the test.
+    let envReads = 0;
+    const trappedEnv = new Proxy(
+      {} as Record<string, string | undefined>,
+      {
+        get: (_target, key) => {
+          envReads += 1;
+          return `leaked-${String(key)}`;
+        },
+      },
+    );
+    const injected = createNodeGitHubProjectDeps({
+      caller: "mcp",
+      version: "0.5.1",
+      providerConfig: enabledConfig(),
+      githubTransport: forbiddenTransport(),
+      env: trappedEnv,
+      now: () => "2026-01-01T00:00:00.000Z",
+      platform: "linux",
+      cwd: "/workspace",
+    });
+    const result = await runGitHubProjectWorkflow("brief", {}, {
+      ...injected,
+      createRuntime: () => stubRuntime({ requests: [] }),
+    });
+    expect(result.ok).toBe(true);
+    expect(envReads).toBe(0);
+  });
+
+  it("reads the token lazily, and only when no transport is injected", async () => {
+    // Without an injected transport the composed closure does consult the
+    // environment — but only inside createTransport, i.e. after validation.
+    let envReads = 0;
+    const trappedEnv = new Proxy(
+      {} as Record<string, string | undefined>,
+      {
+        get: (_target, key) => {
+          envReads += 1;
+          return key === "OH_MY_PM_GITHUB_TOKEN" ? "ghp_lazy_value" : undefined;
+        },
+      },
+    );
+    const injected = createNodeGitHubProjectDeps({
+      caller: "mcp",
+      version: "0.5.1",
+      providerConfig: githubConfig({ enabled: false }),
+      env: trappedEnv,
+      now: () => "2026-01-01T00:00:00.000Z",
+      platform: "linux",
+      cwd: "/workspace",
+    });
+    // A disabled provider fails before createTransport runs, so the token that
+    // this env would hand out is never requested.
+    const blocked = await runGitHubProjectWorkflow("brief", {}, injected);
+    expect(blocked.ok).toBe(false);
+    expect(envReads).toBe(0);
   });
 });
