@@ -33,6 +33,6 @@
     "@oh-my-pm/providers": "workspace:*",
     "@oh-my-pm/runtime": "workspace:*",
     "@oh-my-pm/skills": "workspace:*",
-    "zod": "^3.25.76"
+    "zod": "^4.4.3"
   }
 }
