@@ -2,12 +2,12 @@
 
 ## What this version is
 
-The source tree is at version `0.5.0` (the v0.5 CLI command namespace line, prepared for a separate, explicitly authorized stable publication). The canonical commands are `ohmypm`, `ohmypm-mcp` and `ohmypm-install`; the former `oh-my-pm` family still works as deprecated compatibility aliases with no removal scheduled — see [the v0.5 migration guide](v0.5/README.md). Stable **`v0.4.0` is published and remains the latest stable release**; [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) is a published **prerelease** (not marked latest); `v0.3.1`, `v0.3.0`, `v0.2.0`, `v0.2.0-rc.1` and `v0.1.0` are preserved historical releases. `v0.5.0` is **not** yet published as stable. OH MY PM is installed from the repository or a release archive, not from a package registry — the workspace packages remain private and unpublished. Installed release archives require only **Node.js 20+**. The CLI and the MCP server are both read-only: they analyze local Markdown project documents (and, only on explicit opt-in, read-only GitHub context) and never modify project files. No project context is uploaded and no telemetry is emitted. For the v0.3 Project Brain memory feature specifically, see the [installed v0.3 getting-started guide](v0.3/getting-started-installed.md).
+The source tree is at version `0.5.2` (the v0.5 line, prepared for a separate, explicitly authorized stable publication). The canonical commands are `ohmypm`, `ohmypm-mcp` and `ohmypm-install`; the former `oh-my-pm` family still works as deprecated compatibility aliases with no removal scheduled — see [the v0.5 migration guide](v0.5/README.md). [`v0.5.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.1) is the current published stable release; [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) is a published **prerelease** (not marked latest); `v0.4.0`, `v0.3.1`, `v0.3.0`, `v0.2.0`, `v0.2.0-rc.1` and `v0.1.0` are preserved historical releases. `v0.5.2` is **not** yet published as stable, and `v0.5.0` was never published. OH MY PM is installed from the repository or a release archive, not from a package registry — the workspace packages remain private and unpublished. Installed release archives require only **Node.js 20+**. The CLI and the MCP server are both read-only: they analyze local Markdown project documents (and, only on explicit opt-in, read-only GitHub context) and never modify project files. No project context is uploaded and no telemetry is emitted. For the v0.3 Project Brain memory feature specifically, see the [installed v0.3 getting-started guide](v0.3/getting-started-installed.md).
 
 There are two ways to run OH MY PM:
 
-1. **Repository development installation** — clone, build, and install command shims from the repository (below). At the current source line this builds `0.5.0`.
-2. **Release archive** — download the published [`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0) stable bundle, which needs only Node.js 20+. Contributors can also [build a development bundle from `main`](#building-a-development-bundle-from-main).
+1. **Repository development installation** — clone, build, and install command shims from the repository (below). At the current source line this builds `0.5.2`.
+2. **Release archive** — download the published [`v0.5.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.1) stable bundle, which needs only Node.js 20+. Contributors can also [build a development bundle from `main`](#building-a-development-bundle-from-main).
 
 ## Requirements
 
@@ -90,7 +90,7 @@ Make the change permanent through your own shell configuration if you want it to
 pnpm local:check -- --prefix "$HOME/.local"
 ```
 
-The verifier is read-only. It confirms the eight shims exist with the exact expected content — four canonical and four deprecated aliases, each as a POSIX shim plus a Windows `.cmd` shim — and, on POSIX platforms, that the POSIX shims are executable (Windows has no executable bit). It then runs the installed CLI (`status` and a fixture `brief`) and drives the installed MCP command over stdio (lists the twelve read-only tools and calls `project_brief`).
+The verifier is read-only. It confirms the eight shims exist with the exact expected content — two canonical commands and two deprecated aliases, each as a POSIX shim plus a Windows `.cmd` shim — and, on POSIX platforms, that the POSIX shims are executable (Windows has no executable bit). It then runs the installed CLI (`status` and a fixture `brief`) and drives the installed MCP command over stdio (lists the twelve read-only tools and calls `project_brief`).
 
 ## CLI workflows
 

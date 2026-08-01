@@ -413,7 +413,7 @@ jobs:
           node $installer --prefix $prefix
           if ($LASTEXITCODE -ne 0) { throw "installer preview failed" }
           if (Test-Path $prefix) { throw "preview created a prefix" }
-          # Apply and verify the four shims, including the .cmd shims, exist.
+          # Apply and verify the eight shims, including the .cmd shims, exist.
           # Capture stderr so a failure surfaces the installer's bounded,
           # path-free reason codes (e.g. post_install_verification_failed,
           # post_posix_shim_mode_mismatch) that pinpoint the failing subsystem.
