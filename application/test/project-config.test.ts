@@ -21,7 +21,7 @@ import {
   OH_MY_PM_PROJECT_CONFIG_VERSION,
   loadConfiguredMarkdownProjectDocuments,
   loadLocalProjectConfig,
-} from "../src/index.js";
+} from "../src/node/index.js";
 
 const roots: string[] = [];
 

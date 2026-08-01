@@ -26,6 +26,7 @@ const REQUIRED_FOLDERS = [
   ".github",
   "docs",
   "contracts",
+  "application",
   "kernel",
   "runtime",
   "planner",
@@ -116,6 +117,7 @@ for (const file of trackedTopFiles) {
 
 // 5 + 6. Package skeleton files and required package.json fields.
 const PACKAGES = [
+  "application",
   "contracts",
   "kernel/binding",
   "runtime",
@@ -188,16 +190,19 @@ for (const file of RUNTIME_SOURCES) {
 }
 
 // 7c. CLI foundation files exist.
+//
+// v0.5.1: the CLI is a presentation adapter. Shared project loading, provider
+// diagnostics, request construction, and Project Memory orchestration live in
+// @oh-my-pm/application and are checked by APPLICATION_SOURCES below.
 const CLI_SOURCES = [
   "cli/src/index.ts",
   "cli/src/types.ts",
   "cli/src/parser.ts",
-  "cli/src/request.ts",
-  "cli/src/format.ts",
+  "application/src/response-format.ts",
   "cli/src/cli.ts",
+  "cli/src/local-process.ts",
   "cli/test/parser.test.ts",
-  "cli/test/request.test.ts",
-  "cli/test/format.test.ts",
+  "application/test/response-format.test.ts",
   "cli/test/cli.test.ts",
   "cli/test/purity.test.ts",
   "cli/README.md",
@@ -208,20 +213,8 @@ const CLI_SOURCES = [
   "cli/test/local-runtime-smoke.test.ts",
   "cli/src/install-preview.ts",
   "cli/test/install-preview.test.ts",
-  "cli/src/node-project-documents.ts",
-  "cli/test/node-project-documents.test.ts",
-  "cli/src/project-document-rules.ts",
-  "cli/test/project-document-rules.test.ts",
-  "cli/src/project-config.ts",
-  // v0.5: the CLI-side view of the canonical command names.
-  "cli/src/command-surface.ts",
-  "cli/test/project-config.test.ts",
-  // v0.3 Phase 4: the preview-first `memory` CLI surface.
-  "cli/src/memory-types.ts",
+  // v0.3 Phase 4: the preview-first `memory` CLI grammar and rendering.
   "cli/src/memory-parser.ts",
-  "cli/src/memory-preview.ts",
-  "cli/src/memory-project.ts",
-  "cli/src/memory-process.ts",
   "cli/src/memory-format.ts",
   "cli/test/memory-parser.test.ts",
   "cli/test/memory-project-config.test.ts",
@@ -237,6 +230,72 @@ const CLI_SOURCES = [
 ];
 for (const file of CLI_SOURCES) {
   if (!existsSync(file)) err(`cli foundation file missing: ${file}`);
+}
+
+// 7c-bis. Application boundary files exist (v0.5.1).
+//
+// The shared use-case layer consumed by CLI and MCP. The core surface is
+// Node-free; the Node adapters live under application/src/node/.
+const APPLICATION_SOURCES = [
+  "application/src/index.ts",
+  "application/src/types.ts",
+  "application/src/errors.ts",
+  "application/src/request.ts",
+  "application/src/command-surface.ts",
+  "application/src/response-format.ts",
+  "application/src/local-project.ts",
+  "application/src/github-project.ts",
+  "application/src/provider-diagnostics.ts",
+  "application/src/provider-diagnostics-usecase.ts",
+  "application/src/project-memory.ts",
+  "application/src/project-document-rules.ts",
+  "application/src/project-document-limits.ts",
+  "application/src/memory-types.ts",
+  "application/src/memory-preview.ts",
+  "application/src/memory-project.ts",
+  "application/src/memory-process.ts",
+  "application/src/node/index.ts",
+  "application/src/node/deps.ts",
+  "application/src/node/project-documents.ts",
+  "application/src/node/project-config.ts",
+  "application/src/node/provider-config.ts",
+  "application/src/node/github-token.ts",
+  "application/test/boundary.test.ts",
+  "application/test/local-project.test.ts",
+  "application/test/github-project.test.ts",
+  "application/test/provider-diagnostics-usecase.test.ts",
+  "application/test/project-memory.test.ts",
+  "application/test/memory-boundary.test.ts",
+  "application/test/request.test.ts",
+  "application/test/project-documents.test.ts",
+  "application/test/project-config.test.ts",
+  "application/test/project-document-rules.test.ts",
+  "application/test/provider-config.test.ts",
+  "application/test/provider-diagnostics.test.ts",
+  "application/test/github-token.test.ts",
+  "application/README.md",
+  "tools/validate-doc-truth.mjs",
+  "tools/test/doc-truth.test.mjs",
+];
+for (const file of APPLICATION_SOURCES) {
+  if (!existsSync(file)) err(`application boundary file missing: ${file}`);
+}
+
+// The application package must never re-acquire a presentation dependency.
+{
+  const appPkg = JSON.parse(readFileSync("application/package.json", "utf8"));
+  for (const field of ["dependencies", "peerDependencies", "optionalDependencies"]) {
+    for (const name of [
+      "@oh-my-pm/cli",
+      "@oh-my-pm/mcp-server",
+      "@oh-my-pm/installer",
+      "@oh-my-pm/distribution",
+    ]) {
+      if (appPkg[field] && Object.hasOwn(appPkg[field], name)) {
+        err(`application/package.json ${field} must not contain ${name}`);
+      }
+    }
+  }
 }
 
 // 7d. Provider framework files exist.
@@ -372,7 +431,7 @@ const PROJECT_SIGNAL_SOURCES = [
   "examples/fixtures/project-signals/README.md",
   "examples/fixtures/project-signals/planning.md",
   "examples/fixtures/project-signals/fa-signals.md",
-  "mcp-server/test/extraction-e2e.test.ts",
+  "tests/e2e/extraction-parity.test.ts",
   "docs/deterministic-extraction.md",
 ];
 for (const file of PROJECT_SIGNAL_SOURCES) {
@@ -463,14 +522,14 @@ for (const file of RELEASE_ARCHIVE_SOURCES) {
 // 7g6b. GitHub read-only provider surface across CLI, MCP, docs, and the
 // manual live-smoke tool.
 const GITHUB_FEATURE_SOURCES = [
-  "cli/src/github-token.ts",
+  "application/src/node/github-token.ts",
   "cli/test/github-parser.test.ts",
   "cli/test/github-request.test.ts",
   "cli/test/github-process.test.ts",
-  "cli/test/github-token.test.ts",
+  "application/test/github-token.test.ts",
   "mcp-server/src/github-tool-runner.ts",
   "mcp-server/src/github-tool-runner.test.ts",
-  "mcp-server/test/github-e2e.test.ts",
+  "tests/e2e/github-parity.test.ts",
   "tools/check-github-provider-live.mjs",
   "docs/providers/github.md",
   "docs/providers/github-item-comments.md",
@@ -550,11 +609,13 @@ const PROVIDER_CONFIG_SOURCES = [
   "providers/src/settings.ts",
   "providers/test/config.test.ts",
   "providers/test/settings.test.ts",
-  "cli/src/provider-config.ts",
-  "cli/src/provider-diagnostics.ts",
+  "application/src/node/provider-config.ts",
+  "application/src/provider-diagnostics.ts",
+  "application/src/provider-diagnostics-usecase.ts",
   "cli/src/provider-format.ts",
-  "cli/test/provider-config.test.ts",
-  "cli/test/provider-diagnostics.test.ts",
+  "application/test/provider-config.test.ts",
+  "application/test/provider-diagnostics.test.ts",
+  "application/test/provider-diagnostics-usecase.test.ts",
   "cli/test/provider-format.test.ts",
   "cli/test/provider-command.test.ts",
   "cli/test/provider-config-e2e.test.ts",

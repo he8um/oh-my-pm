@@ -2,7 +2,7 @@
 
 Thanks for your interest in OH MY PM.
 
-This repository is early-stage. Contributions should stay small, traceable, and aligned with the public architecture and roadmap.
+Contributions should stay small, traceable, and aligned with the public architecture and roadmap.
 
 ## Ground rules
 
@@ -10,7 +10,7 @@ This repository is early-stage. Contributions should stay small, traceable, and 
 - Keep changes focused.
 - Explain the design or roadmap reference behind each change.
 - Do not copy legacy material directly without reviewed adaptation.
-- Avoid broad implementation changes before the repository scaffold is in place.
+- Avoid broad implementation changes that cut across package boundaries; the dependency direction is enforced by `pnpm validate:boundaries`.
 
 ## Development flow
 

@@ -1,10 +1,9 @@
 import type { JsonValue, RuntimeResponse } from "@oh-my-pm/contracts";
+import { createGitHubRuntimeRequest, formatRuntimeResponse } from "@oh-my-pm/application";
 import {
-  createGitHubRuntimeRequest,
-  formatRuntimeResponse,
   loadProviderConfig,
   readGitHubTokenFromEnvironment,
-} from "@oh-my-pm/cli";
+} from "@oh-my-pm/application/node";
 import { createNodeWasmKernelApi } from "@oh-my-pm/kernel";
 import {
   createGitHubProvider,

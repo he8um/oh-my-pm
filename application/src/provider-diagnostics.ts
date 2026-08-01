@@ -23,7 +23,7 @@ import type {
   GitHubSourceState,
   ResolvedProviderConfig,
 } from "@oh-my-pm/providers";
-import type { ProviderConfigSource } from "./provider-config.js";
+import type { ProviderConfigSource } from "./node/provider-config.js";
 
 export type ProviderDiagnosticStatus = "ok" | "info" | "warning" | "fail";
 

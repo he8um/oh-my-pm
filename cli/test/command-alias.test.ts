@@ -12,7 +12,7 @@ import {
   LEGACY_CLI_COMMANDS,
   canonicalCommandForAlias,
   commandDeprecationWarning,
-} from "../src/command-surface.js";
+} from "@oh-my-pm/application";
 
 const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(pkgDir, "..");

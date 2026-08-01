@@ -2,6 +2,58 @@
 
 ## [Unreleased]
 
+## [0.5.1]
+
+Maintenance release. It fixes two internal problems and adds **no user-facing
+capability**: active documentation no longer matched the shipped product, and
+shared application logic lived inside the CLI package, forcing the MCP server to
+depend on the CLI to reuse it.
+
+**No public behavior changes.** No new command, no changed CLI syntax or output,
+no changed MCP tool or schema, no Project Brain schema change, no Project Memory
+format change, no storage path change, and **no migration is required**. It
+includes no Dashboard.
+
+### Added
+
+- `@oh-my-pm/application` — a private workspace package owning the shared
+  project, GitHub, provider-diagnostics, and Project Memory use cases, with two
+  export surfaces: the Node-free `@oh-my-pm/application` core and
+  `@oh-my-pm/application/node` for the read-only filesystem adapters.
+- `pnpm validate:docs` (`tools/validate-doc-truth.mjs`) — an active-document
+  truth validator that derives every expectation from `version.json`,
+  `command-surface.json`, the MCP tool registration sites, and the memory
+  subcommand allowlist. Included in `pnpm validate`.
+- Architecture guards in `tools/validate-boundaries.mjs` covering the
+  application dependency direction, the application process boundary, the
+  absence of HTTP/UI code, and the absence of any Dashboard package.
+- `docs/v0.5/v0.5.1-scope.md`, `docs/v0.5/application-boundary.md`,
+  `docs/releases/v0.5.1.md`, and `docs/releases/publishing-v0.5.1.md`.
+
+### Changed
+
+- The CLI is now a presentation adapter: argument parsing, help, terminal
+  rendering, exit-code mapping, and the process boundary. Shared orchestration
+  moved to the application package.
+- The MCP server consumes `@oh-my-pm/application` and **no longer depends on
+  `@oh-my-pm/cli`**. It retains MCP registration, input schemas, the strict
+  public projections, JSON-RPC transport, annotations, and stdout safety.
+- Active documentation corrected to match the shipped product: the README
+  source line and MCP tool count, the architecture document, both roadmaps, the
+  MCP and CLI references, the getting-started guide, the installer and Project
+  Memory package READMEs, the security model, and several source comments that
+  described shipped code as unbuilt. Historical documents were deliberately left
+  unchanged.
+- The v0.5 release workflow targets `0.5.1`; the base stable lineage stays
+  pinned to the published `v0.4.0`.
+
+### Release lineage
+
+`v0.5.0` was **never published** — no `v0.5.0` tag or GitHub release exists. It
+merged as a source candidate and is superseded by `v0.5.1`, which would be the
+first published stable of the v0.5 line. `v0.4.0` remains the latest published
+stable and the immutable base.
+
 ## [0.5.0]
 
 Stable release opening the v0.5 line. It changes **one** thing — the name you

@@ -157,7 +157,13 @@ type DeleteResultLike = { projectId: string; deleted: boolean };
 
 const DEFAULT_NOW = "2026-01-01T00:00:00.000Z";
 
-/** Ambient process accessor via globalThis indirection (see local-process.ts). */
+/**
+ * The process id, used only to derive a bounded operation id for the store's
+ * temporary staging names. This is the single ambient read outside the `node/`
+ * boundary, and it is deliberate: the value never leaves the store's internal
+ * naming, is never printed, and is never persisted in a Project Brain payload.
+ * Every caller may inject `processId` instead, and the tests always do.
+ */
 function ambientProcessId(): number {
   const proc = (globalThis as { process?: { pid?: number } }).process;
   return typeof proc?.pid === "number" ? proc.pid : 0;

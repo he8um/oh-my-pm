@@ -17,7 +17,7 @@ import type {
   MemoryHistoryOutcome,
   MemoryStatusOutcome,
   MemoryTimelineOutcome,
-} from "./memory-types.js";
+} from "@oh-my-pm/application";
 
 /** The stable exit code for a completed outcome (0 on success unless noted). */
 export function memoryOutcomeExitCode(outcome: MemoryCommandOutcome): number {

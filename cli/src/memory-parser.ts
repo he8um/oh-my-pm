@@ -21,14 +21,14 @@ import {
   MEMORY_SUBCOMMANDS,
   MEMORY_TIMELINE_CATEGORIES,
   MEMORY_TIMELINE_KINDS,
-} from "./memory-types.js";
+} from "@oh-my-pm/application";
 import type { ChangeCategory, StateItemKind } from "@oh-my-pm/contracts";
 import type {
   MemoryCliCommand,
   MemoryCliParseResult,
   MemoryLocale,
   MemorySubcommand,
-} from "./memory-types.js";
+} from "@oh-my-pm/application";
 
 const OMP_C_INVALID_OPTION = "OMP-C-3002";
 

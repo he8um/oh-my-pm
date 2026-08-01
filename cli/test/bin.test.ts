@@ -119,8 +119,13 @@ describe("local CLI process runner source", () => {
     for (const command of ["brief", "risks", "next", "handoff"]) {
       expect(localProcessSource).toContain(`"${command}"`);
     }
-    expect(localProcessSource).toContain("no markdown project documents matched under:");
-    expect(localProcessSource).toContain("invalid project config:");
+    // v0.5.1: the document load and its failure classification (including the
+    // exact "no markdown project documents matched under:" and "invalid project
+    // config:" messages) belong to @oh-my-pm/application. The CLI calls the
+    // shared classifier and renders its message rather than restating it.
+    expect(localProcessSource).toContain("loadLocalProjectDocuments");
+    expect(localProcessSource).toContain('from "@oh-my-pm/application"');
+    expect(localProcessSource).not.toContain("no markdown project documents matched under:");
   });
 
   it("does not write to process streams or read the environment or clock", () => {

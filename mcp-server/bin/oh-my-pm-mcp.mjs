@@ -14,7 +14,7 @@
 // interleave with protocol traffic. This wrapper duplicates no server logic: it
 // starts the same startOhMyPmMcpStdioServer as the canonical entrypoint.
 
-import { commandDeprecationWarning } from "@oh-my-pm/cli";
+import { commandDeprecationWarning } from "@oh-my-pm/application";
 
 import { startOhMyPmMcpStdioServer } from "../dist/index.js";
 

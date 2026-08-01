@@ -1,8 +1,8 @@
 import type { CliOutputMode } from "@oh-my-pm/contracts";
-import { formatCliError, formatRuntimeResponse } from "./format.js";
+import { formatCliError, formatRuntimeResponse } from "@oh-my-pm/application";
 import { formatInstallerPreview, runInstallerPreview } from "./install-preview.js";
 import { parseCliArgs } from "./parser.js";
-import { createGitHubRuntimeRequest, createRuntimeRequest } from "./request.js";
+import { createGitHubRuntimeRequest, createRuntimeRequest } from "@oh-my-pm/application";
 import type { CliDeps, CliExecutionResult, RuntimeRequestFactory } from "./types.js";
 
 export const OMP_C_RUNTIME_FAILED = "OMP-C-3003";

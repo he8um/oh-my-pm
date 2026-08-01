@@ -22,6 +22,12 @@ const read = (p) => readFileSync(p, "utf8");
 const RELEASE_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.5.yml");
 const wf = read(RELEASE_WORKFLOW);
 
+// The prepared version is DERIVED from version.json, never restated here: the
+// workflow must always target the version the source actually carries, and a
+// bump must not require editing this test. (v0.5.1 is the prepared version;
+// v0.5.0 merged but was never published.)
+const VERSION = JSON.parse(read(join(REPO_ROOT, "version.json"))).version;
+
 describe("v0.5 release workflow safety", () => {
   it("is manually dispatched only", () => {
     expect(/^on:\s*\n\s+workflow_dispatch:/m.test(wf)).toBe(true);
@@ -51,13 +57,13 @@ describe("v0.5 release workflow safety", () => {
   });
 
   it("gates publishing behind an exact confirmation, enforced twice", () => {
-    const gates = (wf.match(/RELEASE v0\.5\.0/g) ?? []).length;
+    const gates = (wf.match(new RegExp(`RELEASE v${VERSION.replace(/\./g, "\\.")}`, "g")) ?? []).length;
     expect(gates).toBeGreaterThanOrEqual(2);
     expect(wf.includes("inputs.publish == true")).toBe(true);
   });
 
   it("pins the version and refuses any other", () => {
-    expect(wf.includes('!= "0.5.0"')).toBe(true);
+    expect(wf.includes(`!= "${VERSION}"`)).toBe(true);
   });
 
   it("refuses to overwrite an existing tag or release", () => {
@@ -132,11 +138,11 @@ describe("v0.5 release workflow validates the command surface", () => {
 
 describe("v0.5 preserves product identity in release artifacts", () => {
   it("keeps archive names product-based, not command-based", () => {
-    expect(wf.includes("oh-my-pm-v0.5.0.tar.gz")).toBe(true);
-    expect(wf.includes("oh-my-pm-v0.5.0.zip")).toBe(true);
-    expect(wf.includes("oh-my-pm-v0.5.0-SHA256SUMS.txt")).toBe(true);
+    expect(wf.includes(`oh-my-pm-v${VERSION}.tar.gz`)).toBe(true);
+    expect(wf.includes(`oh-my-pm-v${VERSION}.zip`)).toBe(true);
+    expect(wf.includes(`oh-my-pm-v${VERSION}-SHA256SUMS.txt`)).toBe(true);
     // The migration must never rename release artifacts.
-    expect(wf.includes("ohmypm-v0.5.0")).toBe(false);
+    expect(wf.includes(`ohmypm-v${VERSION}`)).toBe(false);
   });
 
   it("asserts the bundle name stays product-based", () => {

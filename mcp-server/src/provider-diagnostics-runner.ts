@@ -10,14 +10,11 @@
 import {
   buildOfflineDoctorReport,
   buildProviderStatusReport,
-  loadProviderConfig,
   runGitHubProviderNetworkDiagnostic,
-} from "@oh-my-pm/cli";
-import type {
-  ProviderConfigResolutionInput,
-  ProviderDoctorReport,
-  ProviderStatusReport,
-} from "@oh-my-pm/cli";
+} from "@oh-my-pm/application";
+import type { ProviderDoctorReport, ProviderStatusReport } from "@oh-my-pm/application";
+import { loadProviderConfig, readGitHubTokenFromEnvironment } from "@oh-my-pm/application/node";
+import type { ProviderConfigResolutionInput } from "@oh-my-pm/application/node";
 import { describeKernelBinding, createNodeWasmKernelApi } from "@oh-my-pm/kernel";
 import {
   createNodeGitHubHttpTransport,
@@ -25,7 +22,6 @@ import {
   resolveGitHubProviderSettings,
 } from "@oh-my-pm/providers";
 import type { GitHubHttpTransport, ResolvedProviderConfig } from "@oh-my-pm/providers";
-import { readGitHubTokenFromEnvironment } from "@oh-my-pm/cli";
 
 export const MCP_PROVIDER_DIAGNOSTICS_VERSION = "0.3.0";
 

@@ -27,10 +27,14 @@ export type {
   RuntimePlanNodeResult,
 } from "./types.js";
 
-// v0.3 Phase 3: the separate Project Brain Runtime API (capture/compare). This
-// is a workspace/programmatic surface only; the existing createRuntime() and
-// Runtime.handle() behavior above is unchanged, and no CLI or MCP surface
-// invokes the Project Brain Runtime.
+// The separate Project Brain Runtime API (capture/compare/timeline), added in
+// v0.3 Phase 3 and shipped since v0.3.0. It is reached through the application
+// layer's memory orchestrator, which backs the seven `ohmypm memory`
+// subcommands and the read-only project_changes and project_timeline MCP tools.
+//
+// The existing createRuntime() and Runtime.handle() behavior above is separate
+// and unchanged: Runtime.handle() still dispatches only status, doctor, and
+// plan, and never learns a capture or compare request kind.
 export {
   createProjectBrainRuntime,
   createProviderRegistryObservationPort,

@@ -34,8 +34,8 @@ import {
   MEMORY_SUBCOMMANDS,
   MEMORY_TIMELINE_CATEGORIES,
   MEMORY_TIMELINE_KINDS,
-} from "../src/memory-types.js";
-import type { MemoryTimelineCommand } from "../src/memory-types.js";
+} from "@oh-my-pm/application";
+import type { MemoryTimelineCommand } from "@oh-my-pm/application";
 
 // --- parser ----------------------------------------------------------------
 

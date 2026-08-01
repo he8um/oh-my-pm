@@ -58,8 +58,99 @@ jobs:
       - name: Validate
         run: pnpm validate
 
+      # pnpm validate already runs both of these. They are re-run as named steps
+      # so a documentation-truth or architecture-boundary regression is
+      # attributable on its own in the checks list, instead of being reported as
+      # a generic "Validate" failure.
+      - name: Validate documentation truth
+        run: pnpm validate:docs
+
+      - name: Validate application boundaries
+        run: pnpm validate:boundaries
+
+      # v0.5.1: the dependency direction is the point of the application
+      # boundary, so it is asserted directly in CI and not only in unit tests.
+      - name: Application boundary parity
+        run: |
+          # The MCP server must not depend on the CLI, in the manifest or in
+          # any source or bin file.
+          node -e '
+            const pkg = require("./mcp-server/package.json");
+            for (const field of ["dependencies", "peerDependencies", "optionalDependencies"]) {
+              if (pkg[field] && Object.hasOwn(pkg[field], "@oh-my-pm/cli")) {
+                console.error(`mcp-server/package.json ${field} still contains @oh-my-pm/cli`);
+                process.exit(1);
+              }
+            }
+            if (!pkg.dependencies?.["@oh-my-pm/application"]) {
+              console.error("mcp-server must depend on @oh-my-pm/application");
+              process.exit(1);
+            }
+          '
+          if grep -rn '"@oh-my-pm/cli"' mcp-server/src mcp-server/bin; then
+            echo "mcp-server still imports @oh-my-pm/cli" >&2
+            exit 1
+          fi
+          # The application layer must depend on no presentation package.
+          if grep -rn '"@oh-my-pm/\(cli\|mcp-server\|installer\|distribution\)"' application/src; then
+            echo "application imports a presentation/installer/distribution package" >&2
+            exit 1
+          fi
+          # The application layer owns no process boundary and no server. The
+          # authoritative check is in validate-boundaries (section 10), which
+          # strips comments first -- the package's own documentation names the
+          # very APIs it forbids, so a plain grep would false-positive here.
+          # v0.5.1 implements no Dashboard.
+          for dir in dashboard web ui frontend desktop; do
+            if [ -d "$dir" ]; then
+              echo "unexpected presentation package: $dir/" >&2
+              exit 1
+            fi
+          done
+
+      - name: Application package tests
+        run: pnpm --filter @oh-my-pm/application test
+
       - name: MCP smoke
         run: pnpm mcp:smoke
+
+      # The twelve-tool surface and its exact order are a client-facing
+      # contract. mcp:smoke asserts them from a live server; this step also
+      # proves the CLI renders identically after the application refactor.
+      - name: CLI behavior parity
+        run: |
+          FIXTURE=examples/fixtures/markdown-project
+          # Deterministic: the same command twice must be byte-identical.
+          node cli/bin/ohmypm.mjs brief "$FIXTURE" --json > "$RUNNER_TEMP/brief-1.json"
+          node cli/bin/ohmypm.mjs brief "$FIXTURE" --json > "$RUNNER_TEMP/brief-2.json"
+          diff "$RUNNER_TEMP/brief-1.json" "$RUNNER_TEMP/brief-2.json"
+          node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' "$RUNNER_TEMP/brief-1.json"
+          # Every read-only workflow exits 0 and writes nothing to stderr.
+          for cmd in status doctor; do
+            node cli/bin/ohmypm.mjs "$cmd" > /dev/null 2> "$RUNNER_TEMP/$cmd.err"
+            test ! -s "$RUNNER_TEMP/$cmd.err"
+          done
+          for cmd in brief risks next handoff; do
+            node cli/bin/ohmypm.mjs "$cmd" "$FIXTURE" > /dev/null 2> "$RUNNER_TEMP/$cmd.err"
+            test ! -s "$RUNNER_TEMP/$cmd.err"
+          done
+          node cli/bin/ohmypm.mjs providers status > /dev/null 2> "$RUNNER_TEMP/providers.err"
+          test ! -s "$RUNNER_TEMP/providers.err"
+          # The memory namespace still resolves all seven subcommands.
+          node cli/bin/ohmypm.mjs memory --help > "$RUNNER_TEMP/memory-help.txt"
+          for sub in capture changes status history export delete timeline; do
+            grep -q "$sub" "$RUNNER_TEMP/memory-help.txt" || {
+              echo "memory help lost the $sub subcommand" >&2
+              exit 1
+            }
+          done
+          # A missing root fails closed with exit 2 and a sanitized message.
+          if node cli/bin/ohmypm.mjs brief ./definitely-not-a-real-root > /dev/null 2> "$RUNNER_TEMP/missing.err"; then
+            echo "a missing project root must fail" >&2
+            exit 1
+          fi
+          grep -q "project root was not found" "$RUNNER_TEMP/missing.err"
+          test -z "$(git status --porcelain)"
 
       - name: Local install smoke (canonical commands)
         run: |

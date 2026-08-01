@@ -9,18 +9,11 @@ import { describe, expect, it } from "vitest";
 
 const srcDir = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
 
-// The Markdown project document loader and the project configuration loader
-// are the explicit Node read-only boundaries in the CLI package: they may
-// import node:fs and node:path to read, but they must never write, spawn, or
-// reach the network. The pure document-rule module has no Node imports.
-const NODE_BOUNDARY_FILE = "node-project-documents.ts";
-const NODE_BOUNDARY_FILES = new Set([
-  NODE_BOUNDARY_FILE,
-  "project-config.ts",
-  "provider-config.ts",
-  // The mcp-config existence probe: one read-only lstat, no content read.
-  "mcp-config-resolve.ts",
-]);
+// v0.5.1: the Markdown document loader, the project configuration loader, and
+// the provider configuration loader moved to @oh-my-pm/application/node, which
+// enforces its own boundary. The only Node read boundary left in the CLI is the
+// mcp-config existence probe: one read-only lstat, no content read.
+const NODE_BOUNDARY_FILES = new Set(["mcp-config-resolve.ts"]);
 
 // The CLI process adapter is the approved GitHub boundary: only it may read the
 // ambient environment (for the optional OH_MY_PM_GITHUB_TOKEN) and construct the
@@ -28,13 +21,9 @@ const NODE_BOUNDARY_FILES = new Set([
 // command. It is still forbidden filesystem writes and all other I/O markers.
 const GITHUB_BOUNDARY_FILE = "local-process.ts";
 
-// The memory process boundary composes the Project Brain Runtime and the Phase 2
-// store (lazily imported on the memory path only). It performs no direct
-// filesystem I/O, network, nondeterminism, or logging itself. It legitimately
-// names the store's read-only `verify`/`sign`-free method surface, so the
-// `verify(` marker (a Phase 2 integrity method name) is not a purity concern
-// here; every real I/O/nondeterminism marker still applies.
-const MEMORY_BOUNDARY_FILE = "memory-process.ts";
+// v0.5.1: the memory process boundary moved to @oh-my-pm/application, which
+// enforces its own boundary. The CLI now only parses the memory grammar and
+// renders the typed outcome.
 
 const FS_READ_IMPORTS = [
   'from "fs"',
@@ -122,29 +111,6 @@ describe("cli purity", () => {
           "executeInstall",
           "executeRollback",
         ];
-      } else if (file === MEMORY_BOUNDARY_FILE) {
-        // The memory boundary must never write files, spawn, fetch, read a
-        // real clock, or log. The Phase 2 store's `verify(`/`sign(` method names
-        // are not I/O markers here, so they are excluded from this list.
-        forbiddenForFile = [
-          ...WRITE_APIS,
-          "process.env",
-          "process.exit",
-          "child_process",
-          "fetch(",
-          "XMLHttpRequest",
-          "Date.now",
-          "new Date",
-          "Math.random",
-          "console.",
-          "http://",
-          "https://",
-          "publish",
-          "upload",
-          "download",
-          "executeInstall",
-          "executeRollback",
-        ];
       } else if (NODE_BOUNDARY_FILES.has(file)) {
         forbiddenForFile = [...FORBIDDEN, ...WRITE_APIS];
       } else {
@@ -156,11 +122,35 @@ describe("cli purity", () => {
     }
   });
 
-  it("keeps the node boundary file read-only and network-free", () => {
-    const contents = readFileSync(join(srcDir, NODE_BOUNDARY_FILE), "utf8");
-    for (const forbidden of ["node:http", "node:https", "node:net", "node:child_process"]) {
-      expect(contents, `boundary must not contain "${forbidden}"`).not.toContain(forbidden);
+  it("keeps the remaining node boundary read-only and network-free", () => {
+    for (const file of NODE_BOUNDARY_FILES) {
+      const contents = readFileSync(join(srcDir, file), "utf8");
+      for (const forbidden of ["node:http", "node:https", "node:net", "node:child_process"]) {
+        expect(contents, `${file} must not contain "${forbidden}"`).not.toContain(forbidden);
+      }
+      expect(contents, `${file} should be the read-only fs boundary`).toContain('from "node:fs"');
     }
-    expect(contents).toContain('from "node:fs"');
+  });
+
+  it("no longer owns shared project loading or memory orchestration", () => {
+    // v0.5.1: these responsibilities live in @oh-my-pm/application. If a file
+    // with one of these names reappears under cli/src, application logic is
+    // being reintroduced into the presentation adapter.
+    const files = new Set(readdirSync(srcDir));
+    for (const moved of [
+      "node-project-documents.ts",
+      "project-config.ts",
+      "provider-config.ts",
+      "project-document-rules.ts",
+      "provider-diagnostics.ts",
+      "memory-process.ts",
+      "memory-project.ts",
+      "memory-preview.ts",
+      "memory-types.ts",
+      "request.ts",
+      "github-token.ts",
+    ]) {
+      expect(files.has(moved), `${moved} belongs to @oh-my-pm/application`).toBe(false);
+    }
   });
 });

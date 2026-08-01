@@ -8,7 +8,7 @@ import type { CliOutputMode } from "@oh-my-pm/contracts";
 import type {
   ProviderDoctorReport,
   ProviderStatusReport,
-} from "./provider-diagnostics.js";
+} from "@oh-my-pm/application";
 
 // All user-controlled values are rendered inside inline code spans, where the
 // only character that can break out is a backtick. Replacing backticks with a

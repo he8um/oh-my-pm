@@ -6,7 +6,7 @@ import type {
   GitHubSourceState,
 } from "@oh-my-pm/providers";
 import type { Runtime } from "@oh-my-pm/runtime";
-import type { MemoryCliCommand } from "./memory-types.js";
+import type { MemoryCliCommand } from "@oh-my-pm/application";
 
 export type CliCommand =
   | "status"

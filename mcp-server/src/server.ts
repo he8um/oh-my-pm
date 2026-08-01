@@ -1,4 +1,4 @@
-import type { ProviderDoctorReport, ProviderStatusReport } from "@oh-my-pm/cli";
+import type { ProviderDoctorReport, ProviderStatusReport } from "@oh-my-pm/application";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -38,7 +38,7 @@ import type {
 } from "./types.js";
 
 export const OH_MY_PM_MCP_SERVER_NAME = "oh-my-pm";
-export const OH_MY_PM_MCP_SERVER_VERSION = "0.5.0";
+export const OH_MY_PM_MCP_SERVER_VERSION = "0.5.1";
 
 // --- Public structured result shapes -------------------------------------
 
@@ -454,7 +454,7 @@ export type CreateOhMyPmMcpServerOptions = {
    * The read-only Project Brain compare executor (Phase 5). When supplied, the
    * server registers the eleventh tool, `project_changes`, appended AFTER the
    * existing ten. When absent, the server preserves its exact ten-tool surface —
-   * the intended behavior for the legacy/current v0.2 bundle where Project
+   * the intended behavior for the historical v0.2 bundle where Project
    * Memory is not packaged.
    */
   executeProjectChanges?: McpProjectChangesExecutor;
@@ -1162,7 +1162,7 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
   const executeProjectTimeline = options?.executeProjectTimeline;
 
   // The ten-tool fallback server keeps its historical instruction. The
-  // capability server (eleven tools) states the accurate posture, including that
+  // capability server (twelve tools) states the accurate posture, including that
   // project_changes reads previously captured memory and that not every tool
   // requires a project root.
   const instructions =

@@ -508,9 +508,12 @@ for (const file of trackedFiles) {
 // but they must never gain a filesystem write path, network access,
 // child-process execution, or telemetry/logging of document content.
 const NODE_CLI_BOUNDARY_FILES = [
-  "cli/src/node-project-documents.ts",
-  "cli/src/project-config.ts",
-  "cli/src/provider-config.ts",
+  // v0.5.1: the read-only project/provider config and document loaders moved to
+  // the application package's explicit Node boundary. They are held to exactly
+  // the same rules there.
+  "application/src/node/project-documents.ts",
+  "application/src/node/project-config.ts",
+  "application/src/node/provider-config.ts",
   "cli/src/mcp-config-resolve.ts",
   "cli/bin/ohmypm.mjs",
   // v0.5: the deprecated compatibility alias is held to the same boundary rules
@@ -1074,7 +1077,12 @@ const GITHUB_NETWORK_BOUNDARY = new Set([
 // boundary (CLI adapter, CLI token helper, MCP runner, manual smoke).
 const GITHUB_TOKEN_ENV_ALLOWED = new Set([
   "cli/src/local-process.ts",
-  "cli/src/github-token.ts",
+  // v0.5.1: the token boundary moved to the application Node surface; the CLI
+  // index re-exports its public constant.
+  "application/src/node/github-token.ts",
+  "application/src/node/index.ts",
+  "application/src/node/deps.ts",
+  "cli/src/index.ts",
   "mcp-server/src/github-tool-runner.ts",
   "tools/check-github-provider-live.mjs",
   "tools/validate-boundaries.mjs",
@@ -1098,8 +1106,10 @@ const GITHUB_TOKEN_ENV_ALLOWED = new Set([
 // prose, and this validator. It is never read for local-only commands.
 const PROVIDER_CONFIG_ENV_NAME = "OH_MY_PM_PROVIDER_CONFIG";
 const PROVIDER_CONFIG_ENV_ALLOWED = new Set([
-  "cli/src/provider-config.ts",
-  // Barrel re-export of the loader's public constant.
+  // v0.5.1: the read-only loader lives on the application Node surface.
+  "application/src/node/provider-config.ts",
+  // Barrel re-exports of the loader's public constant.
+  "application/src/node/index.ts",
   "cli/src/index.ts",
   "tools/validate-boundaries.mjs",
   "tools/release-bundle-utils.mjs",
@@ -2281,11 +2291,11 @@ if (trackedFiles.includes("kernel/crate/Cargo.toml")) {
 }
 // Version guard: version.json carries the prepared source version. The v0.4
 // Project Timeline line reached the stable 0.4.0; the v0.5 CLI command namespace
-// line then promoted the source to 0.5.0 once the migration was implemented and
-// green. The value must be exactly this prepared version (all package manifests
-// and the runtime version constants are checked against it by
-// check-version-consistency).
-const EXPECTED_SOURCE_VERSION = "0.5.0";
+// line promoted the source to 0.5.0, which merged but was never published; the
+// v0.5.1 maintenance release then promoted it to 0.5.1. The value must be
+// exactly this prepared version (all package manifests and the runtime version
+// constants are checked against it by check-version-consistency).
+const EXPECTED_SOURCE_VERSION = "0.5.1";
 if (trackedFiles.includes("version.json")) {
   const version = JSON.parse(readFileSync("version.json", "utf8")).version;
   if (version !== EXPECTED_SOURCE_VERSION) {
@@ -2540,6 +2550,10 @@ if (trackedFiles.includes("project-memory/package.json")) {
 // genuinely absent (the historical v0.2 bundle), the lazy load falls back to the
 // exact ten-tool surface.
 const PROJECT_MEMORY_RUNTIME_DEP_ALLOWED = new Set([
+  // v0.5.1: the application package owns the memory orchestration and reaches
+  // the adapter through the same lazy dynamic import. CLI and MCP keep the
+  // runtime dependency so the self-contained bundle still ships it.
+  "application/package.json",
   "cli/package.json",
   "mcp-server/package.json",
 ]);
@@ -2585,7 +2599,10 @@ for (const file of trackedFiles) {
 // which excludes the package, still starts with the exact ten tools). Any other
 // production reference, or a static import in a lazy boundary, is a leak.
 const PROJECT_MEMORY_LAZY_BOUNDARIES = new Set([
-  "cli/src/memory-process.ts",
+  // v0.5.1: the memory orchestrator moved to the application package and keeps
+  // the identical lazy-load rule, so a bundle profile without Project Memory
+  // still starts and falls back safely.
+  "application/src/memory-process.ts",
   "mcp-server/src/project-changes-loader.ts",
   "mcp-server/src/project-changes-runner.ts",
   // v0.4: the project_timeline capability follows the identical lazy-load rule.
@@ -3105,6 +3122,166 @@ if (trackedFiles.includes("mcp-server/src/server.ts")) {
     if (/destructiveHint:\s*true/.test(server)) {
       err("mcp-server/src/server.ts must not declare a destructive MCP tool");
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 10. v0.5.1 application boundary.
+//
+// CLI, MCP, and any future presentation surface are adapters over the same
+// application use cases. These guards fail closed if that direction inverts, if
+// the application layer grows a process/server capability, or if shared
+// orchestration is reintroduced into a presentation package.
+// ---------------------------------------------------------------------------
+
+const APPLICATION_SRC = trackedFiles.filter(
+  (f) => f.startsWith("application/src/") && f.endsWith(".ts"),
+);
+const CLI_SRC = trackedFiles.filter((f) => f.startsWith("cli/src/") && f.endsWith(".ts"));
+const MCP_SRC = trackedFiles.filter((f) => f.startsWith("mcp-server/src/") && f.endsWith(".ts"));
+
+/** Source with line and block comments removed, so prose never trips a check. */
+function codeOf(file) {
+  return readFileSync(file, "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^[ \t]*\/\/.*$/gm, "");
+}
+
+// 10a. Application must not import a presentation, installer, or distribution
+// package. A third surface must be able to consume it without inheriting a CLI.
+for (const file of APPLICATION_SRC) {
+  const code = codeOf(file);
+  for (const forbidden of [
+    "@oh-my-pm/cli",
+    "@oh-my-pm/mcp-server",
+    "@oh-my-pm/installer",
+    "@oh-my-pm/distribution",
+  ]) {
+    if (code.includes(`"${forbidden}"`)) {
+      err(`${file} must not import ${forbidden} (application is below every presentation surface)`);
+    }
+  }
+}
+
+// 10b. MCP must not import CLI, and the two adapters must not import each other.
+for (const file of MCP_SRC.concat(
+  trackedFiles.filter((f) => f.startsWith("mcp-server/bin/") && f.endsWith(".mjs")),
+)) {
+  if (codeOf(file).includes('"@oh-my-pm/cli"')) {
+    err(`${file} must not import @oh-my-pm/cli (use @oh-my-pm/application)`);
+  }
+}
+for (const file of CLI_SRC.concat(
+  trackedFiles.filter((f) => f.startsWith("cli/bin/") && f.endsWith(".mjs")),
+)) {
+  if (codeOf(file).includes('"@oh-my-pm/mcp-server"')) {
+    err(`${file} must not import @oh-my-pm/mcp-server`);
+  }
+}
+for (const manifest of ["mcp-server/package.json", "cli/package.json"]) {
+  if (!trackedFiles.includes(manifest)) continue;
+  const pkg = JSON.parse(readFileSync(manifest, "utf8"));
+  const other = manifest.startsWith("mcp-server") ? "@oh-my-pm/cli" : "@oh-my-pm/mcp-server";
+  for (const field of ["dependencies", "peerDependencies", "optionalDependencies"]) {
+    if (pkg[field] && Object.hasOwn(pkg[field], other)) {
+      err(`${manifest} ${field} must not contain ${other}`);
+    }
+  }
+  if (!pkg.dependencies || !Object.hasOwn(pkg.dependencies, "@oh-my-pm/application")) {
+    err(`${manifest} must depend on @oh-my-pm/application`);
+  }
+}
+
+// 10c. Application owns no process boundary: no argv, no stdout/stderr writes,
+// no exit code. Those belong to whichever surface invokes it.
+for (const file of APPLICATION_SRC) {
+  const code = codeOf(file);
+  for (const marker of [
+    "process.argv",
+    "process.stdout",
+    "process.stderr",
+    "process.exit",
+    "console.log",
+    "console.error",
+    "console.warn",
+  ]) {
+    if (code.includes(marker)) {
+      err(`${file} must not use ${marker} (the application layer owns no process boundary)`);
+    }
+  }
+}
+
+// 10d. Application contains no HTTP server and no rendered UI. v0.5.1 prepares
+// for a future Dashboard; it does not implement one.
+for (const file of APPLICATION_SRC) {
+  const code = codeOf(file);
+  for (const marker of [
+    "node:http",
+    "node:https",
+    "createServer",
+    ".listen(",
+    "<!DOCTYPE",
+    "<html",
+    "React",
+    "createRoot",
+  ]) {
+    if (code.includes(marker)) {
+      err(`${file} must not contain ${marker} (no HTTP server or UI in the application layer)`);
+    }
+  }
+}
+
+// 10e. No Dashboard/web/UI package exists yet. v0.6 will add one behind the
+// application boundary; until then a top-level UI package is out of scope.
+{
+  const uiFolders = new Set(
+    trackedFiles.filter((f) => f.includes("/")).map((f) => f.split("/")[0]),
+  );
+  for (const folder of ["dashboard", "web", "ui", "frontend", "desktop", "app"]) {
+    if (uiFolders.has(folder)) {
+      err(`unexpected presentation package "${folder}/": v0.5.1 implements no Dashboard`);
+    }
+  }
+  for (const manifest of trackedFiles.filter((f) => /(^|\/)package\.json$/.test(f))) {
+    if (manifest.startsWith("node_modules/")) continue;
+    const pkg = JSON.parse(readFileSync(manifest, "utf8"));
+    for (const field of ["dependencies", "peerDependencies"]) {
+      for (const dep of Object.keys(pkg[field] ?? {})) {
+        if (/^(react|react-dom|vite|@tauri-apps\/|electron|next|svelte|vue)/.test(dep)) {
+          err(`${manifest} ${field} must not add the UI dependency "${dep}" in v0.5.1`);
+        }
+      }
+    }
+  }
+}
+
+// 10f. Shared project loading is not duplicated between CLI and MCP. Both must
+// reach it through the application package; neither may re-implement the
+// Node document loader or restate the shared classification messages.
+for (const file of CLI_SRC.concat(MCP_SRC)) {
+  // Colocated test files may read their own fixtures; this rule is about
+  // production source re-implementing the shared loader.
+  if (file.endsWith(".test.ts")) continue;
+  // The mcp-config existence probe is the CLI's one remaining read-only stat
+  // boundary; it reads no file content.
+  if (file.endsWith("mcp-config-resolve.ts")) continue;
+  if (/from\s+["']node:fs["']/.test(codeOf(file))) {
+    err(`${file} must not read the filesystem directly (use @oh-my-pm/application/node)`);
+  }
+}
+
+// 10g. The CLI is not the owner of Project Memory orchestration. It may parse
+// the grammar and render the outcome; the orchestrator lives in application.
+for (const file of CLI_SRC) {
+  const code = codeOf(file);
+  if (code.includes('import("@oh-my-pm/project-memory")')) {
+    err(`${file} must not load the Project Memory adapter (application owns that orchestration)`);
+  }
+}
+if (trackedFiles.includes("application/src/memory-process.ts")) {
+  const orchestrator = codeOf("application/src/memory-process.ts");
+  if (!orchestrator.includes('import("@oh-my-pm/project-memory")')) {
+    err("application/src/memory-process.ts must own the lazy Project Memory import");
   }
 }
 

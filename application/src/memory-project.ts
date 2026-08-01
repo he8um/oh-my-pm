@@ -8,8 +8,8 @@
 
 import type { LocalProviderItemInput } from "@oh-my-pm/providers";
 import type { ProjectObservationRequest } from "@oh-my-pm/runtime";
-import { loadConfiguredMarkdownProjectDocuments } from "./project-config.js";
-import type { ConfiguredProjectDocumentLoadResult } from "./project-config.js";
+import { loadConfiguredMarkdownProjectDocuments } from "./node/project-config.js";
+import type { ConfiguredProjectDocumentLoadResult } from "./node/project-config.js";
 import { validateProjectId } from "./project-document-rules.js";
 
 /** The required local-Markdown observation contract for capture. */

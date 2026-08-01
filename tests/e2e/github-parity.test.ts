@@ -1,5 +1,10 @@
 // Offline fake-transport end-to-end for the GitHub provider: CLI and MCP paths
 // exercised for all four operations against fictional fixtures. No live network.
+//
+// Located in tests/e2e rather than inside a package: it compares the CLI and
+// MCP surfaces against each other, so it must not force either package to
+// depend on the other. v0.5.1 moved it here when the MCP server dropped its
+// @oh-my-pm/cli dependency.
 
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -8,7 +13,7 @@ import { runLocalCliProcess } from "@oh-my-pm/cli";
 import type { GitHubHttpRequest, GitHubHttpResponse, GitHubHttpTransport } from "@oh-my-pm/providers";
 import { defaultProviderConfig } from "@oh-my-pm/providers";
 import { describe, expect, it } from "vitest";
-import { executeMcpGitHubTool } from "../src/index.js";
+import { executeMcpGitHubTool } from "@oh-my-pm/mcp-server";
 
 // Injected so these offline e2e runs never read the developer's real config.
 const OFFLINE_CONFIG = defaultProviderConfig();

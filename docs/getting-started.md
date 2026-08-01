@@ -7,7 +7,7 @@ The source tree is at version `0.5.0` (the v0.5 CLI command namespace line, prep
 There are two ways to run OH MY PM:
 
 1. **Repository development installation** — clone, build, and install command shims from the repository (below). At the current source line this builds `0.5.0`.
-2. **Release archive** — download the published [`v0.2.0`](#installing-the-stable-v020-release) stable bundle, or the [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) prerelease; both need only Node.js 20+. Contributors can also [build a development bundle from `main`](#building-a-development-bundle-from-main).
+2. **Release archive** — download the published [`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0) stable bundle, which needs only Node.js 20+. Contributors can also [build a development bundle from `main`](#building-a-development-bundle-from-main).
 
 ## Requirements
 
@@ -90,7 +90,7 @@ Make the change permanent through your own shell configuration if you want it to
 pnpm local:check -- --prefix "$HOME/.local"
 ```
 
-The verifier is read-only. It confirms the four shims exist with the exact expected content (and, on POSIX platforms, that the two POSIX shims are executable — Windows uses `.cmd` shims and has no executable bit), runs the installed CLI (`status` and a fixture `brief`), and drives the installed MCP command over stdio (lists the four tools and calls `project_brief`).
+The verifier is read-only. It confirms the eight shims exist with the exact expected content — four canonical and four deprecated aliases, each as a POSIX shim plus a Windows `.cmd` shim — and, on POSIX platforms, that the POSIX shims are executable (Windows has no executable bit). It then runs the installed CLI (`status` and a fixture `brief`) and drives the installed MCP command over stdio (lists the twelve read-only tools and calls `project_brief`).
 
 ## CLI workflows
 
@@ -205,7 +205,7 @@ write nothing. Then:
 - reload or restart the client as that client requires
 - do not place a project path in the server configuration
 - pass the project `root` when invoking a local tool
-- exactly eleven read-only tools are available: `project_brief`, `project_risks`, `project_next`, `project_handoff`, `github_project_brief`, `github_project_risks`, `github_project_next`, `github_project_handoff`, `provider_status`, `github_provider_diagnostics`, `project_changes`
+- exactly twelve read-only tools are available, and zero write tools: `project_brief`, `project_risks`, `project_next`, `project_handoff`, `github_project_brief`, `github_project_risks`, `github_project_next`, `github_project_handoff`, `provider_status`, `github_provider_diagnostics`, `project_changes`, `project_timeline`
 - the four local tools stay filesystem-local; the four GitHub tools perform read-only outbound API requests only when called; `provider_status` is offline and `github_provider_diagnostics` reaches the network only with `confirmNetwork: true`
 - supply `OH_MY_PM_GITHUB_TOKEN` and (optionally) `OH_MY_PM_PROVIDER_CONFIG` to the MCP server process environment only if you need them — the generator never inserts secrets or a config path
 
@@ -225,7 +225,14 @@ A GitHub tool takes a repository and an optional limit:
 { "repository": "owner/repository", "limit": 50 }
 ```
 
-## Installing the stable v0.2.0 release
+## Installing a published stable release
+
+The latest published stable release is
+[`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0). The steps
+below use `v0.2.0` as a worked example of the archive layout, which is identical
+across releases — substitute the version you downloaded.
+
+### Historical worked example (v0.2.0)
 
 The latest stable release is published at:
 
@@ -246,14 +253,14 @@ node ./oh-my-pm-v0.2.0/bin/ohmypm-install.mjs --prefix "$HOME/.local"
 node ./oh-my-pm-v0.2.0/bin/ohmypm-install.mjs --prefix "$HOME/.local" --apply
 
 export PATH="$HOME/.local/bin:$PATH"           # add it yourself; the installer never edits PATH
-ohmypm status                                # reports version 0.2.0, kernel 0.2.0
+ohmypm status                                # reports the installed version and kernel
 ```
 
-Each archive expands to a single `oh-my-pm-v0.2.0/` directory. See [the v0.2.0 release notes](releases/v0.2.0.md), [the post-stable closure report](releases/v0.2.0-post-stable-closure.md), and [the v0.2.x maintenance policy](releases/v0.2.x-maintenance-policy.md). The [full self-installer walkthrough](#self-installing-a-v02-development-bundle) covers preview/apply/force semantics and the installed layout. The earlier [`v0.1.0` release](releases/v0.1.0.md) remains available as a preserved historical stable.
+Each archive expands to a single `oh-my-pm-v0.2.0/` directory. See [the v0.2.0 release notes](releases/v0.2.0.md), [the post-stable closure report](releases/v0.2.0-post-stable-closure.md), and [the v0.2.x maintenance policy](releases/v0.2.x-maintenance-policy.md). The [full self-installer walkthrough](#self-installing-a-development-bundle) covers preview/apply/force semantics and the installed layout. The earlier [`v0.1.0` release](releases/v0.1.0.md) remains available as a preserved historical stable.
 
 ## Building a development bundle from main
 
-The `v0.2` scope is frozen and the source version is `0.2.0` (published as the latest stable; the `v0.2.x` line is maintenance-only). Contributors can assemble a self-contained, versioned bundle whose name is derived from `version.json`:
+Contributors can assemble a self-contained, versioned bundle whose name is derived from [`version.json`](../version.json). The examples below show `0.2.0` paths; substitute the version in `version.json` for your checkout:
 
 ```bash
 pnpm build
@@ -277,19 +284,19 @@ pnpm release:archives -- --bundle .release/oh-my-pm-v0.2.0 --output .release --a
 pnpm release:archives:check -- --assets .release
 ```
 
-Stable `0.2.0` is published as the latest stable release; these locally assembled bundles produce the same artifact shape. Publication was performed through the manually gated `Release v0.2 Stable` workflow after a separate approval — see [the stable publishing guide](releases/publishing-v0.2.0.md) and [the post-stable closure report](releases/v0.2.0-post-stable-closure.md).
+Locally assembled bundles produce the same artifact shape as a published release. Each stable publication is performed through a manually gated release workflow after a separate approval — see, for the v0.2 line, [the stable publishing guide](releases/publishing-v0.2.0.md) and [the post-stable closure report](releases/v0.2.0-post-stable-closure.md).
 
 > **Temporary-workspace safety.** Development and verification commands must clean only a uniquely created OH MY PM workspace. Never delete the parent of an installation prefix or the shared system temporary directory. When scripting an end-to-end check, create one owned root (for example `mktemp -d "${TMPDIR:-/tmp}/oh-my-pm-e2e.XXXXXX"`), place every generated path beneath it, and remove only that exact root. Deleting the inferred parent of a generated prefix is unsafe: when the prefix sits directly under the system temp directory, its parent is the shared temp root.
 
-## Self-installing a v0.2 development bundle
+## Self-installing a development bundle
 
 There are three distinct ways to run OH MY PM, in increasing independence from a repository checkout:
 
-1. **Stable v0.2.0 archive** — download, verify checksums, extract, and run the shipped preview-first installer (see [Installing the stable v0.2.0 release](#installing-the-stable-v020-release)). The earlier v0.1.0 archive has no installer; run its `node ./oh-my-pm-v0.1.0/bin/*.mjs` entrypoints directly.
-2. **Repository-development install** — from a checkout, `pnpm local:install -- --prefix <prefix> --apply` writes four shims that point back into the repository (see [Apply local installation](#apply-local-installation)).
-3. **v0.2 bundle self-installation** — extract a portable `0.2.0` bundle and run its own installer, which copies a complete, versioned, source-independent installation into an explicit prefix.
+1. **Published stable archive** — download, verify checksums, extract, and run the shipped preview-first installer (see [Installing a published stable release](#installing-a-published-stable-release)). The earliest v0.1.0 archive has no installer; run its `node ./oh-my-pm-v0.1.0/bin/*.mjs` entrypoints directly.
+2. **Repository-development install** — from a checkout, `pnpm local:install -- --prefix <prefix> --apply` writes eight shims that point back into the repository (see [Apply local installation](#apply-local-installation)).
+3. **Bundle self-installation** — extract a portable bundle and run its own installer, which copies a complete, versioned, source-independent installation into an explicit prefix.
 
-The third path uses the installer shipped inside every current bundle:
+The third path uses the installer shipped inside every bundle:
 
 ```bash
 sha256sum -c oh-my-pm-v0.2.0-SHA256SUMS.txt   # verify checksums first
@@ -298,7 +305,7 @@ tar -xzf oh-my-pm-v0.2.0.tar.gz               # or: unzip oh-my-pm-v0.2.0.zip
 # Preview writes nothing and requires an explicit --prefix.
 node ./oh-my-pm-v0.2.0/bin/ohmypm-install.mjs --prefix "$HOME/.local"
 
-# Apply installs the versioned copy and the four command shims.
+# Apply installs the versioned copy and the eight command shims.
 node ./oh-my-pm-v0.2.0/bin/ohmypm-install.mjs --prefix "$HOME/.local" --apply
 
 export PATH="$HOME/.local/bin:$PATH"                # add it yourself; the installer never edits PATH
@@ -339,7 +346,7 @@ The shims use paths relative to `<prefix>/bin`, so the whole prefix is movable a
 
 - **Preview is the default** and performs no writes. It reports `create`, `already-installed`, `replace`, or `blocked`.
 - **`--apply`** is required for any write.
-- **`--force`** (only with `--apply`) replaces the exact managed targets — the version directory, the four shims, and `install.json` — and nothing else. Unrelated files under `<prefix>/bin` and `<prefix>/lib`, and other version directories, are left untouched. `--force` is the explicit replacement gate; it is **not** a version-policy engine and performs no update, downgrade, rollback, or uninstall.
+- **`--force`** (only with `--apply`) replaces the exact managed targets — the version directory, the eight shims, and `install.json` — and nothing else. Unrelated files under `<prefix>/bin` and `<prefix>/lib`, and other version directories, are left untouched. `--force` is the explicit replacement gate; it is **not** a version-policy engine and performs no update, downgrade, rollback, or uninstall.
 - A second apply from the same bundle is a no-op that reports **already installed**.
 - Any managed target that exists but does not exactly match the expected installation **blocks** without `--force`.
 
@@ -355,7 +362,7 @@ From a repository checkout:
 pnpm release:install:check -- --prefix "$HOME/.local"
 ```
 
-The read-only verifier validates the manifest, the versioned bundle, the four shims, then runs the installed CLI (`status` plus the four workflows) and the installed MCP server over stdio. Outside a checkout, verify directly with the installed commands:
+The read-only verifier validates the manifest, the versioned bundle, the eight shims, then runs the installed CLI (`status` plus the four workflows) and the installed MCP server over stdio. Outside a checkout, verify directly with the installed commands:
 
 ```bash
 ohmypm status

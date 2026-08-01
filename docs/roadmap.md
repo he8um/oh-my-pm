@@ -1,6 +1,24 @@
 # Roadmap
 
-## Phase 0 — Public foundation
+Every entry below carries one of five explicit states:
+
+| State | Meaning |
+| --- | --- |
+| **Shipped** | implemented, released, and published |
+| **Prepared but unpublished** | implemented and merged, but no tag or GitHub release exists |
+| **Active maintenance** | the scope currently being worked on |
+| **Planned** | agreed direction, not designed or implemented |
+| **Out of scope** | deliberately excluded |
+
+The latest **published** stable release is
+[`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0). The active
+maintenance scope is **v0.5.1**.
+
+Phases 0 through 6 below are the historical implementation log for the v0.1
+through v0.4 lines. Everything in them is **Shipped** unless a later section
+supersedes it.
+
+## Phase 0 — Public foundation (Shipped)
 
 - Public README
 - Governance documents
@@ -309,17 +327,15 @@ in place (see Phase 5B).
   data model, architecture, threat model, phased plan, acceptance gates, and the
   formal GO scope decision.
 
-## Phase 5D — v0.4 Project Timeline (active direction)
+## Phase 5D — v0.4 Project Timeline (Shipped)
 
-- **Implemented and prepared for release.** Every phase is implemented and green:
-  the bounded contracts and deterministic Kernel derivation, the read-only Runtime
-  query, the `memory timeline` CLI subcommand, the `project_timeline` MCP tool,
-  the extended profile-aware installed qualification (428/428 checks from each
-  archive, including direct v0.3.1 store compatibility), and the promoted `0.4.0`
-  version with a manually gated `Release v0.4 Stable` workflow. **`v0.4.0` is
-  prepared but not published** — no `v0.4.0` tag or release exists, and
-  `releases/latest` remains `v0.3.1` until publication is separately and
-  explicitly authorized. See the
+- **Shipped and published.** Every phase is implemented and green: the bounded
+  contracts and deterministic Kernel derivation, the read-only Runtime query, the
+  `memory timeline` CLI subcommand, the `project_timeline` MCP tool, the extended
+  profile-aware installed qualification (428/428 checks from each archive,
+  including direct v0.3.1 store compatibility), and the promoted `0.4.0` version
+  with a manually gated `Release v0.4 Stable` workflow. **`v0.4.0` was published
+  and is the current `releases/latest`.** See the
   [v0.4.0 release notes](releases/v0.4.0.md), the
   [publishing runbook](releases/publishing-v0.4.0.md), and the
   [timeline walkthrough](v0.4/getting-started-timeline.md).
@@ -351,7 +367,7 @@ in place (see Phase 5B).
   behavior, compatibility matrix, CLI/MCP surfaces, validation gates, and release
   invariants.
 
-## v0.5 — CLI command namespace
+## v0.5.0 — CLI command namespace (Prepared but unpublished)
 
 - **Canonical commands:** `ohmypm`, `ohmypm-mcp`, `ohmypm-install`.
 - **Deprecated compatibility aliases:** `oh-my-pm`, `oh-my-pm-mcp`,
@@ -372,8 +388,35 @@ in place (see Phase 5B).
 - **Explicitly not in v0.5:** any Dashboard work, any new feature, any CLI
   hierarchy change, and any change to behavior, schemas, output contracts, storage
   formats, or MCP protocol behavior.
+- **Never published.** The v0.5.0 work merged to `main`, but no `v0.5.0` tag or
+  GitHub release exists. It is superseded by v0.5.1; the latest published stable
+  remains `v0.4.0`.
 - See [the v0.5 command namespace guide](v0.5/README.md) for the migration
   behavior, upgrade path, and deprecation policy.
+
+## v0.5.1 — Documentation truth and the application boundary (Active maintenance)
+
+- **Patch release. No public behavior change.** No new command, no changed CLI
+  syntax or JSON output, no changed MCP tool, schema, or annotation, no Project
+  Brain schema change, no Project Memory format change, no storage path change,
+  and no migration.
+- **Documentation truth.** Active documents, comments, and current-state claims
+  were brought into agreement with the shipped product. Historical documents
+  (`docs/releases/**`, `docs/v0.3/**`, `docs/v0.4/**`, the v0.2 stabilization
+  audit, and superseded CHANGELOG entries) remain historically accurate and were
+  deliberately left alone. Enforced by `pnpm validate:docs`.
+- **Shared application boundary.** `@oh-my-pm/application` now owns the reusable
+  project, provider, and Project Memory use cases. CLI and MCP consume the same
+  typed use cases, and the MCP server no longer depends on `@oh-my-pm/cli`.
+- **Release line `v0.5`, bundle profile `ohmypm-cli-namespace`** — retained
+  unchanged, because the user-facing runtime surface is unchanged.
+- **First published stable of the v0.5 line, if published.** v0.5.1 supersedes
+  the unpublished 0.5.0 candidate; `v0.4.0` remains the immutable base lineage.
+- **Explicitly not in v0.5.1:** any Dashboard, web UI, HTTP server, or API; any
+  new command, MCP tool, provider, or schema change; and any registry
+  publication.
+- See [the v0.5.1 scope](v0.5/v0.5.1-scope.md) and
+  [the application boundary](v0.5/application-boundary.md).
 
 ## Phase 6 — Release lifecycle
 
@@ -382,6 +425,14 @@ in place (see Phase 5B).
 - Rollback model
 - Release gates
 
-## Future
+## v0.6 — Local Project Dashboard (Planned)
 
-A local dashboard may be added after the core command-line and validation surfaces are stable.
+A local read-only Dashboard over the same application use cases the CLI and MCP
+server consume. v0.5.1 establishes the `@oh-my-pm/application` boundary it would
+depend on; nothing about the Dashboard itself is designed or implemented, and
+v0.5.1 contains no Dashboard, web UI, HTTP server, or UI dependency.
+
+## Out of scope
+
+Cloud sync, user accounts, telemetry, remote analytics, GitHub mutation, an HTTP
+MCP transport, and npm registry publication.

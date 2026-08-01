@@ -169,11 +169,15 @@ for (const rel of REQUIRED_ENTRYPOINTS) {
 }
 
 // ---------------------------------------------------------------------------
-// 4. The CLI's pure command-surface constants module.
+// 4. The pure command-surface constants module.
+//
+// v0.5.1: moved from cli/src to the application package. The invoked executable
+// names are a shared vocabulary -- the MCP alias wrapper needs the same
+// deprecation warning -- so they must not live behind a presentation package.
 // ---------------------------------------------------------------------------
 
 {
-  const rel = "cli/src/command-surface.ts";
+  const rel = "application/src/command-surface.ts";
   const source = readText(rel);
   if (source === null) {
     err(`${rel}: missing`);
@@ -221,11 +225,11 @@ for (const rel of REQUIRED_ENTRYPOINTS) {
     if (key !== COMMAND_SURFACE.product) {
       err(`${rel}: MCP_CONFIG_DEFAULT_SERVER_NAME must remain "${COMMAND_SURFACE.product}"`);
     }
-    // The command name must come from the CLI's command-surface module rather
+    // The command name must come from the shared command-surface module rather
     // than a second literal, so there is exactly one place to change. Checking
     // for the import (not a literal) is what enforces that.
-    if (!/from\s+"\.\/command-surface\.js"/.test(source)) {
-      err(`${rel}: must import the command names from ./command-surface.js`);
+    if (!/from\s+"@oh-my-pm\/application"/.test(source)) {
+      err(`${rel}: must import the command names from @oh-my-pm/application`);
     }
     if (!/MCP_CONFIG_COMMAND_NAME\s*=\s*CANONICAL_MCP_COMMAND/.test(source)) {
       err(`${rel}: MCP_CONFIG_COMMAND_NAME must be CANONICAL_MCP_COMMAND`);
