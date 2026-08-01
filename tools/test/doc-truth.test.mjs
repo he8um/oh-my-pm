@@ -101,10 +101,7 @@ describe("validate-doc-truth fails on real drift", () => {
   });
 
   it("catches a stale source version claim", () => {
-    withTemporaryEdit(
-      "README.md",
-      (text) => `${text}\n\nThe current source version is 0.3.1.\n`,
-    );
+    withTemporaryEdit("README.md", (text) => `${text}\n\nThe current source version is 0.3.1.\n`);
     const result = runValidator();
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/claims source version 0\.3\.1/);
@@ -120,10 +117,7 @@ describe("validate-doc-truth fails on real drift", () => {
   });
 
   it("catches a reintroduced 'nothing invokes it' comment", () => {
-    withTemporaryEdit(
-      "project-memory/README.md",
-      (text) => `${text}\n\nNothing invokes it yet.\n`,
-    );
+    withTemporaryEdit("project-memory/README.md", (text) => `${text}\n\nNothing invokes it yet.\n`);
     const result = runValidator();
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/Nothing invokes it yet/i);
@@ -139,10 +133,7 @@ describe("validate-doc-truth fails on real drift", () => {
   });
 
   it("catches a shell example that demonstrates a deprecated alias", () => {
-    withTemporaryEdit(
-      "README.md",
-      (text) => `${text}\n\n\`\`\`bash\noh-my-pm status\n\`\`\`\n`,
-    );
+    withTemporaryEdit("README.md", (text) => `${text}\n\n\`\`\`bash\noh-my-pm status\n\`\`\`\n`);
     const result = runValidator();
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/deprecated alias/);

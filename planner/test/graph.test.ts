@@ -1,6 +1,11 @@
 import type { ProviderRequest } from "@oh-my-pm/contracts";
 import { describe, expect, it } from "vitest";
-import { buildTaskGraph, collectPlannerNodeIds, finalNodeId, providerNodeId } from "../src/index.js";
+import {
+  buildTaskGraph,
+  collectPlannerNodeIds,
+  finalNodeId,
+  providerNodeId,
+} from "../src/index.js";
 
 const requests: ProviderRequest[] = [
   { providerId: "local", action: "list", query: "" },

@@ -30,7 +30,10 @@ function pushOnce(reasons: string[], reason: string): void {
   }
 }
 
-function sized(entry: { content: string; checksum: string }): { checksum: string; sizeBytes: number } {
+function sized(entry: { content: string; checksum: string }): {
+  checksum: string;
+  sizeBytes: number;
+} {
   return { checksum: entry.checksum, sizeBytes: new TextEncoder().encode(entry.content).length };
 }
 

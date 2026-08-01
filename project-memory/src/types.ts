@@ -6,12 +6,7 @@
 
 /** A JSON value the store may persist inside a record payload. */
 export type JsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | JsonValue[]
-  | { readonly [key: string]: JsonValue };
+  null | boolean | number | string | JsonValue[] | { readonly [key: string]: JsonValue };
 
 /** A JSON object the store may persist. */
 export type JsonObject = { readonly [key: string]: JsonValue };
@@ -167,11 +162,7 @@ export interface StoredSnapshotSummary {
 
 /** Store-format version classification for a project. */
 export type StoreVersionState =
-  | "noPriorMemory"
-  | "supported"
-  | "unsupportedNewer"
-  | "migrationRequired"
-  | "incompatibleSchema";
+  "noPriorMemory" | "supported" | "unsupportedNewer" | "migrationRequired" | "incompatibleSchema";
 
 /** A reported store health issue found during inspection. */
 export interface StoreInspectionIssue {

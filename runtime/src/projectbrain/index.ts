@@ -11,10 +11,7 @@ export {
   ProjectBrainRuntimeError,
   isProjectBrainRuntimeError,
 } from "./errors.js";
-export type {
-  ProjectBrainRuntimeErrorCode,
-  ProjectBrainRuntimeErrorEnvelope,
-} from "./errors.js";
+export type { ProjectBrainRuntimeErrorCode, ProjectBrainRuntimeErrorEnvelope } from "./errors.js";
 export type {
   CaptureCoverageEntry,
   CaptureProjectInput,

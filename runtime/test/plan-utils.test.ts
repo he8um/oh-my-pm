@@ -95,7 +95,13 @@ describe("providerItemsToTextItems", () => {
       },
     ];
     expect(providerItemsToTextItems(items)).toEqual([
-      { id: "docs/a.md", title: "A", source: "local", type: "document", body: "The launch is blocked." },
+      {
+        id: "docs/a.md",
+        title: "A",
+        source: "local",
+        type: "document",
+        body: "The launch is blocked.",
+      },
     ]);
   });
 
@@ -295,9 +301,7 @@ describe("skillInputForPlan", () => {
       now: "injected-now",
       request: "what is next",
       graph: { nodes: [] },
-      providerItems: [
-        { id: "1", type: "task", title: "One", source: "local", data: {} },
-      ],
+      providerItems: [{ id: "1", type: "task", title: "One", source: "local", data: {} }],
       notes: ["remember"],
     });
     expect(envelope.skillId).toBe("deriveNextTasks");

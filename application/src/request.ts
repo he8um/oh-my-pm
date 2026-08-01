@@ -79,12 +79,7 @@ export function createRuntimeRequest(
       payload: { source: "cli", request: input ?? "", context: {} },
     };
   }
-  if (
-    command === "brief" ||
-    command === "risks" ||
-    command === "next" ||
-    command === "handoff"
-  ) {
+  if (command === "brief" || command === "risks" || command === "next" || command === "handoff") {
     // The project root never enters the Runtime payload; the Runtime only
     // sees normalized items from the already-populated local provider. The
     // request text is chosen so deterministic intent classification selects

@@ -88,9 +88,7 @@ describe("validateLocalArtifactCreationAdapterContract", () => {
 
   it("flags a contract that does not require explicit permission", () => {
     expect(
-      validateLocalArtifactCreationAdapterContract(
-        contract({ requiresExplicitPermission: false }),
-      ),
+      validateLocalArtifactCreationAdapterContract(contract({ requiresExplicitPermission: false })),
     ).toEqual(["local_artifact_adapter_contract_explicit_permission_required"]);
   });
 
@@ -145,17 +143,15 @@ describe("collectRequiredLocalArtifactCreationAdapterCapabilities", () => {
     const steps = base.executionPlan.steps.map((step) =>
       step.kind === "prepare-archive" ? { ...step, planned: false, reason: "blocked" } : step,
     );
-    expect(
-      collectRequiredLocalArtifactCreationAdapterCapabilities(withSteps(base, steps)),
-    ).toEqual(["write-text-output"]);
+    expect(collectRequiredLocalArtifactCreationAdapterCapabilities(withSteps(base, steps))).toEqual(
+      ["write-text-output"],
+    );
   });
 
   it("puts binary output first when the archive step leads", () => {
     const base = input();
     const archiveStep = base.executionPlan.steps.find((step) => step.kind === "prepare-archive");
-    const textStep = base.executionPlan.steps.find(
-      (step) => step.kind === "prepare-release-notes",
-    );
+    const textStep = base.executionPlan.steps.find((step) => step.kind === "prepare-release-notes");
     expect(archiveStep).toBeDefined();
     expect(textStep).toBeDefined();
     const reordered = withSteps(base, [

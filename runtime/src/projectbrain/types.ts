@@ -43,21 +43,13 @@ import type { ProjectBrainRuntimeErrorEnvelope } from "./errors.js";
  * salt and never recomputes a fingerprint itself.
  */
 export interface ProjectBrainKernelPort {
-  deriveProjectIdentity(
-    seed: ProjectIdentitySeedInput,
-  ): ProjectBrainKernelResult<ProjectIdentity>;
-  fingerprintMinimizedContent(
-    input: FingerprintContentInput,
-  ): ProjectBrainKernelResult<string>;
+  deriveProjectIdentity(seed: ProjectIdentitySeedInput): ProjectBrainKernelResult<ProjectIdentity>;
+  fingerprintMinimizedContent(input: FingerprintContentInput): ProjectBrainKernelResult<string>;
   deriveEvidenceId(record: EvidenceRecord): ProjectBrainKernelResult<string>;
   deriveFreshness(input: DeriveFreshnessInput): ProjectBrainKernelResult<Freshness>;
   finalizeProjectState(state: ProjectState): ProjectBrainKernelResult<ProjectState>;
-  finalizeProjectSnapshot(
-    snapshot: ProjectSnapshot,
-  ): ProjectBrainKernelResult<ProjectSnapshot>;
-  diffProjectSnapshots(
-    input: DiffProjectSnapshotsInput,
-  ): ProjectBrainKernelResult<ChangeSet>;
+  finalizeProjectSnapshot(snapshot: ProjectSnapshot): ProjectBrainKernelResult<ProjectSnapshot>;
+  diffProjectSnapshots(input: DiffProjectSnapshotsInput): ProjectBrainKernelResult<ChangeSet>;
   /** The pure v0.4 Project Timeline derivation. */
   deriveProjectTimeline(
     input: DeriveProjectTimelineInput,

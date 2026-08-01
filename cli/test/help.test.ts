@@ -3,16 +3,8 @@
 // filesystem, environment, token, network, or clock access.
 
 import { describe, expect, it } from "vitest";
-import {
-  CANONICAL_CLI_COMMAND,
-  LEGACY_CLI_COMMANDS,
-} from "@oh-my-pm/application";
-import {
-  HELP_TOPICS,
-  formatHelp,
-  isHelpFlag,
-  resolveHelpRequest,
-} from "../src/help.js";
+import { CANONICAL_CLI_COMMAND, LEGACY_CLI_COMMANDS } from "@oh-my-pm/application";
+import { HELP_TOPICS, formatHelp, isHelpFlag, resolveHelpRequest } from "../src/help.js";
 import { runLocalCliProcess } from "../src/local-process.js";
 import { MEMORY_SUBCOMMANDS } from "@oh-my-pm/application";
 
@@ -27,15 +19,12 @@ function strictOptions(): {
 } {
   const envReads: string[] = [];
   const clockReads = { count: 0 };
-  const env = new Proxy(
-    {} as Record<string, string | undefined>,
-    {
-      get(_target, key) {
-        envReads.push(String(key));
-        return undefined;
-      },
+  const env = new Proxy({} as Record<string, string | undefined>, {
+    get(_target, key) {
+      envReads.push(String(key));
+      return undefined;
     },
-  );
+  });
   return {
     options: {
       env,
@@ -157,8 +146,10 @@ describe("help text", () => {
       const usageLines = text
         .split("\n")
         .filter((line) => line.startsWith("  ") && line.trim().startsWith(CANONICAL_CLI_COMMAND));
-      expect(usageLines.length, `${topic} help must show a ${CANONICAL_CLI_COMMAND} usage line`)
-        .toBeGreaterThan(0);
+      expect(
+        usageLines.length,
+        `${topic} help must show a ${CANONICAL_CLI_COMMAND} usage line`,
+      ).toBeGreaterThan(0);
     }
   });
 
@@ -215,7 +206,14 @@ describe("help text", () => {
       // control character is the entire point of the assertion.
       // eslint-disable-next-line no-control-regex
       expect(text).not.toMatch(/\u001b/);
-      for (const marker of ["completion", "man page", "manpage", "pager", "prompt", "localization"]) {
+      for (const marker of [
+        "completion",
+        "man page",
+        "manpage",
+        "pager",
+        "prompt",
+        "localization",
+      ]) {
         expect(text, `${topic} must not mention "${marker}"`).not.toContain(marker);
       }
     }

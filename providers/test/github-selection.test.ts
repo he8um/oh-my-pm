@@ -61,7 +61,10 @@ describe("resolveGitHubSourceSelection — repository", () => {
 
   it("does not let inherited defaults invalidate repository", () => {
     // state/limit are NOT in overrides, only inherited — must stay valid.
-    const r = resolve({ source: "repository" }, { source: "repository", state: "closed", limit: 25 });
+    const r = resolve(
+      { source: "repository" },
+      { source: "repository", state: "closed", limit: 25 },
+    );
     expect(r.ok).toBe(true);
   });
 
@@ -109,7 +112,10 @@ describe("resolveGitHubSourceSelection — item", () => {
   });
 
   it("does not let inherited defaults invalidate item", () => {
-    const r = resolve({ source: "item", number: 7 }, { source: "overview", state: "closed", limit: 25 });
+    const r = resolve(
+      { source: "item", number: 7 },
+      { source: "overview", state: "closed", limit: 25 },
+    );
     expect(r.ok).toBe(true);
   });
 
@@ -150,7 +156,13 @@ describe("resolveGitHubSourceSelection — search", () => {
   });
 
   it("accepts explicit kind and state", () => {
-    const r = resolve({ source: "search", query: "x", kind: "pull-requests", state: "all", limit: 5 });
+    const r = resolve({
+      source: "search",
+      query: "x",
+      kind: "pull-requests",
+      state: "all",
+      limit: 5,
+    });
     if (r.ok) expect(r.selection).toMatchObject({ kind: "pull-requests", state: "all", limit: 5 });
     else throw new Error("expected ok");
   });
@@ -234,7 +246,10 @@ describe("resolveGitHubSourceSelection — purity", () => {
 describe("createGitHubProviderRequest", () => {
   const repo = "owner/repo";
   it("maps overview to a list request with the encoded source/state", () => {
-    const req = createGitHubProviderRequest({ repository: repo, selection: { mode: "overview", state: "all", limit: 10 } });
+    const req = createGitHubProviderRequest({
+      repository: repo,
+      selection: { mode: "overview", state: "all", limit: 10 },
+    });
     expect(req).toStrictEqual({
       providerId: "github",
       action: "list",
@@ -244,7 +259,10 @@ describe("createGitHubProviderRequest", () => {
   });
 
   it("maps repository to a limit-1 list request", () => {
-    const req = createGitHubProviderRequest({ repository: repo, selection: { mode: "repository" } });
+    const req = createGitHubProviderRequest({
+      repository: repo,
+      selection: { mode: "repository" },
+    });
     expect(req).toStrictEqual({
       providerId: "github",
       action: "list",
@@ -254,9 +272,15 @@ describe("createGitHubProviderRequest", () => {
   });
 
   it("maps issues and pull-requests to list requests", () => {
-    const issues = createGitHubProviderRequest({ repository: repo, selection: { mode: "issues", state: "closed", limit: 20 } });
+    const issues = createGitHubProviderRequest({
+      repository: repo,
+      selection: { mode: "issues", state: "closed", limit: 20 },
+    });
     expect(issues.query).toBe("owner/repo::source=issues&state=closed");
-    const prs = createGitHubProviderRequest({ repository: repo, selection: { mode: "pull-requests", state: "open", limit: 20 } });
+    const prs = createGitHubProviderRequest({
+      repository: repo,
+      selection: { mode: "pull-requests", state: "open", limit: 20 },
+    });
     expect(prs.query).toBe("owner/repo::source=pull-requests&state=open");
   });
 
@@ -333,7 +357,13 @@ describe("createGitHubProviderRequest", () => {
   it("maps search to a search request with encoded terms", () => {
     const req = createGitHubProviderRequest({
       repository: repo,
-      selection: { mode: "search", query: "release blocker", state: "open", kind: "issues", limit: 5 },
+      selection: {
+        mode: "search",
+        query: "release blocker",
+        state: "open",
+        kind: "issues",
+        limit: 5,
+      },
     });
     expect(req.action).toBe("search");
     expect(req.query).toBe("owner/repo::state=open&kind=issues&q=release+blocker");
@@ -341,7 +371,10 @@ describe("createGitHubProviderRequest", () => {
   });
 
   it("never includes token/header/origin/config fields", () => {
-    const req = createGitHubProviderRequest({ repository: repo, selection: { mode: "overview", state: "open", limit: 1 } });
+    const req = createGitHubProviderRequest({
+      repository: repo,
+      selection: { mode: "overview", state: "open", limit: 1 },
+    });
     const serialized = JSON.stringify(req);
     for (const forbidden of ["token", "Authorization", "api.github.com", "headers", "http"]) {
       expect(serialized).not.toContain(forbidden);
@@ -405,7 +438,9 @@ describe("resolveGitHubSourceSelection — item comments", () => {
   it("rejects --comment-limit for every non-item source", () => {
     for (const source of ["overview", "repository", "issues", "pull-requests", "search"] as const) {
       const overrides =
-        source === "search" ? { source, query: "x", commentLimit: 10 } : { source, commentLimit: 10 };
+        source === "search"
+          ? { source, query: "x", commentLimit: 10 }
+          : { source, commentLimit: 10 };
       const r = resolve(overrides);
       expect(r.ok, source).toBe(false);
       if (!r.ok) expect(r.code).toBe("github_comment_limit_not_applicable");

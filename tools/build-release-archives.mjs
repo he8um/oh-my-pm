@@ -38,7 +38,9 @@ if (!parsed.ok) {
       process.stderr.write(`release archives blocked: ${result.reasons.join(", ")}\n`);
       process.exitCode = 2;
     } else {
-      process.stderr.write(`release archives failed: ${result.code}: ${result.reasons.join(", ")}\n`);
+      process.stderr.write(
+        `release archives failed: ${result.code}: ${result.reasons.join(", ")}\n`,
+      );
       process.exitCode = 1;
     }
   }

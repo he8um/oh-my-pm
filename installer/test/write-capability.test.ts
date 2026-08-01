@@ -61,9 +61,9 @@ describe("validateInstallerWriteCapabilityMode", () => {
 
 describe("validateInstallerWriteCapabilityPolicy", () => {
   it("passes the default policy", () => {
-    expect(validateInstallerWriteCapabilityPolicy(DEFAULT_INSTALLER_WRITE_CAPABILITY_POLICY)).toEqual(
-      [],
-    );
+    expect(
+      validateInstallerWriteCapabilityPolicy(DEFAULT_INSTALLER_WRITE_CAPABILITY_POLICY),
+    ).toEqual([]);
   });
 
   it("flags an invalid mode", () => {
@@ -85,7 +85,10 @@ describe("validateInstallerWriteCapabilityPolicy", () => {
   it("flags an invalid allowed intent", () => {
     const reasons = validateInstallerWriteCapabilityPolicy({
       ...DEFAULT_INSTALLER_WRITE_CAPABILITY_POLICY,
-      allowedIntents: ["install", "delete" as InstallerWriteCapabilityPolicy["allowedIntents"][number]],
+      allowedIntents: [
+        "install",
+        "delete" as InstallerWriteCapabilityPolicy["allowedIntents"][number],
+      ],
     });
     expect(reasons).toContain("write_capability_allowed_intent_invalid");
   });
@@ -107,7 +110,10 @@ describe("validateInstallerWriteCapabilityPolicy", () => {
   it("validates all allowed intents, not just the first", () => {
     const reasons = validateInstallerWriteCapabilityPolicy({
       ...DEFAULT_INSTALLER_WRITE_CAPABILITY_POLICY,
-      allowedIntents: ["install", "bogus" as InstallerWriteCapabilityPolicy["allowedIntents"][number]],
+      allowedIntents: [
+        "install",
+        "bogus" as InstallerWriteCapabilityPolicy["allowedIntents"][number],
+      ],
     });
     expect(reasons).toEqual(["write_capability_allowed_intent_invalid"]);
   });

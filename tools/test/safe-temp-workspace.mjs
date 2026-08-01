@@ -8,14 +8,7 @@
 // Node built-ins only. No product output ever contains the ownership token.
 
 import { randomBytes } from "node:crypto";
-import {
-  lstatSync,
-  mkdtempSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { lstatSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join, parse, resolve } from "node:path";
 
@@ -258,10 +251,7 @@ export async function withSafeTempWorkspace(callback, options = {}) {
       if (callbackError !== undefined) {
         // Preserve both, callback failure first, without masking it.
         // eslint-disable-next-line no-unsafe-finally
-        throw new AggregateError(
-          [callbackError, cleanupError],
-          "callback and cleanup both failed",
-        );
+        throw new AggregateError([callbackError, cleanupError], "callback and cleanup both failed");
       }
       // eslint-disable-next-line no-unsafe-finally
       throw cleanupError;

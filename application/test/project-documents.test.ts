@@ -246,9 +246,7 @@ describe("markdown project document loader", () => {
     writeFileSync(filePath, "# Not a directory\n", "utf8");
     const result = loadMarkdownProjectDocuments(filePath);
     expect(result.ok).toBe(false);
-    expect(result.warnings).toEqual([
-      { code: "project_root_not_directory", path: filePath },
-    ]);
+    expect(result.warnings).toEqual([{ code: "project_root_not_directory", path: filePath }]);
   });
 
   it("warns for an unreadable file where platform behavior permits", () => {

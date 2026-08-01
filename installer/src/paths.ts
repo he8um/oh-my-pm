@@ -6,7 +6,10 @@
  * slashes, and drop a trailing slash except for the root `/`.
  */
 export function normalizeInstallerPath(path: string): string {
-  let normalized = path.trim().replace(/\\/g, "/").replace(/\/{2,}/g, "/");
+  let normalized = path
+    .trim()
+    .replace(/\\/g, "/")
+    .replace(/\/{2,}/g, "/");
   if (normalized.length > 1 && normalized.endsWith("/")) {
     normalized = normalized.slice(0, -1);
   }

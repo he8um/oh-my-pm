@@ -18,7 +18,12 @@ describe("defaultProviderConfig", () => {
       version: 1,
       providers: {
         local: { enabled: true },
-        github: { enabled: true, defaultLimit: 50, defaultSource: "overview", defaultState: "open" },
+        github: {
+          enabled: true,
+          defaultLimit: 50,
+          defaultSource: "overview",
+          defaultState: "open",
+        },
       },
     });
   });
@@ -71,7 +76,12 @@ describe("validateProviderConfig — valid", () => {
     const result = validateProviderConfig({ version: 1 });
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.config.providers.github).toStrictEqual({ enabled: true, defaultLimit: 50, defaultSource: "overview", defaultState: "open" });
+      expect(result.config.providers.github).toStrictEqual({
+        enabled: true,
+        defaultLimit: 50,
+        defaultSource: "overview",
+        defaultState: "open",
+      });
       expect(result.config.providers.local).toStrictEqual({ enabled: true });
     }
   });
@@ -83,7 +93,12 @@ describe("validateProviderConfig — valid", () => {
     });
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.config.providers.github).toStrictEqual({ enabled: true, defaultLimit: 50, defaultSource: "overview", defaultState: "open" });
+      expect(result.config.providers.github).toStrictEqual({
+        enabled: true,
+        defaultLimit: 50,
+        defaultSource: "overview",
+        defaultState: "open",
+      });
     }
   });
 
@@ -107,13 +122,19 @@ describe("validateProviderConfig — valid", () => {
   });
 
   it("accepts a disabled github provider", () => {
-    const result = validateProviderConfig({ version: 1, providers: { github: { enabled: false } } });
+    const result = validateProviderConfig({
+      version: 1,
+      providers: { github: { enabled: false } },
+    });
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.config.providers.github.enabled).toBe(false);
   });
 
   it("defaults enabled to true when omitted", () => {
-    const result = validateProviderConfig({ version: 1, providers: { github: { defaultLimit: 10 } } });
+    const result = validateProviderConfig({
+      version: 1,
+      providers: { github: { defaultLimit: 10 } },
+    });
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.config.providers.github.enabled).toBe(true);
   });
@@ -152,25 +173,37 @@ describe("validateProviderConfig — valid", () => {
 
 describe("validateProviderConfig — invalid source/state", () => {
   it("rejects item as a default source", () => {
-    const result = validateProviderConfig({ version: 1, providers: { github: { defaultSource: "item" } } });
+    const result = validateProviderConfig({
+      version: 1,
+      providers: { github: { defaultSource: "item" } },
+    });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("provider_config_invalid_source");
   });
 
   it("rejects search as a default source", () => {
-    const result = validateProviderConfig({ version: 1, providers: { github: { defaultSource: "search" } } });
+    const result = validateProviderConfig({
+      version: 1,
+      providers: { github: { defaultSource: "search" } },
+    });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("provider_config_invalid_source");
   });
 
   it("rejects an unknown default source", () => {
-    const result = validateProviderConfig({ version: 1, providers: { github: { defaultSource: "pr" } } });
+    const result = validateProviderConfig({
+      version: 1,
+      providers: { github: { defaultSource: "pr" } },
+    });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("provider_config_invalid_source");
   });
 
   it("rejects an invalid default state", () => {
-    const result = validateProviderConfig({ version: 1, providers: { github: { defaultState: "merged" } } });
+    const result = validateProviderConfig({
+      version: 1,
+      providers: { github: { defaultState: "merged" } },
+    });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("provider_config_invalid_state");
   });
@@ -244,7 +277,10 @@ describe("validateProviderConfig — invalid", () => {
   });
 
   it("rejects an invalid enabled type", () => {
-    const result = validateProviderConfig({ version: 1, providers: { github: { enabled: "yes" } } });
+    const result = validateProviderConfig({
+      version: 1,
+      providers: { github: { enabled: "yes" } },
+    });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("provider_config_invalid_enabled");
   });
@@ -305,7 +341,10 @@ describe("validateProviderConfig — secret rejection", () => {
   });
 
   it("never echoes raw JSON in the message", () => {
-    const result = validateProviderConfig({ version: 1, providers: { github: { token: "sekret-abc" } } });
+    const result = validateProviderConfig({
+      version: 1,
+      providers: { github: { token: "sekret-abc" } },
+    });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.message).not.toContain("sekret-abc");
   });
@@ -320,7 +359,10 @@ describe("validateProviderConfig — purity", () => {
   });
 
   it("returns deep-equal results for repeated calls", () => {
-    const input = { version: 1, providers: { github: { defaultRepository: "a/b", defaultLimit: 20 } } };
+    const input = {
+      version: 1,
+      providers: { github: { defaultRepository: "a/b", defaultLimit: 20 } },
+    };
     const a = validateProviderConfig(input);
     const b = validateProviderConfig(input);
     expect(a).toStrictEqual(b);

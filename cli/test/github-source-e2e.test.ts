@@ -2,7 +2,11 @@
 // fake transport. Asserts that the selected source controls which normalized
 // items enter the Runtime, with no hidden fallback and no live network.
 
-import type { GitHubHttpRequest, GitHubHttpResponse, GitHubHttpTransport } from "@oh-my-pm/providers";
+import type {
+  GitHubHttpRequest,
+  GitHubHttpResponse,
+  GitHubHttpTransport,
+} from "@oh-my-pm/providers";
 import { defaultProviderConfig } from "@oh-my-pm/providers";
 import { describe, expect, it } from "vitest";
 import { runLocalCliProcess } from "../src/index.js";
@@ -32,7 +36,16 @@ function transport(): GitHubHttpTransport {
     async request(request: GitHubHttpRequest): Promise<GitHubHttpResponse> {
       const url = new URL(request.url);
       if (url.pathname === `/repos/${SLUG}`) {
-        return { status: 200, headers: {}, body: { full_name: SLUG, html_url: `https://github.com/${SLUG}`, owner: { login: "owner" }, open_issues_count: 3 } };
+        return {
+          status: 200,
+          headers: {},
+          body: {
+            full_name: SLUG,
+            html_url: `https://github.com/${SLUG}`,
+            owner: { login: "owner" },
+            open_issues_count: 3,
+          },
+        };
       }
       if (url.pathname === `/repos/${SLUG}/issues`) {
         return { status: 200, headers: {}, body: [ghItem(1, "issue"), ghItem(2, "pr")] };
@@ -95,28 +108,58 @@ describe("GitHub source E2E — item composition entering Runtime", () => {
     });
 
     it(`${op}: search all returns a mix`, async () => {
-      const items = await itemsFor([op, SLUG, "--source", "search", "--query", "x", "--kind", "all"]);
+      const items = await itemsFor([
+        op,
+        SLUG,
+        "--source",
+        "search",
+        "--query",
+        "x",
+        "--kind",
+        "all",
+      ]);
       expect(items.length).toBeGreaterThan(0);
     });
 
     it(`${op}: search issues returns only issues`, async () => {
-      const items = await itemsFor([op, SLUG, "--source", "search", "--query", "x", "--kind", "issues"]);
+      const items = await itemsFor([
+        op,
+        SLUG,
+        "--source",
+        "search",
+        "--query",
+        "x",
+        "--kind",
+        "issues",
+      ]);
       expect(items.every((i) => i.type === "issue")).toBe(true);
     });
 
     it(`${op}: search pull-requests returns only pull requests`, async () => {
-      const items = await itemsFor([op, SLUG, "--source", "search", "--query", "x", "--kind", "pull-requests"]);
+      const items = await itemsFor([
+        op,
+        SLUG,
+        "--source",
+        "search",
+        "--query",
+        "x",
+        "--kind",
+        "pull-requests",
+      ]);
       expect(items.every((i) => i.type === "pullRequest")).toBe(true);
     });
   }
 
   it("repeated runs are byte-identical", async () => {
     const run = () =>
-      runLocalCliProcess(["github", "risks", SLUG, "--source", "issues", "--state", "open", "--json"], {
-        githubTransport: transport(),
-        now: NOW,
-        providerConfig: defaultProviderConfig(),
-      });
+      runLocalCliProcess(
+        ["github", "risks", SLUG, "--source", "issues", "--state", "open", "--json"],
+        {
+          githubTransport: transport(),
+          now: NOW,
+          providerConfig: defaultProviderConfig(),
+        },
+      );
     const a = await run();
     const b = await run();
     expect(a.stdout).toBe(b.stdout);
@@ -158,11 +201,30 @@ describe("GitHub item comments E2E", () => {
   it("item + --include-comments brings the primary item and comment notes into the Runtime", async () => {
     const recorded: string[] = [];
     const result = await runLocalCliProcess(
-      ["github", "brief", SLUG, "--source", "item", "--number", "7", "--include-comments", "--comment-limit", "20", "--json"],
-      { githubTransport: commentTransport(recorded), now: NOW, providerConfig: defaultProviderConfig() },
+      [
+        "github",
+        "brief",
+        SLUG,
+        "--source",
+        "item",
+        "--number",
+        "7",
+        "--include-comments",
+        "--comment-limit",
+        "20",
+        "--json",
+      ],
+      {
+        githubTransport: commentTransport(recorded),
+        now: NOW,
+        providerConfig: defaultProviderConfig(),
+      },
     );
     expect(result.exitCode, result.stderr).toBe(0);
-    const items = JSON.parse(result.stdout).data.providerResponses[0].items as Array<{ type: string; data: Record<string, unknown> }>;
+    const items = JSON.parse(result.stdout).data.providerResponses[0].items as Array<{
+      type: string;
+      data: Record<string, unknown>;
+    }>;
     expect(items[0]!.type).toBe("issue");
     const notes = items.filter((i) => i.type === "note");
     expect(notes).toHaveLength(1);
@@ -175,7 +237,11 @@ describe("GitHub item comments E2E", () => {
     const recorded: string[] = [];
     const result = await runLocalCliProcess(
       ["github", "brief", SLUG, "--source", "item", "--number", "7", "--json"],
-      { githubTransport: commentTransport(recorded), now: NOW, providerConfig: defaultProviderConfig() },
+      {
+        githubTransport: commentTransport(recorded),
+        now: NOW,
+        providerConfig: defaultProviderConfig(),
+      },
     );
     expect(result.exitCode).toBe(0);
     expect(recorded).toEqual([`/repos/${SLUG}/issues/7`]);
@@ -195,7 +261,11 @@ describe("GitHub item comments E2E", () => {
     const recorded: string[] = [];
     const result = await runLocalCliProcess(
       ["github", "brief", SLUG, "--source", "issues", "--include-comments"],
-      { githubTransport: commentTransport(recorded), now: NOW, providerConfig: defaultProviderConfig() },
+      {
+        githubTransport: commentTransport(recorded),
+        now: NOW,
+        providerConfig: defaultProviderConfig(),
+      },
     );
     expect(result.exitCode).toBe(2);
     expect(recorded).toHaveLength(0);
@@ -205,7 +275,11 @@ describe("GitHub item comments E2E", () => {
     const recorded: string[] = [];
     const result = await runLocalCliProcess(
       ["github", "brief", SLUG, "--source", "item", "--number", "7", "--comment-limit", "10"],
-      { githubTransport: commentTransport(recorded), now: NOW, providerConfig: defaultProviderConfig() },
+      {
+        githubTransport: commentTransport(recorded),
+        now: NOW,
+        providerConfig: defaultProviderConfig(),
+      },
     );
     expect(result.exitCode).toBe(2);
     expect(recorded).toHaveLength(0);
@@ -213,7 +287,18 @@ describe("GitHub item comments E2E", () => {
 
   it("rejects an out-of-range --comment-limit at the parser", async () => {
     const result = await runLocalCliProcess(
-      ["github", "brief", SLUG, "--source", "item", "--number", "7", "--include-comments", "--comment-limit", "51"],
+      [
+        "github",
+        "brief",
+        SLUG,
+        "--source",
+        "item",
+        "--number",
+        "7",
+        "--include-comments",
+        "--comment-limit",
+        "51",
+      ],
       { githubTransport: commentTransport([]), now: NOW, providerConfig: defaultProviderConfig() },
     );
     expect(result.exitCode).toBe(2);
@@ -222,8 +307,22 @@ describe("GitHub item comments E2E", () => {
   it("produces byte-identical output on repeated runs (determinism)", async () => {
     const run = () =>
       runLocalCliProcess(
-        ["github", "risks", SLUG, "--source", "item", "--number", "7", "--include-comments", "--json"],
-        { githubTransport: commentTransport([]), now: NOW, providerConfig: defaultProviderConfig() },
+        [
+          "github",
+          "risks",
+          SLUG,
+          "--source",
+          "item",
+          "--number",
+          "7",
+          "--include-comments",
+          "--json",
+        ],
+        {
+          githubTransport: commentTransport([]),
+          now: NOW,
+          providerConfig: defaultProviderConfig(),
+        },
       );
     const a = await run();
     const b = await run();
@@ -242,7 +341,11 @@ function reviewTransport(recorded: string[]): GitHubHttpTransport {
         return { status: 200, headers: {}, body: ghItem(8, "pr") };
       }
       if (url.pathname === `/repos/${SLUG}/pulls/8`) {
-        return { status: 200, headers: {}, body: { ...ghItem(8, "pr"), merged: false, draft: false } };
+        return {
+          status: 200,
+          headers: {},
+          body: { ...ghItem(8, "pr"), merged: false, draft: false },
+        };
       }
       if (url.pathname === `/repos/${SLUG}/issues/8/comments`) {
         return { status: 200, headers: {}, body: [] };
@@ -372,7 +475,11 @@ describe("GitHub PR reviews / review comments E2E", () => {
     const recorded: string[] = [];
     const result = await runLocalCliProcess(
       ["github", "brief", SLUG, "--source", "item", "--number", "7", "--include-reviews"],
-      { githubTransport: commentTransport(recorded), now: NOW, providerConfig: defaultProviderConfig() },
+      {
+        githubTransport: commentTransport(recorded),
+        now: NOW,
+        providerConfig: defaultProviderConfig(),
+      },
     );
     expect(result.exitCode).toBe(2);
     expect(result.stderr).toContain("not a pull request");
@@ -381,7 +488,15 @@ describe("GitHub PR reviews / review comments E2E", () => {
   });
 
   it("risks from a changes-requested review surface with the author and high severity", async () => {
-    const result = await reviewRun(["risks", SLUG, "--source", "item", "--number", "8", "--include-reviews"]);
+    const result = await reviewRun([
+      "risks",
+      SLUG,
+      "--source",
+      "item",
+      "--number",
+      "8",
+      "--include-reviews",
+    ]);
     expect(result.exitCode, result.stderr).toBe(0);
     expect(result.stdout).toContain("Changes requested by @alice");
     expect(result.stdout).toContain("[high]");
@@ -389,7 +504,15 @@ describe("GitHub PR reviews / review comments E2E", () => {
   });
 
   it("next from a changes-requested review surfaces the address task", async () => {
-    const result = await reviewRun(["next", SLUG, "--source", "item", "--number", "8", "--include-reviews"]);
+    const result = await reviewRun([
+      "next",
+      SLUG,
+      "--source",
+      "item",
+      "--number",
+      "8",
+      "--include-reviews",
+    ]);
     expect(result.exitCode, result.stderr).toBe(0);
     expect(result.stdout).toContain("Address changes requested by @alice");
   });

@@ -14,14 +14,14 @@ call a `github_project_*` MCP tool.
 
 ## Source modes
 
-| source          | state | limit | number | query | kind |
-| --------------- | ----- | ----- | ------ | ----- | ---- |
-| overview        | yes   | yes   | no     | no    | no   |
-| repository      | no    | no    | no     | no    | no   |
-| issues          | yes   | yes   | no     | no    | no   |
-| pull-requests   | yes   | yes   | no     | no    | no   |
-| item            | no    | no    | yes    | no    | no   |
-| search          | yes   | yes   | no     | yes   | yes  |
+| source        | state | limit | number | query | kind |
+| ------------- | ----- | ----- | ------ | ----- | ---- |
+| overview      | yes   | yes   | no     | no    | no   |
+| repository    | no    | no    | no     | no    | no   |
+| issues        | yes   | yes   | no     | no    | no   |
+| pull-requests | yes   | yes   | no     | no    | no   |
+| item          | no    | no    | yes    | no    | no   |
+| search        | yes   | yes   | no     | yes   | yes  |
 
 - **overview** — repository metadata plus issues and pull requests selected by
   state. This is the default (`overview` + `open`).

@@ -59,13 +59,20 @@ const issuesListRoute: Route = {
   body: [issue(1), issue(2, true)],
 };
 function searchRoute(items: Record<string, unknown>[]): Route {
-  return { match: (u) => u.pathname === "/search/issues", body: { total_count: items.length, incomplete_results: false, items } };
+  return {
+    match: (u) => u.pathname === "/search/issues",
+    body: { total_count: items.length, incomplete_results: false, items },
+  };
 }
 
 function run(routes: Route[], request: Partial<ProviderRequest>) {
   const { transport, calls } = scripted(routes);
   const provider = createGitHubProvider({ transport, productVersion: "9.9.9-test" });
-  return { provider, calls, request: { providerId: "github", action: "list", query: SLUG, ...request } as ProviderRequest };
+  return {
+    provider,
+    calls,
+    request: { providerId: "github", action: "list", query: SLUG, ...request } as ProviderRequest,
+  };
 }
 
 describe("provider overview source", () => {
@@ -77,7 +84,10 @@ describe("provider overview source", () => {
     });
     const result = await provider.execute(request, context);
     expect(result.ok).toBe(true);
-    expect(calls.map((c) => new URL(c.url).pathname)).toEqual([`/repos/${SLUG}`, `/repos/${SLUG}/issues`]);
+    expect(calls.map((c) => new URL(c.url).pathname)).toEqual([
+      `/repos/${SLUG}`,
+      `/repos/${SLUG}/issues`,
+    ]);
     expect(new URL(calls[1]!.url).searchParams.get("state")).toBe("closed");
     if (result.ok) expect(result.response.items[0]?.type).toBe("record");
   });
@@ -93,7 +103,11 @@ describe("provider overview source", () => {
   });
 
   it("legacy bare-repository query preserves overview/open behavior", async () => {
-    const { provider, calls, request } = run([repoRoute, issuesListRoute], { action: "list", query: SLUG, limit: 10 });
+    const { provider, calls, request } = run([repoRoute, issuesListRoute], {
+      action: "list",
+      query: SLUG,
+      limit: 10,
+    });
     await provider.execute(request, context);
     expect(new URL(calls[1]!.url).searchParams.get("state")).toBe("open");
   });
@@ -178,12 +192,18 @@ describe("provider item source", () => {
     const { provider, calls, request } = run(
       [
         { match: (u) => u.pathname === `/repos/${SLUG}/issues/8`, body: issue(8, true) },
-        { match: (u) => u.pathname === `/repos/${SLUG}/pulls/8`, body: { ...issue(8, true), merged: false, draft: false } },
+        {
+          match: (u) => u.pathname === `/repos/${SLUG}/pulls/8`,
+          body: { ...issue(8, true), merged: false, draft: false },
+        },
       ],
       { action: "fetch", query: buildGitHubFetchQuery({ repository: SLUG, number: 8 }), limit: 1 },
     );
     const result = await provider.execute(request, context);
-    expect(calls.map((c) => new URL(c.url).pathname)).toEqual([`/repos/${SLUG}/issues/8`, `/repos/${SLUG}/pulls/8`]);
+    expect(calls.map((c) => new URL(c.url).pathname)).toEqual([
+      `/repos/${SLUG}/issues/8`,
+      `/repos/${SLUG}/pulls/8`,
+    ]);
     if (result.ok) expect(result.response.items[0]?.type).toBe("pullRequest");
   });
 });
@@ -192,7 +212,12 @@ describe("provider search source", () => {
   it("injects repository/state/kind before user terms", async () => {
     const { provider, calls, request } = run([searchRoute([issue(9)])], {
       action: "search",
-      query: buildGitHubSearchQuery({ repository: SLUG, terms: "release blocker", state: "open", kind: "issues" }),
+      query: buildGitHubSearchQuery({
+        repository: SLUG,
+        terms: "release blocker",
+        state: "open",
+        kind: "issues",
+      }),
       limit: 5,
     });
     await provider.execute(request, context);
@@ -203,7 +228,10 @@ describe("provider search source", () => {
 
   it("emits an incomplete-results warning", async () => {
     const { transport, calls } = scripted([
-      { match: (u) => u.pathname === "/search/issues", body: { incomplete_results: true, items: [issue(9)] } },
+      {
+        match: (u) => u.pathname === "/search/issues",
+        body: { incomplete_results: true, items: [issue(9)] },
+      },
     ]);
     void calls;
     const provider = createGitHubProvider({ transport, productVersion: "9.9.9-test" });
@@ -217,7 +245,9 @@ describe("provider search source", () => {
       context,
     );
     if (result.ok) {
-      expect((result.response.warnings ?? []).some((w) => w.code === "github_incomplete_results")).toBe(true);
+      expect(
+        (result.response.warnings ?? []).some((w) => w.code === "github_incomplete_results"),
+      ).toBe(true);
     } else {
       throw new Error("expected ok");
     }
@@ -233,10 +263,17 @@ describe("provider shared safety", () => {
       [429, "OMP-P-4007"],
       [500, "OMP-P-4008"],
     ] as const) {
-      const { transport } = scripted([{ match: () => true, status, body: { message: "raw detail" } }]);
+      const { transport } = scripted([
+        { match: () => true, status, body: { message: "raw detail" } },
+      ]);
       const provider = createGitHubProvider({ transport, productVersion: "9.9.9-test" });
       const result = await provider.execute(
-        { providerId: "github", action: "list", query: buildGitHubListQuery({ repository: SLUG, source: "issues", state: "open" }), limit: 5 },
+        {
+          providerId: "github",
+          action: "list",
+          query: buildGitHubListQuery({ repository: SLUG, source: "issues", state: "open" }),
+          limit: 5,
+        },
         context,
       );
       expect(result.ok, String(status)).toBe(false);

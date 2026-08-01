@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { PROJECT_MEMORY_ERROR_CODES } from "../src/errors.js";
 import { deriveProjectKey, deriveRecordKey } from "../src/integrity.js";
-import { buildEnvelope, buildManifest, serializeEnvelope, serializeManifest } from "../src/manifest.js";
+import {
+  buildEnvelope,
+  buildManifest,
+  serializeEnvelope,
+  serializeManifest,
+} from "../src/manifest.js";
 import { migration1to2, MigrationRegistry, planMigration } from "../src/migrations.js";
 import type { MigrationDefinition } from "../src/migrations.js";
 import {

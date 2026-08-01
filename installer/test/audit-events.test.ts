@@ -21,9 +21,7 @@ function input(): InstallerAuditEventInput {
 }
 
 // Build a decision report with a chosen decision/ok and section shape.
-function decisionWith(
-  overrides: Partial<InstallerDecisionReport>,
-): InstallerDecisionReport {
+function decisionWith(overrides: Partial<InstallerDecisionReport>): InstallerDecisionReport {
   const base = createInstallerDecisionReport(exampleInstallerDecisionReportInput());
   return { ...base, ...overrides };
 }
@@ -112,9 +110,7 @@ describe("createInstallerAuditEvents", () => {
 
   it("uses a contiguous sequence starting at 1", () => {
     const events = createInstallerAuditEvents(input());
-    expect(events.map((event) => event.sequence)).toEqual(
-      events.map((_event, index) => index + 1),
-    );
+    expect(events.map((event) => event.sequence)).toEqual(events.map((_event, index) => index + 1));
   });
 
   it("reports an error decision event when blocked", () => {
@@ -183,9 +179,7 @@ describe("validateInstallerAuditEvents", () => {
         root: "/tmp",
       }),
     ];
-    expect(validateInstallerAuditEvents(events).reasons).toContain(
-      "audit_event_sequence_invalid",
-    );
+    expect(validateInstallerAuditEvents(events).reasons).toContain("audit_event_sequence_invalid");
   });
 
   it("flags a duplicate sequence", () => {

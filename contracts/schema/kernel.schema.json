@@ -74,7 +74,11 @@
       "fields": [
         { "name": "schemaVersion", "type": "string", "doc": "Manifest schema version." },
         { "name": "systemVersion", "type": "string", "doc": "Overall system version." },
-        { "name": "components", "type": { "array": { "ref": "ComponentVersion" } }, "doc": "Component entries." }
+        {
+          "name": "components",
+          "type": { "array": { "ref": "ComponentVersion" } },
+          "doc": "Component entries."
+        }
       ]
     },
     {
@@ -89,8 +93,16 @@
       "doc": "Resolved feature flag values.",
       "fields": [
         { "name": "releaseEnabled", "type": "boolean", "doc": "Whether releases are enabled." },
-        { "name": "assistedPlanning", "type": "boolean", "doc": "Whether assisted planning is enabled." },
-        { "name": "dashboardPreview", "type": "boolean", "doc": "Whether the dashboard preview is enabled." }
+        {
+          "name": "assistedPlanning",
+          "type": "boolean",
+          "doc": "Whether assisted planning is enabled."
+        },
+        {
+          "name": "dashboardPreview",
+          "type": "boolean",
+          "doc": "Whether the dashboard preview is enabled."
+        }
       ]
     },
     {
@@ -116,7 +128,11 @@
         { "name": "code", "type": { "ref": "OmpErrorCode" }, "doc": "Registered error code." },
         { "name": "message", "type": "string", "doc": "Human-readable message." },
         { "name": "path", "type": "string", "doc": "JSON pointer into the payload." },
-        { "name": "blocking", "type": "boolean", "doc": "Whether the finding blocks the operation." }
+        {
+          "name": "blocking",
+          "type": "boolean",
+          "doc": "Whether the finding blocks the operation."
+        }
       ]
     },
     {
@@ -124,10 +140,22 @@
       "name": "ValidationReport",
       "doc": "Aggregated validation findings for one payload.",
       "fields": [
-        { "name": "target", "type": { "ref": "ValidationTarget" }, "doc": "Validated payload kind." },
+        {
+          "name": "target",
+          "type": { "ref": "ValidationTarget" },
+          "doc": "Validated payload kind."
+        },
         { "name": "passed", "type": "boolean", "doc": "True when no blocking errors exist." },
-        { "name": "errors", "type": { "array": { "ref": "ValidationFinding" } }, "doc": "Blocking findings." },
-        { "name": "warnings", "type": { "array": { "ref": "ValidationFinding" } }, "doc": "Non-blocking findings." }
+        {
+          "name": "errors",
+          "type": { "array": { "ref": "ValidationFinding" } },
+          "doc": "Blocking findings."
+        },
+        {
+          "name": "warnings",
+          "type": { "array": { "ref": "ValidationFinding" } },
+          "doc": "Non-blocking findings."
+        }
       ]
     },
     {
@@ -143,7 +171,12 @@
       "fields": [
         { "name": "kind", "type": { "ref": "UpdatePlanStepKind" }, "doc": "Step kind." },
         { "name": "path", "type": "string", "doc": "Install-root-relative path." },
-        { "name": "checksum", "type": "string", "doc": "Expected content checksum.", "optional": true }
+        {
+          "name": "checksum",
+          "type": "string",
+          "doc": "Expected content checksum.",
+          "optional": true
+        }
       ]
     },
     {
@@ -164,7 +197,11 @@
         { "name": "id", "type": "string", "doc": "Plan identifier." },
         { "name": "fromVersion", "type": "string", "doc": "Currently installed version." },
         { "name": "toVersion", "type": "string", "doc": "Target version." },
-        { "name": "steps", "type": { "array": { "ref": "UpdatePlanStep" } }, "doc": "Ordered steps." },
+        {
+          "name": "steps",
+          "type": { "array": { "ref": "UpdatePlanStep" } },
+          "doc": "Ordered steps."
+        },
         { "name": "rollback", "type": { "ref": "RollbackPoint" }, "doc": "Rollback snapshot." }
       ]
     },
@@ -179,7 +216,11 @@
           "tagValue": "allowed",
           "fields": [
             { "name": "planId", "type": "string", "doc": "Plan identifier." },
-            { "name": "planHash", "type": "string", "doc": "Hash binding the decision to the plan." },
+            {
+              "name": "planHash",
+              "type": "string",
+              "doc": "Hash binding the decision to the plan."
+            },
             { "name": "reasons", "type": { "array": "string" }, "doc": "Decision reasons." }
           ]
         },
@@ -188,7 +229,11 @@
           "tagValue": "blocked",
           "fields": [
             { "name": "planId", "type": "string", "doc": "Plan identifier." },
-            { "name": "planHash", "type": "string", "doc": "Hash binding the decision to the plan." },
+            {
+              "name": "planHash",
+              "type": "string",
+              "doc": "Hash binding the decision to the plan."
+            },
             { "name": "reasons", "type": { "array": "string" }, "doc": "Decision reasons." }
           ]
         }

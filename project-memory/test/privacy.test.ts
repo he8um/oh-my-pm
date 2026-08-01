@@ -12,7 +12,9 @@ describe("forbidden key rejection", () => {
   it("rejects a raw body key nested anywhere", () => {
     expect(() => assertNoForbiddenKeys({ a: { rawBody: "x" } } as never, "test")).toThrow();
     expect(() => assertNoForbiddenKeys({ token: "x" } as never, "test")).toThrow();
-    expect(() => assertNoForbiddenKeys({ nested: [{ absolutePath: "/x" }] } as never, "test")).toThrow();
+    expect(() =>
+      assertNoForbiddenKeys({ nested: [{ absolutePath: "/x" }] } as never, "test"),
+    ).toThrow();
   });
 
   it("normalizes camelCase and separators before comparison", () => {

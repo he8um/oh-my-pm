@@ -207,7 +207,9 @@ describe("createV0ReleaseCandidateChecklist", () => {
     const checklist = createV0ReleaseCandidateChecklist(input());
     for (const item of checklist.items) {
       for (const key of Object.keys(item)) {
-        expect(key).not.toMatch(/content|artifact|asset|dest|command|adapter|object|result|remote|url/i);
+        expect(key).not.toMatch(
+          /content|artifact|asset|dest|command|adapter|object|result|remote|url/i,
+        );
       }
     }
     const serialized = JSON.stringify(checklist);
@@ -264,7 +266,9 @@ describe("formatV0ReleaseCandidateChecklistMarkdown", () => {
     });
     const markdown = formatV0ReleaseCandidateChecklistMarkdown(checklist);
     expect(markdown).toContain("Status: `blocked`");
-    expect(markdown).toContain("`[ ]` `tests-pass` — Test suites pass — reason: `v0_rc_tests_failed`");
+    expect(markdown).toContain(
+      "`[ ]` `tests-pass` — Test suites pass — reason: `v0_rc_tests_failed`",
+    );
     expect(markdown).toContain("- `v0_rc_tests_failed`");
   });
 });

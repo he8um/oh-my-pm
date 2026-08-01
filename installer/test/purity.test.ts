@@ -147,8 +147,7 @@ function stripPublishAllowedIdentifiers(contents: string): string {
 describe("installer purity", () => {
   it("core source files contain no I/O or nondeterministic APIs", () => {
     const files = readdirSync(srcDir).filter(
-      (f) =>
-        f.endsWith(".ts") && f !== NODE_READ_ADAPTER_FILE && f !== NODE_WRITE_ADAPTER_FILE,
+      (f) => f.endsWith(".ts") && f !== NODE_READ_ADAPTER_FILE && f !== NODE_WRITE_ADAPTER_FILE,
     );
     expect(files.length).toBeGreaterThanOrEqual(16);
     for (const file of files) {
@@ -473,10 +472,9 @@ describe("installer purity", () => {
       "privateKey",
       "publicKey",
     ]) {
-      expect(
-        contents,
-        `release-artifact-plan.ts must not contain "${forbidden}"`,
-      ).not.toContain(forbidden);
+      expect(contents, `release-artifact-plan.ts must not contain "${forbidden}"`).not.toContain(
+        forbidden,
+      );
     }
   });
 
@@ -515,10 +513,9 @@ describe("installer purity", () => {
       "privateKey",
       "publicKey",
     ]) {
-      expect(
-        contents,
-        `public-v0-release-notes.ts must not contain "${forbidden}"`,
-      ).not.toContain(forbidden);
+      expect(contents, `public-v0-release-notes.ts must not contain "${forbidden}"`).not.toContain(
+        forbidden,
+      );
     }
   });
 
@@ -547,15 +544,18 @@ describe("installer purity", () => {
       "publicKey",
       ...REMOTE_FORBIDDEN,
     ]) {
-      expect(
-        contents,
-        `v0-release-candidate.ts must not contain "${forbidden}"`,
-      ).not.toContain(forbidden);
+      expect(contents, `v0-release-candidate.ts must not contain "${forbidden}"`).not.toContain(
+        forbidden,
+      );
     }
   });
 
   it("the adapter contract, dry-run envelope, and release readiness never log, execute, call an adapter, or hold crypto", () => {
-    for (const file of ["write-adapter-contract.ts", "write-dry-run-envelope.ts", "release-readiness.ts"]) {
+    for (const file of [
+      "write-adapter-contract.ts",
+      "write-dry-run-envelope.ts",
+      "release-readiness.ts",
+    ]) {
       const contents = readFileSync(join(srcDir, file), "utf8");
       for (const forbidden of [
         "console.log",
@@ -604,20 +604,18 @@ describe("installer purity", () => {
   it("read-only node adapter stays read-only and side-effect-free", () => {
     const contents = readFileSync(join(srcDir, NODE_READ_ADAPTER_FILE), "utf8");
     for (const forbidden of READ_ADAPTER_FORBIDDEN) {
-      expect(
-        contents,
-        `${NODE_READ_ADAPTER_FILE} must not contain "${forbidden}"`,
-      ).not.toContain(forbidden);
+      expect(contents, `${NODE_READ_ADAPTER_FILE} must not contain "${forbidden}"`).not.toContain(
+        forbidden,
+      );
     }
   });
 
   it("node write adapter uses only allow-listed write APIs", () => {
     const contents = readFileSync(join(srcDir, NODE_WRITE_ADAPTER_FILE), "utf8");
     for (const forbidden of WRITE_ADAPTER_FORBIDDEN) {
-      expect(
-        contents,
-        `${NODE_WRITE_ADAPTER_FILE} must not contain "${forbidden}"`,
-      ).not.toContain(forbidden);
+      expect(contents, `${NODE_WRITE_ADAPTER_FILE} must not contain "${forbidden}"`).not.toContain(
+        forbidden,
+      );
     }
   });
 });

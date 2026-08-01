@@ -1,6 +1,11 @@
 import type { ProviderId, ProviderRequest } from "@oh-my-pm/contracts";
 import { OMP_P_UNKNOWN_PROVIDER, providerFailure } from "./errors.js";
-import type { Provider, ProviderDescriptor, ProviderExecutionContext, ProviderRegistry } from "./types.js";
+import type {
+  Provider,
+  ProviderDescriptor,
+  ProviderExecutionContext,
+  ProviderRegistry,
+} from "./types.js";
 
 /** Registry over a fixed provider set; duplicate ids keep the first provider. */
 export function createProviderRegistry(providers: readonly Provider[]): ProviderRegistry {

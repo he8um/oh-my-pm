@@ -25,13 +25,7 @@ const NODE_BOUNDARY_FILES = new Set(["mcp-config-resolve.ts"]);
 // enforces its own boundary. The CLI now only parses the memory grammar and
 // renders the typed outcome.
 
-const FS_READ_IMPORTS = [
-  'from "fs"',
-  'from "node:fs"',
-  'require("fs")',
-  "fs.",
-  "node:fs",
-];
+const FS_READ_IMPORTS = ['from "fs"', 'from "node:fs"', 'require("fs")', "fs.", "node:fs"];
 
 const WRITE_APIS = [
   "writeFile",

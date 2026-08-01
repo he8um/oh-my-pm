@@ -39,7 +39,12 @@ export function executeInstallPlan(
     if (operation.kind === "create" || operation.kind === "replace") {
       const file = fileForOperation(operation, input.files);
       if (file === undefined) {
-        executed = { kind: operation.kind, path: operation.path, ok: false, message: "file_missing" };
+        executed = {
+          kind: operation.kind,
+          path: operation.path,
+          ok: false,
+          message: "file_missing",
+        };
       } else {
         executed = deps.writer.writeFile({
           path: operation.path,

@@ -1,5 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -63,13 +71,7 @@ describe("portable release bundle e2e", () => {
   }, 120_000);
 
   it("ships exactly the three generated Kernel binding files", () => {
-    const generatedDir = join(
-      movedBundle,
-      "node_modules",
-      "@oh-my-pm",
-      "kernel",
-      "generated-node",
-    );
+    const generatedDir = join(movedBundle, "node_modules", "@oh-my-pm", "kernel", "generated-node");
     expect(readdirSync(generatedDir).sort()).toEqual([
       "oh_my_pm_kernel.js",
       "oh_my_pm_kernel_bg.wasm",
@@ -181,7 +183,13 @@ describe("portable release bundle e2e", () => {
         configurable: ["enabled", "defaultRepository", "defaultLimit"],
         fixed: ["origin", "apiVersion", "method", "tokenEnv"],
       },
-      githubFields: ["enabled", "defaultRepository", "defaultLimit", "defaultSource", "defaultState"],
+      githubFields: [
+        "enabled",
+        "defaultRepository",
+        "defaultLimit",
+        "defaultSource",
+        "defaultState",
+      ],
     });
     expect(release.providerDiagnostics).toEqual({
       offlineByDefault: true,

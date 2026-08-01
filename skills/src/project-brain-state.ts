@@ -12,10 +12,7 @@
 // the Runtime can compute a content fingerprint through the Kernel. It must
 // never be persisted or returned in any public result.
 
-import {
-  collectMarkdownSectionItems,
-  parseMarkdownProjectSections,
-} from "./markdown-project.js";
+import { collectMarkdownSectionItems, parseMarkdownProjectSections } from "./markdown-project.js";
 import {
   extractNextTaskCandidates,
   extractRiskCandidates,
@@ -27,13 +24,7 @@ import type { ProjectSignalSource, TextItem } from "./types.js";
 /** A canonical state-item draft. Evidence reference ids are candidate ids until the
  * Runtime replaces them with final evidence ids. */
 export interface StateItemDraft {
-  readonly kind:
-    | "milestone"
-    | "task"
-    | "risk"
-    | "decision"
-    | "dependency"
-    | "blocker";
+  readonly kind: "milestone" | "task" | "risk" | "decision" | "dependency" | "blocker";
   readonly id: string;
   readonly title: string;
   /** Candidate ids backing this item (replaced with evidence ids downstream). */
@@ -48,12 +39,7 @@ export interface StateItemDraft {
 
 /** The evidence source kind, mirroring the Project Brain contract taxonomy. */
 export type EvidenceSourceKind =
-  | "markdown"
-  | "githubIssue"
-  | "githubPullRequest"
-  | "githubRepository"
-  | "structured"
-  | "generic";
+  "markdown" | "githubIssue" | "githubPullRequest" | "githubRepository" | "structured" | "generic";
 
 /** A minimized evidence candidate. `fingerprintInput` is ephemeral (see above). */
 export interface EvidenceCandidate {
@@ -243,9 +229,7 @@ function candidateForSignal(
     provenance,
     fingerprintInput: fingerprintInputFor(candidate.sourceId, candidate.title),
   };
-  return Object.keys(metadata).length > 0
-    ? { ...evidenceCandidate, metadata }
-    : evidenceCandidate;
+  return Object.keys(metadata).length > 0 ? { ...evidenceCandidate, metadata } : evidenceCandidate;
 }
 
 /** Convert a risk candidate to a state-item draft of the given kind. */
@@ -263,7 +247,8 @@ function riskDraft(
   };
   const metadata: Record<string, string> = { reason: candidate.reason };
   const withOwner = candidate.owner !== undefined ? { ...draft, owner: candidate.owner } : draft;
-  const withDue = candidate.due !== undefined ? { ...withOwner, dueDate: candidate.due } : withOwner;
+  const withDue =
+    candidate.due !== undefined ? { ...withOwner, dueDate: candidate.due } : withOwner;
   return { ...withDue, metadata };
 }
 

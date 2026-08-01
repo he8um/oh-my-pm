@@ -84,10 +84,7 @@ export function createArchiveDryRunFromAssembly(
   }
   return {
     ...archive,
-    warnings: [
-      ...(archive.warnings ?? []),
-      ...assemblyWarnings.map((warning) => ({ ...warning })),
-    ],
+    warnings: [...(archive.warnings ?? []), ...assemblyWarnings.map((warning) => ({ ...warning }))],
   };
 }
 

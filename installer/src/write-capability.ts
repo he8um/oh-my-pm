@@ -131,8 +131,6 @@ export function createInstallerWriteCapabilityDryRun(
   return {
     ok: false,
     report,
-    warnings: report.reasons.map((reason) =>
-      installerWarning(OMP_I_INVALID_PACKAGE, reason),
-    ),
+    warnings: report.reasons.map((reason) => installerWarning(OMP_I_INVALID_PACKAGE, reason)),
   };
 }

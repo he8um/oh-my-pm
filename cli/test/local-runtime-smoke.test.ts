@@ -256,9 +256,7 @@ describe("bin wrapper risks smoke", () => {
     const result = runBin(["risks", "examples/fixtures/does-not-exist", "--json"]);
     expect(result.status).toBe(2);
     expect(result.stdout).toBe("");
-    expect(result.stderr).toBe(
-      "project root was not found: examples/fixtures/does-not-exist\n",
-    );
+    expect(result.stderr).toBe("project root was not found: examples/fixtures/does-not-exist\n");
   });
 
   it("exits with 2 for a risks root without markdown documents", async () => {
@@ -348,9 +346,7 @@ describe("bin wrapper next smoke", () => {
     const result = runBin(["next", "examples/fixtures/does-not-exist", "--json"]);
     expect(result.status).toBe(2);
     expect(result.stdout).toBe("");
-    expect(result.stderr).toBe(
-      "project root was not found: examples/fixtures/does-not-exist\n",
-    );
+    expect(result.stderr).toBe("project root was not found: examples/fixtures/does-not-exist\n");
   });
 
   it("exits with 2 for a next root without markdown documents", async () => {
@@ -492,12 +488,10 @@ describe("bin wrapper configured document selection", () => {
       // Provider context is exactly the four included documents; the archived
       // and scratch documents are excluded before the provider ever sees them.
       const items = parsed.data.providerResponses[0].items;
-      expect(items.map((item: { id: string }) => item.id), command).toEqual([
-        "README.md",
-        "docs/decisions.md",
-        "docs/risks.md",
-        "docs/status.md",
-      ]);
+      expect(
+        items.map((item: { id: string }) => item.id),
+        command,
+      ).toEqual(["README.md", "docs/decisions.md", "docs/risks.md", "docs/status.md"]);
 
       // Excluded content never enters the response at all — the whole JSON
       // (including raw provider content) is free of both sentinels.
@@ -526,7 +520,11 @@ describe("bin wrapper configured document selection", () => {
   it("preserves current behavior when no config exists", async () => {
     const root = mkdtempSync(join(tmpdir(), "oh-my-pm-noconfig-"));
     try {
-      writeFileSync(join(root, "README.md"), "# Solo\n\n## Current objective\n\nShip it.\n", "utf8");
+      writeFileSync(
+        join(root, "README.md"),
+        "# Solo\n\n## Current objective\n\nShip it.\n",
+        "utf8",
+      );
       const result = runBin(["handoff", root, "--json"]);
       expect(result.status).toBe(0);
       const parsed = JSON.parse(result.stdout);

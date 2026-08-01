@@ -62,10 +62,18 @@ describe("parseReleaseArchiveArgs", () => {
   });
 
   it("rejects duplicates, unknown options, positionals, and force without apply", () => {
-    expect(parseReleaseArchiveArgs(["--bundle", "a", "--bundle", "c", "--output", "b"])).toMatchObject({ ok: false });
-    expect(parseReleaseArchiveArgs(["--bundle", "a", "--output", "b", "--bad"])).toMatchObject({ ok: false });
-    expect(parseReleaseArchiveArgs(["--bundle", "a", "--output", "b", "x"])).toMatchObject({ ok: false });
-    expect(parseReleaseArchiveArgs(["--bundle", "a", "--output", "b", "--force"])).toMatchObject({ ok: false });
+    expect(
+      parseReleaseArchiveArgs(["--bundle", "a", "--bundle", "c", "--output", "b"]),
+    ).toMatchObject({ ok: false });
+    expect(parseReleaseArchiveArgs(["--bundle", "a", "--output", "b", "--bad"])).toMatchObject({
+      ok: false,
+    });
+    expect(parseReleaseArchiveArgs(["--bundle", "a", "--output", "b", "x"])).toMatchObject({
+      ok: false,
+    });
+    expect(parseReleaseArchiveArgs(["--bundle", "a", "--output", "b", "--force"])).toMatchObject({
+      ok: false,
+    });
   });
 
   it("accepts apply, force, and json and defaults to brief preview", () => {
@@ -94,7 +102,9 @@ describe("resolveReleaseArchivePlan", () => {
   });
 
   it("blocks a missing bundle and a wrong basename", () => {
-    expect(resolveReleaseArchivePlan({ bundle: join(repoRoot, "nope"), output: tempDir("o-") })).toMatchObject({ ok: false, action: "blocked" });
+    expect(
+      resolveReleaseArchivePlan({ bundle: join(repoRoot, "nope"), output: tempDir("o-") }),
+    ).toMatchObject({ ok: false, action: "blocked" });
     // Wrong basename: point at the repo root itself.
     const wrong = resolveReleaseArchivePlan({ bundle: repoRoot, output: tempDir("o-") });
     expect(wrong.ok).toBe(false);
@@ -147,7 +157,10 @@ describe("applyReleaseArchivePlan", () => {
 
   it("refuses when apply is not requested or the plan is not applicable", () => {
     const preview = resolveReleaseArchivePlan({ bundle, output: tempDir("o-") });
-    expect(applyReleaseArchivePlan(preview)).toMatchObject({ ok: false, code: "apply_not_requested" });
+    expect(applyReleaseArchivePlan(preview)).toMatchObject({
+      ok: false,
+      code: "apply_not_requested",
+    });
   });
 
   it("writes a filename-sorted two-line checksum file (tar.gz then zip)", () => {
@@ -171,8 +184,12 @@ describe("applyReleaseArchivePlan", () => {
       const line = lines.find((l) => l.endsWith(`  ${filename}`));
       return line.slice(0, 64);
     };
-    expect(digestFor(RELEASE_ARCHIVE_TAR_NAME)).toBe(sha256File(join(out, RELEASE_ARCHIVE_TAR_NAME)));
-    expect(digestFor(RELEASE_ARCHIVE_ZIP_NAME)).toBe(sha256File(join(out, RELEASE_ARCHIVE_ZIP_NAME)));
+    expect(digestFor(RELEASE_ARCHIVE_TAR_NAME)).toBe(
+      sha256File(join(out, RELEASE_ARCHIVE_TAR_NAME)),
+    );
+    expect(digestFor(RELEASE_ARCHIVE_ZIP_NAME)).toBe(
+      sha256File(join(out, RELEASE_ARCHIVE_ZIP_NAME)),
+    );
   }, 120_000);
 });
 

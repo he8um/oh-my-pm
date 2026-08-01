@@ -115,7 +115,4 @@ export type CliDeps = {
   };
 };
 
-export type RuntimeRequestFactory = (
-  command: RuntimeCliCommand,
-  input?: string,
-) => RuntimeRequest;
+export type RuntimeRequestFactory = (command: RuntimeCliCommand, input?: string) => RuntimeRequest;

@@ -184,7 +184,9 @@ export function buildGitHubFetchQuery(input: {
     params.push(`reviews=${input.reviewLimit ?? DEFAULT_GITHUB_REVIEW_LIMIT}`);
   }
   if (input.includeReviewComments === true) {
-    params.push(`review-comments=${input.reviewCommentLimit ?? DEFAULT_GITHUB_REVIEW_COMMENT_LIMIT}`);
+    params.push(
+      `review-comments=${input.reviewCommentLimit ?? DEFAULT_GITHUB_REVIEW_COMMENT_LIMIT}`,
+    );
   }
   if (params.length === 0) {
     return `${input.repository}#${input.number}`;

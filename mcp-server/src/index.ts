@@ -35,10 +35,7 @@ export {
 } from "./server.js";
 // v0.3 Phase 5: the read-only project_changes tool surface.
 export { runProjectChanges } from "./project-changes-runner.js";
-export type {
-  ProjectChangesRunnerOptions,
-  ProjectChangesStore,
-} from "./project-changes-runner.js";
+export type { ProjectChangesRunnerOptions, ProjectChangesStore } from "./project-changes-runner.js";
 export { loadOptionalProjectChangesExecutor } from "./project-changes-loader.js";
 export type { LoadProjectChangesExecutorOptions } from "./project-changes-loader.js";
 export {

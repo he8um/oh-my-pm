@@ -102,11 +102,7 @@ const RISK_HEADINGS = [
   "delivery constraints",
 ] as const;
 
-const DECISION_HEADINGS = [
-  "decision",
-  "decisions",
-  "decision log",
-] as const;
+const DECISION_HEADINGS = ["decision", "decisions", "decision log"] as const;
 
 /** Push trimmed non-empty text, deduped by prior text, up to the cap. */
 function pushDeduped(target: string[], seen: Set<string>, text: string): void {
@@ -134,10 +130,7 @@ function isOperationalOpenItem(item: TextItem): boolean {
 
 /** Deterministic open-tasks list from explicit tasks, checkboxes, items, then
  * bounded comment action items (author-prefixed). */
-function openTasks(parsed: {
-  tasks?: TextItem[];
-  items?: TextItem[];
-}): string[] {
+function openTasks(parsed: { tasks?: TextItem[]; items?: TextItem[] }): string[] {
   const items = parsed.items ?? [];
   // Discussion notes (comments, reviews, review comments) are handled separately
   // (author-prefixed); exclude them from the document-level checkbox/operational

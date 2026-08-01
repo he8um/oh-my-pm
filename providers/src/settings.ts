@@ -4,16 +4,9 @@
 // access. Token state is never part of effective settings. Explicit invalid
 // overrides fail closed and never silently fall back to configuration.
 
-import {
-  DEFAULT_GITHUB_PROVIDER_SOURCE,
-  DEFAULT_GITHUB_PROVIDER_STATE,
-} from "./config.js";
+import { DEFAULT_GITHUB_PROVIDER_SOURCE, DEFAULT_GITHUB_PROVIDER_STATE } from "./config.js";
 import type { ResolvedProviderConfig } from "./config.js";
-import {
-  GITHUB_DEFAULT_LIMIT,
-  GITHUB_MAX_LIMIT,
-  GITHUB_MIN_LIMIT,
-} from "./github/constants.js";
+import { GITHUB_DEFAULT_LIMIT, GITHUB_MAX_LIMIT, GITHUB_MIN_LIMIT } from "./github/constants.js";
 import { parseGitHubRepository } from "./github/query.js";
 import type { GitHubConfigurableSource, GitHubSourceState } from "./github/selection.js";
 

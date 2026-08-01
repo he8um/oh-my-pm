@@ -10,7 +10,11 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runLocalCliProcess } from "@oh-my-pm/cli";
-import type { GitHubHttpRequest, GitHubHttpResponse, GitHubHttpTransport } from "@oh-my-pm/providers";
+import type {
+  GitHubHttpRequest,
+  GitHubHttpResponse,
+  GitHubHttpTransport,
+} from "@oh-my-pm/providers";
 import { defaultProviderConfig } from "@oh-my-pm/providers";
 import { describe, expect, it } from "vitest";
 import { executeMcpGitHubTool } from "@oh-my-pm/mcp-server";
@@ -41,8 +45,10 @@ function transportWithLog(): { transport: GitHubHttpTransport; paths: string[] }
       expect(request.headers.Accept).toBe("application/vnd.github+json");
       expect(request.headers["X-GitHub-Api-Version"]).toBe("2026-03-10");
       expect(Object.keys(request.headers)).not.toContain("Authorization");
-      if (url.pathname === `/repos/${SLUG}`) return { status: 200, headers: {}, body: load("repository.json") };
-      if (url.pathname === `/repos/${SLUG}/issues`) return { status: 200, headers: {}, body: load("issues.json") };
+      if (url.pathname === `/repos/${SLUG}`)
+        return { status: 200, headers: {}, body: load("repository.json") };
+      if (url.pathname === `/repos/${SLUG}/issues`)
+        return { status: 200, headers: {}, body: load("issues.json") };
       return { status: 404, headers: {}, body: {} };
     },
   };
@@ -65,7 +71,11 @@ describe("github offline e2e — CLI", () => {
       expect(paths).toEqual([`/repos/${SLUG}`, `/repos/${SLUG}/issues`]);
       // Normalized item order: repository record, then issue, then pull request.
       const items = parsed.data.providerResponses[0].items;
-      expect(items.map((i: { type: string }) => i.type)).toEqual(["record", "issue", "pullRequest"]);
+      expect(items.map((i: { type: string }) => i.type)).toEqual([
+        "record",
+        "issue",
+        "pullRequest",
+      ]);
       // No token or raw API host leaks.
       expect(result.stdout).not.toContain("api.github.com");
       expect(result.stdout).not.toContain("Bearer");
@@ -77,10 +87,14 @@ describe("github offline e2e — MCP", () => {
   for (const op of ["brief", "risks", "next", "handoff"] as const) {
     it(`runs ${op} through the MCP runner`, async () => {
       const { transport, paths } = transportWithLog();
-      const result = await executeMcpGitHubTool(op, { repository: SLUG, limit: 5 }, {
-        transport,
-        providerConfig: OFFLINE_CONFIG,
-      });
+      const result = await executeMcpGitHubTool(
+        op,
+        { repository: SLUG, limit: 5 },
+        {
+          transport,
+          providerConfig: OFFLINE_CONFIG,
+        },
+      );
       expect(result.ok, result.ok ? "" : result.message).toBe(true);
       if (!result.ok) return;
       expect(paths).toEqual([`/repos/${SLUG}`, `/repos/${SLUG}/issues`]);
@@ -138,7 +152,12 @@ describe("github offline e2e — MCP item comments", () => {
     expect(result.ok, result.ok ? "" : result.message).toBe(true);
     if (!result.ok) return;
     expect(paths).toEqual([`/repos/${SLUG}/issues/42`, `/repos/${SLUG}/issues/42/comments`]);
-    expect(result.selection).toMatchObject({ mode: "item", number: 42, includeComments: true, commentLimit: 20 });
+    expect(result.selection).toMatchObject({
+      mode: "item",
+      number: 42,
+      includeComments: true,
+      commentLimit: 20,
+    });
     expect(result.sourceSummary.comments).toBe(1);
   });
 
@@ -200,8 +219,10 @@ function reviewTransport(): { transport: GitHubHttpTransport; paths: string[] } 
     async request(request: GitHubHttpRequest): Promise<GitHubHttpResponse> {
       const url = new URL(request.url);
       paths.push(url.pathname);
-      if (url.pathname === `/repos/${SLUG}/issues/47`) return { status: 200, headers: {}, body: prIssue };
-      if (url.pathname === `/repos/${SLUG}/pulls/47`) return { status: 200, headers: {}, body: load("pull-request.json") };
+      if (url.pathname === `/repos/${SLUG}/issues/47`)
+        return { status: 200, headers: {}, body: prIssue };
+      if (url.pathname === `/repos/${SLUG}/pulls/47`)
+        return { status: 200, headers: {}, body: load("pull-request.json") };
       if (url.pathname === `/repos/${SLUG}/pulls/47/reviews`) {
         return {
           status: 200,
@@ -238,7 +259,8 @@ function reviewTransport(): { transport: GitHubHttpTransport; paths: string[] } 
           ],
         };
       }
-      if (url.pathname === `/repos/${SLUG}/issues/42`) return { status: 200, headers: {}, body: load("issue.json") };
+      if (url.pathname === `/repos/${SLUG}/issues/42`)
+        return { status: 200, headers: {}, body: load("issue.json") };
       return { status: 404, headers: {}, body: {} };
     },
   };
@@ -260,7 +282,12 @@ describe("github offline e2e — MCP PR reviews / review comments", () => {
       `/repos/${SLUG}/pulls/47`,
       `/repos/${SLUG}/pulls/47/reviews`,
     ]);
-    expect(result.selection).toMatchObject({ mode: "item", number: 47, includeReviews: true, reviewLimit: 10 });
+    expect(result.selection).toMatchObject({
+      mode: "item",
+      number: 47,
+      includeReviews: true,
+      reviewLimit: 10,
+    });
     expect(result.sourceSummary.reviews).toBe(1);
     const parent = result.sources.find((s) => s.number === 47);
     expect(parent?.reviews).toBeDefined();

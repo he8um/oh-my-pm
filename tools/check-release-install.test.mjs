@@ -72,7 +72,9 @@ describe("check-release-install behavior", () => {
   }, 60_000);
 
   it("honors --expected-version", () => {
-    expect(run(checker, ["--prefix", prefix, "--expected-version", CANONICAL_VERSION]).status).toBe(0);
+    expect(run(checker, ["--prefix", prefix, "--expected-version", CANONICAL_VERSION]).status).toBe(
+      0,
+    );
     const wrong = run(checker, ["--prefix", prefix, "--expected-version", "9.9.9"]);
     expect(wrong.status).toBe(1);
     expect(wrong.stderr).toContain("expected 9.9.9");

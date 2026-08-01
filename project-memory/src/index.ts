@@ -31,15 +31,9 @@ export type {
   StoreVerification,
   StoreVersionState,
 } from "./types.js";
-export {
-  CURRENT_STORE_FORMAT_VERSION,
-  SUPPORTED_PROJECT_BRAIN_SCHEMA_VERSION,
-} from "./types.js";
+export { CURRENT_STORE_FORMAT_VERSION, SUPPORTED_PROJECT_BRAIN_SCHEMA_VERSION } from "./types.js";
 
-export {
-  PROJECT_MEMORY_ERROR_CODES,
-  ProjectMemoryError,
-} from "./errors.js";
+export { PROJECT_MEMORY_ERROR_CODES, ProjectMemoryError } from "./errors.js";
 export type { ProjectMemoryErrorCode } from "./errors.js";
 
 export {
@@ -101,19 +95,10 @@ export type {
   MigrationTarget,
 } from "./migrations.js";
 
-export {
-  acquireLock,
-  LOCK_VERSION,
-  STALE_LOCK_THRESHOLD_MS,
-} from "./lock.js";
+export { acquireLock, LOCK_VERSION, STALE_LOCK_THRESHOLD_MS } from "./lock.js";
 export type { LockHandle, LockRecord } from "./lock.js";
 
-export type {
-  CommitFailurePoint,
-  DirEntry,
-  FileSystem,
-  LockCreateResult,
-} from "./filesystem.js";
+export type { CommitFailurePoint, DirEntry, FileSystem, LockCreateResult } from "./filesystem.js";
 
 export { DependencyInjectedStore } from "./store.js";
 export type { StoreOptions } from "./store.js";
@@ -123,7 +108,4 @@ export {
   NodeFileSystem,
   resolveNodeDataRoot,
 } from "./node-adapter.js";
-export type {
-  NodeFileSystemOptions,
-  NodeProjectMemoryStoreOptions,
-} from "./node-adapter.js";
+export type { NodeFileSystemOptions, NodeProjectMemoryStoreOptions } from "./node-adapter.js";

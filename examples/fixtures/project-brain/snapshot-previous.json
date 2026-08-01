@@ -4,18 +4,25 @@
   "capturedAt": "2026-03-10T00:00:00Z",
   "sourceBoundaries": [
     { "sourceIdentity": "docs/status.md", "includedScope": "full", "coverageState": "complete" },
-    { "sourceIdentity": "issues/open", "includedScope": "open issues", "coverageState": "partial", "gapReason": "rate limited" }
+    {
+      "sourceIdentity": "issues/open",
+      "includedScope": "open issues",
+      "coverageState": "partial",
+      "gapReason": "rate limited"
+    }
   ],
   "state": {
     "identity": { "id": "project:acme-atlas", "kind": "explicit", "schemaVersion": 1 },
     "observedAt": "2026-03-10T00:00:00Z",
-    "sources": [
-      { "sourceKind": "markdown", "sourceIdentity": "docs/status.md" }
-    ],
+    "sources": [{ "sourceKind": "markdown", "sourceIdentity": "docs/status.md" }],
     "statusSummary": { "open": 4 },
     "evidenceRefs": ["evidence:e-fresh", "evidence:e-stale", "evidence:e-content-a"],
     "freshness": {
-      "observationFreshness": { "status": "known", "ageSeconds": 0, "referenceTimestamp": "2026-03-10T00:00:00Z" },
+      "observationFreshness": {
+        "status": "known",
+        "ageSeconds": 0,
+        "referenceTimestamp": "2026-03-10T00:00:00Z"
+      },
       "sourceFreshness": { "status": "unknown" },
       "evidenceFreshness": { "status": "unknown" },
       "derivedStateFreshness": { "status": "unknown" },

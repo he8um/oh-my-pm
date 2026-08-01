@@ -390,7 +390,8 @@ export async function executeMcpGitHubTool(
   const markdown = formatRuntimeResponse(response, "markdown");
   // Bound the public source list by the selection's effective limit (item and
   // repository selections are single-item; overview/issues/PR/search use limit).
-  const sourceCap = selection.mode === "item" || selection.mode === "repository" ? 1 : selection.limit;
+  const sourceCap =
+    selection.mode === "item" || selection.mode === "repository" ? 1 : selection.limit;
 
   return {
     ok: true,
@@ -423,7 +424,8 @@ export function publicSelection(selection: GitHubSourceSelection): McpGitHubSele
       };
       if (selection.includeComments) summary.commentLimit = selection.commentLimit;
       if (selection.includeReviews) summary.reviewLimit = selection.reviewLimit;
-      if (selection.includeReviewComments) summary.reviewCommentLimit = selection.reviewCommentLimit;
+      if (selection.includeReviewComments)
+        summary.reviewCommentLimit = selection.reviewCommentLimit;
       return summary;
     }
     case "search":

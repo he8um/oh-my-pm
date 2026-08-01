@@ -139,7 +139,12 @@ export async function compareProject(
     const selection = await selectPair(deps, input);
     if (selection.kind === "noPriorMemory") {
       trace.push({ step: "compare.select", status: "skip", detail: "noPriorMemory" });
-      return { requestId: input.requestId, status: "noPriorMemory", projectId: input.projectId, trace };
+      return {
+        requestId: input.requestId,
+        status: "noPriorMemory",
+        projectId: input.projectId,
+        trace,
+      };
     }
     if (selection.kind === "insufficientHistory") {
       trace.push({ step: "compare.select", status: "skip", detail: "insufficientHistory" });

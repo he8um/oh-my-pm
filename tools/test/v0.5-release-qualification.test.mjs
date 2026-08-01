@@ -10,11 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import {
-  CANONICAL_CLI,
-  CANONICAL_INSTALLER,
-  CANONICAL_MCP,
-} from "../command-surface.mjs";
+import { CANONICAL_CLI, CANONICAL_INSTALLER, CANONICAL_MCP } from "../command-surface.mjs";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const read = (p) => readFileSync(p, "utf8");
@@ -57,7 +53,8 @@ describe("v0.5 release workflow safety", () => {
   });
 
   it("gates publishing behind an exact confirmation, enforced twice", () => {
-    const gates = (wf.match(new RegExp(`RELEASE v${VERSION.replace(/\./g, "\\.")}`, "g")) ?? []).length;
+    const gates = (wf.match(new RegExp(`RELEASE v${VERSION.replace(/\./g, "\\.")}`, "g")) ?? [])
+      .length;
     expect(gates).toBeGreaterThanOrEqual(2);
     expect(wf.includes("inputs.publish == true")).toBe(true);
   });

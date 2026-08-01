@@ -1,7 +1,11 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { GitHubHttpRequest, GitHubHttpResponse, GitHubHttpTransport } from "@oh-my-pm/providers";
+import type {
+  GitHubHttpRequest,
+  GitHubHttpResponse,
+  GitHubHttpTransport,
+} from "@oh-my-pm/providers";
 import { defaultProviderConfig } from "@oh-my-pm/providers";
 import type { ResolvedProviderConfig } from "@oh-my-pm/providers";
 import { describe, expect, it } from "vitest";
@@ -20,7 +24,9 @@ const load = (name: string): unknown => JSON.parse(readFileSync(join(fixtureDir,
 const SLUG = "riverline/field-guide";
 const NOW = "2026-03-01T00:00:00.000Z";
 
-function configWith(github: Partial<ResolvedProviderConfig["providers"]["github"]>): ResolvedProviderConfig {
+function configWith(
+  github: Partial<ResolvedProviderConfig["providers"]["github"]>,
+): ResolvedProviderConfig {
   const base = defaultProviderConfig();
   return {
     ...base,
@@ -37,8 +43,10 @@ function recordingTransport(repoSlug: string): {
     async request(request: GitHubHttpRequest): Promise<GitHubHttpResponse> {
       calls.push(request);
       const url = new URL(request.url);
-      if (url.pathname === `/repos/${repoSlug}`) return { status: 200, headers: {}, body: load("repository.json") };
-      if (url.pathname === `/repos/${repoSlug}/issues`) return { status: 200, headers: {}, body: load("issues.json") };
+      if (url.pathname === `/repos/${repoSlug}`)
+        return { status: 200, headers: {}, body: load("repository.json") };
+      if (url.pathname === `/repos/${repoSlug}/issues`)
+        return { status: 200, headers: {}, body: load("issues.json") };
       return { status: 404, headers: {}, body: {} };
     },
   };
@@ -69,7 +77,9 @@ describe("providers status command", () => {
       githubToken: "ghp_secretstatus",
     });
     expect(result.stdout).not.toContain("ghp_secretstatus");
-    const github = JSON.parse(result.stdout).providers.find((p: { id: string }) => p.id === "github");
+    const github = JSON.parse(result.stdout).providers.find(
+      (p: { id: string }) => p.id === "github",
+    );
     expect(github.token).toBe("present");
   });
 });
@@ -149,7 +159,10 @@ describe("providers doctor github --confirm-network", () => {
     const { transport, calls } = recordingTransport(SLUG);
     const result = await runLocalCliProcess(
       ["providers", "doctor", "github", SLUG, "--confirm-network", "--json"],
-      { providerConfig: configWith({ enabled: false, defaultRepository: SLUG }), githubTransport: transport },
+      {
+        providerConfig: configWith({ enabled: false, defaultRepository: SLUG }),
+        githubTransport: transport,
+      },
     );
     expect(result.exitCode).toBe(2);
     expect(calls).toHaveLength(0);

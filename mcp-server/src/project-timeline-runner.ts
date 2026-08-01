@@ -10,10 +10,7 @@
 
 import type { TimelineResult } from "@oh-my-pm/contracts";
 import { createNodeWasmProjectBrainKernelApi } from "@oh-my-pm/kernel";
-import {
-  createProjectBrainRuntime,
-  PROJECT_BRAIN_RUNTIME_ERROR_CODES,
-} from "@oh-my-pm/runtime";
+import { createProjectBrainRuntime, PROJECT_BRAIN_RUNTIME_ERROR_CODES } from "@oh-my-pm/runtime";
 import type {
   ProjectBrainKernelPort,
   ProjectMemoryPort,
@@ -116,10 +113,7 @@ const INERT_DERIVER: ProjectStateDeriver = {
 
 const DEFAULT_CLOCK_SENTINEL = "2026-01-01T00:00:00.000Z";
 
-function fail(
-  code: McpProjectTimelineFailureCode,
-  message: string,
-): McpProjectTimelineExecution {
+function fail(code: McpProjectTimelineFailureCode, message: string): McpProjectTimelineExecution {
   return { ok: false, code, message };
 }
 

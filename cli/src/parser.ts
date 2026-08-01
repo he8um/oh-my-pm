@@ -14,11 +14,7 @@ import {
   MIN_GITHUB_REVIEW_COMMENT_LIMIT,
   MIN_GITHUB_REVIEW_LIMIT,
 } from "@oh-my-pm/providers";
-import type {
-  GitHubSearchKind,
-  GitHubSourceMode,
-  GitHubSourceState,
-} from "@oh-my-pm/providers";
+import type { GitHubSearchKind, GitHubSourceMode, GitHubSourceState } from "@oh-my-pm/providers";
 import { parseMemoryCommand } from "./memory-parser.js";
 import type {
   CliCommand,
@@ -53,7 +49,9 @@ function takeValue(
   }
   const value = rest[i + 1];
   if (value === undefined || value.startsWith("--")) {
-    return { error: { ok: false, code: OMP_C_INVALID_OPTION, message: `${option} requires a value` } };
+    return {
+      error: { ok: false, code: OMP_C_INVALID_OPTION, message: `${option} requires a value` },
+    };
   }
   return { value, next: i + 1 };
 }
@@ -82,12 +80,18 @@ function takeProviderConfig(
   current: string | null,
 ): { value: string; next: number } | { error: CliParseResult } {
   if (current !== null) {
-    return { error: { ok: false, code: OMP_C_INVALID_OPTION, message: "duplicate --provider-config" } };
+    return {
+      error: { ok: false, code: OMP_C_INVALID_OPTION, message: "duplicate --provider-config" },
+    };
   }
   const value = rest[i + 1];
   if (value === undefined || value.startsWith("--")) {
     return {
-      error: { ok: false, code: OMP_C_INVALID_OPTION, message: "--provider-config requires a value" },
+      error: {
+        ok: false,
+        code: OMP_C_INVALID_OPTION,
+        message: "--provider-config requires a value",
+      },
     };
   }
   return { value, next: i + 1 };
@@ -134,7 +138,11 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
       const taken = takeValue(rest, i, source, "--source");
       if ("error" in taken) return taken.error;
       if (!(GITHUB_SOURCE_MODES as readonly string[]).includes(taken.value)) {
-        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--source must be a supported source mode" };
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "--source must be a supported source mode",
+        };
       }
       source = taken.value as GitHubSourceMode;
       i = taken.next;
@@ -144,7 +152,11 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
       const taken = takeValue(rest, i, state, "--state");
       if ("error" in taken) return taken.error;
       if (!(GITHUB_SOURCE_STATES as readonly string[]).includes(taken.value)) {
-        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--state must be open, closed, or all" };
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "--state must be open, closed, or all",
+        };
       }
       state = taken.value as GitHubSourceState;
       i = taken.next;
@@ -154,7 +166,11 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
       const taken = takeValue(rest, i, kind, "--kind");
       if ("error" in taken) return taken.error;
       if (!(GITHUB_SEARCH_KINDS as readonly string[]).includes(taken.value)) {
-        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--kind must be all, issues, or pull-requests" };
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "--kind must be all, issues, or pull-requests",
+        };
       }
       kind = taken.value as GitHubSearchKind;
       i = taken.next;
@@ -164,7 +180,11 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
       const taken = takeValue(rest, i, itemNumber, "--number");
       if ("error" in taken) return taken.error;
       if (!/^[1-9][0-9]*$/.test(taken.value)) {
-        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--number must be a positive integer" };
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "--number must be a positive integer",
+        };
       }
       const parsed = Number(taken.value);
       if (!Number.isSafeInteger(parsed)) {
@@ -180,7 +200,11 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
       // Exactly one shell argument; surrounding whitespace is rejected so the
       // encoded query is deterministic.
       if (taken.value !== taken.value.trim()) {
-        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--query must not have surrounding whitespace" };
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "--query must not have surrounding whitespace",
+        };
       }
       if (taken.value === "") {
         return { ok: false, code: OMP_C_INVALID_OPTION, message: "--query must not be empty" };
@@ -191,7 +215,11 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
       for (let c = 0; c < taken.value.length; c += 1) {
         const code = taken.value.charCodeAt(c);
         if (code < 0x20 || code === 0x7f) {
-          return { ok: false, code: OMP_C_INVALID_OPTION, message: "--query contains control characters" };
+          return {
+            ok: false,
+            code: OMP_C_INVALID_OPTION,
+            message: "--query contains control characters",
+          };
         }
       }
       query = taken.value;
@@ -211,14 +239,26 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
       }
       const value = rest[i + 1];
       if (value === undefined || value.startsWith("--")) {
-        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--comment-limit requires a value" };
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "--comment-limit requires a value",
+        };
       }
       if (!/^[0-9]+$/.test(value)) {
-        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--comment-limit must be an integer" };
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "--comment-limit must be an integer",
+        };
       }
       const parsed = Number(value);
       if (parsed < MIN_GITHUB_COMMENT_LIMIT || parsed > MAX_GITHUB_COMMENT_LIMIT) {
-        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--comment-limit must be in 1..50" };
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "--comment-limit must be in 1..50",
+        };
       }
       commentLimit = parsed;
       i += 1;
@@ -237,14 +277,26 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
       }
       const value = rest[i + 1];
       if (value === undefined || value.startsWith("--")) {
-        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--review-limit requires a value" };
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "--review-limit requires a value",
+        };
       }
       if (!/^[0-9]+$/.test(value)) {
-        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--review-limit must be an integer" };
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "--review-limit must be an integer",
+        };
       }
       const parsed = Number(value);
       if (parsed < MIN_GITHUB_REVIEW_LIMIT || parsed > MAX_GITHUB_REVIEW_LIMIT) {
-        return { ok: false, code: OMP_C_INVALID_OPTION, message: "--review-limit must be in 1..20" };
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "--review-limit must be in 1..20",
+        };
       }
       reviewLimit = parsed;
       i += 1;
@@ -252,14 +304,22 @@ function parseGitHubCommand(rest: readonly string[]): CliParseResult {
     }
     if (arg === "--include-review-comments") {
       if (includeReviewComments !== null) {
-        return { ok: false, code: OMP_C_INVALID_OPTION, message: "duplicate --include-review-comments" };
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "duplicate --include-review-comments",
+        };
       }
       includeReviewComments = true;
       continue;
     }
     if (arg === "--review-comment-limit") {
       if (reviewCommentLimit !== null) {
-        return { ok: false, code: OMP_C_INVALID_OPTION, message: "duplicate --review-comment-limit" };
+        return {
+          ok: false,
+          code: OMP_C_INVALID_OPTION,
+          message: "duplicate --review-comment-limit",
+        };
       }
       const value = rest[i + 1];
       if (value === undefined || value.startsWith("--")) {
@@ -465,12 +525,7 @@ function parseProvidersCommand(rest: readonly string[]): CliParseResult {
 function isProjectRootCommand(
   command: CliCommand,
 ): command is "brief" | "risks" | "next" | "handoff" {
-  return (
-    command === "brief" ||
-    command === "risks" ||
-    command === "next" ||
-    command === "handoff"
-  );
+  return command === "brief" || command === "risks" || command === "next" || command === "handoff";
 }
 
 const OUTPUT_OPTIONS: Readonly<Record<string, CliOutputMode>> = {

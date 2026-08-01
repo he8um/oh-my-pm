@@ -1,7 +1,11 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { GitHubHttpRequest, GitHubHttpResponse, GitHubHttpTransport } from "@oh-my-pm/providers";
+import type {
+  GitHubHttpRequest,
+  GitHubHttpResponse,
+  GitHubHttpTransport,
+} from "@oh-my-pm/providers";
 import { defaultProviderConfig } from "@oh-my-pm/providers";
 import { describe, expect, it } from "vitest";
 import {
@@ -33,8 +37,10 @@ function recordingTransport(): { transport: GitHubHttpTransport; calls: GitHubHt
     async request(request: GitHubHttpRequest): Promise<GitHubHttpResponse> {
       calls.push(request);
       const url = new URL(request.url);
-      if (url.pathname === `/repos/${SLUG}`) return { status: 200, headers: {}, body: load("repository.json") };
-      if (url.pathname === `/repos/${SLUG}/issues`) return { status: 200, headers: {}, body: load("issues.json") };
+      if (url.pathname === `/repos/${SLUG}`)
+        return { status: 200, headers: {}, body: load("repository.json") };
+      if (url.pathname === `/repos/${SLUG}/issues`)
+        return { status: 200, headers: {}, body: load("issues.json") };
       return { status: 404, headers: {}, body: {} };
     },
   };
@@ -53,7 +59,11 @@ describe("github tool/operation mapping", () => {
 describe("executeMcpGitHubTool", () => {
   it("rejects an invalid repository before any network call", async () => {
     const { transport, calls } = recordingTransport();
-    const result = await executeMcpGitHubTool("brief", { repository: "not a repo", limit: 50 }, { transport, ...OFFLINE });
+    const result = await executeMcpGitHubTool(
+      "brief",
+      { repository: "not a repo", limit: 50 },
+      { transport, ...OFFLINE },
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("github_invalid_repository");
     expect(calls).toHaveLength(0);
@@ -61,7 +71,11 @@ describe("executeMcpGitHubTool", () => {
 
   it("rejects an invalid limit before any network call", async () => {
     const { transport, calls } = recordingTransport();
-    const result = await executeMcpGitHubTool("brief", { repository: SLUG, limit: 0 }, { transport, ...OFFLINE });
+    const result = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, limit: 0 },
+      { transport, ...OFFLINE },
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe("github_invalid_limit");
     expect(calls).toHaveLength(0);
@@ -70,7 +84,11 @@ describe("executeMcpGitHubTool", () => {
   it("runs all four operations and projects a sanitized source list", async () => {
     for (const op of ["brief", "risks", "next", "handoff"] as const) {
       const { transport } = recordingTransport();
-      const result = await executeMcpGitHubTool(op, { repository: SLUG, limit: 10 }, { transport, ...OFFLINE });
+      const result = await executeMcpGitHubTool(
+        op,
+        { repository: SLUG, limit: 10 },
+        { transport, ...OFFLINE },
+      );
       expect(result.ok, op).toBe(true);
       if (!result.ok) continue;
       expect(result.repository).toBe(SLUG);
@@ -90,7 +108,11 @@ describe("executeMcpGitHubTool", () => {
 
   it("bounds the source list by the requested limit", async () => {
     const { transport } = recordingTransport();
-    const result = await executeMcpGitHubTool("brief", { repository: SLUG, limit: 2 }, { transport, ...OFFLINE });
+    const result = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, limit: 2 },
+      { transport, ...OFFLINE },
+    );
     if (!result.ok) throw new Error("expected ok");
     // limit 2 -> repo + 1 source item.
     expect(result.sources.length).toBeLessThanOrEqual(1);
@@ -98,11 +120,15 @@ describe("executeMcpGitHubTool", () => {
 
   it("never includes a token in the projection", async () => {
     const { transport } = recordingTransport();
-    const result = await executeMcpGitHubTool("brief", { repository: SLUG, limit: 10 }, {
-      transport,
-      token: "secret-mcp-token",
-      ...OFFLINE,
-    });
+    const result = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, limit: 10 },
+      {
+        transport,
+        token: "secret-mcp-token",
+        ...OFFLINE,
+      },
+    );
     expect(JSON.stringify(result)).not.toContain("secret-mcp-token");
   });
 
@@ -114,13 +140,21 @@ describe("executeMcpGitHubTool", () => {
       clockCalls += 1;
       return MCP_GITHUB_TEST_NOW;
     };
-    const first = await executeMcpGitHubTool("brief", { repository: SLUG, limit: 10 }, { transport: t1, clock, ...OFFLINE });
+    const first = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, limit: 10 },
+      { transport: t1, clock, ...OFFLINE },
+    );
     expect(clockCalls).toBe(1);
-    const second = await executeMcpGitHubTool("brief", { repository: SLUG, limit: 10 }, {
-      transport: t2,
-      now: MCP_GITHUB_TEST_NOW,
-      ...OFFLINE,
-    });
+    const second = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, limit: 10 },
+      {
+        transport: t2,
+        now: MCP_GITHUB_TEST_NOW,
+        ...OFFLINE,
+      },
+    );
     if (!first.ok || !second.ok) throw new Error("expected ok");
     // The injected `now` takes precedence over `clock`; repeated structured
     // output with the same injected time is deep-equal.
@@ -133,7 +167,11 @@ describe("executeMcpGitHubTool", () => {
         return { status: 404, headers: {}, body: { message: "not found detail" } };
       },
     };
-    const result = await executeMcpGitHubTool("brief", { repository: SLUG, limit: 10 }, { transport, ...OFFLINE });
+    const result = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, limit: 10 },
+      { transport, ...OFFLINE },
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.code).toBe("OMP-P-4006");
@@ -187,7 +225,11 @@ describe("executeMcpGitHubTool risk/next public metadata", () => {
 
   it("carries url/repository/number on risks and excludes raw body", async () => {
     const transport = scenarioTransport();
-    const result = await executeMcpGitHubTool("risks", { repository: SLUG, limit: 10 }, { transport, ...OFFLINE });
+    const result = await executeMcpGitHubTool(
+      "risks",
+      { repository: SLUG, limit: 10 },
+      { transport, ...OFFLINE },
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const risks = (result.output as { risks: Array<Record<string, unknown>> }).risks;
@@ -207,7 +249,11 @@ describe("executeMcpGitHubTool risk/next public metadata", () => {
 
   it("includes only the actionable open issue in next with public metadata", async () => {
     const transport = scenarioTransport();
-    const result = await executeMcpGitHubTool("next", { repository: SLUG, limit: 10 }, { transport, ...OFFLINE });
+    const result = await executeMcpGitHubTool(
+      "next",
+      { repository: SLUG, limit: 10 },
+      { transport, ...OFFLINE },
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const tasks = (result.output as { tasks: Array<Record<string, unknown>> }).tasks;
@@ -230,10 +276,16 @@ describe("executeMcpGitHubTool — source selection", () => {
       async request(request: GitHubHttpRequest): Promise<GitHubHttpResponse> {
         calls.push(request);
         const url = new URL(request.url);
-        if (url.pathname === `/repos/${SLUG}`) return { status: 200, headers: {}, body: load("repository.json") };
-        if (url.pathname === `/repos/${SLUG}/issues`) return { status: 200, headers: {}, body: load("issues.json") };
+        if (url.pathname === `/repos/${SLUG}`)
+          return { status: 200, headers: {}, body: load("repository.json") };
+        if (url.pathname === `/repos/${SLUG}/issues`)
+          return { status: 200, headers: {}, body: load("issues.json") };
         if (url.pathname === `/repos/${SLUG}/issues/7`) {
-          return { status: 200, headers: {}, body: { number: 7, title: "One", state: "open", body: "" } };
+          return {
+            status: 200,
+            headers: {},
+            body: { number: 7, title: "One", state: "open", body: "" },
+          };
         }
         if (url.pathname === "/search/issues") {
           return { status: 200, headers: {}, body: { incomplete_results: false, items: [] } };
@@ -246,7 +298,11 @@ describe("executeMcpGitHubTool — source selection", () => {
 
   it("repository source projects a single-record summary and selection", async () => {
     const { transport, calls } = sourceTransport();
-    const result = await executeMcpGitHubTool("brief", { repository: SLUG, source: "repository" }, { transport, ...OFFLINE });
+    const result = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, source: "repository" },
+      { transport, ...OFFLINE },
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(calls.map((c) => new URL(c.url).pathname)).toEqual([`/repos/${SLUG}`]);
@@ -258,7 +314,11 @@ describe("executeMcpGitHubTool — source selection", () => {
 
   it("issues source projects state/limit in the public selection", async () => {
     const { transport, calls } = sourceTransport();
-    const result = await executeMcpGitHubTool("risks", { repository: SLUG, source: "issues", state: "closed", limit: 5 }, { transport, ...OFFLINE });
+    const result = await executeMcpGitHubTool(
+      "risks",
+      { repository: SLUG, source: "issues", state: "closed", limit: 5 },
+      { transport, ...OFFLINE },
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(new URL(calls[0]!.url).pathname).toBe("/search/issues");
@@ -267,12 +327,20 @@ describe("executeMcpGitHubTool — source selection", () => {
 
   it("item source requires a number and fails before transport otherwise", async () => {
     const { transport, calls } = sourceTransport();
-    const missing = await executeMcpGitHubTool("brief", { repository: SLUG, source: "item" }, { transport, ...OFFLINE });
+    const missing = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, source: "item" },
+      { transport, ...OFFLINE },
+    );
     expect(missing.ok).toBe(false);
     if (!missing.ok) expect(missing.code).toBe("github_number_required");
     expect(calls).toHaveLength(0);
 
-    const ok = await executeMcpGitHubTool("brief", { repository: SLUG, source: "item", number: 7 }, { transport, ...OFFLINE });
+    const ok = await executeMcpGitHubTool(
+      "brief",
+      { repository: SLUG, source: "item", number: 7 },
+      { transport, ...OFFLINE },
+    );
     expect(ok.ok).toBe(true);
     if (ok.ok)
       expect(ok.selection).toStrictEqual({
@@ -286,11 +354,19 @@ describe("executeMcpGitHubTool — source selection", () => {
 
   it("search source requires a query and projects it back", async () => {
     const { transport, calls } = sourceTransport();
-    const missing = await executeMcpGitHubTool("risks", { repository: SLUG, source: "search" }, { transport, ...OFFLINE });
+    const missing = await executeMcpGitHubTool(
+      "risks",
+      { repository: SLUG, source: "search" },
+      { transport, ...OFFLINE },
+    );
     expect(missing.ok).toBe(false);
     if (!missing.ok) expect(missing.code).toBe("github_query_required");
 
-    const ok = await executeMcpGitHubTool("risks", { repository: SLUG, source: "search", query: "blocker", kind: "issues" }, { transport, ...OFFLINE });
+    const ok = await executeMcpGitHubTool(
+      "risks",
+      { repository: SLUG, source: "search", query: "blocker", kind: "issues" },
+      { transport, ...OFFLINE },
+    );
     expect(ok.ok).toBe(true);
     if (ok.ok) {
       expect(ok.selection).toMatchObject({ mode: "search", query: "blocker", kind: "issues" });
@@ -306,7 +382,11 @@ describe("executeMcpGitHubTool — source selection", () => {
     const config = defaultProviderConfig();
     config.providers.github.defaultSource = "issues";
     config.providers.github.defaultState = "closed";
-    const result = await executeMcpGitHubTool("risks", { repository: SLUG }, { transport, providerConfig: config });
+    const result = await executeMcpGitHubTool(
+      "risks",
+      { repository: SLUG },
+      { transport, providerConfig: config },
+    );
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.selection).toMatchObject({ mode: "issues", state: "closed" });
     expect(new URL(calls[0]!.url).pathname).toBe("/search/issues");

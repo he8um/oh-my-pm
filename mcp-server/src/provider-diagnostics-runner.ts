@@ -63,8 +63,7 @@ function resolutionInput(
     env: options?.env ?? ambientEnv(),
     platform: options?.platform ?? ambientProcess().platform ?? "linux",
     cwd:
-      options?.cwd ??
-      (typeof ambientProcess().cwd === "function" ? ambientProcess().cwd!() : "/"),
+      options?.cwd ?? (typeof ambientProcess().cwd === "function" ? ambientProcess().cwd!() : "/"),
   };
 }
 
@@ -164,7 +163,11 @@ export async function executeMcpGitHubProviderDiagnostics(
   });
   if (!settings.ok) {
     report.ok = false;
-    report.checks.push({ id: "provider.github.network", status: "fail", message: settings.message });
+    report.checks.push({
+      id: "provider.github.network",
+      status: "fail",
+      message: settings.message,
+    });
     if (report.github !== undefined) report.github.access = "failed";
     return report;
   }

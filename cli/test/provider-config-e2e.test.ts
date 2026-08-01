@@ -18,7 +18,10 @@ function write(dir: string, name: string, repo: string, limit: number): string {
   const path = join(dir, name);
   writeFileSync(
     path,
-    JSON.stringify({ version: 1, providers: { github: { enabled: true, defaultRepository: repo, defaultLimit: limit } } }),
+    JSON.stringify({
+      version: 1,
+      providers: { github: { enabled: true, defaultRepository: repo, defaultLimit: limit } },
+    }),
     "utf8",
   );
   return path;
@@ -33,7 +36,9 @@ describe("provider config precedence (real files, injected env/platform/cwd)", (
       ["providers", "status", "--provider-config", explicit, "--json"],
       { env: { OH_MY_PM_PROVIDER_CONFIG: envPath }, platform: "linux", cwd: dir },
     );
-    const github = JSON.parse(result.stdout).providers.find((p: { id: string }) => p.id === "github");
+    const github = JSON.parse(result.stdout).providers.find(
+      (p: { id: string }) => p.id === "github",
+    );
     expect(github.defaultRepository).toBe("explicit/repo");
   });
 

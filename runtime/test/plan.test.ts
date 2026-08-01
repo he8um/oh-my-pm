@@ -117,7 +117,13 @@ describe("runtime plan execution", () => {
             title: "Delivery Constraints",
             data: {
               path: "docs/constraints.md",
-              content: ["# Delivery Constraints", "", "## Blockers", "", "- The launch is blocked by the vendor."].join("\n"),
+              content: [
+                "# Delivery Constraints",
+                "",
+                "## Blockers",
+                "",
+                "- The launch is blocked by the vendor.",
+              ].join("\n"),
               bytes: 80,
             },
           },
@@ -391,7 +397,9 @@ describe("runtime plan execution", () => {
         response: { providerId: "github", items: [] },
       }),
     };
-    const response = await runtimeWith({ providers: createProviderRegistry([failingGithub]) }).handle(
+    const response = await runtimeWith({
+      providers: createProviderRegistry([failingGithub]),
+    }).handle(
       planRequest({
         request: "what is next",
         context: { providerRequests: [{ providerId: "github", action: "search", query: "x" }] },

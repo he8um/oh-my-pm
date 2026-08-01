@@ -30,8 +30,7 @@ export type GitHubRepositoryRef = {
 };
 
 export type GitHubRepositoryRefResult =
-  | { ok: true; ref: GitHubRepositoryRef }
-  | { ok: false; reason: string };
+  { ok: true; ref: GitHubRepositoryRef } | { ok: false; reason: string };
 
 // Canonical source/state/kind values carried by parsed queries. These mirror
 // the public selection enums but are duplicated here to keep the query module

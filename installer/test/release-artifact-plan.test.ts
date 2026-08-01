@@ -231,7 +231,9 @@ describe("createGuardedReleaseArtifactPlanDryRun", () => {
     expect(dryRun.warnings).toBeDefined();
     expect(dryRun.warnings?.every((warning) => warning.code === "OMP-I-6001")).toBe(true);
     expect(
-      dryRun.warnings?.some((warning) => warning.message === "guarded_release_artifact_release_notes_blocked"),
+      dryRun.warnings?.some(
+        (warning) => warning.message === "guarded_release_artifact_release_notes_blocked",
+      ),
     ).toBe(true);
   });
 });

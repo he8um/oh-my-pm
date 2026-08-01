@@ -5,10 +5,7 @@
 // bodies. Markdown escapes user-controlled repository values.
 
 import type { CliOutputMode } from "@oh-my-pm/contracts";
-import type {
-  ProviderDoctorReport,
-  ProviderStatusReport,
-} from "@oh-my-pm/application";
+import type { ProviderDoctorReport, ProviderStatusReport } from "@oh-my-pm/application";
 
 // All user-controlled values are rendered inside inline code spans, where the
 // only character that can break out is a backtick. Replacing backticks with a
@@ -23,14 +20,15 @@ function escapeMarkdown(value: string): string {
 function statusBrief(report: ProviderStatusReport): string {
   const github = report.providers.find((p) => p.id === "github");
   const overall = report.config.valid ? "ready" : "invalid";
-  const lines: string[] = [`OH MY PM providers: ${overall}`, `config: ${report.config.displayPath}`];
+  const lines: string[] = [
+    `OH MY PM providers: ${overall}`,
+    `config: ${report.config.displayPath}`,
+  ];
   for (const provider of report.providers) {
     if (provider.id === "local") {
       lines.push(`local: ${provider.state} (offline, read-only)`);
     } else {
-      lines.push(
-        `github: ${provider.state} (explicit opt-in network, read-only)`,
-      );
+      lines.push(`github: ${provider.state} (explicit opt-in network, read-only)`);
     }
   }
   if (github !== undefined) {

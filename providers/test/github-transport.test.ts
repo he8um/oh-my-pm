@@ -49,7 +49,10 @@ describe("createNodeGitHubHttpTransport", () => {
 
   it("omits Authorization without a token and includes it with a token", async () => {
     const anon = fakeFetch({ ok: true });
-    await createNodeGitHubHttpTransport({ productVersion: VERSION, fetchImpl: anon.fetchImpl }).request({
+    await createNodeGitHubHttpTransport({
+      productVersion: VERSION,
+      fetchImpl: anon.fetchImpl,
+    }).request({
       method: "GET",
       url: `${ORIGIN}/repos/a/b`,
       headers: {},
@@ -95,7 +98,11 @@ describe("createNodeGitHubHttpTransport", () => {
     const fetchImpl = (async () => {
       throw new Error("connection refused");
     }) as unknown as typeof fetch;
-    const transport = createNodeGitHubHttpTransport({ productVersion: VERSION, token: TOKEN, fetchImpl });
+    const transport = createNodeGitHubHttpTransport({
+      productVersion: VERSION,
+      token: TOKEN,
+      fetchImpl,
+    });
     let caught: unknown;
     try {
       await transport.request({
@@ -253,15 +260,11 @@ describe("createNodeGitHubHttpTransport", () => {
   });
 
   it("normalizes and filters response headers", async () => {
-    const { fetchImpl } = fakeFetch(
-      { ok: true },
-      200,
-      {
-        "content-type": "application/json",
-        "x-ratelimit-remaining": "42",
-        "x-secret-internal": "should-be-dropped",
-      },
-    );
+    const { fetchImpl } = fakeFetch({ ok: true }, 200, {
+      "content-type": "application/json",
+      "x-ratelimit-remaining": "42",
+      "x-secret-internal": "should-be-dropped",
+    });
     const transport = createNodeGitHubHttpTransport({ productVersion: VERSION, fetchImpl });
     const response = await transport.request({
       method: "GET",

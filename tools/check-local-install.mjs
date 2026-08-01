@@ -110,7 +110,10 @@ async function run(prefix) {
   // polluting stdout.
   const legacyCli = platformCommand("oh-my-pm");
   try {
-    const legacyOut = execFileSync(legacyCli, ["status"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    const legacyOut = execFileSync(legacyCli, ["status"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     if (!legacyOut.includes("OH MY PM status: healthy")) {
       return fail("deprecated CLI alias status was not healthy");
     }

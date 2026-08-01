@@ -129,9 +129,11 @@ describe("mcp server successful calls", () => {
       name: "project_handoff",
       arguments: { root: fixtureRel },
     })) as ToolCallResult;
-    const cliMarkdown = ((await executeMcpProjectTool("handoff", fixtureRel)) as {
-      markdown: string;
-    }).markdown;
+    const cliMarkdown = (
+      (await executeMcpProjectTool("handoff", fixtureRel)) as {
+        markdown: string;
+      }
+    ).markdown;
     expect(result.content[0]?.text).toBe(cliMarkdown);
     expect(result.content[0]?.text).toContain("# OH MY PM Project Handoff");
   });
@@ -262,7 +264,11 @@ describe("mcp github tools", () => {
         ok: true,
         operation,
         repository: input.repository ?? "configured/default",
-        selection: { mode: input.source ?? "overview", state: input.state ?? "open", limit: input.limit ?? 50 },
+        selection: {
+          mode: input.source ?? "overview",
+          state: input.state ?? "open",
+          limit: input.limit ?? 50,
+        },
         sourceSummary: {
           total: 2,
           repositories: 1,
@@ -306,7 +312,13 @@ describe("mcp github tools", () => {
     const client = await connectClient(createOhMyPmMcpServer({ executeGitHubTool }));
     const result = (await client.callTool({
       name: "github_project_risks",
-      arguments: { repository: "octo/demo", source: "search", query: "blocker", kind: "issues", state: "open" },
+      arguments: {
+        repository: "octo/demo",
+        source: "search",
+        query: "blocker",
+        kind: "issues",
+        state: "open",
+      },
     })) as ToolCallResult;
     expect(result.isError).not.toBe(true);
     expect(calls[0]!.input).toMatchObject({
@@ -436,7 +448,10 @@ describe("mcp provider diagnostics tools", () => {
       ],
     });
     const c2 = await connectClient(createOhMyPmMcpServer({ executeProviderStatus }));
-    const result = (await c2.callTool({ name: "provider_status", arguments: {} })) as ToolCallResult;
+    const result = (await c2.callTool({
+      name: "provider_status",
+      arguments: {},
+    })) as ToolCallResult;
     expect(result.isError).not.toBe(true);
     expect(result.structuredContent?.schemaVersion).toBe(1);
   });
@@ -454,7 +469,10 @@ describe("mcp provider diagnostics tools", () => {
 
   it("routes confirmNetwork through to the diagnostics executor", async () => {
     const calls: Array<{ repository?: string; confirmNetwork?: boolean }> = [];
-    const executeGitHubProviderDiagnostics = async (input: { repository?: string; confirmNetwork?: boolean }) => {
+    const executeGitHubProviderDiagnostics = async (input: {
+      repository?: string;
+      confirmNetwork?: boolean;
+    }) => {
       calls.push(input);
       return {
         schemaVersion: 1 as const,

@@ -73,7 +73,7 @@ The four GitHub workflow tools (`github_project_brief`, `github_project_risks`,
   "includeReviews": true,
   "reviewLimit": 10,
   "includeReviewComments": true,
-  "reviewCommentLimit": 10
+  "reviewCommentLimit": 10,
 }
 ```
 
@@ -101,14 +101,14 @@ partial-success fallback.
 A review submission carries a canonical, sanitized state (the raw GitHub state
 string is never exposed):
 
-| GitHub state       | Canonical state    |
-| ------------------ | ------------------ |
-| `APPROVED`         | `approved`         |
-| `CHANGES_REQUESTED`| `changesRequested` |
-| `COMMENTED`        | `commented`        |
-| `DISMISSED`        | `dismissed`        |
-| `PENDING`          | `pending`          |
-| anything else      | `unknown` (+ warning) |
+| GitHub state        | Canonical state       |
+| ------------------- | --------------------- |
+| `APPROVED`          | `approved`            |
+| `CHANGES_REQUESTED` | `changesRequested`    |
+| `COMMENTED`         | `commented`           |
+| `DISMISSED`         | `dismissed`           |
+| `PENDING`           | `pending`             |
+| anything else       | `unknown` (+ warning) |
 
 For an **open or draft** parent pull request:
 
@@ -154,7 +154,7 @@ line is unavailable).
   filesystem or read.
 - The maximum normalized item count for one item request stays within the
   provider's 100-item ceiling: `1 primary PR + 50 comments + 20 reviews +
-  20 review comments = 91`.
+20 review comments = 91`.
 - Review metadata exposed through MCP is limited to identity, sanitized state,
   and file/line provenance — never the review or review-comment body, a diff
   hunk, a commit id, a node id, a nested user, a raw provider object, a token, a

@@ -59,10 +59,7 @@ import {
 } from "./path-safety.js";
 import type { StoreLayout } from "./path-safety.js";
 import { assertNoForbiddenKeys } from "./privacy.js";
-import {
-  CURRENT_STORE_FORMAT_VERSION,
-  SUPPORTED_PROJECT_BRAIN_SCHEMA_VERSION,
-} from "./types.js";
+import { CURRENT_STORE_FORMAT_VERSION, SUPPORTED_PROJECT_BRAIN_SCHEMA_VERSION } from "./types.js";
 import type {
   CommitResult,
   CommitSnapshotBundleInput,
@@ -454,11 +451,7 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
     assertNonEmptyId(input.projectId, "projectId");
     assertOperationId(input.operationId);
     assertProjectDataSeparation(this.layout.dataRoot, input.projectRootBoundary);
-    assertExportDestinationSafe(
-      this.layout.dataRoot,
-      input.projectRootBoundary,
-      input.destination,
-    );
+    assertExportDestinationSafe(this.layout.dataRoot, input.projectRootBoundary, input.destination);
 
     // Verify source store before copying anything.
     const verification = await this.verify(input.projectId);
@@ -496,8 +489,10 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
       inventory.push({ recordType, recordId, relativePath, integrity: envelope.integrity });
     };
 
-    for (const snapshotId of manifest.snapshotIds) await copyRecord("snapshot", snapshotId, SNAPSHOTS_DIRNAME);
-    for (const evidenceId of manifest.evidenceIds) await copyRecord("evidence", evidenceId, EVIDENCE_DIRNAME);
+    for (const snapshotId of manifest.snapshotIds)
+      await copyRecord("snapshot", snapshotId, SNAPSHOTS_DIRNAME);
+    for (const evidenceId of manifest.evidenceIds)
+      await copyRecord("evidence", evidenceId, EVIDENCE_DIRNAME);
 
     // Copy the verified manifest verbatim (excludes locks/staging/backups).
     await this.fs.copyFileTo(
@@ -622,7 +617,13 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
       // chronology invariant, so a transform that produced an inconsistent
       // chronology fails closed here BEFORE the atomic commit, leaving the backup
       // and original intact.
-      const rebuilt = this.applyMigrationPlan(source, projectId, projectKey, operationId, occurredAt);
+      const rebuilt = this.applyMigrationPlan(
+        source,
+        projectId,
+        projectKey,
+        operationId,
+        occurredAt,
+      );
 
       await this.fs.writeFileAtomic(
         manifestPath,
@@ -635,7 +636,10 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
       // untouched backup and surfaces a controlled error.
       const verification = await this.verify(projectId);
       if (!verification.ok) {
-        throw corruption("post-migration verification failed", "the pre-migration backup is intact");
+        throw corruption(
+          "post-migration verification failed",
+          "the pre-migration backup is intact",
+        );
       }
     } finally {
       await lock.release();
@@ -776,8 +780,7 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
       // `unknown` here. Only a string is a usable timestamp: String() on an
       // object would persist the literal "[object Object]" into the manifest,
       // so anything non-string falls back to the operation time instead.
-      createdAt:
-        typeof migrated["createdAt"] === "string" ? migrated["createdAt"] : occurredAt,
+      createdAt: typeof migrated["createdAt"] === "string" ? migrated["createdAt"] : occurredAt,
       updatedAt: occurredAt,
       latestSnapshotId: migrated["latestSnapshotId"] as string | null,
       snapshotIds: (migrated["snapshotIds"] as string[]) ?? [],
@@ -1175,7 +1178,9 @@ function classifyIssue(err: unknown): StoreInspectionIssue["kind"] {
 }
 
 /** True when a value is a ProjectMemoryError (structural check, no import cycle). */
-function isProjectMemoryError(err: unknown): err is { readonly code: string; readonly message: string } {
+function isProjectMemoryError(
+  err: unknown,
+): err is { readonly code: string; readonly message: string } {
   return (
     typeof err === "object" &&
     err !== null &&

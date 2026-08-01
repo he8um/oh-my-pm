@@ -214,7 +214,9 @@ describe("createGuardedLocalArtifactAssemblyDryRun", () => {
     expect(dryRun.warnings).toBeDefined();
     expect(dryRun.warnings?.every((warning) => warning.code === "OMP-I-6001")).toBe(true);
     expect(
-      dryRun.warnings?.some((warning) => warning.message === "guarded_local_artifact_assembly_channel_not_ready"),
+      dryRun.warnings?.some(
+        (warning) => warning.message === "guarded_local_artifact_assembly_channel_not_ready",
+      ),
     ).toBe(true);
   });
 });

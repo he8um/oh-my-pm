@@ -32,7 +32,9 @@ const VALID = JSON.stringify({
   providers: { github: { enabled: true, defaultRepository: "he8um/oh-my-pm", defaultLimit: 25 } },
 });
 
-function baseInput(overrides: Partial<ProviderConfigResolutionInput>): ProviderConfigResolutionInput {
+function baseInput(
+  overrides: Partial<ProviderConfigResolutionInput>,
+): ProviderConfigResolutionInput {
   return {
     env: {},
     platform: "linux",
@@ -44,7 +46,10 @@ function baseInput(overrides: Partial<ProviderConfigResolutionInput>): ProviderC
 describe("resolveProviderConfigLocation — precedence", () => {
   it("prefers the explicit path", () => {
     const loc = resolveProviderConfigLocation(
-      baseInput({ explicitPath: "./providers.json", env: { OH_MY_PM_PROVIDER_CONFIG: "/env/p.json" } }),
+      baseInput({
+        explicitPath: "./providers.json",
+        env: { OH_MY_PM_PROVIDER_CONFIG: "/env/p.json" },
+      }),
     );
     expect(loc.source).toBe("explicit");
     expect(loc.displayPath).toBe("./providers.json");
@@ -87,7 +92,9 @@ describe("resolveProviderConfigLocation — precedence", () => {
   });
 
   it("resolves a relative explicit path against the injected cwd", () => {
-    const loc = resolveProviderConfigLocation(baseInput({ explicitPath: "rel/p.json", cwd: "/work" }));
+    const loc = resolveProviderConfigLocation(
+      baseInput({ explicitPath: "rel/p.json", cwd: "/work" }),
+    );
     expect(loc.absolutePath).toBe("/work/rel/p.json");
   });
 
@@ -205,7 +212,7 @@ describe("loadProviderConfig — rejections", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.code).toBe("provider_config_invalid_version");
-      expect(result.message).not.toContain("version\": 2");
+      expect(result.message).not.toContain('version": 2');
     }
   });
 
@@ -215,9 +222,7 @@ describe("loadProviderConfig — rejections", () => {
     // A relative explicit path resolved against cwd: the public result must
     // echo only the user-supplied relative token, never the resolved absolute
     // path or the internal absolutePath field.
-    const result = loadProviderConfig(
-      baseInput({ explicitPath: "providers.json", cwd: dir }),
-    );
+    const result = loadProviderConfig(baseInput({ explicitPath: "providers.json", cwd: dir }));
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.displayPath).toBe("providers.json");

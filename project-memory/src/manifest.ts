@@ -10,10 +10,7 @@ import {
   DOMAIN_RECORD_INTEGRITY,
 } from "./integrity.js";
 import { corruption, invalidInput } from "./errors.js";
-import {
-  CURRENT_STORE_FORMAT_VERSION,
-  SUPPORTED_PROJECT_BRAIN_SCHEMA_VERSION,
-} from "./types.js";
+import { CURRENT_STORE_FORMAT_VERSION, SUPPORTED_PROJECT_BRAIN_SCHEMA_VERSION } from "./types.js";
 import type {
   IntegrityDigest,
   JsonObject,

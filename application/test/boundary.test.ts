@@ -57,10 +57,7 @@ describe("application dependency direction", () => {
     const forbidden = ["@oh-my-pm/cli", "@oh-my-pm/mcp-server"];
     for (const { path, text } of files) {
       for (const specifier of forbidden) {
-        expect(
-          text.includes(`"${specifier}"`),
-          `${path} must not import ${specifier}`,
-        ).toBe(false);
+        expect(text.includes(`"${specifier}"`), `${path} must not import ${specifier}`).toBe(false);
       }
     }
   });
@@ -68,18 +65,16 @@ describe("application dependency direction", () => {
   it("never imports the installer or distribution packages", () => {
     for (const { path, text } of files) {
       for (const specifier of ["@oh-my-pm/installer", "@oh-my-pm/distribution"]) {
-        expect(
-          text.includes(`"${specifier}"`),
-          `${path} must not import ${specifier}`,
-        ).toBe(false);
+        expect(text.includes(`"${specifier}"`), `${path} must not import ${specifier}`).toBe(false);
       }
     }
   });
 
   it("declares no dependency on a presentation, installer, or distribution package", () => {
-    const manifest = JSON.parse(
-      readFileSync(join(packageDir, "package.json"), "utf8"),
-    ) as Record<string, Record<string, string> | undefined>;
+    const manifest = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8")) as Record<
+      string,
+      Record<string, string> | undefined
+    >;
     for (const field of ["dependencies", "peerDependencies", "optionalDependencies"]) {
       const deps = manifest[field] ?? {};
       for (const name of [
@@ -162,7 +157,16 @@ describe("application contains no presentation or server capability", () => {
   });
 
   it("renders no HTML and no UI framework", () => {
-    const markers = ["<!DOCTYPE", "<html", "document.", "React", "createRoot", "Vite", "Tauri", "Electron"];
+    const markers = [
+      "<!DOCTYPE",
+      "<html",
+      "document.",
+      "React",
+      "createRoot",
+      "Vite",
+      "Tauri",
+      "Electron",
+    ];
     for (const { path, text } of files) {
       for (const marker of markers) {
         expect(text.includes(marker), `${path} must not contain ${marker}`).toBe(false);

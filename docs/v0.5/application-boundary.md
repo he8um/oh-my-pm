@@ -47,15 +47,15 @@ server, port, or browser entry point exists in v0.5.1, and
 
 ## What the package owns
 
-| Area | Use cases |
-| --- | --- |
-| Local project workflows | `getLocalProjectBrief`, `getLocalProjectRisks`, `getLocalProjectNextActions`, `getLocalProjectHandoff` |
-| GitHub workflows | `getGitHubProjectBrief`, `getGitHubProjectRisks`, `getGitHubProjectNextActions`, `getGitHubProjectHandoff` |
-| Provider diagnostics | `getProviderStatus`, `runProviderDoctor` |
-| Project Memory | `previewProjectCapture`, `applyProjectCapture`, `getProjectMemoryStatus`, `getProjectMemoryHistory`, `getProjectChanges`, `getProjectTimeline`, `previewProjectExport`, `applyProjectExport`, `previewProjectDelete`, `applyProjectDelete` |
-| Shared projection | `formatRuntimeResponse` — the JSON, Markdown, and brief renderings of a `RuntimeResponse` |
-| Command vocabulary | the canonical and deprecated executable names, and the deprecation warning |
-| Node adapters | read-only document, project-config, and provider-config loading; the GitHub token boundary |
+| Area                    | Use cases                                                                                                                                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Local project workflows | `getLocalProjectBrief`, `getLocalProjectRisks`, `getLocalProjectNextActions`, `getLocalProjectHandoff`                                                                                                                                     |
+| GitHub workflows        | `getGitHubProjectBrief`, `getGitHubProjectRisks`, `getGitHubProjectNextActions`, `getGitHubProjectHandoff`                                                                                                                                 |
+| Provider diagnostics    | `getProviderStatus`, `runProviderDoctor`                                                                                                                                                                                                   |
+| Project Memory          | `previewProjectCapture`, `applyProjectCapture`, `getProjectMemoryStatus`, `getProjectMemoryHistory`, `getProjectChanges`, `getProjectTimeline`, `previewProjectExport`, `applyProjectExport`, `previewProjectDelete`, `applyProjectDelete` |
+| Shared projection       | `formatRuntimeResponse` — the JSON, Markdown, and brief renderings of a `RuntimeResponse`                                                                                                                                                  |
+| Command vocabulary      | the canonical and deprecated executable names, and the deprecation warning                                                                                                                                                                 |
+| Node adapters           | read-only document, project-config, and provider-config loading; the GitHub token boundary                                                                                                                                                 |
 
 Every use case returns a **typed structured result**. Failures are data, not
 thrown errors, and every message is sanitized before it leaves the package.
@@ -78,26 +78,26 @@ package's tests, not left to convention.
 Enforced by `tools/validate-boundaries.mjs` (section 10) and
 `application/test/boundary.test.ts`:
 
-| Forbidden | Why |
-| --- | --- |
-| parsing `process.argv` | argument grammar is a CLI concern |
-| producing CLI help | presentation |
-| writing to stdout or stderr | the caller owns its process streams |
-| calling `process.exit` | the caller owns its exit code |
-| knowing executable names outside `command-surface.ts` | a use case must not know how it was invoked |
-| knowing MCP JSON-RPC or building tool responses | protocol is an MCP concern |
-| rendering terminal text or HTML | presentation |
-| HTTP servers, ports, sockets | no network surface beyond the GitHub provider |
-| importing CLI, MCP, Installer, or Distribution | the inverted dependency this package exists to remove |
+| Forbidden                                             | Why                                                   |
+| ----------------------------------------------------- | ----------------------------------------------------- |
+| parsing `process.argv`                                | argument grammar is a CLI concern                     |
+| producing CLI help                                    | presentation                                          |
+| writing to stdout or stderr                           | the caller owns its process streams                   |
+| calling `process.exit`                                | the caller owns its exit code                         |
+| knowing executable names outside `command-surface.ts` | a use case must not know how it was invoked           |
+| knowing MCP JSON-RPC or building tool responses       | protocol is an MCP concern                            |
+| rendering terminal text or HTML                       | presentation                                          |
+| HTTP servers, ports, sockets                          | no network surface beyond the GitHub provider         |
+| importing CLI, MCP, Installer, or Distribution        | the inverted dependency this package exists to remove |
 
 Each of these guards was verified by injecting the violation and confirming the
 validator fails.
 
 ## Core versus Node
 
-| Surface | Contents |
-| --- | --- |
-| `@oh-my-pm/application` | use-case contracts, dependency-injected orchestration, structured errors, shared result types. Imports no `node:` builtin. |
+| Surface                      | Contents                                                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `@oh-my-pm/application`      | use-case contracts, dependency-injected orchestration, structured errors, shared result types. Imports no `node:` builtin.            |
 | `@oh-my-pm/application/node` | read-only filesystem adapters, project and provider configuration loading, the GitHub token boundary, and composed Node dependencies. |
 
 The split is what keeps the core testable without a filesystem and reusable by a
@@ -160,7 +160,7 @@ the application layer to exist.
 ## Why v0.5.1 implements no Dashboard
 
 v0.5.1 is a patch release. Its whole purpose is to make the dependency direction
-correct *before* a third surface exists, so that adding one is an additive
+correct _before_ a third surface exists, so that adding one is an additive
 change rather than another restructuring. Shipping a Dashboard in the same
 release would mix an internal refactor with a large new user-facing feature and
 make both harder to review and to revert.

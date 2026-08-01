@@ -74,7 +74,14 @@ describe("projectStateChange — categories and kinds", () => {
   });
 
   it("projects every one of the six item kinds", () => {
-    for (const itemKind of ["milestone", "task", "risk", "decision", "dependency", "blocker"] as const) {
+    for (const itemKind of [
+      "milestone",
+      "task",
+      "risk",
+      "decision",
+      "dependency",
+      "blocker",
+    ] as const) {
       const projected = projectStateChange(change({ itemKind }));
       expect(projected!.itemKind).toBe(itemKind);
     }
@@ -136,7 +143,15 @@ describe("projectStateChange — allowlist extraction", () => {
     });
     // Never carries owner, priority, metadata, evidenceRefs, or structured values.
     const json = JSON.stringify(projected);
-    for (const forbidden of ["owner", "priority", "metadata", "evidenceRefs", "classification", "secret-meta", "alice"]) {
+    for (const forbidden of [
+      "owner",
+      "priority",
+      "metadata",
+      "evidenceRefs",
+      "classification",
+      "secret-meta",
+      "alice",
+    ]) {
       expect(json).not.toContain(forbidden);
     }
   });
@@ -165,7 +180,9 @@ describe("projectStateChange — allowlist extraction", () => {
   });
 
   it("keeps an ordinary title that merely contains the word token", () => {
-    const projected = projectStateChange(change({ currentValue: item({ title: "Rotate the API token" }) }));
+    const projected = projectStateChange(
+      change({ currentValue: item({ title: "Rotate the API token" }) }),
+    );
     expect(projected!.title).toBe("Rotate the API token");
   });
 });
@@ -204,7 +221,13 @@ describe("projectComparedResult — order, limits, truncation", () => {
 
   it("bounds the changes array by limit and reports truncation", () => {
     const changes = Array.from({ length: 10 }, (_v, i) => change({ itemId: `task-${i}` }));
-    const limited = projectComparedResult(changeSet(changes), "p", "snapshot:prev", "snapshot:curr", 1);
+    const limited = projectComparedResult(
+      changeSet(changes),
+      "p",
+      "snapshot:prev",
+      "snapshot:curr",
+      1,
+    );
     expect(limited.changes).toHaveLength(1);
     expect(limited.summary.totalChanges).toBe(10);
     expect(limited.summary.returnedChanges).toBe(1);
@@ -212,14 +235,26 @@ describe("projectComparedResult — order, limits, truncation", () => {
     // Counts always cover the FULL set, not the bounded prefix.
     expect(limited.summary.countsByCategory.added).toBe(10);
 
-    const full = projectComparedResult(changeSet(changes), "p", "snapshot:prev", "snapshot:curr", 100);
+    const full = projectComparedResult(
+      changeSet(changes),
+      "p",
+      "snapshot:prev",
+      "snapshot:curr",
+      100,
+    );
     expect(full.changes).toHaveLength(10);
     expect(full.summary.truncated).toBe(false);
   });
 
   it("clamps a limit above the hard maximum to 100", () => {
     const changes = Array.from({ length: 120 }, (_v, i) => change({ itemId: `task-${i}` }));
-    const result = projectComparedResult(changeSet(changes), "p", "snapshot:prev", "snapshot:curr", 100);
+    const result = projectComparedResult(
+      changeSet(changes),
+      "p",
+      "snapshot:prev",
+      "snapshot:curr",
+      100,
+    );
     expect(result.changes).toHaveLength(100);
     expect(result.summary.truncated).toBe(true);
   });

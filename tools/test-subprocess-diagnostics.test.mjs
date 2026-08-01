@@ -24,13 +24,20 @@ describe("describeSubprocessResult", () => {
   });
 
   it("marks empty streams explicitly rather than printing nothing", () => {
-    const message = describeSubprocessResult("check.mjs", [], { status: 0, stdout: "", stderr: "" });
+    const message = describeSubprocessResult("check.mjs", [], {
+      status: 0,
+      stdout: "",
+      stderr: "",
+    });
     expect(message).toContain("stdout:\n(empty)");
     expect(message).toContain("stderr:\n(empty)");
   });
 
   it("bounds runaway output and says how much was dropped", () => {
-    const message = describeSubprocessResult("noisy.mjs", [], { status: 1, stderr: "x".repeat(10_000) });
+    const message = describeSubprocessResult("noisy.mjs", [], {
+      status: 1,
+      stderr: "x".repeat(10_000),
+    });
     expect(message.length).toBeLessThan(10_000);
     expect(message).toContain("earlier characters omitted");
     // The tail is what matters for a failure, so it must be preserved.

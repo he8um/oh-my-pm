@@ -44,7 +44,11 @@ describe("createRollbackImpactOperations", () => {
       input({
         currentFiles: [],
         backupFiles: [{ path: "bin/oh-my-pm", content: "old binary", checksum: "sha256:old-bin" }],
-        rollback: { id: "rollback-1", paths: ["bin/oh-my-pm"], createdAt: "2026-01-01T00:00:00.000Z" },
+        rollback: {
+          id: "rollback-1",
+          paths: ["bin/oh-my-pm"],
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
       }),
     );
     expect(operations.map((op) => op.kind)).toEqual(["restore"]);
@@ -71,7 +75,11 @@ describe("createRollbackImpactOperations", () => {
       input({
         currentFiles: [{ path: "unrelated.txt", content: "x", checksum: "sha256:x" }],
         backupFiles: [{ path: "bin/oh-my-pm", content: "old binary", checksum: "sha256:old-bin" }],
-        rollback: { id: "rollback-1", paths: ["bin/oh-my-pm"], createdAt: "2026-01-01T00:00:00.000Z" },
+        rollback: {
+          id: "rollback-1",
+          paths: ["bin/oh-my-pm"],
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
       }),
     );
     expect(operations.map((op) => op.path)).toEqual(["/tmp/oh-my-pm/bin/oh-my-pm"]);
@@ -81,9 +89,7 @@ describe("createRollbackImpactOperations", () => {
     const source = input();
     const before = JSON.parse(JSON.stringify(source));
     const operations = createRollbackImpactOperations(source);
-    expect(operations.map((op) => op.path)).toEqual(
-      [...operations.map((op) => op.path)].sort(),
-    );
+    expect(operations.map((op) => op.path)).toEqual([...operations.map((op) => op.path)].sort());
     expect(source).toEqual(before);
   });
 });
@@ -116,7 +122,9 @@ describe("createRollbackImpactPreview", () => {
 
   it("fails on a missing rollback id", () => {
     const preview = createRollbackImpactPreview(
-      input({ rollback: { id: "", paths: ["bin/oh-my-pm"], createdAt: "2026-01-01T00:00:00.000Z" } }),
+      input({
+        rollback: { id: "", paths: ["bin/oh-my-pm"], createdAt: "2026-01-01T00:00:00.000Z" },
+      }),
     );
     expect(preview.reasons).toContain("rollback_impact_id_missing");
   });
@@ -130,7 +138,9 @@ describe("createRollbackImpactPreview", () => {
 
   it("fails on an unsafe rollback path", () => {
     const preview = createRollbackImpactPreview(
-      input({ rollback: { id: "rollback-1", paths: ["../escape"], createdAt: "2026-01-01T00:00:00.000Z" } }),
+      input({
+        rollback: { id: "rollback-1", paths: ["../escape"], createdAt: "2026-01-01T00:00:00.000Z" },
+      }),
     );
     expect(preview.reasons).toContain("rollback_impact_path_unsafe");
   });

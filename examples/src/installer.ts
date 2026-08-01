@@ -625,9 +625,7 @@ export function runLocalArtifactCreationExecutionPlanExample(): LocalArtifactCre
   const localArtifactCreationPlan = createLocalArtifactCreationExecutionPlanDryRun(
     exampleLocalArtifactCreationExecutionPlanInput(),
   );
-  const markdown = formatLocalArtifactCreationExecutionPlanMarkdown(
-    localArtifactCreationPlan.plan,
-  );
+  const markdown = formatLocalArtifactCreationExecutionPlanMarkdown(localArtifactCreationPlan.plan);
   return { localArtifactCreationPlan, markdown };
 }
 

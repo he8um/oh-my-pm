@@ -36,10 +36,7 @@ describe("planInstallOperations", () => {
   it("preserves package file order and mixes kinds", () => {
     const input = installInput();
     input.packageManifest.files = ["README.md", "bin/oh-my-pm", "docs/new.md"];
-    const plan = planInstallOperations(
-      input,
-      createMemoryFilesystem(exampleFilesystemEntries()),
-    );
+    const plan = planInstallOperations(input, createMemoryFilesystem(exampleFilesystemEntries()));
     expect(plan.operations).toEqual([
       { kind: "replace", path: "/tmp/oh-my-pm/README.md", checksum: "sha256:example" },
       { kind: "replace", path: "/tmp/oh-my-pm/bin/oh-my-pm", checksum: "sha256:example" },
@@ -99,10 +96,7 @@ describe("planRollbackCapture", () => {
 
   it("preserves input path order and clones paths into the manifest", () => {
     const paths = ["z/last", "a/first"];
-    const plan = planRollbackCapture(
-      captureInput(paths),
-      createMemoryFilesystem(),
-    );
+    const plan = planRollbackCapture(captureInput(paths), createMemoryFilesystem());
     expect(plan.operations.map((op) => op.path)).toEqual([
       "/tmp/oh-my-pm/z/last",
       "/tmp/oh-my-pm/a/first",

@@ -222,9 +222,7 @@ export function collectMarkdownSectionItems(
  * Ids follow `<document-id>#task-<N>`, where N counts unchecked tasks within
  * each document. Checked entries and empty titles are ignored; no mutation.
  */
-export function collectMarkdownUncheckedTasks(
-  items: readonly TextItem[],
-): MarkdownUncheckedTask[] {
+export function collectMarkdownUncheckedTasks(items: readonly TextItem[]): MarkdownUncheckedTask[] {
   const tasks: MarkdownUncheckedTask[] = [];
   for (const item of items) {
     if (item.body === undefined) {
@@ -268,13 +266,7 @@ export type MarkdownSignalEntry = {
   normalizedHeading: string;
   line: number;
   sequence: number;
-  kind:
-    | "unchecked-task"
-    | "checked-task"
-    | "list-item"
-    | "numbered-item"
-    | "paragraph"
-    | "marker";
+  kind: "unchecked-task" | "checked-task" | "list-item" | "numbered-item" | "paragraph" | "marker";
   text: string;
 };
 
@@ -369,7 +361,11 @@ export function parseMarkdownSignalEntries(item: TextItem): MarkdownSignalEntry[
   let sequence = 0;
   let lastMergeable: MarkdownSignalEntry | null = null;
 
-  const push = (line: number, kind: MarkdownSignalEntry["kind"], text: string): MarkdownSignalEntry => {
+  const push = (
+    line: number,
+    kind: MarkdownSignalEntry["kind"],
+    text: string,
+  ): MarkdownSignalEntry => {
     sequence += 1;
     const entry: MarkdownSignalEntry = {
       documentId: item.id,

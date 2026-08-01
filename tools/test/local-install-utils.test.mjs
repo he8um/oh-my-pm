@@ -152,11 +152,17 @@ describe("applyLocalInstallPlan", () => {
   it("refuses when the plan is not applicable or apply is not requested", () => {
     const prefix = makePrefix();
     const preview = resolveLocalInstallPlan({ prefix });
-    expect(applyLocalInstallPlan(preview)).toMatchObject({ ok: false, code: "apply_not_requested" });
+    expect(applyLocalInstallPlan(preview)).toMatchObject({
+      ok: false,
+      code: "apply_not_requested",
+    });
     // Force a not-ok plan by pointing at an existing shim first.
     applyLocalInstallPlan(resolveLocalInstallPlan({ prefix, apply: true }));
     const blocked = resolveLocalInstallPlan({ prefix, apply: true });
-    expect(applyLocalInstallPlan(blocked)).toMatchObject({ ok: false, code: "plan_not_applicable" });
+    expect(applyLocalInstallPlan(blocked)).toMatchObject({
+      ok: false,
+      code: "plan_not_applicable",
+    });
   });
 
   it("creates a POSIX and a .cmd shim for every command under <prefix>/bin", () => {

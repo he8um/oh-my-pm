@@ -10,10 +10,7 @@ import {
   validateInstallerAuditTrailExportFormat,
   validateInstallerAuditTrailExportPlan,
 } from "../src/index.js";
-import type {
-  InstallerAuditEvent,
-  InstallerAuditTrailExportPlan,
-} from "../src/index.js";
+import type { InstallerAuditEvent, InstallerAuditTrailExportPlan } from "../src/index.js";
 
 // A deterministic non-empty event sequence for content/plan tests.
 function events(): InstallerAuditEvent[] {
@@ -100,9 +97,7 @@ describe("createInstallerAuditTrailExportPlan", () => {
   it("builds the fingerprint from format, event count, and size", () => {
     const source = events();
     const plan = createInstallerAuditTrailExportPlan({ events: source, format: "markdown" });
-    expect(plan.fingerprint).toBe(
-      `audit-export:markdown:${plan.eventCount}:${plan.sizeBytes}`,
-    );
+    expect(plan.fingerprint).toBe(`audit-export:markdown:${plan.eventCount}:${plan.sizeBytes}`);
   });
 
   it("has no output path, filename, destination, or telemetry field", () => {
@@ -199,9 +194,9 @@ describe("createInstallerAuditTrailExportDryRun", () => {
     expect(dryRun.ok).toBe(false);
     expect(dryRun.warnings).toBeDefined();
     expect(dryRun.warnings?.every((warning) => warning.code === "OMP-I-6001")).toBe(true);
-    expect(dryRun.warnings?.some((warning) => warning.message === "audit_trail_export_events_empty")).toBe(
-      true,
-    );
+    expect(
+      dryRun.warnings?.some((warning) => warning.message === "audit_trail_export_events_empty"),
+    ).toBe(true);
   });
 });
 
@@ -213,9 +208,7 @@ describe("exampleInstallerAuditTrailExportInput", () => {
   });
 
   it("produces a valid dry run", () => {
-    const dryRun = createInstallerAuditTrailExportDryRun(
-      exampleInstallerAuditTrailExportInput(),
-    );
+    const dryRun = createInstallerAuditTrailExportDryRun(exampleInstallerAuditTrailExportInput());
     expect(dryRun.ok).toBe(true);
     expect(dryRun.plan.eventCount).toBeGreaterThan(0);
     expect(dryRun.plan.sizeBytes).toBeGreaterThan(0);

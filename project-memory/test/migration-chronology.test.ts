@@ -200,7 +200,12 @@ describe("store 1 -> 2 chronology recovery migration", () => {
     const fs = new MemoryFileSystem();
     // Plant a v1 store whose inventory references a snapshot with no readable
     // payload, so chronology recovery throws BEFORE the atomic manifest commit.
-    const env = buildEnvelope("snapshot", PID, "s-a", v1Snapshot("s-a", "2026-01-01T00:00:00.000Z"));
+    const env = buildEnvelope(
+      "snapshot",
+      PID,
+      "s-a",
+      v1Snapshot("s-a", "2026-01-01T00:00:00.000Z"),
+    );
     fs.poke(
       recordPathFor(layout, projectKey, SNAPSHOTS_DIRNAME, deriveRecordKey("snapshot", "s-a")),
       serializeEnvelope(env),
@@ -222,9 +227,9 @@ describe("store 1 -> 2 chronology recovery migration", () => {
     fs.poke(manifestPathFor(layout, projectKey), originalManifest);
 
     const s = store(fs);
-    await expect(
-      s.migrateProject(PID, "op-mig", "2026-02-01T00:00:00.000Z"),
-    ).rejects.toMatchObject({ code: PROJECT_MEMORY_ERROR_CODES.corruption });
+    await expect(s.migrateProject(PID, "op-mig", "2026-02-01T00:00:00.000Z")).rejects.toMatchObject(
+      { code: PROJECT_MEMORY_ERROR_CODES.corruption },
+    );
 
     // The on-disk manifest is still the original v1 manifest (commit never ran).
     expect(fs.peek(manifestPathFor(layout, projectKey))).toBe(originalManifest);

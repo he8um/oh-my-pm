@@ -4,17 +4,16 @@
 // separate from the flat CLI parser's types so the seven grammars never overload
 // one loop. Pure type declarations only: no filesystem, environment, or clock.
 
-import type { ChangeCategory, CliOutputMode, StateItemKind, TimelineEvent } from "@oh-my-pm/contracts";
+import type {
+  ChangeCategory,
+  CliOutputMode,
+  StateItemKind,
+  TimelineEvent,
+} from "@oh-my-pm/contracts";
 
 /** The seven approved `memory` subcommands — an exact, closed allowlist. */
 export type MemorySubcommand =
-  | "capture"
-  | "changes"
-  | "status"
-  | "history"
-  | "export"
-  | "delete"
-  | "timeline";
+  "capture" | "changes" | "status" | "history" | "export" | "delete" | "timeline";
 
 /** The exact set of allowed subcommands, in canonical order. */
 export const MEMORY_SUBCOMMANDS: readonly MemorySubcommand[] = [
@@ -120,8 +119,7 @@ export type MemoryCliCommand =
 
 /** The result of parsing a `memory` command (success or a controlled error). */
 export type MemoryCliParseResult =
-  | { ok: true; command: MemoryCliCommand }
-  | { ok: false; code: "OMP-C-3002"; message: string };
+  { ok: true; command: MemoryCliCommand } | { ok: false; code: "OMP-C-3002"; message: string };
 
 /** Default snapshot staleness window: seven days, in seconds. */
 export const MEMORY_DEFAULT_STALE_AFTER_SECONDS = 604_800;

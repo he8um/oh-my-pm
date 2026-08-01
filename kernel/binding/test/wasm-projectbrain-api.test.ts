@@ -172,7 +172,12 @@ describe("project brain kernel binding (wasm)", () => {
         join(repoRoot, "examples", "fixtures", "project-brain", "timeline-expected.json"),
         "utf8",
       ),
-    ) as { input: Parameters<ReturnType<typeof createNodeWasmProjectBrainKernelApi>["deriveProjectTimeline"]>[0]; expected: TimelineResult };
+    ) as {
+      input: Parameters<
+        ReturnType<typeof createNodeWasmProjectBrainKernelApi>["deriveProjectTimeline"]
+      >[0];
+      expected: TimelineResult;
+    };
     const r = createNodeWasmProjectBrainKernelApi().deriveProjectTimeline(fixture.input);
     expect(r.ok).toBe(true);
     if (r.ok) {
@@ -197,9 +202,9 @@ describe("project brain kernel binding (wasm)", () => {
 
   it("returns a typed failure envelope for invalid JSON input", () => {
     // A ProjectState missing required fields fails Kernel validation, not a throw.
-    const r = createNodeWasmProjectBrainKernelApi().finalizeProjectState(
-      { identity: { id: "x" } } as unknown as ProjectState,
-    );
+    const r = createNodeWasmProjectBrainKernelApi().finalizeProjectState({
+      identity: { id: "x" },
+    } as unknown as ProjectState);
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(r.error.code).toMatch(/^OMP-K-PB-/);

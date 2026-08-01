@@ -3,9 +3,7 @@ import { isRecord } from "./context.js";
 import type { RuntimePlannerInputResult } from "./types.js";
 
 /** Convert a Runtime plan request into a PlannerInput without calling Runtime. */
-export function plannerInputFromRuntimeRequest(
-  request: RuntimeRequest,
-): RuntimePlannerInputResult {
+export function plannerInputFromRuntimeRequest(request: RuntimeRequest): RuntimePlannerInputResult {
   if (request.kind !== "plan") {
     return {
       ok: false,

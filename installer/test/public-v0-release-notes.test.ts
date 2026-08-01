@@ -151,7 +151,9 @@ describe("createPublicV0ReleaseNotesDraft", () => {
   it("carries no artifact, destination, command, adapter object, or result fields", () => {
     const draft = createPublicV0ReleaseNotesDraft(input());
     for (const key of Object.keys(draft)) {
-      expect(key).not.toMatch(/artifact|asset|download|dest|command|adapter|object|result|remote|url/i);
+      expect(key).not.toMatch(
+        /artifact|asset|download|dest|command|adapter|object|result|remote|url/i,
+      );
     }
     const serialized = JSON.stringify(draft);
     expect(serialized).not.toContain("writeFile");
@@ -173,7 +175,9 @@ describe("createPublicV0ReleaseNotesDraftDryRun", () => {
     expect(dryRun.warnings).toBeDefined();
     expect(dryRun.warnings?.every((warning) => warning.code === "OMP-I-6001")).toBe(true);
     expect(
-      dryRun.warnings?.some((warning) => warning.message === "public_v0_release_notes_version_missing"),
+      dryRun.warnings?.some(
+        (warning) => warning.message === "public_v0_release_notes_version_missing",
+      ),
     ).toBe(true);
   });
 });
@@ -204,7 +208,9 @@ describe("formatPublicV0ReleaseNotesDraftMarkdown", () => {
   });
 
   it("contains no private terms or URLs", () => {
-    const markdown = formatPublicV0ReleaseNotesDraftMarkdown(createPublicV0ReleaseNotesDraft(input()));
+    const markdown = formatPublicV0ReleaseNotesDraftMarkdown(
+      createPublicV0ReleaseNotesDraft(input()),
+    );
     for (const term of PRIVATE_TERMS) {
       expect(markdown).not.toContain(term);
     }

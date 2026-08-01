@@ -332,7 +332,8 @@ export function buildOfflineDoctorReport(input: OfflineDoctorInput): ProviderDoc
     networkAttempted: false,
     checks,
     github: {
-      authentication: tokenPresence(input.token) === "present" ? "token-present" : "unauthenticated",
+      authentication:
+        tokenPresence(input.token) === "present" ? "token-present" : "unauthenticated",
       access: "not-checked",
     },
   };

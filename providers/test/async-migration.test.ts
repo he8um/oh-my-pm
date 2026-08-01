@@ -15,7 +15,9 @@ describe("async provider contract", () => {
   });
 
   it("the registry awaits provider execution and returns the resolved result", async () => {
-    const registry = createProviderRegistry([createLocalProvider({ items: [{ id: "a", title: "A" }] })]);
+    const registry = createProviderRegistry([
+      createLocalProvider({ items: [{ id: "a", title: "A" }] }),
+    ]);
     const result = await registry.execute(listRequest, context);
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.response.items.map((i) => i.id)).toEqual(["a"]);

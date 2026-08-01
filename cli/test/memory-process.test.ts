@@ -18,7 +18,10 @@ import type { MemoryStore } from "@oh-my-pm/application";
 const FIXED_NOW = "2026-03-03T00:00:00.000Z";
 
 /** Build a temporary workspace with a project + data dir and a config. */
-function makeWorkspace(projectId: string, docs: Record<string, string>): {
+function makeWorkspace(
+  projectId: string,
+  docs: Record<string, string>,
+): {
   root: string;
   project: string;
   data: string;
@@ -295,7 +298,16 @@ describe("memory read/export/delete journey (real adapter)", () => {
 
     // Correct confirmation deletes.
     const del = await runLocalCliProcess(
-      ["memory", "delete", ws.project, "--data-dir", ws.data, "--apply", "--confirm", "journey-proj"],
+      [
+        "memory",
+        "delete",
+        ws.project,
+        "--data-dir",
+        ws.data,
+        "--apply",
+        "--confirm",
+        "journey-proj",
+      ],
       opts(),
     );
     expect(del.exitCode).toBe(0);

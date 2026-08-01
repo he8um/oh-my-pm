@@ -1,4 +1,8 @@
-import type { GitHubHttpRequest, GitHubHttpResponse, GitHubHttpTransport } from "@oh-my-pm/providers";
+import type {
+  GitHubHttpRequest,
+  GitHubHttpResponse,
+  GitHubHttpTransport,
+} from "@oh-my-pm/providers";
 import { defaultProviderConfig } from "@oh-my-pm/providers";
 import type { ResolvedProviderConfig } from "@oh-my-pm/providers";
 import { describe, expect, it } from "vitest";
@@ -12,7 +16,9 @@ import {
   tokenPresence,
 } from "../src/provider-diagnostics.js";
 
-function configWith(github: Partial<ResolvedProviderConfig["providers"]["github"]>): ResolvedProviderConfig {
+function configWith(
+  github: Partial<ResolvedProviderConfig["providers"]["github"]>,
+): ResolvedProviderConfig {
   const base = defaultProviderConfig();
   return {
     ...base,
@@ -196,7 +202,11 @@ describe("runGitHubProviderNetworkDiagnostic", () => {
 
   it("reports unauthenticated when no token is supplied", async () => {
     const { transport } = countingTransport({ status: 200, headers: {}, body: repoBody });
-    const result = await runGitHubProviderNetworkDiagnostic({ repository: SLUG, transport, productVersion: "0.0.0" });
+    const result = await runGitHubProviderNetworkDiagnostic({
+      repository: SLUG,
+      transport,
+      productVersion: "0.0.0",
+    });
     if (result.ok) expect(result.authentication).toBe("unauthenticated");
   });
 
@@ -224,7 +234,11 @@ describe("runGitHubProviderNetworkDiagnostic", () => {
       headers: {},
       body: { message: "raw provider detail that must not leak" },
     });
-    const result = await runGitHubProviderNetworkDiagnostic({ repository: SLUG, transport, productVersion: "0.0.0" });
+    const result = await runGitHubProviderNetworkDiagnostic({
+      repository: SLUG,
+      transport,
+      productVersion: "0.0.0",
+    });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.providerCode).toBe(code);

@@ -15,7 +15,12 @@
         { "name": "ok", "type": "boolean", "doc": "Whether the command succeeded." },
         { "name": "command", "type": "string", "doc": "Executed command name." },
         { "name": "data", "type": "json", "doc": "Command payload." },
-        { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings.", "optional": true }
+        {
+          "name": "warnings",
+          "type": { "array": { "ref": "KernelWarning" } },
+          "doc": "Warnings.",
+          "optional": true
+        }
       ]
     },
     {
@@ -39,7 +44,11 @@
       "name": "DoctorResult",
       "doc": "Aggregated doctor check results.",
       "fields": [
-        { "name": "checks", "type": { "array": { "ref": "DoctorCheckResult" } }, "doc": "Individual checks." }
+        {
+          "name": "checks",
+          "type": { "array": { "ref": "DoctorCheckResult" } },
+          "doc": "Individual checks."
+        }
       ]
     },
     {
@@ -49,7 +58,11 @@
       "fields": [
         { "name": "version", "type": "string", "doc": "Installed system version." },
         { "name": "healthy", "type": "boolean", "doc": "Whether the system is healthy." },
-        { "name": "checks", "type": { "array": { "ref": "DoctorCheckResult" } }, "doc": "Supporting checks." }
+        {
+          "name": "checks",
+          "type": { "array": { "ref": "DoctorCheckResult" } },
+          "doc": "Supporting checks."
+        }
       ]
     },
     {
@@ -58,7 +71,11 @@
       "doc": "User-editable configuration.",
       "fields": [
         { "name": "locale", "type": { "ref": "Locale" }, "doc": "Preferred output locale." },
-        { "name": "outputMode", "type": { "ref": "CliOutputMode" }, "doc": "Preferred output mode." }
+        {
+          "name": "outputMode",
+          "type": { "ref": "CliOutputMode" },
+          "doc": "Preferred output mode."
+        }
       ]
     }
   ]

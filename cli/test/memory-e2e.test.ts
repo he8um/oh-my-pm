@@ -62,9 +62,13 @@ function listFiles(dir: string): string[] {
   return out;
 }
 
-const DOC_EN_A = ["# Project", "## Next steps", "- Wire the API", "## Risks", "- Timeline is tight"].join(
-  "\n",
-);
+const DOC_EN_A = [
+  "# Project",
+  "## Next steps",
+  "- Wire the API",
+  "## Risks",
+  "- Timeline is tight",
+].join("\n");
 const DOC_EN_B = [
   "# Project",
   "## Next steps",

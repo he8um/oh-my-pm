@@ -50,14 +50,9 @@ if (!parsed.ok) {
   process.exitCode = 2;
 } else {
   // Resolve the built providers package from the repository node_modules.
-  const providersEntry = pathToFileURL(
-    join(repoRoot, "providers", "dist", "index.js"),
-  ).href;
-  const {
-    createGitHubProvider,
-    createNodeGitHubHttpTransport,
-    parseGitHubRepository,
-  } = await import(providersEntry);
+  const providersEntry = pathToFileURL(join(repoRoot, "providers", "dist", "index.js")).href;
+  const { createGitHubProvider, createNodeGitHubHttpTransport, parseGitHubRepository } =
+    await import(providersEntry);
 
   const repoResult = parseGitHubRepository(parsed.repository);
   if (!repoResult.ok) {
@@ -66,10 +61,17 @@ if (!parsed.ok) {
   } else {
     // The optional token is read here, at this explicit manual boundary only.
     const rawToken = process.env.OH_MY_PM_GITHUB_TOKEN;
-    const token = typeof rawToken === "string" && rawToken.trim() !== "" ? rawToken.trim() : undefined;
+    const token =
+      typeof rawToken === "string" && rawToken.trim() !== "" ? rawToken.trim() : undefined;
     const authenticated = token !== undefined;
-    const transport = createNodeGitHubHttpTransport({ token, productVersion: "0.2.0-alpha.0-live-smoke" });
-    const provider = createGitHubProvider({ transport, productVersion: "0.2.0-alpha.0-live-smoke" });
+    const transport = createNodeGitHubHttpTransport({
+      token,
+      productVersion: "0.2.0-alpha.0-live-smoke",
+    });
+    const provider = createGitHubProvider({
+      transport,
+      productVersion: "0.2.0-alpha.0-live-smoke",
+    });
 
     const result = await provider.execute(
       { providerId: "github", action: "list", query: repoResult.ref.slug, limit: parsed.limit },

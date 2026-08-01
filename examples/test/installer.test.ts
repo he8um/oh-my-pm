@@ -459,7 +459,14 @@ describe("runPublicV0ReleaseNotesDraftExample", () => {
     const serialized = JSON.stringify(result);
     // Assembled from fragments so the boundary language scan does not flag this
     // test file for containing the terms it guards against.
-    for (const term of ["_dev", "specs/", `_AGENT${"_"}OVERRIDE`, `Cla${"ude"}`, `Chat${"GPT"}`, `Co${"dex"}`]) {
+    for (const term of [
+      "_dev",
+      "specs/",
+      `_AGENT${"_"}OVERRIDE`,
+      `Cla${"ude"}`,
+      `Chat${"GPT"}`,
+      `Co${"dex"}`,
+    ]) {
       expect(serialized).not.toContain(term);
     }
     expect(serialized).not.toMatch(/https?:\/\//);
@@ -487,7 +494,9 @@ describe("runGuardedReleaseArtifactPlanExample", () => {
     expect(serialized).not.toMatch(/https?:\/\//);
     for (const item of result.guardedReleaseArtifactPlan.plan.items) {
       for (const key of Object.keys(item)) {
-        expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|url|bytes|result/i);
+        expect(key).not.toMatch(
+          /content|path|dest|command|publish|adapter|object|url|bytes|result/i,
+        );
       }
     }
   });
@@ -564,7 +573,9 @@ describe("runLocalArtifactCreationExecutionPlanExample", () => {
     expect(serialized).not.toMatch(/https?:\/\//);
     for (const step of result.localArtifactCreationPlan.plan.steps) {
       for (const key of Object.keys(step)) {
-        expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|url|bytes|result/i);
+        expect(key).not.toMatch(
+          /content|path|dest|command|publish|adapter|object|url|bytes|result/i,
+        );
       }
     }
   });
@@ -597,7 +608,9 @@ describe("runLocalArtifactCreationAdapterContractExample", () => {
     expect(serialized).not.toContain("executeRollback");
     expect(serialized).not.toMatch(/https?:\/\//);
     for (const key of Object.keys(result.localArtifactAdapterContract.report)) {
-      expect(key).not.toMatch(/object|fn|func|method|content|bytes|path|dest|command|publish|url|result|remote/i);
+      expect(key).not.toMatch(
+        /object|fn|func|method|content|bytes|path|dest|command|publish|url|result|remote/i,
+      );
     }
     expect(
       Object.values(result.localArtifactAdapterContract.report).some(

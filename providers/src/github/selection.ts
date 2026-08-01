@@ -314,16 +314,28 @@ export function resolveGitHubSourceSelection(input: {
     }
     case "repository": {
       if (overrides.state !== undefined) {
-        return fail("github_option_not_applicable", "--state is not valid with --source repository");
+        return fail(
+          "github_option_not_applicable",
+          "--state is not valid with --source repository",
+        );
       }
       if (overrides.limit !== undefined) {
-        return fail("github_option_not_applicable", "--limit is not valid with --source repository");
+        return fail(
+          "github_option_not_applicable",
+          "--limit is not valid with --source repository",
+        );
       }
       if (overrides.number !== undefined) {
-        return fail("github_option_not_applicable", "--number is not valid with --source repository");
+        return fail(
+          "github_option_not_applicable",
+          "--number is not valid with --source repository",
+        );
       }
       if (overrides.query !== undefined) {
-        return fail("github_option_not_applicable", "--query is not valid with --source repository");
+        return fail(
+          "github_option_not_applicable",
+          "--query is not valid with --source repository",
+        );
       }
       if (overrides.kind !== undefined) {
         return fail("github_option_not_applicable", "--kind is not valid with --source repository");
@@ -351,10 +363,7 @@ export function resolveGitHubSourceSelection(input: {
       // alone is invalid. When enabled, a limit defaults to its own default.
       const includeComments = overrides.includeComments === true;
       if (!includeComments && overrides.commentLimit !== undefined) {
-        return fail(
-          "github_comment_limit_invalid",
-          "--comment-limit requires --include-comments",
-        );
+        return fail("github_comment_limit_invalid", "--comment-limit requires --include-comments");
       }
       const commentLimit = includeComments
         ? (overrides.commentLimit ?? DEFAULT_GITHUB_COMMENT_LIMIT)
@@ -362,10 +371,7 @@ export function resolveGitHubSourceSelection(input: {
 
       const includeReviews = overrides.includeReviews === true;
       if (!includeReviews && overrides.reviewLimit !== undefined) {
-        return fail(
-          "github_review_limit_invalid",
-          "--review-limit requires --include-reviews",
-        );
+        return fail("github_review_limit_invalid", "--review-limit requires --include-reviews");
       }
       const reviewLimit = includeReviews
         ? (overrides.reviewLimit ?? DEFAULT_GITHUB_REVIEW_LIMIT)
@@ -451,7 +457,11 @@ export function createGitHubProviderRequest(input: {
       return {
         providerId: "github",
         action: "list",
-        query: buildGitHubListQuery({ repository, source: "pull-requests", state: selection.state }),
+        query: buildGitHubListQuery({
+          repository,
+          source: "pull-requests",
+          state: selection.state,
+        }),
         limit: selection.limit,
       };
     case "item":

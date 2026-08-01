@@ -42,7 +42,9 @@ for (let iteration = 1; iteration <= iterations; iteration += 1) {
   const seconds = Number(process.hrtime.bigint() - started) / 1e9;
 
   if (result.error !== undefined) {
-    process.stderr.write(`release stress iteration ${iteration} could not start: ${result.error.code ?? result.error.message}\n`);
+    process.stderr.write(
+      `release stress iteration ${iteration} could not start: ${result.error.code ?? result.error.message}\n`,
+    );
     process.exit(1);
   }
   if (result.status !== 0) {

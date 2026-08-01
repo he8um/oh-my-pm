@@ -23,7 +23,15 @@ import type {
   ProjectBrainKernelResult,
   ProjectIdentitySeedInput,
 } from "./projectbrain.js";
-import type { ChangeSet, EvidenceRecord, Freshness, ProjectIdentity, ProjectSnapshot, ProjectState, TimelineResult } from "@oh-my-pm/contracts";
+import type {
+  ChangeSet,
+  EvidenceRecord,
+  Freshness,
+  ProjectIdentity,
+  ProjectSnapshot,
+  ProjectState,
+  TimelineResult,
+} from "@oh-my-pm/contracts";
 import type { BindingMarkers } from "./status.js";
 import { WASM_MODE } from "./status.js";
 
@@ -85,9 +93,7 @@ function parseWasmResult<T>(operation: string, raw: string): T {
 export function createNodeWasmKernelApi(): KernelApi {
   const wasm = loadWasmKernelModule();
   if (wasm === null) {
-    throw new Error(
-      "Kernel WASM binding is not built. Run pnpm --filter @oh-my-pm/kernel build.",
-    );
+    throw new Error("Kernel WASM binding is not built. Run pnpm --filter @oh-my-pm/kernel build.");
   }
 
   const api: KernelApi & BindingMarkers = {
@@ -95,10 +101,7 @@ export function createNodeWasmKernelApi(): KernelApi {
       return wasm.kernelVersion();
     },
     validateJson(target: ValidationTarget, payload: JsonValue): ValidationReport {
-      return parseWasmResult(
-        "validateJson",
-        wasm.validateJson(target, JSON.stringify(payload)),
-      );
+      return parseWasmResult("validateJson", wasm.validateJson(target, JSON.stringify(payload)));
     },
     checkUpdatePlan(plan: UpdatePlan): UpdateGuardDecision {
       return parseWasmResult("checkUpdatePlan", wasm.checkUpdatePlan(JSON.stringify(plan)));
@@ -120,19 +123,17 @@ export function createNodeWasmKernelApi(): KernelApi {
 export function createNodeWasmProjectBrainKernelApi(): ProjectBrainKernelApi {
   const wasm = loadWasmKernelModule();
   if (wasm === null) {
-    throw new Error(
-      "Kernel WASM binding is not built. Run pnpm --filter @oh-my-pm/kernel build.",
-    );
+    throw new Error("Kernel WASM binding is not built. Run pnpm --filter @oh-my-pm/kernel build.");
   }
   const call = <T>(operation: string, raw: string): ProjectBrainKernelResult<T> =>
     parseWasmResult<ProjectBrainKernelResult<T>>(operation, raw);
   return {
-    deriveProjectIdentity(seed: ProjectIdentitySeedInput): ProjectBrainKernelResult<ProjectIdentity> {
+    deriveProjectIdentity(
+      seed: ProjectIdentitySeedInput,
+    ): ProjectBrainKernelResult<ProjectIdentity> {
       return call("deriveProjectIdentity", wasm.deriveProjectIdentity(JSON.stringify(seed)));
     },
-    fingerprintMinimizedContent(
-      input: FingerprintContentInput,
-    ): ProjectBrainKernelResult<string> {
+    fingerprintMinimizedContent(input: FingerprintContentInput): ProjectBrainKernelResult<string> {
       return call(
         "fingerprintMinimizedContent",
         wasm.fingerprintMinimizedContent(JSON.stringify(input)),
@@ -147,9 +148,7 @@ export function createNodeWasmProjectBrainKernelApi(): ProjectBrainKernelApi {
     finalizeProjectState(state: ProjectState): ProjectBrainKernelResult<ProjectState> {
       return call("finalizeProjectState", wasm.finalizeProjectState(JSON.stringify(state)));
     },
-    finalizeProjectSnapshot(
-      snapshot: ProjectSnapshot,
-    ): ProjectBrainKernelResult<ProjectSnapshot> {
+    finalizeProjectSnapshot(snapshot: ProjectSnapshot): ProjectBrainKernelResult<ProjectSnapshot> {
       return call(
         "finalizeProjectSnapshot",
         wasm.finalizeProjectSnapshot(JSON.stringify(snapshot)),

@@ -72,7 +72,9 @@ export function assertNoForbiddenEvidenceFields(payload: unknown, what: string):
     }
     if (typeof node === "string") {
       if (inValueScannedMap && ABSOLUTE_PATH_VALUE.test(node)) {
-        throw invalidInput(`${what} contains an absolute-path value in a provenance/metadata field`);
+        throw invalidInput(
+          `${what} contains an absolute-path value in a provenance/metadata field`,
+        );
       }
       return;
     }

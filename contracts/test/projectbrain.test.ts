@@ -38,10 +38,22 @@ const evidence: EvidenceRecord = {
 
 // A Freshness fixture preserving all four separate dimensions plus coverage.
 const freshness: Freshness = {
-  observationFreshness: { status: "known", ageSeconds: 0, referenceTimestamp: "2026-07-25T00:00:00Z" },
+  observationFreshness: {
+    status: "known",
+    ageSeconds: 0,
+    referenceTimestamp: "2026-07-25T00:00:00Z",
+  },
   sourceFreshness: { status: "unknown" },
-  evidenceFreshness: { status: "known", ageSeconds: 3600, referenceTimestamp: "2026-07-25T00:00:00Z" },
-  derivedStateFreshness: { status: "known", ageSeconds: 3600, referenceTimestamp: "2026-07-25T00:00:00Z" },
+  evidenceFreshness: {
+    status: "known",
+    ageSeconds: 3600,
+    referenceTimestamp: "2026-07-25T00:00:00Z",
+  },
+  derivedStateFreshness: {
+    status: "known",
+    ageSeconds: 3600,
+    referenceTimestamp: "2026-07-25T00:00:00Z",
+  },
   coverageComplete: false,
   coverageGaps: ["github: request failed"],
   schemaVersion: V,
@@ -172,7 +184,14 @@ describe("@oh-my-pm/contracts project brain", () => {
     // No absolute paths.
     expect(serialized).not.toMatch(/\/Users\/|\/home\/|[A-Z]:\\/);
     // No credential or raw-body markers.
-    for (const forbidden of ["authorization", "bearer", "\"token\"", "\"body\"", "password", "secret"]) {
+    for (const forbidden of [
+      "authorization",
+      "bearer",
+      '"token"',
+      '"body"',
+      "password",
+      "secret",
+    ]) {
       expect(serialized.toLowerCase()).not.toContain(forbidden.toLowerCase());
     }
   });

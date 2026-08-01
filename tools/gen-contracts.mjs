@@ -29,15 +29,63 @@ const ALL_CAPS_RE = /^[A-Z][A-Z0-9_]*$/;
 const CAMEL_RE = /^[a-z][A-Za-z0-9]*$/;
 
 const toPascal = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-const toSnake = (s) => s.replace(/([A-Z])/g, "_$1").toLowerCase().replace(/^_/, "");
+const toSnake = (s) =>
+  s
+    .replace(/([A-Z])/g, "_$1")
+    .toLowerCase()
+    .replace(/^_/, "");
 const toScreamingSnake = (s) => toSnake(s).toUpperCase();
 
 const RUST_KEYWORDS = new Set([
-  "as", "async", "await", "become", "box", "break", "const", "continue", "crate", "do",
-  "dyn", "else", "enum", "extern", "false", "final", "fn", "for", "if", "impl", "in",
-  "let", "loop", "macro", "match", "mod", "move", "mut", "override", "priv", "pub",
-  "ref", "return", "self", "static", "struct", "super", "trait", "true", "try", "type",
-  "typeof", "unsafe", "unsized", "use", "virtual", "where", "while", "yield",
+  "as",
+  "async",
+  "await",
+  "become",
+  "box",
+  "break",
+  "const",
+  "continue",
+  "crate",
+  "do",
+  "dyn",
+  "else",
+  "enum",
+  "extern",
+  "false",
+  "final",
+  "fn",
+  "for",
+  "if",
+  "impl",
+  "in",
+  "let",
+  "loop",
+  "macro",
+  "match",
+  "mod",
+  "move",
+  "mut",
+  "override",
+  "priv",
+  "pub",
+  "ref",
+  "return",
+  "self",
+  "static",
+  "struct",
+  "super",
+  "trait",
+  "true",
+  "try",
+  "type",
+  "typeof",
+  "unsafe",
+  "unsized",
+  "use",
+  "virtual",
+  "where",
+  "while",
+  "yield",
 ]);
 const rustIdent = (s) => (RUST_KEYWORDS.has(s) ? `r#${s}` : s);
 
@@ -102,7 +150,9 @@ function validateFields(fields, where, refs) {
   }
 }
 
-const schemaFiles = readdirSync(schemaDir).filter((f) => f.endsWith(".schema.json")).sort();
+const schemaFiles = readdirSync(schemaDir)
+  .filter((f) => f.endsWith(".schema.json"))
+  .sort();
 if (schemaFiles.length === 0) fail("no schema files found under contracts/schema/");
 
 const domains = [];
@@ -288,11 +338,16 @@ const sortKeys = (value) => {
 function tsType(type) {
   if (typeof type === "string") {
     switch (type) {
-      case "string": return "string";
-      case "boolean": return "boolean";
-      case "number": return "number";
-      case "integer": return "number";
-      case "json": return "JsonValue";
+      case "string":
+        return "string";
+      case "boolean":
+        return "boolean";
+      case "number":
+        return "number";
+      case "integer":
+        return "number";
+      case "json":
+        return "JsonValue";
     }
   }
   if (type.array) return `${tsType(type.array)}[]`;
@@ -332,7 +387,9 @@ function emitTsDomain(schema) {
       case "enum": {
         const valuesName = `${toScreamingSnake(decl.name)}_VALUES`;
         lines.push(`/** ${decl.doc} */`);
-        lines.push(`export const ${valuesName} = [${decl.values.map((v) => `"${v}"`).join(", ")}] as const;`);
+        lines.push(
+          `export const ${valuesName} = [${decl.values.map((v) => `"${v}"`).join(", ")}] as const;`,
+        );
         lines.push(`export type ${decl.name} = (typeof ${valuesName})[number];`);
         lines.push("");
         break;
@@ -375,11 +432,16 @@ function emitTsDomain(schema) {
 function rustType(type) {
   if (typeof type === "string") {
     switch (type) {
-      case "string": return "String";
-      case "boolean": return "bool";
-      case "number": return "f64";
-      case "integer": return "i64";
-      case "json": return "JsonValue";
+      case "string":
+        return "String";
+      case "boolean":
+        return "bool";
+      case "number":
+        return "f64";
+      case "integer":
+        return "i64";
+      case "json":
+        return "JsonValue";
     }
   }
   if (type.array) return `Vec<${rustType(type.array)}>`;
@@ -405,11 +467,16 @@ function rustFields(fields, indent, pub) {
 function rustValue(type, value) {
   if (typeof type === "string") {
     switch (type) {
-      case "string": return `${JSON.stringify(value)}.to_string()`;
-      case "boolean": return value ? "true" : "false";
-      case "integer": return `${value}`;
-      case "number": return Number.isInteger(value) ? `${value}.0` : `${value}`;
-      case "json": return `serde_json::json!(${JSON.stringify(sortKeys(value))})`;
+      case "string":
+        return `${JSON.stringify(value)}.to_string()`;
+      case "boolean":
+        return value ? "true" : "false";
+      case "integer":
+        return `${value}`;
+      case "number":
+        return Number.isInteger(value) ? `${value}.0` : `${value}`;
+      case "json":
+        return `serde_json::json!(${JSON.stringify(sortKeys(value))})`;
     }
   }
   if (type.array) {
@@ -451,7 +518,8 @@ function domainUsesMap(schema) {
     if (decl.kind === "struct" && decl.fields.some((f) => walk(f.type))) return true;
     if (decl.kind === "alias" && walk(decl.of)) return true;
     if (decl.kind === "constant" && walk(decl.type)) return true;
-    if (decl.kind === "union" && decl.variants.some((v) => v.fields.some((f) => walk(f.type)))) return true;
+    if (decl.kind === "union" && decl.variants.some((v) => v.fields.some((f) => walk(f.type))))
+      return true;
   }
   return false;
 }
@@ -468,7 +536,9 @@ function emitRustDomain(schema) {
     const items = names.length === 1 ? names[0] : `{${names.join(", ")}}`;
     lines.push(`use super::${domain}::${items};`);
   }
-  const hasSerdeItems = schema.declarations.some((d) => ["enum", "struct", "union"].includes(d.kind));
+  const hasSerdeItems = schema.declarations.some((d) =>
+    ["enum", "struct", "union"].includes(d.kind),
+  );
   if (hasSerdeItems) lines.push("use serde::{Deserialize, Serialize};");
   if (domainUsesMap(schema)) lines.push("use std::collections::BTreeMap;");
   lines.push("");
@@ -519,7 +589,9 @@ function emitRustDomain(schema) {
         break;
       case "constant": {
         lines.push(`/// ${decl.doc}`);
-        lines.push(`pub fn ${toSnake(decl.name.toLowerCase()) || decl.name.toLowerCase()}() -> ${rustType(decl.type)} {`);
+        lines.push(
+          `pub fn ${toSnake(decl.name.toLowerCase()) || decl.name.toLowerCase()}() -> ${rustType(decl.type)} {`,
+        );
         lines.push(`    ${rustValue(decl.type, decl.value)}`);
         lines.push("}");
         lines.push("");

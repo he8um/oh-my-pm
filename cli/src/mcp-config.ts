@@ -11,10 +11,7 @@
 // the caller prints it and the user pastes it into their own client. Nothing
 // here rewrites a configuration file the user owns.
 
-import {
-  CANONICAL_MCP_COMMAND,
-  LEGACY_MCP_COMMANDS,
-} from "@oh-my-pm/application";
+import { CANONICAL_MCP_COMMAND, LEGACY_MCP_COMMANDS } from "@oh-my-pm/application";
 
 /**
  * The default MCP server key. This is a *product identity*, not a command, so
@@ -48,8 +45,7 @@ export function isValidMcpServerName(name: string): boolean {
 export type McpConfigOutputMode = "json" | "markdown";
 
 export type McpConfigParseResult =
-  | { ok: true; name: string; outputMode: McpConfigOutputMode }
-  | { ok: false; message: string };
+  { ok: true; name: string; outputMode: McpConfigOutputMode } | { ok: false; message: string };
 
 /**
  * Parse `mcp-config [--json|--markdown] [--name <name>]`. JSON is the default.
@@ -170,8 +166,7 @@ export type McpCommandResolutionInput = {
 };
 
 export type McpCommandResolution =
-  | { ok: true; commandPath: string }
-  | { ok: false; message: string };
+  { ok: true; commandPath: string } | { ok: false; message: string };
 
 // ---------------------------------------------------------------------------
 // Legacy configuration recognition.
@@ -237,9 +232,7 @@ export function legacyMcpConfigGuidance(command: string): string | null {
  * installed location. Probes each derived candidate with the injected predicate
  * and returns the first hit. A miss is a controlled failure, never a guess.
  */
-export function resolveInstalledMcpCommand(
-  input: McpCommandResolutionInput,
-): McpCommandResolution {
+export function resolveInstalledMcpCommand(input: McpCommandResolutionInput): McpCommandResolution {
   const fileName = installedMcpCommandFileName(input.platform);
   for (const binDirectory of candidateInstalledBinDirectories(input.entryScriptPath)) {
     const separator = separatorOf(binDirectory);
@@ -296,10 +289,7 @@ export const MCP_CONFIG_READ_ONLY_TOOLS: readonly string[] = [
  * same JSON with the read-only tool inventory and the secret-free note. Both end
  * with exactly one newline and are byte-identical for identical inputs.
  */
-export function formatMcpClientConfig(
-  config: McpClientConfig,
-  mode: McpConfigOutputMode,
-): string {
+export function formatMcpClientConfig(config: McpClientConfig, mode: McpConfigOutputMode): string {
   const json = JSON.stringify(config, null, 2);
   if (mode === "json") {
     return `${json}\n`;

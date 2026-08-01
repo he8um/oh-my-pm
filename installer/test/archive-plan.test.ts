@@ -36,19 +36,25 @@ describe("archive format and name", () => {
 
   it("composes the planned archive name", () => {
     expect(
-      createArchiveName({ packageName: "oh-my-pm-local", packageVersion: "2.0.0-alpha.0", format: "zip" }),
+      createArchiveName({
+        packageName: "oh-my-pm-local",
+        packageVersion: "2.0.0-alpha.0",
+        format: "zip",
+      }),
     ).toBe("oh-my-pm-local-2.0.0-alpha.0.zip");
-    expect(
-      createArchiveName({ packageName: "p", packageVersion: "1", format: "tar" }),
-    ).toBe("p-1.tar");
+    expect(createArchiveName({ packageName: "p", packageVersion: "1", format: "tar" })).toBe(
+      "p-1.tar",
+    );
   });
 });
 
 describe("createArchivePlanEntry", () => {
   it("computes sizeBytes as the UTF-8 byte length", () => {
-    expect(
-      createArchivePlanEntry({ path: "a", content: "héllo", checksum: "sha256:a" }),
-    ).toEqual({ path: "a", checksum: "sha256:a", sizeBytes: 6 });
+    expect(createArchivePlanEntry({ path: "a", content: "héllo", checksum: "sha256:a" })).toEqual({
+      path: "a",
+      checksum: "sha256:a",
+      sizeBytes: 6,
+    });
   });
 });
 

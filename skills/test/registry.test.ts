@@ -1,6 +1,10 @@
 import type { SkillInputEnvelope } from "@oh-my-pm/contracts";
 import { describe, expect, it } from "vitest";
-import { createDefaultSkillRegistry, createSkillRegistry, createSummarizeStatusSkill } from "../src/index.js";
+import {
+  createDefaultSkillRegistry,
+  createSkillRegistry,
+  createSummarizeStatusSkill,
+} from "../src/index.js";
 import type { Skill } from "../src/index.js";
 
 function envelope(skillId: SkillInputEnvelope["skillId"]): SkillInputEnvelope {

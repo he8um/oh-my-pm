@@ -8,10 +8,26 @@
   },
   "policy": { "maxFutureSkewSeconds": 300 },
   "expected": {
-    "observationFreshness": { "status": "known", "ageSeconds": 0, "referenceTimestamp": "2026-03-25T00:00:00Z" },
-    "sourceFreshness": { "status": "known", "ageSeconds": 86400, "referenceTimestamp": "2026-03-25T00:00:00Z" },
-    "evidenceFreshness": { "status": "known", "ageSeconds": 432000, "referenceTimestamp": "2026-03-25T00:00:00Z" },
-    "derivedStateFreshness": { "status": "known", "ageSeconds": 432000, "referenceTimestamp": "2026-03-25T00:00:00Z" },
+    "observationFreshness": {
+      "status": "known",
+      "ageSeconds": 0,
+      "referenceTimestamp": "2026-03-25T00:00:00Z"
+    },
+    "sourceFreshness": {
+      "status": "known",
+      "ageSeconds": 86400,
+      "referenceTimestamp": "2026-03-25T00:00:00Z"
+    },
+    "evidenceFreshness": {
+      "status": "known",
+      "ageSeconds": 432000,
+      "referenceTimestamp": "2026-03-25T00:00:00Z"
+    },
+    "derivedStateFreshness": {
+      "status": "known",
+      "ageSeconds": 432000,
+      "referenceTimestamp": "2026-03-25T00:00:00Z"
+    },
     "coverageComplete": true,
     "coverageGaps": [],
     "schemaVersion": 1

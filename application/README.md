@@ -47,23 +47,23 @@ thrown errors.
 Enforced by [`test/boundary.test.ts`](./test/boundary.test.ts) and
 [`tools/validate-boundaries.mjs`](../tools/validate-boundaries.mjs):
 
-| Forbidden | Why |
-| --- | --- |
-| `process.argv` parsing | argument grammar is a CLI concern |
-| CLI help text | presentation |
-| stdout / stderr writes | the caller owns its process streams |
-| `process.exit` | the caller owns its exit code |
-| executable names | the package does not know how it is invoked |
-| MCP JSON-RPC, tool responses | protocol is an MCP concern |
-| terminal rendering, HTML | presentation |
-| HTTP servers, ports, sockets | no network surface beyond the GitHub provider |
-| importing CLI, MCP, Installer, or Distribution | inverted dependency |
+| Forbidden                                      | Why                                           |
+| ---------------------------------------------- | --------------------------------------------- |
+| `process.argv` parsing                         | argument grammar is a CLI concern             |
+| CLI help text                                  | presentation                                  |
+| stdout / stderr writes                         | the caller owns its process streams           |
+| `process.exit`                                 | the caller owns its exit code                 |
+| executable names                               | the package does not know how it is invoked   |
+| MCP JSON-RPC, tool responses                   | protocol is an MCP concern                    |
+| terminal rendering, HTML                       | presentation                                  |
+| HTTP servers, ports, sockets                   | no network surface beyond the GitHub provider |
+| importing CLI, MCP, Installer, or Distribution | inverted dependency                           |
 
 ## Export surfaces
 
-| Surface | Contents |
-| --- | --- |
-| `@oh-my-pm/application` | use-case contracts, dependency-injected orchestration, structured errors, shared result types. Node-free. |
+| Surface                      | Contents                                                                                                                                                   |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@oh-my-pm/application`      | use-case contracts, dependency-injected orchestration, structured errors, shared result types. Node-free.                                                  |
 | `@oh-my-pm/application/node` | read-only filesystem adapters, project config and document loading, provider config resolution, the GitHub token boundary, and composed Node dependencies. |
 
 The root surface imports no `node:` builtin. Node filesystem objects never leak
@@ -82,10 +82,10 @@ pins this exception so it cannot silently widen.
 ### Local project workflows
 
 ```ts
-getLocalProjectBrief(root, deps)
-getLocalProjectRisks(root, deps)
-getLocalProjectNextActions(root, deps)
-getLocalProjectHandoff(root, deps)
+getLocalProjectBrief(root, deps);
+getLocalProjectRisks(root, deps);
+getLocalProjectNextActions(root, deps);
+getLocalProjectHandoff(root, deps);
 ```
 
 Deterministic and offline: a fixed clock, no randomness, no environment read, no
@@ -94,10 +94,10 @@ network, no write. The project root never enters the Runtime payload.
 ### GitHub project workflows
 
 ```ts
-getGitHubProjectBrief(input, deps)
-getGitHubProjectRisks(input, deps)
-getGitHubProjectNextActions(input, deps)
-getGitHubProjectHandoff(input, deps)
+getGitHubProjectBrief(input, deps);
+getGitHubProjectRisks(input, deps);
+getGitHubProjectNextActions(input, deps);
+getGitHubProjectHandoff(input, deps);
 ```
 
 Resolution order is a safety property, not an implementation detail:
@@ -107,8 +107,8 @@ or a transport is constructed, so every controlled failure stays offline.
 ### Provider diagnostics
 
 ```ts
-getProviderStatus(deps)
-runProviderDoctor({ confirmNetwork, provider, repository }, deps)
+getProviderStatus(deps);
+runProviderDoctor({ confirmNetwork, provider, repository }, deps);
 ```
 
 Offline by default. The single optional read-only network request happens only

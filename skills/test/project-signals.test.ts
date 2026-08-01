@@ -73,40 +73,96 @@ describe("classifyGitHubRisk precedence", () => {
     expect(risk?.reason).toBe("github_due:overdue");
   });
   it("prefers blocked state over a high label", () => {
-    const risk = classifyGitHubRisk(gh({ id: "i#2", type: "issue", status: "blocked", labels: ["critical"] }), NOW);
+    const risk = classifyGitHubRisk(
+      gh({ id: "i#2", type: "issue", status: "blocked", labels: ["critical"] }),
+      NOW,
+    );
     expect(risk?.reason).toBe("github_state:blocked");
   });
   it("falls through label tiers to a bounded title phrase", () => {
-    expect(classifyGitHubRisk(gh({ id: "i#3", type: "issue", status: "open", title: "#3 security incident" }), NOW)?.reason).toBe(
-      "github_title:security",
-    );
-    expect(classifyGitHubRisk(gh({ id: "i#4", type: "issue", status: "open", title: "#4 nothing here" }), NOW)).toBeNull();
+    expect(
+      classifyGitHubRisk(
+        gh({ id: "i#3", type: "issue", status: "open", title: "#3 security incident" }),
+        NOW,
+      )?.reason,
+    ).toBe("github_title:security");
+    expect(
+      classifyGitHubRisk(
+        gh({ id: "i#4", type: "issue", status: "open", title: "#4 nothing here" }),
+        NOW,
+      ),
+    ).toBeNull();
   });
   it("does not fire on unblocked or riskless", () => {
-    expect(classifyGitHubRisk(gh({ id: "i#5", type: "issue", status: "open", title: "#5 unblocked and riskless" }), NOW)).toBeNull();
+    expect(
+      classifyGitHubRisk(
+        gh({ id: "i#5", type: "issue", status: "open", title: "#5 unblocked and riskless" }),
+        NOW,
+      ),
+    ).toBeNull();
   });
 });
 
 describe("classifyGitHubNextTask eligibility", () => {
   it("includes an open issue and a draft PR", () => {
-    expect(classifyGitHubNextTask(gh({ id: "i#1", type: "issue", status: "open" }), NOW)?.reason).toBe("github_issue:open");
     expect(
-      classifyGitHubNextTask(gh({ id: "p#2", type: "pullRequest", kind: "pullRequest", status: "draft" }), NOW)?.reason,
+      classifyGitHubNextTask(gh({ id: "i#1", type: "issue", status: "open" }), NOW)?.reason,
+    ).toBe("github_issue:open");
+    expect(
+      classifyGitHubNextTask(
+        gh({ id: "p#2", type: "pullRequest", kind: "pullRequest", status: "draft" }),
+        NOW,
+      )?.reason,
     ).toBe("github_pull_request:draft");
   });
   it("excludes closed, blocked, and no-action items", () => {
-    expect(classifyGitHubNextTask(gh({ id: "i#3", type: "issue", status: "closed" }), NOW)).toBeNull();
-    expect(classifyGitHubNextTask(gh({ id: "i#4", type: "issue", status: "blocked" }), NOW)).toBeNull();
-    expect(classifyGitHubNextTask(gh({ id: "i#5", type: "issue", status: "open", labels: ["wontfix"] }), NOW)).toBeNull();
+    expect(
+      classifyGitHubNextTask(gh({ id: "i#3", type: "issue", status: "closed" }), NOW),
+    ).toBeNull();
+    expect(
+      classifyGitHubNextTask(gh({ id: "i#4", type: "issue", status: "blocked" }), NOW),
+    ).toBeNull();
+    expect(
+      classifyGitHubNextTask(
+        gh({ id: "i#5", type: "issue", status: "open", labels: ["wontfix"] }),
+        NOW,
+      ),
+    ).toBeNull();
   });
   it("derives priority from overdue, labels, due, and requested reviewers", () => {
-    expect(classifyGitHubNextTask(gh({ id: "i#6", type: "issue", status: "open", due: "2026-01-01" }), NOW)?.priority).toBe("high");
-    expect(classifyGitHubNextTask(gh({ id: "i#7", type: "issue", status: "open", labels: ["dependency"] }), NOW)?.priority).toBe("medium");
-    expect(classifyGitHubNextTask(gh({ id: "i#8", type: "issue", status: "open", due: "2026-12-01" }), NOW)?.priority).toBe("medium");
     expect(
-      classifyGitHubNextTask(gh({ id: "p#9", type: "pullRequest", kind: "pullRequest", status: "open", requestedReviewers: ["r"] }), NOW)?.priority,
+      classifyGitHubNextTask(
+        gh({ id: "i#6", type: "issue", status: "open", due: "2026-01-01" }),
+        NOW,
+      )?.priority,
+    ).toBe("high");
+    expect(
+      classifyGitHubNextTask(
+        gh({ id: "i#7", type: "issue", status: "open", labels: ["dependency"] }),
+        NOW,
+      )?.priority,
     ).toBe("medium");
-    expect(classifyGitHubNextTask(gh({ id: "i#10", type: "issue", status: "open" }), NOW)?.priority).toBe("low");
+    expect(
+      classifyGitHubNextTask(
+        gh({ id: "i#8", type: "issue", status: "open", due: "2026-12-01" }),
+        NOW,
+      )?.priority,
+    ).toBe("medium");
+    expect(
+      classifyGitHubNextTask(
+        gh({
+          id: "p#9",
+          type: "pullRequest",
+          kind: "pullRequest",
+          status: "open",
+          requestedReviewers: ["r"],
+        }),
+        NOW,
+      )?.priority,
+    ).toBe("medium");
+    expect(
+      classifyGitHubNextTask(gh({ id: "i#10", type: "issue", status: "open" }), NOW)?.priority,
+    ).toBe("low");
   });
 });
 
@@ -115,7 +171,13 @@ describe("extract ordering and dedupe", () => {
     const risks = extractRiskCandidates({
       explicitRisks: [{ id: "e1", title: "Explicit" }],
       items: [
-        { id: "d1", title: "d1", source: "local", type: "document", body: "## Risks\n\n- MD risk." },
+        {
+          id: "d1",
+          title: "d1",
+          source: "local",
+          type: "document",
+          body: "## Risks\n\n- MD risk.",
+        },
         gh({ id: "gh1", type: "issue", status: "blocked", title: "#1 x" }),
       ],
       now: NOW,
@@ -126,7 +188,15 @@ describe("extract ordering and dedupe", () => {
   it("produces deep-equal output for identical input", () => {
     const input = {
       explicitTasks: [] as TextItem[],
-      items: [{ id: "d1", title: "d1", source: "local", type: "document", body: "- [ ] A\n- [ ] B" } as TextItem],
+      items: [
+        {
+          id: "d1",
+          title: "d1",
+          source: "local",
+          type: "document",
+          body: "- [ ] A\n- [ ] B",
+        } as TextItem,
+      ],
       now: NOW,
     };
     expect(extractNextTaskCandidates(input)).toEqual(extractNextTaskCandidates(input));

@@ -64,7 +64,11 @@ describe("check-local-install command", () => {
     const prefix = makePrefix();
     run(installCli, ["--prefix", prefix, "--apply"]);
     // Corrupt the extensionless CLI shim so the command import fails at runtime.
-    writeFileSync(join(prefix, "bin", "oh-my-pm"), "#!/usr/bin/env node\nawait import('file:///no/such/file.mjs');\n", "utf8");
+    writeFileSync(
+      join(prefix, "bin", "oh-my-pm"),
+      "#!/usr/bin/env node\nawait import('file:///no/such/file.mjs');\n",
+      "utf8",
+    );
     const result = run(checkCli, ["--prefix", prefix]);
     expect(result.status).toBe(1);
   });

@@ -5,7 +5,13 @@
       "kind": "enum",
       "name": "SkillId",
       "doc": "Known deterministic skill identifier.",
-      "values": ["summarizeStatus", "extractRisks", "deriveNextTasks", "createHandoff", "reviewChanges"]
+      "values": [
+        "summarizeStatus",
+        "extractRisks",
+        "deriveNextTasks",
+        "createHandoff",
+        "reviewChanges"
+      ]
     },
     {
       "kind": "struct",
@@ -22,7 +28,11 @@
       "doc": "Envelope for a skill execution input.",
       "fields": [
         { "name": "skillId", "type": { "ref": "SkillId" }, "doc": "Target skill." },
-        { "name": "context", "type": { "ref": "SkillExecutionContext" }, "doc": "Execution context." },
+        {
+          "name": "context",
+          "type": { "ref": "SkillExecutionContext" },
+          "doc": "Execution context."
+        },
         { "name": "input", "type": "json", "doc": "Skill-specific input." }
       ]
     },
@@ -34,7 +44,12 @@
         { "name": "skillId", "type": { "ref": "SkillId" }, "doc": "Executed skill." },
         { "name": "ok", "type": "boolean", "doc": "Whether execution succeeded." },
         { "name": "output", "type": "json", "doc": "Skill-specific output." },
-        { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings.", "optional": true }
+        {
+          "name": "warnings",
+          "type": { "array": { "ref": "KernelWarning" } },
+          "doc": "Warnings.",
+          "optional": true
+        }
       ]
     }
   ]

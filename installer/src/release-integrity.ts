@@ -119,8 +119,6 @@ export function createReleaseIntegrityDryRun(
   return {
     ok: false,
     verification,
-    warnings: verification.reasons.map((reason) =>
-      installerWarning(OMP_I_INVALID_PACKAGE, reason),
-    ),
+    warnings: verification.reasons.map((reason) => installerWarning(OMP_I_INVALID_PACKAGE, reason)),
   };
 }

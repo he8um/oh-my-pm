@@ -8,11 +8,7 @@
 import { describe, expect, it } from "vitest";
 
 import { PROJECT_MEMORY_ERROR_CODES } from "../src/errors.js";
-import {
-  computeIntegrity,
-  deriveProjectKey,
-  DOMAIN_MANIFEST_INTEGRITY,
-} from "../src/integrity.js";
+import { computeIntegrity, deriveProjectKey, DOMAIN_MANIFEST_INTEGRITY } from "../src/integrity.js";
 import { buildManifest, serializeManifest } from "../src/manifest.js";
 import { manifestPathFor, resolveStoreLayout } from "../src/path-safety.js";
 import { DependencyInjectedStore } from "../src/store.js";

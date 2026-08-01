@@ -81,7 +81,11 @@ function sha256(path) {
 function findTar() {
   for (const candidate of ["tar", "gtar"]) {
     const probe = spawnSync(candidate, ["--version"], { encoding: "utf8" });
-    if (probe.status === 0 && typeof probe.stdout === "string" && probe.stdout.includes("GNU tar")) {
+    if (
+      probe.status === 0 &&
+      typeof probe.stdout === "string" &&
+      probe.stdout.includes("GNU tar")
+    ) {
       return candidate;
     }
   }
@@ -240,9 +244,7 @@ function run(assetsDir) {
         // Cross-check: the extracted RELEASE.json must declare the same version
         // derived from the asset filenames.
         try {
-          const release = JSON.parse(
-            readFileSync(join(extractedBundle, "RELEASE.json"), "utf8"),
-          );
+          const release = JSON.parse(readFileSync(join(extractedBundle, "RELEASE.json"), "utf8"));
           if (release.version !== derivedVersion) {
             ok = false;
             message = `${label} archive RELEASE.json version ${release.version} != ${derivedVersion}`;

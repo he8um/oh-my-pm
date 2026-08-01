@@ -26,10 +26,7 @@ import { runMcpConfigCommand } from "./mcp-config.js";
 import { installedCommandExists } from "./mcp-config-resolve.js";
 import { formatMemoryOutcome, memoryOutcomeExitCode } from "./memory-format.js";
 import { parseCliArgs } from "./parser.js";
-import {
-  formatProviderDoctorReport,
-  formatProviderStatusReport,
-} from "./provider-format.js";
+import { formatProviderDoctorReport, formatProviderStatusReport } from "./provider-format.js";
 
 export type LocalCliProcessResult = {
   exitCode: number;
@@ -164,9 +161,7 @@ function providerDiagnosticsDeps(
     ...(options?.platform !== undefined ? { platform: options.platform } : {}),
     ...(options?.cwd !== undefined ? { cwd: options.cwd } : {}),
     ...(options?.githubToken !== undefined ? { githubToken: options.githubToken } : {}),
-    ...(options?.githubTransport !== undefined
-      ? { githubTransport: options.githubTransport }
-      : {}),
+    ...(options?.githubTransport !== undefined ? { githubTransport: options.githubTransport } : {}),
   });
 }
 

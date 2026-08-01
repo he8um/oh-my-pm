@@ -75,10 +75,7 @@ describe("createUpdateImpactOperations", () => {
     const currentFiles = [{ path: "z.txt", content: "z", checksum: "sha256:z" }];
     const candidateEntries = [{ path: "a.txt", checksum: "sha256:a", sizeBytes: 1 }];
     const operations = createUpdateImpactOperations(input({ currentFiles, candidateEntries }));
-    expect(operations.map((op) => op.path)).toEqual([
-      "/tmp/oh-my-pm/a.txt",
-      "/tmp/oh-my-pm/z.txt",
-    ]);
+    expect(operations.map((op) => op.path)).toEqual(["/tmp/oh-my-pm/a.txt", "/tmp/oh-my-pm/z.txt"]);
     expect(currentFiles).toHaveLength(1);
     expect(candidateEntries).toHaveLength(1);
   });
@@ -153,7 +150,10 @@ describe("createUpdateImpactPreview", () => {
 
   it("fails on a missing root", () => {
     const preview = createUpdateImpactPreview(
-      input({ root: " ", candidateEntries: [{ path: "a.txt", checksum: "sha256:a", sizeBytes: 1 }] }),
+      input({
+        root: " ",
+        candidateEntries: [{ path: "a.txt", checksum: "sha256:a", sizeBytes: 1 }],
+      }),
     );
     expect(preview.ok).toBe(false);
     expect(preview.reasons).toContain("update_impact_root_missing");

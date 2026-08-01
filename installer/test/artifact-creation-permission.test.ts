@@ -286,9 +286,7 @@ describe("exampleGuardedArtifactCreationPermissionInput", () => {
     const fixture = exampleGuardedArtifactCreationPermissionInput();
     const report = evaluateGuardedArtifactCreationPermission(fixture);
     for (const key of Object.keys(report)) {
-      expect(key).not.toMatch(
-        /content|path|dest|command|adapter|object|url|bytes|result|remote/i,
-      );
+      expect(key).not.toMatch(/content|path|dest|command|adapter|object|url|bytes|result|remote/i);
     }
     const serialized = JSON.stringify(report);
     expect(serialized).not.toContain("writeFile");

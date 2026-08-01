@@ -113,10 +113,7 @@ describe("fileForOperation", () => {
       { path: `${root}//bin//oh-my-pm/`, content: "first", checksum: "sha256:1" },
       { path: `${root}/bin/oh-my-pm`, content: "second", checksum: "sha256:2" },
     ];
-    const match = fileForOperation(
-      { kind: "create", path: `${root}/bin/oh-my-pm` },
-      files,
-    );
+    const match = fileForOperation({ kind: "create", path: `${root}/bin/oh-my-pm` }, files);
     expect(match?.content).toBe("first");
   });
 

@@ -40,7 +40,9 @@ export function validateInstallerWriteAdapterContract(
   if (contract.capabilities.length === 0) {
     reasons.push("write_adapter_contract_capabilities_empty");
   }
-  if (contract.capabilities.some((capability) => !validateInstallerWriteAdapterCapability(capability))) {
+  if (
+    contract.capabilities.some((capability) => !validateInstallerWriteAdapterCapability(capability))
+  ) {
     reasons.push("write_adapter_contract_capability_invalid");
   }
   if (!contract.requiresExplicitApproval) {

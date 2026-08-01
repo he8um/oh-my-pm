@@ -102,11 +102,7 @@ type CommonAccumulator = {
 };
 
 /** The mutation flag (`--apply`) is accepted only by capture/export/delete. */
-const APPLY_SUBCOMMANDS: ReadonlySet<MemorySubcommand> = new Set([
-  "capture",
-  "export",
-  "delete",
-]);
+const APPLY_SUBCOMMANDS: ReadonlySet<MemorySubcommand> = new Set(["capture", "export", "delete"]);
 
 /**
  * Parse `memory <subcommand> [root] [options…]`. Options may appear anywhere

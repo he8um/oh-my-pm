@@ -1,13 +1,8 @@
 {
   "version": 1,
   "documents": {
-    "include": [
-      "README.md",
-      "docs/**/*.md"
-    ],
-    "exclude": [
-      "docs/archive/**"
-    ],
+    "include": ["README.md", "docs/**/*.md"],
+    "exclude": ["docs/archive/**"],
     "maxFiles": 100,
     "maxBytesPerFile": 131072,
     "maxTotalBytes": 1048576

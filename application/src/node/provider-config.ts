@@ -8,26 +8,15 @@
 
 import { lstatSync, readFileSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
-import {
-  defaultProviderConfig,
-  validateProviderConfig,
-} from "@oh-my-pm/providers";
-import type {
-  ProviderConfigErrorCode,
-  ResolvedProviderConfig,
-} from "@oh-my-pm/providers";
+import { defaultProviderConfig, validateProviderConfig } from "@oh-my-pm/providers";
+import type { ProviderConfigErrorCode, ResolvedProviderConfig } from "@oh-my-pm/providers";
 
 export const OH_MY_PM_PROVIDER_CONFIG_ENV = "OH_MY_PM_PROVIDER_CONFIG";
 export const OH_MY_PM_PROVIDER_CONFIG_FILENAME = "providers.json";
 export const MAX_PROVIDER_CONFIG_BYTES = 64 * 1024;
 
 export type ProviderConfigSource =
-  | "explicit"
-  | "environment"
-  | "xdg"
-  | "home"
-  | "appdata"
-  | "defaults";
+  "explicit" | "environment" | "xdg" | "home" | "appdata" | "defaults";
 
 export type ProviderConfigResolutionInput = {
   explicitPath?: string;
@@ -179,7 +168,14 @@ function loadFailure(
   code: ProviderConfigLoadErrorCode,
   message: string,
 ): ProviderConfigLoadResult {
-  return { ok: false, source: location.source, displayPath: location.displayPath, exists, code, message };
+  return {
+    ok: false,
+    source: location.source,
+    displayPath: location.displayPath,
+    exists,
+    code,
+    message,
+  };
 }
 
 /**
@@ -189,9 +185,7 @@ function loadFailure(
  * invalid JSON/schema. It never writes, never reaches the network, never reads
  * a token, and never returns raw file text or an absolute path.
  */
-export function loadProviderConfig(
-  input: ProviderConfigResolutionInput,
-): ProviderConfigLoadResult {
+export function loadProviderConfig(input: ProviderConfigResolutionInput): ProviderConfigLoadResult {
   const location = resolveProviderConfigLocation(input);
 
   if (location.source === "explicit" && location.displayPath === "") {

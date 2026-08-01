@@ -24,8 +24,7 @@ export type ProviderRequestExtractionResult =
   | { ok: false; reason: string; requestedContext: string[] };
 
 export type RuntimePlannerInputResult =
-  | { ok: true; input: PlannerInput }
-  | { ok: false; reason: string; requestedContext: string[] };
+  { ok: true; input: PlannerInput } | { ok: false; reason: string; requestedContext: string[] };
 
 export type TaskGraphBuildInput = {
   intent: IntentCategory;

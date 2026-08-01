@@ -33,7 +33,7 @@ Writes are transactional (temp-then-rename, with the manifest rename as the
 commit point) and lock-protected. Preview operations write nothing at all: no
 data directory, no lock, no staging file.
 
-Project-local *configuration* — `oh-my-pm.config.json` — is committed by you and
+Project-local _configuration_ — `oh-my-pm.config.json` — is committed by you and
 read-only to OH MY PM. There is no `.oh-my-pm/` runtime directory inside a
 project.
 

@@ -136,9 +136,7 @@ describe("NodeFileSystem-backed store (real filesystem)", () => {
       snapshot: makeSnapshot(["ev-1"]) as never,
       evidence: [makeEvidence() as never],
     });
-    const manifestStat = await stat(
-      join(dataRoot, "project-brain", "v1", "projects"),
-    );
+    const manifestStat = await stat(join(dataRoot, "project-brain", "v1", "projects"));
     // Directory owner-only bits set (0700); group/other have no access.
     expect(manifestStat.mode & 0o077).toBe(0);
   });

@@ -57,7 +57,10 @@ function prerequisiteDefinitions() {
   return [
     { id: "distribution_cli_bin", path: join(REPO_ROOT, "distribution", "bin", "ohmypm.mjs") },
     { id: "distribution_mcp_bin", path: join(REPO_ROOT, "distribution", "bin", "ohmypm-mcp.mjs") },
-    { id: "distribution_install_bin", path: join(REPO_ROOT, "distribution", "bin", "ohmypm-install.mjs") },
+    {
+      id: "distribution_install_bin",
+      path: join(REPO_ROOT, "distribution", "bin", "ohmypm-install.mjs"),
+    },
     // v0.5: the deprecated compatibility aliases are shipped intentionally, so a
     // missing alias entrypoint blocks the bundle just like a missing canonical one.
     {
@@ -72,7 +75,10 @@ function prerequisiteDefinitions() {
       id: "distribution_legacy_install_bin",
       path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm-install.mjs"),
     },
-    { id: "release_install_core", path: join(REPO_ROOT, "distribution", "libexec", "release-install-core.mjs") },
+    {
+      id: "release_install_core",
+      path: join(REPO_ROOT, "distribution", "libexec", "release-install-core.mjs"),
+    },
     { id: "release_bundle_verifier", path: join(REPO_ROOT, "tools", "check-release-bundle.mjs") },
     { id: "cli_dist", path: join(REPO_ROOT, "cli", "dist", "index.js") },
     { id: "mcp_dist", path: join(REPO_ROOT, "mcp-server", "dist", "index.js") },
@@ -268,7 +274,9 @@ export function stageKernelGeneratedNodeAssets(options) {
       return stageFailure("kernel_binding_source_unsafe", ["kernel_binding_source_unsafe"]);
     }
     if (!isRegularFile(sourcePath)) {
-      return stageFailure("kernel_binding_source_missing", [`kernel_binding_source_missing:${name}`]);
+      return stageFailure("kernel_binding_source_missing", [
+        `kernel_binding_source_missing:${name}`,
+      ]);
     }
     const resolvedSource = resolve(sourcePath);
     if (dirname(resolvedSource) !== resolvedSourceDir) {
@@ -286,7 +294,9 @@ export function stageKernelGeneratedNodeAssets(options) {
   }
   if (existsSync(targetDir) || isSymbolicLink(targetDir)) {
     if (isSymbolicLink(targetDir)) {
-      return stageFailure("kernel_binding_destination_unsafe", ["kernel_binding_destination_unsafe"]);
+      return stageFailure("kernel_binding_destination_unsafe", [
+        "kernel_binding_destination_unsafe",
+      ]);
     }
     rmSync(targetDir, { recursive: true, force: true });
   }
@@ -312,7 +322,9 @@ export function stageKernelGeneratedNodeAssets(options) {
     }
     const destHash = sha256(destPath);
     if (destHash !== sourceHashes.get(name)) {
-      return stageFailure("kernel_binding_checksum_mismatch", [`kernel_binding_checksum_mismatch:${name}`]);
+      return stageFailure("kernel_binding_checksum_mismatch", [
+        `kernel_binding_checksum_mismatch:${name}`,
+      ]);
     }
     assets.push({ name, sha256: destHash });
   }
@@ -616,13 +628,7 @@ const RELEASE_METADATA = {
       configurable: ["enabled", "defaultRepository", "defaultLimit"],
       fixed: ["origin", "apiVersion", "method", "tokenEnv"],
     },
-    githubFields: [
-      "enabled",
-      "defaultRepository",
-      "defaultLimit",
-      "defaultSource",
-      "defaultState",
-    ],
+    githubFields: ["enabled", "defaultRepository", "defaultLimit", "defaultSource", "defaultState"],
   },
   providerDiagnostics: {
     offlineByDefault: true,
@@ -716,7 +722,11 @@ function inspectBundleSafety(bundleRoot) {
       const scopedParts = pkgRelParts.slice(1); // drop the package name
       const srcIndex = scopedParts.indexOf("src");
       const srcIsCompiledOutput = srcIndex > 0 && scopedParts[0] === "dist";
-      if ((srcIndex !== -1 && !srcIsCompiledOutput) || scopedParts.includes("test") || scopedParts.includes("coverage")) {
+      if (
+        (srcIndex !== -1 && !srcIsCompiledOutput) ||
+        scopedParts.includes("test") ||
+        scopedParts.includes("coverage")
+      ) {
         errors.push(`first-party source/test leaked into bundle: ${file.rel}`);
       }
       if (
@@ -825,7 +835,11 @@ function inspectBundleSafety(bundleRoot) {
     "claude_desktop" + "_config",
     "mcp" + dot + "json",
   ];
-  for (const rel of ["bin/ohmypm-install.mjs", "libexec/release-install-core.mjs", "libexec/check-release-bundle.mjs"]) {
+  for (const rel of [
+    "bin/ohmypm-install.mjs",
+    "libexec/release-install-core.mjs",
+    "libexec/check-release-bundle.mjs",
+  ]) {
     const abs = join(bundleRoot, ...rel.split("/"));
     if (!isRegularFile(abs)) {
       errors.push(`installer surface missing from bundle: ${rel}`);
@@ -860,7 +874,11 @@ function inspectBundleSafety(bundleRoot) {
 
 /** Write RELEASE.json with exact key order and one trailing newline. */
 function writeReleaseMetadata(bundleRoot) {
-  writeFileSync(join(bundleRoot, "RELEASE.json"), `${JSON.stringify(RELEASE_METADATA, null, 2)}\n`, "utf8");
+  writeFileSync(
+    join(bundleRoot, "RELEASE.json"),
+    `${JSON.stringify(RELEASE_METADATA, null, 2)}\n`,
+    "utf8",
+  );
 }
 
 /** Write SHA256SUMS over every regular file except itself, sorted by path. */
@@ -950,7 +968,11 @@ export function applyReleaseBundlePlan(plan) {
     for (const asset of KERNEL_GENERATED_NODE_ASSETS) {
       if (!isRegularFile(join(stagedGeneratedDir, asset))) {
         rmSync(tempDir, { recursive: true, force: true });
-        return { ok: false, code: "kernel_binding_incomplete", reasons: ["kernel_binding_incomplete"] };
+        return {
+          ok: false,
+          code: "kernel_binding_incomplete",
+          reasons: ["kernel_binding_incomplete"],
+        };
       }
     }
 
@@ -975,7 +997,10 @@ export function applyReleaseBundlePlan(plan) {
     cpSync(join(REPO_ROOT, "README.md"), join(tempDir, "README.md"));
     cpSync(join(REPO_ROOT, "CHANGELOG.md"), join(tempDir, "CHANGELOG.md"));
     mkdirSync(join(tempDir, "docs"), { recursive: true });
-    cpSync(join(REPO_ROOT, "docs", "getting-started.md"), join(tempDir, "docs", "getting-started.md"));
+    cpSync(
+      join(REPO_ROOT, "docs", "getting-started.md"),
+      join(tempDir, "docs", "getting-started.md"),
+    );
     mkdirSync(join(tempDir, "examples"), { recursive: true });
     cpSync(
       join(REPO_ROOT, "examples", "fixtures", "markdown-project"),
@@ -1018,7 +1043,11 @@ export function applyReleaseBundlePlan(plan) {
     ]) {
       if (!isRegularFile(join(tempDir, rel))) {
         rmSync(tempDir, { recursive: true, force: true });
-        return { ok: false, code: "installer_surface_missing", reasons: ["installer_surface_missing"] };
+        return {
+          ok: false,
+          code: "installer_surface_missing",
+          reasons: ["installer_surface_missing"],
+        };
       }
     }
 

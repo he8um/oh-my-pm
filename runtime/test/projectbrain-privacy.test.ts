@@ -26,7 +26,13 @@ describe("pre-commit privacy scan", () => {
   });
 
   it("rejects a forbidden key nested anywhere", () => {
-    for (const forbidden of ["token", "rawBody", "fingerprintInput", "authorization", "projectRoot"]) {
+    for (const forbidden of [
+      "token",
+      "rawBody",
+      "fingerprintInput",
+      "authorization",
+      "projectRoot",
+    ]) {
       expect(() =>
         assertNoForbiddenEvidenceFields({ metadata: { [forbidden]: "x" } }, "evidence"),
       ).toThrow();

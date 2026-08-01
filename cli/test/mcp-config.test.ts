@@ -328,9 +328,10 @@ describe("mcp-config through the process runner", () => {
         expect(result.stdout, `output must not include "${sentinel}"`).not.toContain(sentinel);
       }
       // No env or cwd key ever reaches the emitted server entry.
-      const json = mode.length === 0
-        ? result.stdout
-        : (result.stdout.split("```json")[1]?.split("```")[0] ?? "");
+      const json =
+        mode.length === 0
+          ? result.stdout
+          : (result.stdout.split("```json")[1]?.split("```")[0] ?? "");
       const entry = JSON.parse(json).mcpServers["oh-my-pm"];
       expect(entry).not.toHaveProperty("env");
       expect(entry).not.toHaveProperty("cwd");

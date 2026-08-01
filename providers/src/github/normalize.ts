@@ -227,9 +227,7 @@ function readIssueCommon(raw: unknown): IssueCommon | null {
   const bodyValue = readString(raw["body"]) ?? "";
   const { body, truncated } = boundBody(bodyValue);
   const author = isRecord(raw["user"]) ? readString(raw["user"]["login"]) : undefined;
-  const milestone = isRecord(raw["milestone"])
-    ? readString(raw["milestone"]["title"])
-    : undefined;
+  const milestone = isRecord(raw["milestone"]) ? readString(raw["milestone"]["title"]) : undefined;
   const due = isRecord(raw["milestone"]) ? readString(raw["milestone"]["due_on"]) : undefined;
 
   return {
@@ -531,7 +529,10 @@ export function normalizeIssueComments(
     });
   }
   if (perCommentTruncated) {
-    warnings.push({ code: "github_comment_body_truncated", message: "a comment body was truncated" });
+    warnings.push({
+      code: "github_comment_body_truncated",
+      message: "a comment body was truncated",
+    });
   }
   if (combinedTruncated) {
     warnings.push({
@@ -552,12 +553,7 @@ export function normalizeIssueComments(
 
 /** Canonical, sanitized review state; raw GitHub state strings never leak. */
 export type GitHubReviewState =
-  | "approved"
-  | "changesRequested"
-  | "commented"
-  | "dismissed"
-  | "pending"
-  | "unknown";
+  "approved" | "changesRequested" | "commented" | "dismissed" | "pending" | "unknown";
 
 export type GitHubReviewParent = {
   slug: string;
@@ -649,7 +645,9 @@ export function normalizePullRequestReviews(
     }
     const authorRaw = isRecord(entry["user"]) ? readString(entry["user"]["login"]) : undefined;
     const author =
-      authorRaw === undefined || sanitizeLine(authorRaw) === "" ? "unknown" : sanitizeLine(authorRaw);
+      authorRaw === undefined || sanitizeLine(authorRaw) === ""
+        ? "unknown"
+        : sanitizeLine(authorRaw);
     const associationRaw = readString(entry["author_association"]);
     const association = associationRaw === undefined ? undefined : sanitizeLine(associationRaw);
     const url = validGitHubUrl(entry["html_url"]);
@@ -691,10 +689,16 @@ export function normalizePullRequestReviews(
   }
 
   if (invalidSeen) {
-    warnings.push({ code: "github_review_invalid", message: "a review record was invalid and was skipped" });
+    warnings.push({
+      code: "github_review_invalid",
+      message: "a review record was invalid and was skipped",
+    });
   }
   if (stateUnknownSeen) {
-    warnings.push({ code: "github_review_state_unknown", message: "a review had an unrecognized state" });
+    warnings.push({
+      code: "github_review_state_unknown",
+      message: "a review had an unrecognized state",
+    });
   }
   if (perReviewTruncated) {
     warnings.push({ code: "github_review_body_truncated", message: "a review body was truncated" });
@@ -792,7 +796,9 @@ export function normalizePullRequestReviewComments(
     }
     const authorRaw = isRecord(entry["user"]) ? readString(entry["user"]["login"]) : undefined;
     const author =
-      authorRaw === undefined || sanitizeLine(authorRaw) === "" ? "unknown" : sanitizeLine(authorRaw);
+      authorRaw === undefined || sanitizeLine(authorRaw) === ""
+        ? "unknown"
+        : sanitizeLine(authorRaw);
     const associationRaw = readString(entry["author_association"]);
     const association = associationRaw === undefined ? undefined : sanitizeLine(associationRaw);
     const url = validGitHubUrl(entry["html_url"]);

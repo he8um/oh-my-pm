@@ -21,9 +21,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 // The active v0.3.x stable patch version, read from the single source of truth so
 // a patch promotion needs no test edit. The base stable lineage stays pinned.
-const PATCH_VERSION = JSON.parse(
-  readFileSync(join(REPO_ROOT, "version.json"), "utf8"),
-).version;
+const PATCH_VERSION = JSON.parse(readFileSync(join(REPO_ROOT, "version.json"), "utf8")).version;
 // The immutable base stable lineage the ACTIVE release workflow must gate on.
 // The v0.5.2 candidate builds on the published v0.5.1 stable.
 const BASE_STABLE_TAG = "v0.5.1";
@@ -235,7 +233,13 @@ describe("v0.3 installed-qualification workflow (non-publishing)", () => {
   });
 
   it("never publishes a release, tag, or registry artifact", () => {
-    for (const verb of ["gh release", "refs/tags", "npm publish", "pnpm publish", "cargo publish"]) {
+    for (const verb of [
+      "gh release",
+      "refs/tags",
+      "npm publish",
+      "pnpm publish",
+      "cargo publish",
+    ]) {
       expect(wf.includes(verb)).toBe(false);
     }
   });
@@ -367,7 +371,9 @@ describe("release profile resolution (v0.2 upgrade compatibility)", () => {
 
   it("appends project_timeline for the timeline and v0.5 command-namespace profiles", () => {
     expect(
-      /\[\s*\.\.\.\s*TEN_MCP_TOOLS\s*,\s*"project_changes"\s*,\s*"project_timeline"\s*\]/.test(source),
+      /\[\s*\.\.\.\s*TEN_MCP_TOOLS\s*,\s*"project_changes"\s*,\s*"project_timeline"\s*\]/.test(
+        source,
+      ),
     ).toBe(true);
   });
 

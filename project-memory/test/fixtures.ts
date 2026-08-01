@@ -4,10 +4,7 @@
 // store treats them as opaque, already-minimized payloads).
 
 import { DependencyInjectedStore } from "../src/store.js";
-import type {
-  FinalizedEvidenceRecord,
-  FinalizedProjectSnapshot,
-} from "../src/types.js";
+import type { FinalizedEvidenceRecord, FinalizedProjectSnapshot } from "../src/types.js";
 import { MemoryFileSystem } from "./memory-filesystem.js";
 import type { MemoryFsOptions } from "./memory-filesystem.js";
 
@@ -72,9 +69,10 @@ export function makeSnapshot(
   } as FinalizedProjectSnapshot;
 }
 
-export function makeStore(
-  options: MemoryFsOptions = {},
-): { store: DependencyInjectedStore; fs: MemoryFileSystem } {
+export function makeStore(options: MemoryFsOptions = {}): {
+  store: DependencyInjectedStore;
+  fs: MemoryFileSystem;
+} {
   const fs = new MemoryFileSystem(options);
   const store = new DependencyInjectedStore({ fs, dataRoot: DATA_ROOT });
   return { store, fs };

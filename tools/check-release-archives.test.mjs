@@ -79,7 +79,11 @@ describe("check-release-archives command", () => {
     });
     expect(extract.status, extract.stderr).toBe(0);
     const bundle = join(extractRoot, BUNDLE_NAME);
-    for (const rel of ["bin/oh-my-pm-install.mjs", "libexec/release-install-core.mjs", "libexec/check-release-bundle.mjs"]) {
+    for (const rel of [
+      "bin/oh-my-pm-install.mjs",
+      "libexec/release-install-core.mjs",
+      "libexec/check-release-bundle.mjs",
+    ]) {
       expect(existsSync(join(bundle, ...rel.split("/"))), rel).toBe(true);
     }
     const installer = join(bundle, "bin", "oh-my-pm-install.mjs");
@@ -102,7 +106,11 @@ describe("check-release-archives command", () => {
     });
     expect(extract.status, extract.stderr).toBe(0);
     const bundle = join(extractRoot, BUNDLE_NAME);
-    for (const rel of ["bin/oh-my-pm-install.mjs", "libexec/release-install-core.mjs", "libexec/check-release-bundle.mjs"]) {
+    for (const rel of [
+      "bin/oh-my-pm-install.mjs",
+      "libexec/release-install-core.mjs",
+      "libexec/check-release-bundle.mjs",
+    ]) {
       expect(existsSync(join(bundle, ...rel.split("/"))), rel).toBe(true);
     }
     const installer = join(bundle, "bin", "oh-my-pm-install.mjs");

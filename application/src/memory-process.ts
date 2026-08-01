@@ -106,11 +106,7 @@ type EvidenceRecordLike = { evidenceId: string; [key: string]: unknown };
 // Structural mirrors of the Phase 2 result types the boundary reads (kept local
 // so this module needs no type-level dependency on @oh-my-pm/project-memory).
 type StoreVersionState =
-  | "noPriorMemory"
-  | "supported"
-  | "unsupportedNewer"
-  | "migrationRequired"
-  | "incompatibleSchema";
+  "noPriorMemory" | "supported" | "unsupportedNewer" | "migrationRequired" | "incompatibleSchema";
 type StoreInspection = {
   projectId: string;
   exists: boolean;
@@ -676,9 +672,7 @@ async function runTimeline(
       projectId,
       comparedAt: now,
       limit: command.limit,
-      ...(command.beforeSequence !== undefined
-        ? { beforeSequence: command.beforeSequence }
-        : {}),
+      ...(command.beforeSequence !== undefined ? { beforeSequence: command.beforeSequence } : {}),
       ...(command.category !== undefined ? { category: command.category } : {}),
       ...(command.kind !== undefined ? { kind: command.kind } : {}),
       stalenessPolicy: {
@@ -935,9 +929,7 @@ async function runDelete(
 
 // --- shared helpers --------------------------------------------------------
 
-type ReadIdentity =
-  | { ok: true; projectId: string }
-  | { ok: false; failure: MemoryFailureOutcome };
+type ReadIdentity = { ok: true; projectId: string } | { ok: false; failure: MemoryFailureOutcome };
 
 /**
  * Resolve identity for a read/store command. When no --project-id is given, the

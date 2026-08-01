@@ -30,15 +30,23 @@ function runtimeWith(
 
 const STATUS_DOC = markdownItem(
   "docs/status.md",
-  ["# Project", "## Objective", "Ship v1.", "## Next steps", "- Wire the API", "## Risks", "- Timeline is tight"].join("\n"),
+  [
+    "# Project",
+    "## Objective",
+    "Ship v1.",
+    "## Next steps",
+    "- Wire the API",
+    "## Risks",
+    "- Timeline is tight",
+  ].join("\n"),
 );
 
 describe("capture — success path", () => {
   it("captures a snapshot and commits exactly one bundle", async () => {
-    const { runtime, memory } = runtimeWith(
-      new Map([["o1", { ok: true, items: [STATUS_DOC] }]]),
+    const { runtime, memory } = runtimeWith(new Map([["o1", { ok: true, items: [STATUS_DOC] }]]));
+    const result = await runtime.capture(
+      captureInput([markdownObservation("o1", "docs/status.md")]),
     );
-    const result = await runtime.capture(captureInput([markdownObservation("o1", "docs/status.md")]));
     expect(result.ok).toBe(true);
     expect(result.projectId).toBe("proj-1");
     expect(result.snapshotId).toMatch(/^snapshot:/);
@@ -50,7 +58,9 @@ describe("capture — success path", () => {
   });
 
   it("produces deep-equal results for identical inputs and timestamps", async () => {
-    const script = new Map<string, ScriptedObservation>([["o1", { ok: true, items: [STATUS_DOC] }]]);
+    const script = new Map<string, ScriptedObservation>([
+      ["o1", { ok: true, items: [STATUS_DOC] }],
+    ]);
     const a = await runtimeWith(script).runtime.capture(
       captureInput([markdownObservation("o1", "docs/status.md")]),
     );
@@ -63,7 +73,9 @@ describe("capture — success path", () => {
 
   it("surfaces idempotency on a repeat capture into the same store", async () => {
     const memory = inMemoryMemoryPort();
-    const script = new Map<string, ScriptedObservation>([["o1", { ok: true, items: [STATUS_DOC] }]]);
+    const script = new Map<string, ScriptedObservation>([
+      ["o1", { ok: true, items: [STATUS_DOC] }],
+    ]);
     const input = captureInput([markdownObservation("o1", "docs/status.md")]);
     await createProjectBrainRuntime({
       kernel,
@@ -89,10 +101,7 @@ describe("capture — success path", () => {
       ]),
     );
     await runtime.capture(
-      captureInput([
-        markdownObservation("o1", "a.md"),
-        markdownObservation("o2", "b.md"),
-      ]),
+      captureInput([markdownObservation("o1", "a.md"), markdownObservation("o2", "b.md")]),
     );
     expect(observation.executionOrder).toEqual(["o1", "o2"]);
   });

@@ -25,8 +25,7 @@ import {
 } from "../src/index.js";
 
 const fixtureDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures", "github");
-const load = (name: string): unknown =>
-  JSON.parse(readFileSync(join(fixtureDir, name), "utf8"));
+const load = (name: string): unknown => JSON.parse(readFileSync(join(fixtureDir, name), "utf8"));
 
 const SLUG = "riverline/field-guide";
 
@@ -95,7 +94,12 @@ describe("normalizeIssue", () => {
   });
 
   it("truncates an oversized body and warns", () => {
-    const raw = { number: 5, title: "big", body: "x".repeat(GITHUB_MAX_BODY_CHARS + 500), state: "open" };
+    const raw = {
+      number: 5,
+      title: "big",
+      body: "x".repeat(GITHUB_MAX_BODY_CHARS + 500),
+      state: "open",
+    };
     const result = normalizeIssue(SLUG, raw);
     const data = dataOf(result);
     expect(String(data.body).length).toBe(GITHUB_MAX_BODY_CHARS);
@@ -146,13 +150,17 @@ describe("normalized item safety", () => {
     const results = [
       normalizeRepository(SLUG, load("repository.json")),
       normalizeIssue(SLUG, load("issue.json")),
-      normalizePullRequest(SLUG, (load("issues.json") as unknown[])[1], readPullRequestDetail(load("pull-request.json"))),
+      normalizePullRequest(
+        SLUG,
+        (load("issues.json") as unknown[])[1],
+        readPullRequestDetail(load("pull-request.json")),
+      ),
     ];
     for (const result of results) {
       const serialized = JSON.stringify(result!.item);
       expect(serialized).not.toContain("node_id");
       expect(serialized).not.toContain("api.github.com");
-      expect(serialized).not.toContain(".git\"");
+      expect(serialized).not.toContain('.git"');
       expect(serialized).not.toContain("R_fixture");
     }
   });
@@ -164,7 +172,12 @@ describe("normalized item safety", () => {
 });
 
 describe("normalizeIssueComments", () => {
-  const parent = { slug: "owner/repo", number: 7, parentType: "issue" as const, parentStatus: "open" };
+  const parent = {
+    slug: "owner/repo",
+    number: 7,
+    parentType: "issue" as const,
+    parentStatus: "open",
+  };
   const raw = (id: number, over: Record<string, unknown> = {}) => ({
     id,
     body: `body-${id}`,
@@ -199,7 +212,12 @@ describe("normalizeIssueComments", () => {
   });
 
   it("skips invalid records (non-object / missing id) with a stable warning, preserving order", () => {
-    const { items, warnings } = normalizeIssueComments(parent, [raw(1), "nope", { body: "no id" }, raw(4)]);
+    const { items, warnings } = normalizeIssueComments(parent, [
+      raw(1),
+      "nope",
+      { body: "no id" },
+      raw(4),
+    ]);
     expect(items.map((i) => (i.data as Record<string, unknown>).parentNumber)).toEqual([7, 7]);
     expect(items.map((i) => i.id)).toEqual([
       "github:owner/repo:item:7:comment:1",
@@ -221,9 +239,14 @@ describe("normalizeIssueComments", () => {
     // before all are included in full.
     const size = GITHUB_MAX_COMMENT_BODY_CHARS;
     const count = Math.ceil(GITHUB_MAX_COMBINED_COMMENT_CHARS / size) + 2;
-    const comments = Array.from({ length: count }, (_, i) => raw(i + 1, { body: "y".repeat(size) }));
+    const comments = Array.from({ length: count }, (_, i) =>
+      raw(i + 1, { body: "y".repeat(size) }),
+    );
     const { items, warnings } = normalizeIssueComments(parent, comments);
-    const total = items.reduce((n, i) => n + ((i.data as Record<string, unknown>).body as string).length, 0);
+    const total = items.reduce(
+      (n, i) => n + ((i.data as Record<string, unknown>).body as string).length,
+      0,
+    );
     expect(total).toBeLessThanOrEqual(GITHUB_MAX_COMBINED_COMMENT_CHARS);
     // The first comment is preserved in full.
     expect(((items[0]!.data as Record<string, unknown>).body as string).length).toBe(size);
@@ -231,7 +254,9 @@ describe("normalizeIssueComments", () => {
   });
 
   it("caps the comment count at the maximum and warns", () => {
-    const comments = Array.from({ length: GITHUB_MAX_COMMENTS + 5 }, (_, i) => raw(i + 1, { body: "z" }));
+    const comments = Array.from({ length: GITHUB_MAX_COMMENTS + 5 }, (_, i) =>
+      raw(i + 1, { body: "z" }),
+    );
     const { items, warnings } = normalizeIssueComments(parent, comments);
     expect(items).toHaveLength(GITHUB_MAX_COMMENTS);
     expect(warnings.some((w) => w.code === "github_comments_count_truncated")).toBe(true);
@@ -321,7 +346,9 @@ describe("normalizePullRequestReviews", () => {
 
   it("truncates a per-review body and warns", () => {
     const big = "x".repeat(GITHUB_MAX_REVIEW_BODY_CHARS + 50);
-    const { items, warnings } = normalizePullRequestReviews(parent, [raw(1, "APPROVED", { body: big })]);
+    const { items, warnings } = normalizePullRequestReviews(parent, [
+      raw(1, "APPROVED", { body: big }),
+    ]);
     expect(((items[0]!.data as Record<string, unknown>).body as string).length).toBe(
       GITHUB_MAX_REVIEW_BODY_CHARS,
     );
@@ -335,7 +362,10 @@ describe("normalizePullRequestReviews", () => {
     );
     const { items, warnings } = normalizePullRequestReviews(parent, many);
     expect(items).toHaveLength(GITHUB_MAX_REVIEWS);
-    const total = items.reduce((n, i) => n + ((i.data as Record<string, unknown>).body as string).length, 0);
+    const total = items.reduce(
+      (n, i) => n + ((i.data as Record<string, unknown>).body as string).length,
+      0,
+    );
     expect(total).toBeLessThanOrEqual(GITHUB_MAX_COMBINED_REVIEW_CHARS);
     expect(warnings.some((w) => w.code === "github_reviews_combined_truncated")).toBe(true);
     expect(warnings.some((w) => w.code === "github_reviews_count_truncated")).toBe(true);
@@ -411,7 +441,9 @@ describe("normalizePullRequestReviewComments", () => {
 
   it("strips control characters from the file path", () => {
     const tab = String.fromCharCode(9);
-    const { items } = normalizePullRequestReviewComments(parent, [raw(1, { path: `src${tab}/app.ts` })]);
+    const { items } = normalizePullRequestReviewComments(parent, [
+      raw(1, { path: `src${tab}/app.ts` }),
+    ]);
     const cleaned = (items[0]!.data as Record<string, unknown>).filePath as string;
     expect(cleaned.includes(tab)).toBe(false);
   });
@@ -436,7 +468,11 @@ describe("normalizePullRequestReviewComments", () => {
   });
 
   it("skips an invalid record and warns", () => {
-    const { items, warnings } = normalizePullRequestReviewComments(parent, [raw(1), { body: "no id" }, raw(3)]);
+    const { items, warnings } = normalizePullRequestReviewComments(parent, [
+      raw(1),
+      { body: "no id" },
+      raw(3),
+    ]);
     expect(items.map((i) => i.id)).toEqual([
       "github:owner/repo:pull-request:7:review-comment:1",
       "github:owner/repo:pull-request:7:review-comment:3",
@@ -451,7 +487,10 @@ describe("normalizePullRequestReviewComments", () => {
     );
     const { items, warnings } = normalizePullRequestReviewComments(parent, many);
     expect(items).toHaveLength(GITHUB_MAX_REVIEW_COMMENTS);
-    const total = items.reduce((n, i) => n + ((i.data as Record<string, unknown>).body as string).length, 0);
+    const total = items.reduce(
+      (n, i) => n + ((i.data as Record<string, unknown>).body as string).length,
+      0,
+    );
     expect(total).toBeLessThanOrEqual(GITHUB_MAX_COMBINED_REVIEW_COMMENT_CHARS);
     expect(warnings.some((w) => w.code === "github_review_comment_body_truncated")).toBe(true);
     expect(warnings.some((w) => w.code === "github_review_comments_combined_truncated")).toBe(true);

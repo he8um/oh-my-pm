@@ -68,8 +68,7 @@ export function createNodeFilesystemAdapter(
       return null;
     }
 
-    const candidate =
-      relativePart === "" ? realRoot : join(realRoot, ...relativePart.split("/"));
+    const candidate = relativePart === "" ? realRoot : join(realRoot, ...relativePart.split("/"));
     const containment = relative(realRoot, candidate);
     if (containment.startsWith("..") || containment.split(sep).includes("..")) {
       return null;

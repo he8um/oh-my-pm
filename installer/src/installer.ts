@@ -21,11 +21,7 @@ import type {
   RollbackInput,
   UpdateInput,
 } from "./types.js";
-import type {
-  InstallReport,
-  RollbackReport,
-  UpdateApplyReport,
-} from "@oh-my-pm/contracts";
+import type { InstallReport, RollbackReport, UpdateApplyReport } from "@oh-my-pm/contracts";
 import {
   installerFailure,
   OMP_I_INVALID_INSTALL_INPUT,

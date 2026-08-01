@@ -48,7 +48,8 @@ describe("github command parsing", () => {
 
   it("rejects a duplicate --provider-config", () => {
     expect(
-      parse(["github", "brief", "owner/repo", "--provider-config", "a", "--provider-config", "b"]).ok,
+      parse(["github", "brief", "owner/repo", "--provider-config", "a", "--provider-config", "b"])
+        .ok,
     ).toBe(false);
   });
 
@@ -68,7 +69,9 @@ describe("github command parsing", () => {
   });
 
   it("rejects a duplicate --limit", () => {
-    expect(parse(["github", "brief", "owner/repo", "--limit", "10", "--limit", "20"]).ok).toBe(false);
+    expect(parse(["github", "brief", "owner/repo", "--limit", "10", "--limit", "20"]).ok).toBe(
+      false,
+    );
   });
 
   it("rejects a missing --limit value", () => {

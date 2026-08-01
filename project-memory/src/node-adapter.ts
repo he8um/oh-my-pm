@@ -6,16 +6,7 @@
 // process.env, and os.homedir() FOR PATH RESOLUTION ONLY; it never reads
 // provider tokens, and the resolved absolute data-root path is never persisted.
 
-import {
-  copyFile,
-  lstat,
-  mkdir,
-  open,
-  readdir,
-  readFile,
-  rename,
-  rm,
-} from "node:fs/promises";
+import { copyFile, lstat, mkdir, open, readdir, readFile, rename, rm } from "node:fs/promises";
 import { homedir, platform as osPlatform } from "node:os";
 import { dirname, join } from "node:path";
 import process from "node:process";

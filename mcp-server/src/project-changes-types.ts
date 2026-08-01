@@ -24,12 +24,7 @@ export type McpChangeCategory =
 
 /** The six public item kinds (the Kernel StateItemKind set). */
 export type McpChangeItemKind =
-  | "milestone"
-  | "task"
-  | "risk"
-  | "decision"
-  | "dependency"
-  | "blocker";
+  "milestone" | "task" | "risk" | "decision" | "dependency" | "blocker";
 
 /** Strict input to the `project_changes` tool. No path, token, or capture field. */
 export type McpProjectChangesInput = {
@@ -109,9 +104,7 @@ export type McpProjectChangesFailure = {
   readonly message: string;
 };
 
-export type McpProjectChangesExecution =
-  | McpProjectChangesSuccess
-  | McpProjectChangesFailure;
+export type McpProjectChangesExecution = McpProjectChangesSuccess | McpProjectChangesFailure;
 
 /** The read-only executor the server calls to run one `project_changes` request. */
 export type McpProjectChangesExecutor = (

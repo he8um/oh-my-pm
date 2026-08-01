@@ -147,9 +147,7 @@ export function createPublicV0ReleaseNotesDraftDryRun(
 }
 
 /** Render the draft as deterministic markdown with one trailing newline. */
-export function formatPublicV0ReleaseNotesDraftMarkdown(
-  draft: PublicV0ReleaseNotesDraft,
-): string {
+export function formatPublicV0ReleaseNotesDraftMarkdown(draft: PublicV0ReleaseNotesDraft): string {
   const lines = [
     `# OH MY PM ${draft.version} Release Notes Draft`,
     "",
