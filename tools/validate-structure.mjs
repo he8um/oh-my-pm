@@ -66,6 +66,9 @@ const ALLOWED_TOP_FILES = [
   "package.json",
   "pnpm-lock.yaml",
   "pnpm-workspace.yaml",
+  // v0.5.2: the release lifecycle contract. version.json holds the source
+  // version; this holds the publication state and the latest published stable.
+  "release-state.json",
   "rust-toolchain.toml",
   "tsconfig.base.json",
   "tsconfig.eslint.json",

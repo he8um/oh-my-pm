@@ -182,6 +182,32 @@ export const ALL_INSTALLED_COMMANDS = [
 ];
 
 /**
+ * The launcher suffixes written for each installed command: a POSIX shim and a
+ * Windows `.cmd` launcher. Both are written on every platform so an installed
+ * prefix can be copied between platforms and still work.
+ */
+export const SHIM_LAUNCHER_SUFFIXES = ["", ".cmd"];
+
+/**
+ * Every shim file an install writes under `<prefix>/bin`, derived from the
+ * command manifest rather than restated.
+ *
+ * This is the single source for the installed shim inventory. Documentation and
+ * validators must derive the count and the names from here: a hardcoded "four
+ * shims" claim in a README is exactly the drift Issue #30 recorded, and it
+ * survived precisely because the number lived in prose instead of being
+ * computed from the manifest.
+ *
+ * Ordered canonical-then-legacy, POSIX launcher before `.cmd` for each command.
+ */
+export const INSTALLED_SHIM_NAMES = ALL_INSTALLED_COMMANDS.flatMap((command) =>
+  SHIM_LAUNCHER_SUFFIXES.map((suffix) => `${command}${suffix}`),
+);
+
+/** How many shim files an install writes. Derived, never restated. */
+export const INSTALLED_SHIM_COUNT = INSTALLED_SHIM_NAMES.length;
+
+/**
  * The canonical name a legacy alias forwards to, or null when the name is not a
  * known alias. Used by the compatibility wrappers and by the tests that assert
  * a deprecation warning names the right replacement. Pure.

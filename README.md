@@ -160,7 +160,7 @@ rustup target add wasm32-unknown-unknown
 pnpm install
 pnpm build
 pnpm local:install -- --prefix "$HOME/.local"          # preview, writes nothing
-pnpm local:install -- --prefix "$HOME/.local" --apply  # writes four shims under <prefix>/bin
+pnpm local:install -- --prefix "$HOME/.local" --apply  # writes eight shims under <prefix>/bin
 pnpm local:check -- --prefix "$HOME/.local"            # read-only verification
 ```
 
