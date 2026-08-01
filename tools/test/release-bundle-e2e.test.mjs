@@ -112,11 +112,12 @@ describe("portable release bundle e2e", () => {
     expect(existsSync(join(movedBundle, "libexec", "release-install-core.test.mjs"))).toBe(false);
   });
 
-  it("declares the twelve v0.4 project-brain-timeline MCP tools and profile metadata", () => {
+  it("declares the twelve MCP tools and the v0.5 ohmypm-cli-namespace profile", () => {
     const release = JSON.parse(readFileSync(join(movedBundle, "RELEASE.json"), "utf8"));
-    // The current source prepares the v0.4 "project-brain-timeline" profile: the
-    // ten historical tools, then project_changes, then project_timeline. The
-    // historical order is preserved exactly; the new tool is appended last.
+    // The current source prepares the v0.5 "ohmypm-cli-namespace" profile. Its
+    // runtime surface is identical to v0.4: the ten historical tools, then
+    // project_changes, then project_timeline, in exactly that order. v0.5 migrates
+    // the command names only.
     expect(release.mcpTools).toEqual([
       "project_brief",
       "project_risks",
@@ -131,9 +132,26 @@ describe("portable release bundle e2e", () => {
       "project_changes",
       "project_timeline",
     ]);
-    expect(release.releaseLine).toBe("v0.4");
-    expect(release.bundleProfile).toBe("project-brain-timeline");
+    expect(release.releaseLine).toBe("v0.5");
+    expect(release.bundleProfile).toBe("ohmypm-cli-namespace");
     expect(release.expectedMcpToolCount).toBe(12);
+    // Canonical commands and deprecated aliases are distinct fields, never one
+    // flat list that would present the aliases as equals.
+    expect(release.canonicalCommands).toEqual({
+      cli: "ohmypm",
+      mcp: "ohmypm-mcp",
+      installer: "ohmypm-install",
+    });
+    expect(release.legacyAliases).toEqual({
+      cli: ["oh-my-pm"],
+      mcp: ["oh-my-pm-mcp"],
+      installer: ["oh-my-pm-install"],
+    });
+    expect(release.commands).toEqual(["ohmypm", "ohmypm-mcp"]);
+    expect(release.commandsDeprecatedSince).toBe("0.5.0");
+    expect(release.commandRemovalScheduled).toBe(false);
+    // Product identity is unchanged: the archive stays product-based.
+    expect(release.bundle).toBe(`oh-my-pm-v${release.version}`);
     expect(release.projectBrain).toEqual({
       schemaVersion: 1,
       storeFormatVersion: 2,

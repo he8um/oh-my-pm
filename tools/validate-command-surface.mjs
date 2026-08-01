@@ -79,7 +79,9 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   try {
     raw = JSON.parse(readFileSync(COMMAND_SURFACE_PATH, "utf8"));
   } catch {
-    process.stderr.write("validate-command-surface: command-surface.json is missing or invalid JSON\n");
+    process.stderr.write(
+      "validate-command-surface: command-surface.json is missing or invalid JSON\n",
+    );
     process.stderr.write("validate-command-surface: FAILED\n");
     process.exitCode = 1;
     raw = null;
@@ -189,12 +191,16 @@ for (const rel of REQUIRED_ENTRYPOINTS) {
     const legacyCli = extractStringArray(source, "LEGACY_CLI_COMMANDS");
     if (legacyCli === null) err(`${rel}: LEGACY_CLI_COMMANDS not found`);
     else if (!same(legacyCli, LEGACY_CLI)) {
-      err(`${rel}: LEGACY_CLI_COMMANDS ${JSON.stringify(legacyCli)} != ${JSON.stringify(LEGACY_CLI)}`);
+      err(
+        `${rel}: LEGACY_CLI_COMMANDS ${JSON.stringify(legacyCli)} != ${JSON.stringify(LEGACY_CLI)}`,
+      );
     }
     const legacyMcp = extractStringArray(source, "LEGACY_MCP_COMMANDS");
     if (legacyMcp === null) err(`${rel}: LEGACY_MCP_COMMANDS not found`);
     else if (!same(legacyMcp, LEGACY_MCP)) {
-      err(`${rel}: LEGACY_MCP_COMMANDS ${JSON.stringify(legacyMcp)} != ${JSON.stringify(LEGACY_MCP)}`);
+      err(
+        `${rel}: LEGACY_MCP_COMMANDS ${JSON.stringify(legacyMcp)} != ${JSON.stringify(LEGACY_MCP)}`,
+      );
     }
   }
 }
@@ -250,7 +256,9 @@ for (const rel of REQUIRED_ENTRYPOINTS) {
     const canonical = extractStringArray(source, "LOCAL_CANONICAL_COMMAND_NAMES");
     if (canonical === null) err(`${rel}: LOCAL_CANONICAL_COMMAND_NAMES not found`);
     else if (!same(canonical, CANONICAL_INSTALLED_COMMANDS)) {
-      err(`${rel}: LOCAL_CANONICAL_COMMAND_NAMES != ${JSON.stringify(CANONICAL_INSTALLED_COMMANDS)}`);
+      err(
+        `${rel}: LOCAL_CANONICAL_COMMAND_NAMES != ${JSON.stringify(CANONICAL_INSTALLED_COMMANDS)}`,
+      );
     }
     const legacy = extractStringArray(source, "LOCAL_LEGACY_COMMAND_NAMES");
     if (legacy === null) err(`${rel}: LOCAL_LEGACY_COMMAND_NAMES not found`);
@@ -273,12 +281,16 @@ for (const rel of REQUIRED_ENTRYPOINTS) {
     const canonical = extractStringArray(source, "RELEASE_INSTALL_CANONICAL_COMMANDS");
     if (canonical === null) err(`${rel}: RELEASE_INSTALL_CANONICAL_COMMANDS not found`);
     else if (!same(canonical, CANONICAL_INSTALLED_COMMANDS)) {
-      err(`${rel}: RELEASE_INSTALL_CANONICAL_COMMANDS != ${JSON.stringify(CANONICAL_INSTALLED_COMMANDS)}`);
+      err(
+        `${rel}: RELEASE_INSTALL_CANONICAL_COMMANDS != ${JSON.stringify(CANONICAL_INSTALLED_COMMANDS)}`,
+      );
     }
     const legacy = extractStringArray(source, "RELEASE_INSTALL_LEGACY_COMMANDS");
     if (legacy === null) err(`${rel}: RELEASE_INSTALL_LEGACY_COMMANDS not found`);
     else if (!same(legacy, LEGACY_INSTALLED_COMMANDS)) {
-      err(`${rel}: RELEASE_INSTALL_LEGACY_COMMANDS != ${JSON.stringify(LEGACY_INSTALLED_COMMANDS)}`);
+      err(
+        `${rel}: RELEASE_INSTALL_LEGACY_COMMANDS != ${JSON.stringify(LEGACY_INSTALLED_COMMANDS)}`,
+      );
     }
     const installerEntry = extractStringConstant(source, "RELEASE_INSTALLER_ENTRYPOINT");
     if (installerEntry !== `bin/${CANONICAL_INSTALLER}.mjs`) {

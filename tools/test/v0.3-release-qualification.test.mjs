@@ -25,13 +25,14 @@ const PATCH_VERSION = JSON.parse(
   readFileSync(join(REPO_ROOT, "version.json"), "utf8"),
 ).version;
 // The immutable base stable lineage the ACTIVE release workflow must gate on.
-// The v0.4 line builds on the published v0.3.1 stable.
-const BASE_STABLE_TAG = "v0.3.1";
-const BASE_STABLE_SHA = "81d869ed4cf690de0da46ab25d1abe65f85df155";
+// The v0.5 line builds on the published v0.4.0 stable.
+const BASE_STABLE_TAG = "v0.4.0";
+const BASE_STABLE_SHA = "0540a78576222227f276c627c518095ef43f2b50";
 const RC_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.3-rc.yml");
 // The ACTIVE stable release workflow, whose gates are asserted against the
-// canonical source version. The v0.3 stable workflow is historical and immutable.
-const STABLE_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.4.yml");
+// canonical source version. Every earlier stable workflow is historical and
+// immutable; v0.5 supersedes v0.4 as the active line.
+const STABLE_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.5.yml");
 const QUAL_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "v0.4-installed-qualification.yml");
 
 function read(p) {
