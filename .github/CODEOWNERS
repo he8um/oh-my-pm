@@ -1,0 +1,73 @@
+# Code ownership.
+#
+# This repository has one maintainer, @he8um. A single owner is declared for
+# everything rather than inventing teams that do not exist -- an unroutable
+# reviewer is worse than none, because GitHub will silently request review from
+# nobody.
+#
+# What this file does and does not do
+# -----------------------------------
+# CODEOWNERS is INFORMATIONAL here. The `main` ruleset does NOT require code
+# owner review, because with a solo maintainer that would make every pull
+# request unmergeable: GitHub does not count a review from the pull request's
+# own author, so the only person who could approve is the only person who
+# cannot. The enforced controls are instead: pull requests are mandatory, the
+# required status checks must pass, conversations must be resolved, and bypass
+# is restricted. See docs/governance/repository-controls.md.
+#
+# The value it does provide: automatic review requests, an explicit record of
+# which paths are sensitive, and a routing table that already works the moment a
+# second maintainer exists.
+#
+# Later rules win in CODEOWNERS, so the catch-all is first and the sensitive
+# paths follow.
+
+# Everything.
+*                                   @he8um
+
+# Automation, release, and supply chain. A change here can publish an artifact
+# or weaken a gate, so it is called out separately from ordinary source.
+/.github/                           @he8um
+/.github/workflows/                 @he8um
+/.github/CODEOWNERS                 @he8um
+/.github/dependabot.yml             @he8um
+
+# Security and support policy.
+/SECURITY.md                        @he8um
+/SUPPORT.md                         @he8um
+/docs/security-model.md             @he8um
+/docs/governance/                   @he8um
+
+# Release records and runbooks. These are immutable historical evidence.
+/docs/releases/                     @he8um
+
+# The contracts and the Kernel: the deterministic core every surface derives
+# from. Generated output under contracts/generated/ is owned with its generator.
+/contracts/                         @he8um
+/kernel/                            @he8um
+
+# Architecture boundaries. The application layer is the shared use-case seam;
+# the CLI and MCP server are presentation adapters over it.
+/application/                       @he8um
+/cli/                               @he8um
+/mcp-server/                        @he8um
+/runtime/                           @he8um
+/planner/                           @he8um
+/providers/                         @he8um
+/skills/                            @he8um
+
+# Persisted user data. The store format is a compatibility contract.
+/project-memory/                    @he8um
+
+# Installation, packaging, and distribution.
+/installer/                         @he8um
+/distribution/                      @he8um
+
+# Build, validation, and release tooling.
+/tools/                             @he8um
+
+# The three machine-readable contracts that documentation and release
+# qualification derive from.
+/version.json                       @he8um
+/release-state.json                 @he8um
+/command-surface.json               @he8um

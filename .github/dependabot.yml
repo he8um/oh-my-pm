@@ -1,0 +1,109 @@
+# Dependency update policy.
+#
+# Three ecosystems are actually used: pnpm (npm), Cargo, and GitHub Actions.
+# No other ecosystem is configured, and no private registry or credential is
+# referenced -- Dependabot needs none here, because every dependency resolves
+# from a public registry.
+#
+# Grouping strategy: low-risk development dependencies are grouped so routine
+# patch traffic arrives as one reviewable pull request rather than a dozen.
+# MAJOR updates are deliberately excluded from every group and open individually
+# -- a breaking change bundled with unrelated bumps is the pull request nobody
+# can review, and the one most likely to be merged unread.
+#
+# Open-PR limits are small on purpose. This is a single-maintainer repository;
+# a queue larger than can actually be reviewed is noise, not safety.
+version: 2
+
+updates:
+  # ---------------------------------------------------------------------------
+  # pnpm workspace. One entry covers the root and every workspace package.
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: scope
+    groups:
+      # The quality toolchain moves together and cannot affect the shipped
+      # artifact: none of it is a runtime dependency.
+      dev-tooling:
+        applies-to: version-updates
+        dependency-type: development
+        patterns:
+          - "eslint"
+          - "@eslint/*"
+          - "typescript-eslint"
+          - "@typescript-eslint/*"
+          - "prettier"
+          - "vitest"
+          - "@vitest/*"
+          - "@types/*"
+        update-types:
+          - minor
+          - patch
+      # Security fixes are grouped so they land in one pull request rather than
+      # queuing behind the version-update limit.
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  # ---------------------------------------------------------------------------
+  # Cargo workspace (the Rust Kernel).
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
+    groups:
+      cargo-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+      cargo-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  # ---------------------------------------------------------------------------
+  # GitHub Actions. These run with repository credentials, so a stale or
+  # compromised action is a supply-chain risk even though it ships nothing.
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci(deps)"
+      include: scope
+    groups:
+      actions-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
