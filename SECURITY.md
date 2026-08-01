@@ -2,13 +2,61 @@
 
 ## Supported versions
 
-OH MY PM is in early development. No stable release is supported yet.
+| Release line | Status                                                           |
+| ------------ | ---------------------------------------------------------------- |
+| `v0.5.x`     | **Supported.** `v0.5.1` is the current published stable release. |
+| `v0.4.x`     | Not supported. Preserved as an immutable historical release.     |
+| `v0.3.x`     | Not supported. Preserved as an immutable historical release.     |
+| `v0.2.x`     | Not supported. Preserved as an immutable historical release.     |
+| `v0.1.x`     | Not supported. Preserved as an immutable historical release.     |
+
+Security fixes are made only on the supported line and are delivered by
+publishing a new release on it. Earlier releases stay published as immutable
+records and are never amended in place, so a fix never appears inside an
+already-published archive — upgrading is the only way to receive one.
+
+The current `main` is **not** a substitute for a stable security release. It may
+carry a fix before that fix has been published, but it is not a supported
+artifact and has not passed release qualification; only a published release has.
 
 ## Reporting a vulnerability
 
-Do not include secrets, tokens, credentials, private project data, or sensitive logs in public issues.
+**Report privately. Do not open a public issue for a suspected vulnerability**,
+and do not describe it in a pull request or a commit message before it has been
+reviewed — a public report tells everyone running the affected version at the
+same moment it tells the maintainer.
 
-If private reporting is available, use it. If not, open a minimal public issue describing the category of the concern without sensitive details.
+Use GitHub's private vulnerability reporting for this repository:
+
+- **Security → Report a vulnerability**, or
+- <https://github.com/he8um/oh-my-pm/security/advisories/new>
+
+A report submitted that way is visible only to the maintainer.
+
+There is no security mailing address for this project. If private reporting is
+unavailable to you, open a public issue that says only that you have a security
+concern and asks for a private channel — with **no** technical detail, no
+reproduction, and no affected version.
+
+### What to include
+
+- the affected version (`ohmypm --version`) and release line, or the exact commit;
+- your platform and Node.js version;
+- what an attacker gains — the security consequence, not only the misbehavior;
+- minimal reproduction steps, with a redacted fixture project if one is needed;
+- the observed behavior and the expected behavior.
+
+**Never include a real token, credential, private project content, or an
+unredacted log.** A report carrying a live credential is itself an exposure;
+rotate the credential rather than sending it.
+
+### What to expect
+
+This project has a single maintainer, so no response-time commitment is offered
+— a promised deadline that cannot be honored is worse than none. Reports are
+reviewed as soon as reasonably possible, and each receives a decision: fix,
+mitigate, or an explanation of why the behavior is intended. You will be told
+which, and credited in the advisory if you would like to be.
 
 ## Security expectations
 
