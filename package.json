@@ -54,7 +54,7 @@
     "@oh-my-pm/cli": "workspace:*",
     "@oh-my-pm/mcp-server": "workspace:*",
     "@oh-my-pm/providers": "workspace:*",
-    "@types/node": "^20.0.0",
+    "@types/node": "^26.1.2",
     "eslint": "^9.0.0",
     "prettier": "^3.9.6",
     "typescript": "^5.0.0",
