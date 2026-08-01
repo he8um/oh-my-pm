@@ -141,6 +141,9 @@ mod tests {
     fn plan_hash_is_deterministic() {
         let plan = valid_plan();
         assert_eq!(plan_hash(&plan), plan_hash(&plan));
-        assert_eq!(plan_hash(&plan), "plan:plan-1:2.0.0-alpha.0:2.0.0-alpha.1:1");
+        assert_eq!(
+            plan_hash(&plan),
+            "plan:plan-1:2.0.0-alpha.0:2.0.0-alpha.1:1"
+        );
     }
 }

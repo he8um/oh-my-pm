@@ -309,21 +309,21 @@ pub fn kernel_version_wasm() -> String {
 /// report instead of an exception so the boundary stays deterministic.
 #[wasm_bindgen(js_name = validateJson)]
 pub fn validate_json_wasm(target: String, payload_json: String) -> String {
-    let target =
-        match serde_json::from_value::<ValidationTarget>(serde_json::Value::String(target)) {
-            Ok(target) => target,
-            Err(_) => {
-                return to_json(&validation_report(
-                    ValidationTarget::SystemRequest,
-                    vec![blocking_finding(
-                        OMP_K_INVALID_PAYLOAD,
-                        "invalid validation target",
-                        "",
-                    )],
-                    Vec::new(),
-                ));
-            }
-        };
+    let target = match serde_json::from_value::<ValidationTarget>(serde_json::Value::String(target))
+    {
+        Ok(target) => target,
+        Err(_) => {
+            return to_json(&validation_report(
+                ValidationTarget::SystemRequest,
+                vec![blocking_finding(
+                    OMP_K_INVALID_PAYLOAD,
+                    "invalid validation target",
+                    "",
+                )],
+                Vec::new(),
+            ));
+        }
+    };
 
     let payload = match serde_json::from_str::<serde_json::Value>(&payload_json) {
         Ok(payload) => payload,
