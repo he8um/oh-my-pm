@@ -936,6 +936,11 @@ if (!existsSync(join(workflowsDir, "release-v0.3.yml"))) {
 // The non-publishing installed-qualification workflow must exist. It is not
 // release-named and carries no publish markers (enforced by the generic scan
 // below), so it needs no release-workflow allowance.
+// The ACTIVE installed-qualification workflow is v0.5; the v0.4 one is retained
+// as historical content and is dispatch-only.
+if (!existsSync(join(workflowsDir, "v0.5-installed-qualification.yml"))) {
+  err(".github/workflows/v0.5-installed-qualification.yml missing");
+}
 if (!existsSync(join(workflowsDir, "v0.4-installed-qualification.yml"))) {
   err(".github/workflows/v0.4-installed-qualification.yml missing");
 }
@@ -1177,6 +1182,7 @@ const V05_COMMAND_SURFACE_REQUIRED = [
   // The v0.5 release line gets its own workflow and qualification test; the
   // published v0.1-v0.4 workflows are never rewritten.
   ".github/workflows/release-v0.5.yml",
+  ".github/workflows/v0.5-installed-qualification.yml",
   "tools/test/v0.5-release-qualification.test.mjs",
   // v0.5 migration guide, release notes, and publishing runbook.
   "docs/v0.5/README.md",

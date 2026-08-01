@@ -33,7 +33,9 @@ const RC_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.3-rc.yml
 // canonical source version. Every earlier stable workflow is historical and
 // immutable; v0.5 supersedes v0.4 as the active line.
 const STABLE_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.5.yml");
-const QUAL_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "v0.4-installed-qualification.yml");
+// The ACTIVE installed-qualification workflow. v0.4's is historical and
+// dispatch-only.
+const QUAL_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "v0.5-installed-qualification.yml");
 
 function read(p) {
   return readFileSync(p, "utf8");
@@ -225,10 +227,10 @@ describe("v0.3 installed-qualification workflow (non-publishing)", () => {
 
   it("prepares one artifact and tests it across Linux/macOS/Windows", () => {
     expect(/ubuntu-latest,\s*macos-latest,\s*windows-latest/.test(wf)).toBe(true);
-    expect(wf.includes("v0.4-candidate-artifact")).toBe(true);
+    expect(wf.includes("v0.5-candidate-artifact")).toBe(true);
     // The expected release profile is pinned, so a matrix job can never
     // silently qualify the wrong surface.
-    expect(wf.includes("--profile project-brain-timeline")).toBe(true);
+    expect(wf.includes("--profile ohmypm-cli-namespace")).toBe(true);
     expect(wf.includes("check-v0.3-installed-project-brain.mjs")).toBe(true);
   });
 

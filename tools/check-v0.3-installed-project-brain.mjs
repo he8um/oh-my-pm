@@ -1636,10 +1636,12 @@ function qualifySourceIndependenceAndRelocation(prefix, versionDir) {
   assert(relocatedConfig.code === 0, "relocated installed mcp-config exits 0");
   const relocatedParsed = safeParse(relocatedConfig.stdout);
   const relocatedCommand = relocatedParsed?.mcpServers?.["oh-my-pm"]?.command;
+  // mcp-config resolves the CANONICAL sibling command, so the expectation is the
+  // canonical name even though the surrounding lib/oh-my-pm path is unchanged.
   const expectedRelocated = join(
     relocatedPrefix,
     "bin",
-    isWindows ? "oh-my-pm-mcp.cmd" : "oh-my-pm-mcp",
+    isWindows ? "ohmypm-mcp.cmd" : "ohmypm-mcp",
   );
   assert(
     relocatedCommand === expectedRelocated,
