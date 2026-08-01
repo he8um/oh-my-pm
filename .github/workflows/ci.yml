@@ -52,8 +52,18 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Test
-        run: pnpm test
+      # Split into attributable steps so a future failure names the subsystem
+      # instead of surfacing as one opaque "Test" failure. Unit tests keep full
+      # file parallelism; the release suites run serialized so they cannot race
+      # over the shared workspace build output while computing bundle checksums.
+      - name: Unit tests
+        run: pnpm test:unit
+
+      - name: Release integration tests
+        run: pnpm test:release
+
+      - name: Rust tests
+        run: pnpm test:rust
 
       - name: Validate
         run: pnpm validate
