@@ -8,6 +8,15 @@ importers:
 
   .:
     devDependencies:
+      '@oh-my-pm/cli':
+        specifier: workspace:*
+        version: link:cli
+      '@oh-my-pm/mcp-server':
+        specifier: workspace:*
+        version: link:mcp-server
+      '@oh-my-pm/providers':
+        specifier: workspace:*
+        version: link:providers
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
@@ -139,9 +148,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: 1.29.0
         version: 1.29.0(zod@3.25.76)
-      '@oh-my-pm/cli':
+      '@oh-my-pm/application':
         specifier: workspace:*
-        version: link:../cli
+        version: link:../application
       '@oh-my-pm/contracts':
         specifier: workspace:*
         version: link:../contracts

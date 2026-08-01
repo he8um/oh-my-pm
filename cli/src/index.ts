@@ -27,7 +27,7 @@ export type {
 } from "./types.js";
 
 // --- terminal rendering ----------------------------------------------------
-export { formatCliError, formatRuntimeResponse } from "./format.js";
+export { formatCliError, formatRuntimeResponse } from "@oh-my-pm/application";
 export { formatProviderDoctorReport, formatProviderStatusReport } from "./provider-format.js";
 export { HELP_TOPICS, formatHelp, isHelpFlag, resolveHelpRequest } from "./help.js";
 export type { HelpTopic } from "./help.js";
@@ -76,7 +76,7 @@ export {
   LEGACY_MCP_COMMANDS,
   canonicalCommandForAlias,
   commandDeprecationWarning,
-} from "./command-surface.js";
+} from "@oh-my-pm/application";
 
 // --- installer preview -----------------------------------------------------
 export { formatInstallerPreview, runInstallerPreview } from "./install-preview.js";

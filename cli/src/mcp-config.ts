@@ -14,7 +14,7 @@
 import {
   CANONICAL_MCP_COMMAND,
   LEGACY_MCP_COMMANDS,
-} from "./command-surface.js";
+} from "@oh-my-pm/application";
 
 /**
  * The default MCP server key. This is a *product identity*, not a command, so

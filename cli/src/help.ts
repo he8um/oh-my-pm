@@ -6,7 +6,7 @@
 // The help surface is a description of the CLI that already exists; it adds no
 // command, option, or behavior of its own.
 
-import { CANONICAL_CLI_COMMAND } from "./command-surface.js";
+import { CANONICAL_CLI_COMMAND } from "@oh-my-pm/application";
 import { MEMORY_SUBCOMMANDS } from "@oh-my-pm/application";
 
 // The canonical CLI command, bound once so every usage line, example, and

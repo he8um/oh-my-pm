@@ -1,4 +1,4 @@
-import type { ProviderDoctorReport, ProviderStatusReport } from "@oh-my-pm/cli";
+import type { ProviderDoctorReport, ProviderStatusReport } from "@oh-my-pm/application";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";

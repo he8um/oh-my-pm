@@ -181,7 +181,7 @@ describe("mcp bin wrapper sources", () => {
     // Both wrappers import the built server directly, so an alias can never
     // re-enter itself through the canonical entrypoint.
     const importSpecifiers = [...legacySource.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]);
-    expect(importSpecifiers).toEqual(["@oh-my-pm/cli", "../dist/index.js"]);
+    expect(importSpecifiers).toEqual(["@oh-my-pm/application", "../dist/index.js"]);
     expect(legacySource).not.toContain('import("');
   });
 });

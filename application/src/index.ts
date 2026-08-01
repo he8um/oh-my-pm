@@ -19,6 +19,30 @@ export type {
   RuntimeWorkflowCommand,
 } from "./types.js";
 
+// --- public command names --------------------------------------------------
+// The invoked executable names are a shared vocabulary, not a CLI-private
+// detail: the MCP alias wrapper needs the same deprecation warning. This module
+// is pure -- no filesystem, environment, network, clock, or randomness -- and
+// tools/validate-command-surface.mjs pins it against command-surface.json.
+export {
+  CANONICAL_CLI_COMMAND,
+  CANONICAL_INSTALLER_COMMAND,
+  CANONICAL_MCP_COMMAND,
+  COMMAND_DEPRECATED_SINCE,
+  LEGACY_CLI_COMMANDS,
+  LEGACY_INSTALLER_COMMANDS,
+  LEGACY_MCP_COMMANDS,
+  canonicalCommandForAlias,
+  commandDeprecationWarning,
+} from "./command-surface.js";
+
+// --- runtime response projection -------------------------------------------
+// Presentation-neutral rendering of a RuntimeResponse into the JSON, Markdown,
+// and brief projections. Shared because CLI stdout and the MCP Markdown field
+// must render a given response identically; the CLI adds only its own
+// error-string formatting on top.
+export { formatCliError, formatRuntimeResponse } from "./response-format.js";
+
 // --- structured errors -----------------------------------------------------
 export { looksLikeAbsolutePath, sanitizedErrorCode } from "./errors.js";
 

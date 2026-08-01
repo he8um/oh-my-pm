@@ -1,6 +1,11 @@
 // Offline end-to-end coverage for deterministic risk/next extraction across the
 // CLI and MCP surfaces, for both local Markdown and GitHub (fake-transport)
 // context. No live network. Each structured flow is run twice and deep-compared.
+//
+// Located in tests/e2e rather than inside a package: it compares the CLI and
+// MCP surfaces against each other, so it must not force either package to
+// depend on the other. v0.5.1 moved it here when the MCP server dropped its
+// @oh-my-pm/cli dependency.
 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +13,7 @@ import { runLocalCliProcess } from "@oh-my-pm/cli";
 import type { GitHubHttpRequest, GitHubHttpResponse, GitHubHttpTransport } from "@oh-my-pm/providers";
 import { defaultProviderConfig } from "@oh-my-pm/providers";
 import { describe, expect, it } from "vitest";
-import { executeMcpGitHubTool, executeMcpProjectTool } from "../src/index.js";
+import { executeMcpGitHubTool, executeMcpProjectTool } from "@oh-my-pm/mcp-server";
 
 const OFFLINE_CONFIG = defaultProviderConfig();
 

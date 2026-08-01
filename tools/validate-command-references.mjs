@@ -76,7 +76,7 @@ const APPROVED_FILES = new Set([
 
   // Installer, distribution, and release surfaces that intentionally create,
   // verify, or declare the compatibility aliases.
-  "cli/src/command-surface.ts",
+  "application/src/command-surface.ts",
   "cli/src/mcp-config.ts",
   "tools/local-install-utils.mjs",
   "tools/check-local-install.mjs",

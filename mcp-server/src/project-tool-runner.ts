@@ -1,9 +1,6 @@
 import type { JsonValue, RuntimeResponse } from "@oh-my-pm/contracts";
-import {
-  createRuntimeRequest,
-  formatRuntimeResponse,
-  loadConfiguredMarkdownProjectDocuments,
-} from "@oh-my-pm/cli";
+import { createRuntimeRequest, formatRuntimeResponse } from "@oh-my-pm/application";
+import { loadConfiguredMarkdownProjectDocuments } from "@oh-my-pm/application/node";
 import { createNodeWasmKernelApi } from "@oh-my-pm/kernel";
 import { createLocalProvider, createProviderRegistry } from "@oh-my-pm/providers";
 import { createRuntime } from "@oh-my-pm/runtime";
