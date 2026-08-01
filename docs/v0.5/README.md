@@ -8,6 +8,15 @@
 > v0.5 adds **no** feature, **no** schema change, **no** store-format change,
 > **no** migration, **no** write path, and **no** network path. It is not a
 > product rename.
+>
+> **Publication note.** The `0.5.0` source candidate merged to `main` but was
+> **never published** — no `v0.5.0` tag or GitHub release exists. It is
+> superseded by [`v0.5.1`](../releases/v0.5.1.md), a maintenance release that
+> corrects documentation and introduces the shared application boundary while
+> changing no public behavior. If published, v0.5.1 would be the first published
+> stable of the v0.5 line; [`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0)
+> remains the latest published stable. This guide describes the command
+> migration, which v0.5.1 carries forward unchanged.
 
 ## What changed
 
@@ -40,7 +49,7 @@ is **unchanged**, and the repository's validation suite actively enforces that:
 | Environment variables | `OH_MY_PM_*` |
 | Rust / module identifiers | `oh_my_pm_*` |
 | Installation directory | `<prefix>/lib/oh-my-pm/versions/<version>/` |
-| Release archives | `oh-my-pm-v0.5.0.tar.gz`, `oh-my-pm-v0.5.0.zip` |
+| Release archives | `oh-my-pm-v<version>.tar.gz`, `oh-my-pm-v<version>.zip` |
 | Project config filename | `oh-my-pm.config.json` |
 | Provider config directory | `~/.config/oh-my-pm/providers.json` |
 | Project Brain data directories | unchanged |
