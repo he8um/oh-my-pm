@@ -2291,11 +2291,11 @@ if (trackedFiles.includes("kernel/crate/Cargo.toml")) {
 }
 // Version guard: version.json carries the prepared source version. The v0.4
 // Project Timeline line reached the stable 0.4.0; the v0.5 CLI command namespace
-// line then promoted the source to 0.5.0 once the migration was implemented and
-// green. The value must be exactly this prepared version (all package manifests
-// and the runtime version constants are checked against it by
-// check-version-consistency).
-const EXPECTED_SOURCE_VERSION = "0.5.0";
+// line promoted the source to 0.5.0, which merged but was never published; the
+// v0.5.1 maintenance release then promoted it to 0.5.1. The value must be
+// exactly this prepared version (all package manifests and the runtime version
+// constants are checked against it by check-version-consistency).
+const EXPECTED_SOURCE_VERSION = "0.5.1";
 if (trackedFiles.includes("version.json")) {
   const version = JSON.parse(readFileSync("version.json", "utf8")).version;
   if (version !== EXPECTED_SOURCE_VERSION) {
