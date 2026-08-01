@@ -28,11 +28,16 @@ import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import {
   CANONICAL_CLI,
+  CANONICAL_INSTALLED_COMMANDS,
   CANONICAL_INSTALLER,
   CANONICAL_MCP,
+  INSTALLED_SHIM_COUNT,
+  INSTALLED_SHIM_NAMES,
   LEGACY_CLI,
+  LEGACY_INSTALLED_COMMANDS,
   REPO_ROOT,
 } from "./command-surface.mjs";
+import { loadReleaseState } from "./release-state.mjs";
 
 let fail = false;
 const err = (msg) => {
@@ -50,6 +55,12 @@ const read = (rel) => {
 // ---------------------------------------------------------------------------
 
 const VERSION = JSON.parse(read("version.json")).version;
+
+// The release lifecycle contract. Structural and relational validation lives in
+// the loader; the errors it returns are reported here so a malformed contract
+// fails `pnpm validate:docs` like any other documentation defect.
+const { state: RELEASE_STATE, errors: RELEASE_STATE_ERRORS } = loadReleaseState(REPO_ROOT);
+for (const message of RELEASE_STATE_ERRORS) err(message);
 
 // CANONICAL_CLI / CANONICAL_MCP / CANONICAL_INSTALLER / LEGACY_CLI come from
 // tools/command-surface.mjs, the existing loader over command-surface.json.
@@ -142,6 +153,10 @@ const ACTIVE_DOCS = [
   "README.md",
   "ROADMAP.md",
   "CONTRIBUTING.md",
+  // Issue #30: the support and security policies were not checked, so they kept
+  // describing a project with no supported release and an unfinished scaffold.
+  "SECURITY.md",
+  "SUPPORT.md",
   "docs/architecture.md",
   "docs/roadmap.md",
   "docs/getting-started.md",
@@ -511,6 +526,261 @@ const MCP_SURFACE_DOCS = [
     if (text === null) continue;
     if (!text.includes(past)) {
       err(`${releaseNote(past)} must keep naming its own release ${past}`);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 11. The release-state contract agrees with the source, and active
+//     documentation agrees with the release-state contract.
+// ---------------------------------------------------------------------------
+
+if (RELEASE_STATE !== null) {
+  const { sourceVersion, sourceState, latestStableVersion, latestStableTag, publicationTarget } =
+    RELEASE_STATE;
+
+  // The contract must not disagree with the one fact that already had a source.
+  if (sourceVersion !== VERSION) {
+    err(`release-state.json sourceVersion ${sourceVersion} != version.json ${VERSION}`);
+  }
+
+  const published = sourceState === "published";
+
+  // A version that IS published must never be described as awaiting
+  // publication, and one that is NOT published must never be described as
+  // released. Both directions drifted in practice, so both are checked.
+  const unpublishedWording = (version) => {
+    const v = version.replace(/\./g, "\\.");
+    return [
+      new RegExp(`v?\`?${v}\`?[^.\\n]{0,60}?\\bnot (?:yet )?published`, "i"),
+      new RegExp(
+        `v?\`?${v}\`?[^.\\n]{0,60}?\\bprepared,? (?:but )?(?:not yet published|unpublished)`,
+        "i",
+      ),
+      new RegExp(`\\bprepared[^.\\n]{0,40}?\\bnot (?:yet )?published[^.\\n]{0,40}?v?\`?${v}`, "i"),
+    ];
+  };
+  // These must bind the version to the claim. A single line often mentions
+  // several releases -- "the source is 0.5.2 ... v0.5.1 is the current
+  // published stable" is correct -- so a bare line-level match would
+  // misattribute the claim to whichever version happened to appear.
+  const publishedWording = (version) => {
+    const v = version.replace(/\./g, "\\.");
+    return [
+      new RegExp(
+        `v?\`?${v}\`?[^.\\n]{0,40}?\\bis\\b[^.\\n]{0,40}?(?:latest|current)[^.\\n]{0,20}?stable`,
+        "i",
+      ),
+      new RegExp(`v?\`?${v}\`?[^.\\n]{0,40}?\\bpublished as (?:the )?latest stable`, "i"),
+    ];
+  };
+
+  for (const rel of ACTIVE_DOCS) {
+    const text = read(rel);
+    if (text === null || isHistorical(rel) || QUOTES_STALE_CLAIMS.has(rel)) continue;
+
+    // Claims are only checked when they are about the SOURCE version, so a
+    // sentence about a genuinely older or genuinely newer release is untouched.
+    for (const line of text.split("\n")) {
+      const mentionsSource = line.includes(sourceVersion);
+      if (!mentionsSource) continue;
+
+      if (published && unpublishedWording(sourceVersion).some((p) => p.test(line))) {
+        err(
+          `${rel}: describes v${sourceVersion} as unpublished, but release-state.json ` +
+            `says it is published — "${line.trim().slice(0, 110)}"`,
+        );
+      }
+      if (!published && publishedWording(sourceVersion).some((p) => p.test(line))) {
+        err(
+          `${rel}: describes v${sourceVersion} as a published stable release, but ` +
+            `release-state.json says it is ${sourceState} — "${line.trim().slice(0, 110)}"`,
+        );
+      }
+    }
+
+    // The latest stable must not be understated: naming an OLDER release as the
+    // current latest stable is the v0.4.0-after-v0.5.1 drift Issue #30 recorded.
+    //
+    // Only PRESENT-TENSE claims are checked. A dated changelog entry recording
+    // that some version "is now the latest stable" was true when written and is
+    // a historical record, not a current-state claim -- rewriting those would
+    // destroy the release history. The distinction is the verb: "is the latest
+    // stable" / "remains the latest stable" asserts now; "was", "is now" in a
+    // phase log, or "published as the latest stable release" records an event.
+    const PRESENT_TENSE_LATEST_STABLE = [
+      // "`v0.4.0` is published and remains the latest stable release"
+      /v?(\d+\.\d+\.\d+)`?[^.\n]{0,80}?\bremains the (?:latest|current)\s+\*{0,2}stable/gi,
+      // "the latest stable release is v0.5.1"
+      /\bthe (?:latest|current)\s+\*{0,2}(?:published\s+)?stable\*{0,2}[^.\n]{0,40}?\bis\b[^.\n]{0,40}?v(\d+\.\d+\.\d+)/gi,
+    ];
+    for (const pattern of PRESENT_TENSE_LATEST_STABLE) {
+      for (const match of text.matchAll(pattern)) {
+        if (match[1] !== latestStableVersion) {
+          err(
+            `${rel}: names v${match[1]} as the current latest stable, but ` +
+              `release-state.json says ${latestStableTag}`,
+          );
+        }
+      }
+    }
+  }
+
+  // While a publication is pending, the target must be the source version; the
+  // relationship itself is enforced in the loader. Here we require the release
+  // notes for that target to exist, because the release workflow will demand
+  // them at publish time and a missing file should fail earlier than that.
+  if (publicationTarget !== null) {
+    const notes = `docs/releases/${publicationTarget}.md`;
+    if (read(notes) === null) {
+      err(`publicationTarget is ${publicationTarget} but ${notes} is missing`);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 12. The installed shim inventory is described accurately.
+// ---------------------------------------------------------------------------
+
+{
+  // Derived from the command manifest, never restated: see
+  // INSTALLED_SHIM_NAMES in tools/command-surface.mjs.
+  const expected = INSTALLED_SHIM_COUNT;
+  const word = NUMBER_WORDS[expected] ?? String(expected);
+
+  // Any numeric or spelled claim about how many shims an install writes.
+  const SHIM_COUNT_CLAIM =
+    /\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|\d+)\b\s+(?:command\s+)?shims\b/gi;
+
+  const SHIM_DOCS = [...ACTIVE_DOCS, ".github/workflows/ci.yml"];
+  for (const rel of SHIM_DOCS) {
+    const text = read(rel);
+    if (text === null || isHistorical(rel)) continue;
+    for (const match of text.matchAll(SHIM_COUNT_CLAIM)) {
+      const claimed = match[1].toLowerCase();
+      const claimedNumber = /^\d+$/.test(claimed) ? Number(claimed) : NUMBER_WORDS.indexOf(claimed);
+      if (claimedNumber !== expected) {
+        err(
+          `${rel}: claims "${match[0].trim()}", but an install writes ${word} (${expected}) ` +
+            `shims: ${INSTALLED_SHIM_NAMES.join(", ")}`,
+        );
+      }
+    }
+  }
+
+  // The getting-started guide enumerates the canonical/deprecated split. The
+  // halves must match the real command counts, not merely add up: "four
+  // canonical and four deprecated" also totals eight while describing four
+  // canonical commands that do not exist -- there are two of each, with two
+  // launchers apiece.
+  const gettingStarted = read("docs/getting-started.md");
+  if (gettingStarted !== null) {
+    for (const match of gettingStarted.matchAll(
+      /\b(one|two|three|four|five|six|seven|eight)\b\s+canonical(?:\s+commands?)?\s+and\s+\b(one|two|three|four|five|six|seven|eight)\b\s+deprecated/gi,
+    )) {
+      const canonical = NUMBER_WORDS.indexOf(match[1].toLowerCase());
+      const legacy = NUMBER_WORDS.indexOf(match[2].toLowerCase());
+      const realCanonical = CANONICAL_INSTALLED_COMMANDS.length;
+      const realLegacy = LEGACY_INSTALLED_COMMANDS.length;
+      if (canonical !== realCanonical || legacy !== realLegacy) {
+        err(
+          `docs/getting-started.md: "${match[0]}" describes ${canonical} canonical and ` +
+            `${legacy} deprecated, but an install writes ${realCanonical} canonical ` +
+            `commands and ${realLegacy} deprecated aliases ` +
+            `(${expected} shims, each command having a POSIX and a .cmd launcher)`,
+        );
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 13. The security policy names a real supported release and a real route.
+// ---------------------------------------------------------------------------
+
+{
+  const security = read("SECURITY.md");
+  if (security === null) {
+    err("SECURITY.md is missing");
+  } else if (RELEASE_STATE !== null) {
+    const { latestStableTag, latestStableVersion } = RELEASE_STATE;
+
+    // The claim that nothing is supported was true before the first stable and
+    // false from v0.1.0 onward. It is the exact wording Issue #30 recorded.
+    for (const pattern of [
+      /no stable release is supported/i,
+      /\bin early development\b/i,
+      /\bno supported (?:stable )?version\b/i,
+    ]) {
+      const match = security.match(pattern);
+      if (match !== null) {
+        err(`SECURITY.md: "${match[0]}" — ${latestStableTag} is a published stable release`);
+      }
+    }
+
+    // The supported version must be the real latest stable.
+    if (!security.includes(latestStableVersion)) {
+      err(`SECURITY.md must name the supported stable release ${latestStableTag}`);
+    }
+
+    // A reporting route must exist, and it must not be an invented address.
+    const hasPrivateReporting = /private vulnerability reporting|security\/advisories\/new/i.test(
+      security,
+    );
+    if (!hasPrivateReporting) {
+      err("SECURITY.md must describe how to report a vulnerability privately");
+    }
+    for (const match of security.matchAll(/[\w.+-]+@[\w-]+\.[\w.]+/g)) {
+      err(
+        `SECURITY.md names an email address (${match[0]}); the repository has no ` +
+          `security mailbox, so the route must be GitHub private vulnerability reporting`,
+      );
+    }
+
+    // Public disclosure must be discouraged before review.
+    if (!/do not open a public issue/i.test(security)) {
+      err("SECURITY.md must discourage public disclosure before maintainer review");
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 14. The support policy describes the shipped project and real channels.
+// ---------------------------------------------------------------------------
+
+{
+  const support = read("SUPPORT.md");
+  if (support === null) {
+    err("SUPPORT.md is missing");
+  } else {
+    for (const pattern of [
+      /\bis early-stage\b/i,
+      /\bearly development\b/i,
+      /will expand after the repository scaffold/i,
+      /\bscaffold\b/i,
+    ]) {
+      const match = support.match(pattern);
+      if (match !== null) {
+        err(`SUPPORT.md: scaffold-era claim "${match[0]}" — the system is shipped and published`);
+      }
+    }
+
+    // A channel may only be named if it actually exists. GitHub Discussions is
+    // disabled for this repository, so pointing users at it would send them to
+    // a 404. If Discussions is ever enabled, this check is what must be updated.
+    if (
+      /\bGitHub Discussions\b/i.test(support) &&
+      !/Discussions (?:is|are) not enabled/i.test(support)
+    ) {
+      err(
+        "SUPPORT.md points at GitHub Discussions, which is not enabled for this " +
+          "repository; name only channels that exist",
+      );
+    }
+
+    // Security reports must be routed away from public issues.
+    if (!/SECURITY\.md|security (?:report|vulnerabilit)/i.test(support)) {
+      err("SUPPORT.md must route security reports away from public issues");
     }
   }
 }
