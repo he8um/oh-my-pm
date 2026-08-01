@@ -12,13 +12,8 @@ export type {
   ProviderConfigValidationResult,
   ResolvedProviderConfig,
 } from "./config.js";
-export {
-  resolveGitHubProviderSettings,
-} from "./settings.js";
-export type {
-  EffectiveGitHubProviderSettingsResult,
-  GitHubProviderOverrides,
-} from "./settings.js";
+export { resolveGitHubProviderSettings } from "./settings.js";
+export type { EffectiveGitHubProviderSettingsResult, GitHubProviderOverrides } from "./settings.js";
 export {
   OMP_P_ACCESS_FORBIDDEN,
   OMP_P_AUTHENTICATION_FAILED,
@@ -34,9 +29,7 @@ export {
   providerFailure,
   providerWarning,
 } from "./errors.js";
-export {
-  createLocalProvider,
-} from "./local.js";
+export { createLocalProvider } from "./local.js";
 export type { LocalProviderOptions } from "./local.js";
 export {
   GITHUB_ACCEPT,
@@ -120,14 +113,8 @@ export type {
   GitHubSourceState,
   PullRequestDetail,
 } from "./github/index.js";
-export {
-  matchesQuery,
-  normalizeLocalItem,
-  normalizeText,
-} from "./normalize.js";
-export {
-  createProviderRegistry,
-} from "./registry.js";
+export { matchesQuery, normalizeLocalItem, normalizeText } from "./normalize.js";
+export { createProviderRegistry } from "./registry.js";
 export type {
   LocalProviderItemInput,
   Provider,

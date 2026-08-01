@@ -59,7 +59,9 @@ describe("createLocalArtifactCreationExecutionPlanSteps", () => {
   it("omits reason on planned steps and carries the source reason on failed steps", () => {
     const base = input();
     const items = base.artifactPlan.plan.items.map((item, index) =>
-      index === 2 ? { ...item, planned: false, reason: "guarded_release_artifact_archive_plan_blocked" } : item,
+      index === 2
+        ? { ...item, planned: false, reason: "guarded_release_artifact_archive_plan_blocked" }
+        : item,
     );
     const steps = createLocalArtifactCreationExecutionPlanSteps(withItems(base, items));
     expect(steps[2]?.planned).toBe(false);

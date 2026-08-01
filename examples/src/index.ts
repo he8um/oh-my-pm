@@ -1,7 +1,4 @@
-export {
-  runDoctorBriefExample,
-  runDoctorMarkdownExample,
-} from "./doctor.js";
+export { runDoctorBriefExample, runDoctorMarkdownExample } from "./doctor.js";
 export {
   runControlledWriteExecutionDryRunExample,
   runInstallerArchivePlanExample,
@@ -66,25 +63,14 @@ export type {
   LocalArtifactCreationAdapterContractExample,
   LocalArtifactCreationConfirmationChecklistExample,
 } from "./installer.js";
-export {
-  createExampleKernelApi,
-} from "./kernel.js";
-export {
-  runMcpProjectToolExamples,
-} from "./mcp.js";
-export type {
-  McpProjectToolExamples,
-} from "./mcp.js";
+export { createExampleKernelApi } from "./kernel.js";
+export { runMcpProjectToolExamples } from "./mcp.js";
+export type { McpProjectToolExamples } from "./mcp.js";
 export {
   runPlanBriefExample,
   runPlanJsonExample,
   runPlanMarkdownExample,
   runProviderBackedPlanJsonExample,
 } from "./plan.js";
-export {
-  createExampleRuntime,
-} from "./runtime.js";
-export {
-  runStatusBriefExample,
-  runStatusJsonExample,
-} from "./status.js";
+export { createExampleRuntime } from "./runtime.js";
+export { runStatusBriefExample, runStatusJsonExample } from "./status.js";

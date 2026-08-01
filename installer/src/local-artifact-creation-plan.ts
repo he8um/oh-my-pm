@@ -43,9 +43,7 @@ export function createLocalArtifactCreationExecutionPlanSteps(
     kind: STEP_KIND_BY_ARTIFACT_PLAN_ITEM_KIND[item.kind],
     name: item.name,
     planned: item.planned,
-    ...(item.planned
-      ? {}
-      : { reason: item.reason ?? "local_artifact_creation_step_not_planned" }),
+    ...(item.planned ? {} : { reason: item.reason ?? "local_artifact_creation_step_not_planned" }),
   }));
 }
 
@@ -163,8 +161,7 @@ export function formatLocalArtifactCreationExecutionPlanMarkdown(
   ];
   for (const step of plan.steps) {
     const box = step.planned ? "[x]" : "[ ]";
-    const suffix =
-      step.planned || step.reason === undefined ? "" : ` — reason: \`${step.reason}\``;
+    const suffix = step.planned || step.reason === undefined ? "" : ` — reason: \`${step.reason}\``;
     lines.push(`- \`${box}\` \`${step.sequence}\` \`${step.kind}\` — ${step.name}${suffix}`);
   }
   lines.push("", "## Reasons", "");

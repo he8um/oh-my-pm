@@ -6,8 +6,17 @@ const existing = { path: "/root/a.txt", content: "old", checksum: "sha256:old" }
 describe("createMemoryWriteFilesystem", () => {
   it("creates a missing file", () => {
     const writer = createMemoryWriteFilesystem();
-    const result = writer.writeFile({ path: "/root/new.txt", content: "new", checksum: "sha256:new" });
-    expect(result).toEqual({ kind: "create", path: "/root/new.txt", ok: true, checksum: "sha256:new" });
+    const result = writer.writeFile({
+      path: "/root/new.txt",
+      content: "new",
+      checksum: "sha256:new",
+    });
+    expect(result).toEqual({
+      kind: "create",
+      path: "/root/new.txt",
+      ok: true,
+      checksum: "sha256:new",
+    });
     expect(writer.snapshot().entries).toEqual([
       { path: "/root/new.txt", content: "new", checksum: "sha256:new" },
     ]);
@@ -15,7 +24,11 @@ describe("createMemoryWriteFilesystem", () => {
 
   it("replaces an existing file", () => {
     const writer = createMemoryWriteFilesystem([existing]);
-    const result = writer.writeFile({ path: "/root//a.txt", content: "new", checksum: "sha256:new" });
+    const result = writer.writeFile({
+      path: "/root//a.txt",
+      content: "new",
+      checksum: "sha256:new",
+    });
     expect(result.kind).toBe("replace");
     expect(result.ok).toBe(true);
     expect(writer.snapshot().entries).toEqual([

@@ -105,7 +105,12 @@ export function createV0ReleaseCandidateChecklistItems(
       hygiene.noPrivateDocs,
       "v0_rc_private_docs_present",
     ),
-    checklistItem("docs-updated", "Public docs are updated", hygiene.docsUpdated, "v0_rc_docs_outdated"),
+    checklistItem(
+      "docs-updated",
+      "Public docs are updated",
+      hygiene.docsUpdated,
+      "v0_rc_docs_outdated",
+    ),
   ];
 }
 

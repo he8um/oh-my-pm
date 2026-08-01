@@ -28,10 +28,10 @@ ohmypm memory timeline --project-id example
 ohmypm mcp-config
 ```
 
-| Role | Canonical (v0.5) | Deprecated alias |
-| --- | --- | --- |
-| CLI | `ohmypm` | `oh-my-pm` |
-| MCP stdio server | `ohmypm-mcp` | `oh-my-pm-mcp` |
+| Role                     | Canonical (v0.5) | Deprecated alias   |
+| ------------------------ | ---------------- | ------------------ |
+| CLI                      | `ohmypm`         | `oh-my-pm`         |
+| MCP stdio server         | `ohmypm-mcp`     | `oh-my-pm-mcp`     |
 | Release-bundle installer | `ohmypm-install` | `oh-my-pm-install` |
 
 Starting with v0.5, `ohmypm` is the only canonical and documented CLI command.
@@ -41,20 +41,20 @@ Starting with v0.5, `ohmypm` is the only canonical and documented CLI command.
 This is a command namespace migration, not a product rename. Every one of these
 is **unchanged**, and the repository's validation suite actively enforces that:
 
-| Identity | Value |
-| --- | --- |
-| Product display name | OH MY PM |
-| Repository | `he8um/oh-my-pm` |
-| Package scope | `@oh-my-pm/*` |
-| MCP server registration key | `oh-my-pm` |
-| Environment variables | `OH_MY_PM_*` |
-| Rust / module identifiers | `oh_my_pm_*` |
-| Installation directory | `<prefix>/lib/oh-my-pm/versions/<version>/` |
-| Release archives | `oh-my-pm-v<version>.tar.gz`, `oh-my-pm-v<version>.zip` |
-| Project config filename | `oh-my-pm.config.json` |
-| Provider config directory | `~/.config/oh-my-pm/providers.json` |
-| Project Brain data directories | unchanged |
-| Error-code namespace | unchanged |
+| Identity                       | Value                                                   |
+| ------------------------------ | ------------------------------------------------------- |
+| Product display name           | OH MY PM                                                |
+| Repository                     | `he8um/oh-my-pm`                                        |
+| Package scope                  | `@oh-my-pm/*`                                           |
+| MCP server registration key    | `oh-my-pm`                                              |
+| Environment variables          | `OH_MY_PM_*`                                            |
+| Rust / module identifiers      | `oh_my_pm_*`                                            |
+| Installation directory         | `<prefix>/lib/oh-my-pm/versions/<version>/`             |
+| Release archives               | `oh-my-pm-v<version>.tar.gz`, `oh-my-pm-v<version>.zip` |
+| Project config filename        | `oh-my-pm.config.json`                                  |
+| Provider config directory      | `~/.config/oh-my-pm/providers.json`                     |
+| Project Brain data directories | unchanged                                               |
+| Error-code namespace           | unchanged                                               |
 
 **No data migration is required.** Project Brain schema stays at 1 and the
 Project Memory store format stays at 2. An existing store keeps working; nothing
@@ -197,7 +197,7 @@ active README, help file, example, installer message, or generated configuration
 reintroduces `oh-my-pm` as the primary command. It is precise about this: the
 product name appears legitimately throughout the repository as a package scope,
 path segment, environment prefix, config filename, archive name, and server key,
-so the check looks only for the shapes a *command invocation* takes.
+so the check looks only for the shapes a _command invocation_ takes.
 
 ## Release line
 

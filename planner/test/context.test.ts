@@ -28,9 +28,7 @@ describe("extractProviderRequests", () => {
   });
 
   it("fails on an invalid provider request", () => {
-    expect(
-      extractProviderRequests({ providerRequests: [{ providerId: "local" }] }),
-    ).toEqual({
+    expect(extractProviderRequests({ providerRequests: [{ providerId: "local" }] })).toEqual({
       ok: false,
       reason: "invalid_provider_request",
       requestedContext: ["providerRequests"],

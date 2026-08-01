@@ -17,7 +17,10 @@ import type {
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const fixtureRoot = join(repoRoot, "examples", "fixtures", "markdown-project");
 
-async function successOf(operation: McpProjectOperation, root: string): Promise<McpProjectToolSuccess> {
+async function successOf(
+  operation: McpProjectOperation,
+  root: string,
+): Promise<McpProjectToolSuccess> {
   const execution = await executeMcpProjectTool(operation, root);
   expect(execution.ok, execution.ok ? "" : execution.message).toBe(true);
   if (!execution.ok) throw new Error("unreachable");

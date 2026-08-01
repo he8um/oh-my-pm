@@ -11,10 +11,7 @@
 
 import type { ChangeSet } from "@oh-my-pm/contracts";
 import { createNodeWasmProjectBrainKernelApi } from "@oh-my-pm/kernel";
-import {
-  createProjectBrainRuntime,
-  PROJECT_BRAIN_RUNTIME_ERROR_CODES,
-} from "@oh-my-pm/runtime";
+import { createProjectBrainRuntime, PROJECT_BRAIN_RUNTIME_ERROR_CODES } from "@oh-my-pm/runtime";
 import type {
   CompareProjectResult,
   ProjectBrainKernelPort,
@@ -97,10 +94,7 @@ const INERT_DERIVER: ProjectStateDeriver = {
 
 const DEFAULT_CLOCK_SENTINEL = "2026-01-01T00:00:00.000Z";
 
-function fail(
-  code: McpProjectChangesFailureCode,
-  message: string,
-): McpProjectChangesExecution {
+function fail(code: McpProjectChangesFailureCode, message: string): McpProjectChangesExecution {
   return { ok: false, code, message };
 }
 
@@ -124,7 +118,10 @@ function validateInput(input: McpProjectChangesInput):
   const hasPrev = input.previousSnapshotId !== undefined;
   const hasCurr = input.currentSnapshotId !== undefined;
   if (hasPrev !== hasCurr) {
-    return { ok: false, message: "previousSnapshotId and currentSnapshotId must be supplied together" };
+    return {
+      ok: false,
+      message: "previousSnapshotId and currentSnapshotId must be supplied together",
+    };
   }
   let previousSnapshotId: string | undefined;
   let currentSnapshotId: string | undefined;
@@ -147,8 +144,14 @@ function validateInput(input: McpProjectChangesInput):
     MIN_STALE_AFTER_SECONDS,
     MAX_STALE_AFTER_SECONDS,
   );
-  if (staleAfterSeconds === null) return { ok: false, message: "staleAfterSeconds is out of range" };
-  const limit = validateBoundedInt(input.limit, DEFAULT_CHANGES_LIMIT, MIN_CHANGES_LIMIT, MAX_CHANGES_LIMIT);
+  if (staleAfterSeconds === null)
+    return { ok: false, message: "staleAfterSeconds is out of range" };
+  const limit = validateBoundedInt(
+    input.limit,
+    DEFAULT_CHANGES_LIMIT,
+    MIN_CHANGES_LIMIT,
+    MAX_CHANGES_LIMIT,
+  );
   if (limit === null) return { ok: false, message: "limit is out of range" };
 
   return {
@@ -237,14 +240,9 @@ export async function runProjectChanges(
     // controlled memory-unavailable error, never a leaked cause.
     let store: ProjectChangesStore;
     try {
-      store = options?.storeFactory
-        ? await options.storeFactory()
-        : await loadDefaultStore();
+      store = options?.storeFactory ? await options.storeFactory() : await loadDefaultStore();
     } catch {
-      return fail(
-        "project_changes_memory_unavailable",
-        "project memory capability is unavailable",
-      );
+      return fail("project_changes_memory_unavailable", "project memory capability is unavailable");
     }
 
     // Classify the store version state first so migration/version conditions map

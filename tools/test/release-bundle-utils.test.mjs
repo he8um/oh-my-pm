@@ -221,7 +221,9 @@ describe("stageKernelGeneratedNodeAssets", () => {
       expect(result.ok, JSON.stringify(result)).toBe(true);
       const gen = join(kernelPkg, "generated-node");
       expect(readdirSync(gen).sort()).toEqual([...KERNEL_GENERATED_NODE_ASSETS].sort());
-      expect(result.assets.map((a) => a.name).sort()).toEqual([...KERNEL_GENERATED_NODE_ASSETS].sort());
+      expect(result.assets.map((a) => a.name).sort()).toEqual(
+        [...KERNEL_GENERATED_NODE_ASSETS].sort(),
+      );
     });
   });
 
@@ -281,7 +283,11 @@ describe("stageKernelGeneratedNodeAssets", () => {
     await withSafeTempWorkspace(async (ws) => {
       const source = join(ws.root, "src gen");
       mkdirSync(source, { recursive: true });
-      writeFileSync(join(source, "oh_my_pm_kernel.js"), 'require("./oh_my_pm_kernel_bg.wasm");\n', "utf8");
+      writeFileSync(
+        join(source, "oh_my_pm_kernel.js"),
+        'require("./oh_my_pm_kernel_bg.wasm");\n',
+        "utf8",
+      );
       writeFileSync(join(source, "oh_my_pm_kernel_bg.wasm"), Buffer.from([0, 97, 115, 109]));
       writeFileSync(join(source, "package.json"), '{"type":"commonjs","private":true}\n', "utf8");
       const bundleRoot = join(ws.root, "bundle root");

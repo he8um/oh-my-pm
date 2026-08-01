@@ -15,6 +15,9 @@ function fakeFetch(
 ): { fetchImpl: typeof fetch; calls: Recorded[] } {
   const calls: Recorded[] = [];
   const fetchImpl = (async (url: string | URL | Request, init?: RequestInit) => {
+    // `url` is the fetch signature's string | URL | Request. URL and Request
+    // both stringify to their href, so this records the real request URL.
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     calls.push({ url: String(url), init: init ?? {} });
     return new Response(typeof body === "string" ? body : JSON.stringify(body), {
       status,
@@ -46,7 +49,10 @@ describe("createNodeGitHubHttpTransport", () => {
 
   it("omits Authorization without a token and includes it with a token", async () => {
     const anon = fakeFetch({ ok: true });
-    await createNodeGitHubHttpTransport({ productVersion: VERSION, fetchImpl: anon.fetchImpl }).request({
+    await createNodeGitHubHttpTransport({
+      productVersion: VERSION,
+      fetchImpl: anon.fetchImpl,
+    }).request({
       method: "GET",
       url: `${ORIGIN}/repos/a/b`,
       headers: {},
@@ -92,7 +98,11 @@ describe("createNodeGitHubHttpTransport", () => {
     const fetchImpl = (async () => {
       throw new Error("connection refused");
     }) as unknown as typeof fetch;
-    const transport = createNodeGitHubHttpTransport({ productVersion: VERSION, token: TOKEN, fetchImpl });
+    const transport = createNodeGitHubHttpTransport({
+      productVersion: VERSION,
+      token: TOKEN,
+      fetchImpl,
+    });
     let caught: unknown;
     try {
       await transport.request({
@@ -188,7 +198,7 @@ describe("createNodeGitHubHttpTransport", () => {
 
   it("follows a bounded same-origin redirect", async () => {
     let call = 0;
-    const fetchImpl = (async (url: string | URL | Request) => {
+    const fetchImpl = (async (_url: string | URL | Request) => {
       call += 1;
       if (call === 1) {
         return new Response(null, {
@@ -250,15 +260,11 @@ describe("createNodeGitHubHttpTransport", () => {
   });
 
   it("normalizes and filters response headers", async () => {
-    const { fetchImpl } = fakeFetch(
-      { ok: true },
-      200,
-      {
-        "content-type": "application/json",
-        "x-ratelimit-remaining": "42",
-        "x-secret-internal": "should-be-dropped",
-      },
-    );
+    const { fetchImpl } = fakeFetch({ ok: true }, 200, {
+      "content-type": "application/json",
+      "x-ratelimit-remaining": "42",
+      "x-secret-internal": "should-be-dropped",
+    });
     const transport = createNodeGitHubHttpTransport({ productVersion: VERSION, fetchImpl });
     const response = await transport.request({
       method: "GET",

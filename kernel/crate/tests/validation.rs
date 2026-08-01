@@ -125,7 +125,10 @@ fn duplicate_task_node_id_fails() {
         json!({ "nodes": [task_node("a", &[]), task_node("a", &[])] }),
     );
     assert!(!report.passed);
-    assert!(report.errors.iter().any(|f| f.message.contains("duplicate")));
+    assert!(report
+        .errors
+        .iter()
+        .any(|f| f.message.contains("duplicate")));
 }
 
 #[test]
@@ -135,7 +138,10 @@ fn unknown_dependency_fails() {
         json!({ "nodes": [task_node("a", &["ghost"])] }),
     );
     assert!(!report.passed);
-    assert!(report.errors.iter().any(|f| f.message.contains("unknown node ghost")));
+    assert!(report
+        .errors
+        .iter()
+        .any(|f| f.message.contains("unknown node ghost")));
 }
 
 #[test]

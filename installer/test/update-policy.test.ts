@@ -50,10 +50,7 @@ describe("validateLocalUpdatePolicy", () => {
       allowDowngrade: false,
       requireIntegrity: true,
     });
-    expect(reasons).toEqual([
-      "update_policy_mode_invalid",
-      "update_policy_allowed_channels_empty",
-    ]);
+    expect(reasons).toEqual(["update_policy_mode_invalid", "update_policy_allowed_channels_empty"]);
   });
 
   it("reports an invalid allowed channel", () => {
@@ -105,12 +102,16 @@ describe("evaluateLocalUpdatePolicy", () => {
   });
 
   it("blocks for an invalid policy", () => {
-    const report = evaluateLocalUpdatePolicy(input({ policy: policyWith({ allowedChannels: [] }) }));
+    const report = evaluateLocalUpdatePolicy(
+      input({ policy: policyWith({ allowedChannels: [] }) }),
+    );
     expect(report.reasons).toEqual(["update_policy_invalid"]);
   });
 
   it("blocks a channel outside the allow list", () => {
-    const report = evaluateLocalUpdatePolicy(input({ policy: policyWith({ allowedChannels: ["stable"] }) }));
+    const report = evaluateLocalUpdatePolicy(
+      input({ policy: policyWith({ allowedChannels: ["stable"] }) }),
+    );
     expect(report.reasons).toEqual(["channel_not_allowed"]);
   });
 

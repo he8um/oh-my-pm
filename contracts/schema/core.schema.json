@@ -30,8 +30,17 @@
         { "name": "code", "type": { "ref": "OmpErrorCode" }, "doc": "Registered error code." },
         { "name": "message", "type": "string", "doc": "Human-readable message." },
         { "name": "path", "type": "string", "doc": "Location of the failure.", "optional": true },
-        { "name": "blocking", "type": "boolean", "doc": "Whether the failure blocks the operation." },
-        { "name": "details", "type": "json", "doc": "Structured, secret-free context.", "optional": true }
+        {
+          "name": "blocking",
+          "type": "boolean",
+          "doc": "Whether the failure blocks the operation."
+        },
+        {
+          "name": "details",
+          "type": "json",
+          "doc": "Structured, secret-free context.",
+          "optional": true
+        }
       ]
     },
     {
@@ -45,7 +54,11 @@
           "tagValue": "ok",
           "fields": [
             { "name": "data", "type": "json", "doc": "Operation data." },
-            { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings." }
+            {
+              "name": "warnings",
+              "type": { "array": { "ref": "KernelWarning" } },
+              "doc": "Warnings."
+            }
           ]
         },
         {
@@ -53,7 +66,11 @@
           "tagValue": "error",
           "fields": [
             { "name": "error", "type": { "ref": "KernelError" }, "doc": "Error." },
-            { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings." }
+            {
+              "name": "warnings",
+              "type": { "array": { "ref": "KernelWarning" } },
+              "doc": "Warnings."
+            }
           ]
         }
       ]
@@ -83,10 +100,19 @@
       "fields": [
         { "name": "schemaVersion", "type": "string", "doc": "Envelope schema version." },
         { "name": "kind", "type": "string", "doc": "Report kind identifier." },
-        { "name": "generatedAt", "type": "string", "doc": "Report creation time supplied by the caller." },
+        {
+          "name": "generatedAt",
+          "type": "string",
+          "doc": "Report creation time supplied by the caller."
+        },
         { "name": "format", "type": { "ref": "ReportFormat" }, "doc": "Report format." },
         { "name": "data", "type": "json", "doc": "Report payload." },
-        { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings.", "optional": true }
+        {
+          "name": "warnings",
+          "type": { "array": { "ref": "KernelWarning" } },
+          "doc": "Warnings.",
+          "optional": true
+        }
       ]
     }
   ]

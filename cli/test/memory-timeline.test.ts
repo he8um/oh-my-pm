@@ -273,9 +273,13 @@ function storeDigest(): string {
     .join("|");
 }
 
-const DOC_A = ["# Project", "## Next steps", "- Wire the API", "## Risks", "- Timeline is tight"].join(
-  "\n",
-);
+const DOC_A = [
+  "# Project",
+  "## Next steps",
+  "- Wire the API",
+  "## Risks",
+  "- Timeline is tight",
+].join("\n");
 const DOC_B = [
   "# Project",
   "## Next steps",
@@ -425,9 +429,7 @@ describe("memory timeline — end to end", () => {
   it("combines category and kind as a conjunction", () => {
     const all = parseTimeline(timeline("--json"));
     const { category, kind } = all.data.events[0]!;
-    const filtered = parseTimeline(
-      timeline("--json", "--category", category, "--kind", kind),
-    );
+    const filtered = parseTimeline(timeline("--json", "--category", category, "--kind", kind));
     for (const event of filtered.data.events) {
       expect(event.category).toBe(category);
       expect(event.kind).toBe(kind);
@@ -440,7 +442,12 @@ describe("memory timeline — end to end", () => {
     let before: number | undefined;
     for (let guard = 0; guard < 10; guard += 1) {
       const page = parseTimeline(
-        timeline("--json", "--limit", "1", ...(before !== undefined ? ["--before-sequence", String(before)] : [])),
+        timeline(
+          "--json",
+          "--limit",
+          "1",
+          ...(before !== undefined ? ["--before-sequence", String(before)] : []),
+        ),
       );
       for (const event of page.data.events) seen.push(event.eventId);
       if (!page.data.hasMore) {

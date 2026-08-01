@@ -36,7 +36,12 @@ pub fn decide_transition(input: StateTransitionInput) -> StateTransitionDecision
         from: input.from,
         to: input.to,
         allowed,
-        reason: if allowed { "allowed" } else { "transition_not_allowed" }.to_string(),
+        reason: if allowed {
+            "allowed"
+        } else {
+            "transition_not_allowed"
+        }
+        .to_string(),
     }
 }
 
@@ -57,7 +62,10 @@ mod tests {
     #[test]
     fn every_allowed_edge_is_accepted() {
         for (from, to) in ALLOWED_EDGES {
-            assert!(can_transition(&from, &to), "{from:?} -> {to:?} should be allowed");
+            assert!(
+                can_transition(&from, &to),
+                "{from:?} -> {to:?} should be allowed"
+            );
         }
     }
 
@@ -68,7 +76,10 @@ mod tests {
             (ReleaseState::Source, ReleaseState::Ready),
             (ReleaseState::Frozen, ReleaseState::Source),
         ] {
-            assert!(!can_transition(&from, &to), "{from:?} -> {to:?} should be blocked");
+            assert!(
+                !can_transition(&from, &to),
+                "{from:?} -> {to:?} should be blocked"
+            );
         }
     }
 

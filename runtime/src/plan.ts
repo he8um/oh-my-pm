@@ -33,7 +33,10 @@ function intentFromFinalNodePayload(payload: JsonValue): IntentCategory | null {
     return null;
   }
   const intent = payload["intent"];
-  if (typeof intent !== "string" || !(INTENT_CATEGORY_VALUES as readonly string[]).includes(intent)) {
+  if (
+    typeof intent !== "string" ||
+    !(INTENT_CATEGORY_VALUES as readonly string[]).includes(intent)
+  ) {
     return null;
   }
   return intent as IntentCategory;

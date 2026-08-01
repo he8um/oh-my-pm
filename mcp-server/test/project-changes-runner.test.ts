@@ -27,7 +27,6 @@ import {
   deriveRecordKey,
   serializeEnvelope,
   serializeManifest,
-  resolveStoreLayout,
 } from "@oh-my-pm/project-memory";
 import { afterEach, describe, expect, it } from "vitest";
 import { runProjectChanges } from "../src/project-changes-runner.js";
@@ -65,7 +64,9 @@ function listFiles(dir: string): string[] {
 
 /** Build a real store over a temp data root and a factory returning it. */
 function realStore(dataRoot: string): ProjectChangesStore {
-  return createNodeProjectMemoryStore({ dataRootOverride: dataRoot }) as unknown as ProjectChangesStore;
+  return createNodeProjectMemoryStore({
+    dataRootOverride: dataRoot,
+  }) as unknown as ProjectChangesStore;
 }
 
 const PROJECT_ID = "runner-proj";
@@ -73,7 +74,13 @@ const PROJECT_ID = "runner-proj";
 /** Capture one snapshot from a Markdown body through the real Runtime + store. */
 async function capture(store: ProjectChangesStore, body: string, at: string): Promise<string> {
   const items: NormalizedProviderItem[] = [
-    { id: "docs/status.md", type: "document", title: "docs/status.md", source: "local", data: { content: body } },
+    {
+      id: "docs/status.md",
+      type: "document",
+      title: "docs/status.md",
+      source: "local",
+      data: { content: body },
+    },
   ];
   const observation = createProviderRegistryObservationPort(
     createProviderRegistry([createLocalProvider({ items })]),
@@ -139,7 +146,11 @@ describe("project_changes runner — compare (real adapter + runtime)", () => {
     const dataRoot = tempDataRoot();
     const store = realStore(dataRoot);
     await capture(store, "# P\n## Next\n- A\n## Risks\n- tight", "2026-01-01T00:00:00.000Z");
-    await capture(store, "# P\n## Next\n- A\n- B\n## Risks\n- tight\n## Blockers\n- auth", "2026-01-02T00:00:00.000Z");
+    await capture(
+      store,
+      "# P\n## Next\n- A\n- B\n## Risks\n- tight\n## Blockers\n- auth",
+      "2026-01-02T00:00:00.000Z",
+    );
     const filesBefore = listFiles(dataRoot).sort();
     const exec = await runProjectChanges(
       { projectId: PROJECT_ID },
@@ -198,15 +209,25 @@ describe("project_changes runner — compare (real adapter + runtime)", () => {
     const dataRoot = tempDataRoot();
     const store = realStore(dataRoot);
     await capture(store, "# P\n## Next\n- A\n## Risks\n- tight", "2026-01-01T00:00:00.000Z");
-    await capture(store, "# P\n## Next\n- A\n- B\n- C\n## Risks\n- tight\n- budget\n## Blockers\n- auth", "2026-01-02T00:00:00.000Z");
+    await capture(
+      store,
+      "# P\n## Next\n- A\n- B\n- C\n## Risks\n- tight\n- budget\n## Blockers\n- auth",
+      "2026-01-02T00:00:00.000Z",
+    );
     const clock = () => "2026-02-01T00:00:00.000Z";
-    const limited = await runProjectChanges({ projectId: PROJECT_ID, limit: 1 }, { storeFactory: () => store, clock });
+    const limited = await runProjectChanges(
+      { projectId: PROJECT_ID, limit: 1 },
+      { storeFactory: () => store, clock },
+    );
     expect(limited.ok).toBe(true);
     if (!limited.ok) return;
     expect(limited.result.changes.length).toBeLessThanOrEqual(1);
     expect(limited.result.summary.totalChanges).toBeGreaterThan(1);
     // Determinism: same input + fixed clock yields a deep-equal result.
-    const again = await runProjectChanges({ projectId: PROJECT_ID, limit: 1 }, { storeFactory: () => store, clock });
+    const again = await runProjectChanges(
+      { projectId: PROJECT_ID, limit: 1 },
+      { storeFactory: () => store, clock },
+    );
     expect(again).toEqual(limited);
   });
 
@@ -218,7 +239,13 @@ describe("project_changes runner — compare (real adapter + runtime)", () => {
     let clockReads = 0;
     await runProjectChanges(
       { projectId: PROJECT_ID },
-      { storeFactory: () => store, clock: () => { clockReads += 1; return "2026-02-01T00:00:00.000Z"; } },
+      {
+        storeFactory: () => store,
+        clock: () => {
+          clockReads += 1;
+          return "2026-02-01T00:00:00.000Z";
+        },
+      },
     );
     expect(clockReads).toBe(1);
   });
@@ -226,12 +253,24 @@ describe("project_changes runner — compare (real adapter + runtime)", () => {
 
 describe("project_changes runner — input validation", () => {
   const noopStore: ProjectChangesStore = {
-    async readManifest() { return null; },
-    async listSnapshots() { return []; },
-    async readSnapshot() { throw new Error("unused"); },
-    async readEvidence() { throw new Error("unused"); },
-    async commitSnapshotBundle() { throw new Error("read-only"); },
-    async inspect() { return { exists: false, versionState: "noPriorMemory" }; },
+    async readManifest() {
+      return null;
+    },
+    async listSnapshots() {
+      return [];
+    },
+    async readSnapshot() {
+      throw new Error("unused");
+    },
+    async readEvidence() {
+      throw new Error("unused");
+    },
+    async commitSnapshotBundle() {
+      throw new Error("read-only");
+    },
+    async inspect() {
+      return { exists: false, versionState: "noPriorMemory" };
+    },
   };
   const opts = { storeFactory: () => noopStore, clock: () => "2026-02-01T00:00:00.000Z" };
 
@@ -254,8 +293,12 @@ describe("project_changes runner — input validation", () => {
   });
 
   it("rejects out-of-range staleAfterSeconds and limit", async () => {
-    expect((await runProjectChanges({ projectId: "p", staleAfterSeconds: -1 } as never, opts)).ok).toBe(false);
-    expect((await runProjectChanges({ projectId: "p", staleAfterSeconds: 99_999_999 }, opts)).ok).toBe(false);
+    expect(
+      (await runProjectChanges({ projectId: "p", staleAfterSeconds: -1 } as never, opts)).ok,
+    ).toBe(false);
+    expect(
+      (await runProjectChanges({ projectId: "p", staleAfterSeconds: 99_999_999 }, opts)).ok,
+    ).toBe(false);
     expect((await runProjectChanges({ projectId: "p", limit: 0 }, opts)).ok).toBe(false);
     expect((await runProjectChanges({ projectId: "p", limit: 101 }, opts)).ok).toBe(false);
     expect((await runProjectChanges({ projectId: "p", limit: 1.5 } as never, opts)).ok).toBe(false);
@@ -268,12 +311,24 @@ function fakeStoreWithVersion(
   versionState: "migrationRequired" | "unsupportedNewer" | "incompatibleSchema",
 ): ProjectChangesStore {
   return {
-    async readManifest() { return null; },
-    async listSnapshots() { return []; },
-    async readSnapshot() { throw new Error("unused"); },
-    async readEvidence() { throw new Error("unused"); },
-    async commitSnapshotBundle() { throw new Error("read-only"); },
-    async inspect() { return { exists: true, versionState }; },
+    async readManifest() {
+      return null;
+    },
+    async listSnapshots() {
+      return [];
+    },
+    async readSnapshot() {
+      throw new Error("unused");
+    },
+    async readEvidence() {
+      throw new Error("unused");
+    },
+    async commitSnapshotBundle() {
+      throw new Error("read-only");
+    },
+    async inspect() {
+      return { exists: true, versionState };
+    },
   };
 }
 
@@ -308,7 +363,12 @@ describe("project_changes runner — version / corruption", () => {
   it("maps an unavailable memory capability to a controlled MCP error", async () => {
     const exec = await runProjectChanges(
       { projectId: "p" },
-      { storeFactory: () => { throw new Error("cannot load"); }, clock: () => "t" },
+      {
+        storeFactory: () => {
+          throw new Error("cannot load");
+        },
+        clock: () => "t",
+      },
     );
     expect(exec.ok).toBe(false);
     if (!exec.ok) expect(exec.code).toBe("project_changes_memory_unavailable");
@@ -318,7 +378,12 @@ describe("project_changes runner — version / corruption", () => {
     // A store that reports supported but whose reads fail during compare.
     const corruptStore: ProjectChangesStore = {
       async readManifest() {
-        return { projectId: "p", latestSnapshotId: "s2", snapshotIds: ["s1", "s2"], evidenceIds: [] };
+        return {
+          projectId: "p",
+          latestSnapshotId: "s2",
+          snapshotIds: ["s1", "s2"],
+          evidenceIds: [],
+        };
       },
       async listSnapshots() {
         return [
@@ -326,10 +391,18 @@ describe("project_changes runner — version / corruption", () => {
           { snapshotId: "s2", isLatest: true } as never,
         ];
       },
-      async readSnapshot() { throw new Error("/abs/path/to/corrupt/snapshot.json is corrupt"); },
-      async readEvidence() { throw new Error("unused"); },
-      async commitSnapshotBundle() { throw new Error("read-only"); },
-      async inspect() { return { exists: true, versionState: "supported" }; },
+      async readSnapshot() {
+        throw new Error("/abs/path/to/corrupt/snapshot.json is corrupt");
+      },
+      async readEvidence() {
+        throw new Error("unused");
+      },
+      async commitSnapshotBundle() {
+        throw new Error("read-only");
+      },
+      async inspect() {
+        return { exists: true, versionState: "supported" };
+      },
     };
     const exec = await runProjectChanges(
       { projectId: "p" },
@@ -338,7 +411,9 @@ describe("project_changes runner — version / corruption", () => {
     expect(exec.ok).toBe(false);
     if (!exec.ok) {
       expect(exec.message).not.toContain("/abs/path");
-      expect(["project_changes_read_failed", "project_changes_compare_failed"]).toContain(exec.code);
+      expect(["project_changes_read_failed", "project_changes_compare_failed"]).toContain(
+        exec.code,
+      );
     }
   });
 
@@ -346,10 +421,11 @@ describe("project_changes runner — version / corruption", () => {
     // Plant a real store-format-1 store; the runner must stop at migrationRequired
     // and never read a snapshot, migrate, or write.
     const dataRoot = tempDataRoot();
-    const layout = resolveStoreLayout(dataRoot);
     const projectKey = deriveProjectKey("v1-proj");
     const projectDir = join(dataRoot, "project-brain", "v1", "projects", projectKey);
-    const store = createNodeProjectMemoryStore({ dataRootOverride: dataRoot }) as unknown as ProjectChangesStore;
+    const store = createNodeProjectMemoryStore({
+      dataRootOverride: dataRoot,
+    }) as unknown as ProjectChangesStore;
     // Write a v1 manifest + one snapshot via the building blocks.
     const { mkdirSync, writeFileSync } = await import("node:fs");
     mkdirSync(join(projectDir, "snapshots"), { recursive: true });

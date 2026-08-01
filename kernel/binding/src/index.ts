@@ -39,8 +39,7 @@ export type KernelApi = {
 };
 
 export type KernelBindingStatus =
-  | { status: "configured"; mode: "injected" | "wasm" }
-  | { status: "unavailable"; reason: string };
+  { status: "configured"; mode: "injected" | "wasm" } | { status: "unavailable"; reason: string };
 
 type MarkedKernelApi = KernelApi & BindingMarkers;
 
@@ -48,9 +47,7 @@ type MarkedKernelApi = KernelApi & BindingMarkers;
  * Deterministic fail-closed Kernel boundary used until a real binding is
  * injected. Every operation refuses instead of guessing.
  */
-export function createUnavailableKernelApi(
-  reason = "kernel_binding_not_configured",
-): KernelApi {
+export function createUnavailableKernelApi(reason = "kernel_binding_not_configured"): KernelApi {
   const api: MarkedKernelApi = {
     version(): string {
       return "unavailable";

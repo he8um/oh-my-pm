@@ -4,7 +4,15 @@
 // deprecated compatibility alias). It never touches project documents, shell profiles,
 // MCP client configs, the network, environment variables, or package source.
 
-import { chmodSync, existsSync, lstatSync, mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -244,7 +252,12 @@ export function applyLocalInstallPlan(plan) {
     return { ok: false, code: "plan_not_applicable", installed: [], reasons: [...plan.reasons] };
   }
   if (plan.apply !== true) {
-    return { ok: false, code: "apply_not_requested", installed: [], reasons: ["apply_not_requested"] };
+    return {
+      ok: false,
+      code: "apply_not_requested",
+      installed: [],
+      reasons: ["apply_not_requested"],
+    };
   }
 
   // Re-check shim existence at apply time so a concurrently created shim is

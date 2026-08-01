@@ -15,18 +15,12 @@
               "category": "added",
               "itemKind": "task",
               "itemId": "task_a",
-              "evidenceRefs": [
-                "ev_1",
-                "ev_2"
-              ],
+              "evidenceRefs": ["ev_1", "ev_2"],
               "currentValue": {
                 "kind": "task",
                 "id": "task_a",
                 "title": "Some title",
-                "evidenceRefs": [
-                  "ev_1",
-                  "ev_2"
-                ],
+                "evidenceRefs": ["ev_1", "ev_2"],
                 "status": "open",
                 "severity": "high",
                 "owner": "someone",
@@ -38,18 +32,12 @@
               "category": "added",
               "itemKind": "risk",
               "itemId": "risk_a",
-              "evidenceRefs": [
-                "ev_1",
-                "ev_2"
-              ],
+              "evidenceRefs": ["ev_1", "ev_2"],
               "currentValue": {
                 "kind": "risk",
                 "id": "risk_a",
                 "title": "Some title",
-                "evidenceRefs": [
-                  "ev_1",
-                  "ev_2"
-                ],
+                "evidenceRefs": ["ev_1", "ev_2"],
                 "status": "open",
                 "severity": "high",
                 "owner": "someone",
@@ -75,18 +63,12 @@
               "category": "resolved",
               "itemKind": "task",
               "itemId": "task_a",
-              "evidenceRefs": [
-                "ev_1",
-                "ev_2"
-              ],
+              "evidenceRefs": ["ev_1", "ev_2"],
               "currentValue": {
                 "kind": "task",
                 "id": "task_a",
                 "title": "Some title",
-                "evidenceRefs": [
-                  "ev_1",
-                  "ev_2"
-                ],
+                "evidenceRefs": ["ev_1", "ev_2"],
                 "status": "open",
                 "severity": "high",
                 "owner": "someone",
@@ -112,18 +94,12 @@
               "category": "stale",
               "itemKind": "risk",
               "itemId": "risk_a",
-              "evidenceRefs": [
-                "ev_1",
-                "ev_2"
-              ],
+              "evidenceRefs": ["ev_1", "ev_2"],
               "currentValue": {
                 "kind": "risk",
                 "id": "risk_a",
                 "title": "Some title",
-                "evidenceRefs": [
-                  "ev_1",
-                  "ev_2"
-                ],
+                "evidenceRefs": ["ev_1", "ev_2"],
                 "status": "open",
                 "severity": "high",
                 "owner": "someone",
@@ -135,18 +111,12 @@
               "category": "added",
               "itemKind": "blocker",
               "itemId": "blk_a",
-              "evidenceRefs": [
-                "ev_1",
-                "ev_2"
-              ],
+              "evidenceRefs": ["ev_1", "ev_2"],
               "currentValue": {
                 "kind": "blocker",
                 "id": "blk_a",
                 "title": "Some title",
-                "evidenceRefs": [
-                  "ev_1",
-                  "ev_2"
-                ],
+                "evidenceRefs": ["ev_1", "ev_2"],
                 "status": "open",
                 "severity": "high",
                 "owner": "someone",

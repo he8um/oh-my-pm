@@ -180,15 +180,30 @@ describe("loadLocalProjectConfig", () => {
       [JSON.stringify({ version: 1, documents: 5 }), "project_config_documents_invalid"],
       [JSON.stringify({ version: 1, documents: { nope: 1 } }), "project_config_documents_invalid"],
       [JSON.stringify({ version: 1, documents: { include: 5 } }), "project_config_include_invalid"],
-      [JSON.stringify({ version: 1, documents: { include: [] } }), "project_config_include_invalid"],
-      [JSON.stringify({ version: 1, documents: { include: [5] } }), "project_config_pattern_invalid"],
-      [JSON.stringify({ version: 1, documents: { include: ["/abs"] } }), "project_config_pattern_invalid"],
+      [
+        JSON.stringify({ version: 1, documents: { include: [] } }),
+        "project_config_include_invalid",
+      ],
+      [
+        JSON.stringify({ version: 1, documents: { include: [5] } }),
+        "project_config_pattern_invalid",
+      ],
+      [
+        JSON.stringify({ version: 1, documents: { include: ["/abs"] } }),
+        "project_config_pattern_invalid",
+      ],
       [JSON.stringify({ version: 1, documents: { exclude: 5 } }), "project_config_exclude_invalid"],
       [JSON.stringify({ version: 1, documents: { maxFiles: 0 } }), "project_config_limit_invalid"],
       [JSON.stringify({ version: 1, documents: { maxFiles: -1 } }), "project_config_limit_invalid"],
-      [JSON.stringify({ version: 1, documents: { maxFiles: 1.5 } }), "project_config_limit_invalid"],
       [
-        JSON.stringify({ version: 1, documents: { maxFiles: DEFAULT_PROJECT_DOCUMENT_MAX_FILES + 1 } }),
+        JSON.stringify({ version: 1, documents: { maxFiles: 1.5 } }),
+        "project_config_limit_invalid",
+      ],
+      [
+        JSON.stringify({
+          version: 1,
+          documents: { maxFiles: DEFAULT_PROJECT_DOCUMENT_MAX_FILES + 1 },
+        }),
         "project_config_limit_exceeds_default",
       ],
     ];
@@ -201,7 +216,10 @@ describe("loadLocalProjectConfig", () => {
 
   it("dedupes patterns in first-occurrence order", () => {
     const root = makeRoot();
-    writeConfig(root, JSON.stringify({ version: 1, documents: { include: ["a.md", "b.md", "a.md"] } }));
+    writeConfig(
+      root,
+      JSON.stringify({ version: 1, documents: { include: ["a.md", "b.md", "a.md"] } }),
+    );
     const result = loadLocalProjectConfig(root);
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.config.include).toEqual(["a.md", "b.md"]);

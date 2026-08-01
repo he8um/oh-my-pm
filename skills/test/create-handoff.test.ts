@@ -284,7 +284,10 @@ describe("createHandoff with GitHub item comments", () => {
   });
 
   it("comments do not change the project title or Summary", () => {
-    const withComment = handoffOf({ items: [comment({ body: "Blocker: x" })], title: "My Project" });
+    const withComment = handoffOf({
+      items: [comment({ body: "Blocker: x" })],
+      title: "My Project",
+    });
     expect(withComment.title).toBe("My Project");
     const summary = withComment.sections.find((s) => s.heading === "Summary")!;
     expect(summary.items).toEqual(["No project summary found."]);
@@ -324,7 +327,8 @@ describe("createHandoff with GitHub reviews and review comments", () => {
     ...over,
   });
 
-  const section = (r: HandoffResult, heading: string) => r.sections.find((s) => s.heading === heading)!;
+  const section = (r: HandoffResult, heading: string) =>
+    r.sections.find((s) => s.heading === heading)!;
 
   it("records an approval as a Decision with the author", () => {
     const r = handoffOf({ items: [review({ reviewState: "approved" })] });

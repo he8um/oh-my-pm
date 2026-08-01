@@ -1,18 +1,19 @@
 import { describe, expect, it } from "vitest";
-import type {
-  ProviderDoctorReport,
-  ProviderStatusReport,
-} from "@oh-my-pm/application";
-import {
-  formatProviderDoctorReport,
-  formatProviderStatusReport,
-} from "../src/provider-format.js";
+import type { ProviderDoctorReport, ProviderStatusReport } from "@oh-my-pm/application";
+import { formatProviderDoctorReport, formatProviderStatusReport } from "../src/provider-format.js";
 
 const statusReport: ProviderStatusReport = {
   schemaVersion: 1,
   config: { source: "defaults", exists: false, displayPath: "defaults", valid: true },
   providers: [
-    { id: "local", enabled: true, readOnly: true, network: "none", state: "ready", token: "not-applicable" },
+    {
+      id: "local",
+      enabled: true,
+      readOnly: true,
+      network: "none",
+      state: "ready",
+      token: "not-applicable",
+    },
     {
       id: "github",
       enabled: true,
@@ -31,8 +32,16 @@ const doctorReport: ProviderDoctorReport = {
   networkAttempted: false,
   checks: [
     { id: "config.schema", status: "ok", message: "provider configuration is valid" },
-    { id: "provider.github.origin", status: "ok", message: "fixed origin is https://api.github.com" },
-    { id: "provider.github.token", status: "info", message: "token is absent; public repositories may still work" },
+    {
+      id: "provider.github.origin",
+      status: "ok",
+      message: "fixed origin is https://api.github.com",
+    },
+    {
+      id: "provider.github.token",
+      status: "info",
+      message: "token is absent; public repositories may still work",
+    },
   ],
   github: { authentication: "unauthenticated", access: "not-checked" },
 };
@@ -86,7 +95,9 @@ describe("formatProviderDoctorReport", () => {
     expect(out).toContain("OH MY PM provider doctor: ok");
     expect(out).toContain("network attempted: no");
     expect(out).toContain("- [ok] config.schema — provider configuration is valid");
-    expect(out).toContain("- [info] provider.github.token — token is absent; public repositories may still work");
+    expect(out).toContain(
+      "- [info] provider.github.token — token is absent; public repositories may still work",
+    );
     expect(out.endsWith("\n")).toBe(true);
   });
 

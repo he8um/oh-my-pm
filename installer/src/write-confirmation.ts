@@ -105,8 +105,6 @@ export function createInstallerWriteConfirmationChecklistDryRun(
   return {
     ok: false,
     checklist,
-    warnings: checklist.reasons.map((reason) =>
-      installerWarning(OMP_I_INVALID_PACKAGE, reason),
-    ),
+    warnings: checklist.reasons.map((reason) => installerWarning(OMP_I_INVALID_PACKAGE, reason)),
   };
 }

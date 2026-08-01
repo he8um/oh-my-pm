@@ -61,7 +61,8 @@ export function resolveDataRoot(inputs: DataLocationInputs): string {
   }
 
   if (platform === "darwin") {
-    if (usable(homedir)) return joinApp(`${homedir.replace(/\/+$/, "")}/Library/Application Support`, platform);
+    if (usable(homedir))
+      return joinApp(`${homedir.replace(/\/+$/, "")}/Library/Application Support`, platform);
     throw invalidInput(
       "no home directory is available to resolve the data root",
       "pass an explicit data-root override",

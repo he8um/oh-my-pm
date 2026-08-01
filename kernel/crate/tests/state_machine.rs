@@ -13,7 +13,10 @@ fn all_allowed_edges_are_accepted() {
         (ReleaseState::Published, ReleaseState::Frozen),
     ];
     for (from, to) in edges {
-        assert!(can_transition(&from, &to), "{from:?} -> {to:?} should be allowed");
+        assert!(
+            can_transition(&from, &to),
+            "{from:?} -> {to:?} should be allowed"
+        );
     }
 }
 

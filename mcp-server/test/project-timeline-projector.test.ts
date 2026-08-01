@@ -320,11 +320,7 @@ describe("project_timeline projector — Markdown", () => {
 
   it("escapes a cell so a table row can never break or inject", () => {
     const markdown = renderProjectTimelineMarkdown(
-      projectTimelineResult(
-        timeline([event({ title: "a | b \\ c" })]),
-        PROJECT,
-        20,
-      ),
+      projectTimelineResult(timeline([event({ title: "a | b \\ c" })]), PROJECT, 20),
     );
     expect(markdown).toContain("a \\| b \\\\ c");
   });

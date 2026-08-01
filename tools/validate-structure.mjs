@@ -55,6 +55,9 @@ const ALLOWED_TOP_FILES = [
   "command-surface.json",
   "CODE_OF_CONDUCT.md",
   "CONTRIBUTING.md",
+  // v0.5.2: the active ESLint policy (flat config) and the lint-only
+  // TypeScript project that gives tests a program for type-aware rules.
+  "eslint.config.mjs",
   "LICENSE",
   "README.md",
   "ROADMAP.md",
@@ -65,6 +68,7 @@ const ALLOWED_TOP_FILES = [
   "pnpm-workspace.yaml",
   "rust-toolchain.toml",
   "tsconfig.base.json",
+  "tsconfig.eslint.json",
   "version.json",
   // v0.5.2: test topology. Separates the parallel unit project from the
   // serialized release/archive/install project so those suites cannot race
@@ -790,12 +794,16 @@ if (existsSync(PROJECT_BRAIN_GENERATED.ts) && existsSync(PROJECT_BRAIN_GENERATED
     // Every primary contract exists in both languages and carries schemaVersion.
     if (!pbTs.includes(`export interface ${name} {`)) {
       err(`project brain TS contract missing: ${name}`);
-    } else if (!/schemaVersion: number;/.test(pbTs.split(`export interface ${name} {`)[1].split("}")[0])) {
+    } else if (
+      !/schemaVersion: number;/.test(pbTs.split(`export interface ${name} {`)[1].split("}")[0])
+    ) {
       err(`project brain TS contract ${name} must carry schemaVersion`);
     }
     if (!pbRust.includes(`pub struct ${name} {`)) {
       err(`project brain Rust contract missing: ${name}`);
-    } else if (!/pub schema_version: i64,/.test(pbRust.split(`pub struct ${name} {`)[1].split("}")[0])) {
+    } else if (
+      !/pub schema_version: i64,/.test(pbRust.split(`pub struct ${name} {`)[1].split("}")[0])
+    ) {
       err(`project brain Rust contract ${name} must carry schemaVersion`);
     }
   }
@@ -926,11 +934,7 @@ if (existsSync("mcp-server/src/server.ts")) {
       err(`mcp-server/src/server.ts must register the tool "${name}"`);
     }
   }
-  const approved = new Set([
-    ...MCP_TEN_TOOLS,
-    MCP_PHASE5_READONLY_TOOL,
-    MCP_V04_READONLY_TOOL,
-  ]);
+  const approved = new Set([...MCP_TEN_TOOLS, MCP_PHASE5_READONLY_TOOL, MCP_V04_READONLY_TOOL]);
   const toolLiterals = new Set(
     [...server.matchAll(/"((?:project|github)_[a-z_]+)"/g)].map((m) => m[1]),
   );
@@ -1060,7 +1064,12 @@ if (existsSync(PROJECT_MEMORY_DIR)) {
     }
     // The adapter must introduce no dependency of any kind — it is Node built-ins
     // only. An empty object is allowed; any key is not.
-    for (const field of ["dependencies", "peerDependencies", "optionalDependencies", "devDependencies"]) {
+    for (const field of [
+      "dependencies",
+      "peerDependencies",
+      "optionalDependencies",
+      "devDependencies",
+    ]) {
       const deps = pkgJson[field];
       if (deps && typeof deps === "object" && Object.keys(deps).length > 0) {
         err(`project-memory/package.json must declare no ${field}`);

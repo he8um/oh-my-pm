@@ -131,9 +131,7 @@ describe("project_timeline — conditional registration", () => {
   });
 
   it("is the eleventh tool when only the timeline executor is supplied", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }));
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual([...TEN_TOOLS, "project_timeline"]);
   });
@@ -168,9 +166,7 @@ describe("project_timeline — conditional registration", () => {
   });
 
   it("declares the read-only annotation set", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }));
     const { tools } = await client.listTools();
     const timelineTool = tools.find((t) => t.name === "project_timeline")!;
     expect(timelineTool.annotations).toMatchObject({
@@ -184,9 +180,7 @@ describe("project_timeline — conditional registration", () => {
 
 describe("project_timeline — input schema", () => {
   it("accepts only the five documented inputs", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }));
     const { tools } = await client.listTools();
     const schema = tools.find((t) => t.name === "project_timeline")!.inputSchema as {
       properties?: Record<string, unknown>;
@@ -199,9 +193,7 @@ describe("project_timeline — input schema", () => {
   });
 
   it("declares NO path, dataDir, token, apply, migrate, or capture INPUT field", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }));
     const { tools } = await client.listTools();
     const tool = tools.find((t) => t.name === "project_timeline")!;
     // Scan the input SCHEMA only. The prose description legitimately says what
@@ -235,9 +227,7 @@ describe("project_timeline — input schema", () => {
   });
 
   it("rejects a limit above 100 at the schema boundary", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }));
     const result = await client.callTool({
       name: "project_timeline",
       arguments: { projectId: "p", limit: 101 },
@@ -246,9 +236,7 @@ describe("project_timeline — input schema", () => {
   });
 
   it("rejects a negative beforeSequence at the schema boundary", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }));
     const result = await client.callTool({
       name: "project_timeline",
       arguments: { projectId: "p", beforeSequence: -1 },
@@ -257,9 +245,7 @@ describe("project_timeline — input schema", () => {
   });
 
   it("rejects a category or kind outside the existing taxonomy", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }));
     for (const args of [
       { projectId: "p", category: "invented" },
       { projectId: "p", kind: "epic" },
@@ -270,9 +256,7 @@ describe("project_timeline — input schema", () => {
   });
 
   it("requires a project id", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }));
     const result = await client.callTool({ name: "project_timeline", arguments: {} });
     expect(result.isError).toBe(true);
   });
@@ -280,9 +264,7 @@ describe("project_timeline — input schema", () => {
 
 describe("project_timeline — result projection", () => {
   it("returns the strict structured result and deterministic Markdown", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }));
     const result = await client.callTool({
       name: "project_timeline",
       arguments: { projectId: "p" },
@@ -412,9 +394,7 @@ describe("project_timeline — result projection", () => {
   });
 
   it("carries no forbidden field in a successful result", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectTimeline: stubExecutor() }));
     const result = await client.callTool({
       name: "project_timeline",
       arguments: { projectId: "p" },

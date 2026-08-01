@@ -318,7 +318,11 @@ describe("project_timeline runner — filters and pagination", () => {
     let before: number | undefined;
     for (let guard = 0; guard < 10; guard += 1) {
       const page = await runProjectTimeline(
-        { projectId: PROJECT_ID, limit: 1, ...(before !== undefined ? { beforeSequence: before } : {}) },
+        {
+          projectId: PROJECT_ID,
+          limit: 1,
+          ...(before !== undefined ? { beforeSequence: before } : {}),
+        },
         { storeFactory: () => store, clock: CLOCK },
       );
       expect(page.ok).toBe(true);
@@ -383,10 +387,10 @@ describe("project_timeline runner — controlled input failures", () => {
   it.each([0, 101, -1, 1.5, Number.NaN, Number.MAX_VALUE])(
     "rejects the out-of-range limit %s",
     async (limit) => {
-      const exec = await runProjectTimeline(
-        { projectId: PROJECT_ID, limit } as never,
-        { storeFactory: store, clock: CLOCK },
-      );
+      const exec = await runProjectTimeline({ projectId: PROJECT_ID, limit } as never, {
+        storeFactory: store,
+        clock: CLOCK,
+      });
       expect(exec.ok).toBe(false);
       if (!exec.ok) expect(exec.code).toBe("project_timeline_invalid_input");
     },

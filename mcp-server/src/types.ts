@@ -1,17 +1,10 @@
 import type { JsonValue, RuntimeResponse } from "@oh-my-pm/contracts";
-import type {
-  GitHubSearchKind,
-  GitHubSourceMode,
-  GitHubSourceState,
-} from "@oh-my-pm/providers";
+import type { GitHubSearchKind, GitHubSourceMode, GitHubSourceState } from "@oh-my-pm/providers";
 
 export type McpProjectOperation = "brief" | "risks" | "next" | "handoff";
 
 export type McpProjectToolName =
-  | "project_brief"
-  | "project_risks"
-  | "project_next"
-  | "project_handoff";
+  "project_brief" | "project_risks" | "project_next" | "project_handoff";
 
 export type McpProjectDocumentSummary = {
   filesScanned: number;

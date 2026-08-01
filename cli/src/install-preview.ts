@@ -661,7 +661,8 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     reasons: [...writeExecutionPlanReport.plan.reasons],
   };
   const writeExecutionPlanWarnings =
-    writeExecutionPlanReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+    writeExecutionPlanReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ??
+    [];
 
   // Summarize the pre-write confirmation checklist over the decision report,
   // write capability, and write execution plan. Confirmation-only — the raw
@@ -704,7 +705,8 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     reasons: [...writeAdapterContractReport.report.reasons],
   };
   const writeAdapterContractWarnings =
-    writeAdapterContractReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+    writeAdapterContractReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ??
+    [];
 
   // Aggregate every write readiness layer into one non-mutating controlled
   // dry-run envelope. Aggregation-only — the raw pass-through layers stay out
@@ -730,7 +732,8 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     reasons: [...controlledSummary.reasons],
   };
   const controlledWriteDryRunWarnings =
-    controlledWriteDryRunReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+    controlledWriteDryRunReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ??
+    [];
 
   // Aggregate local preview readiness into one release-readiness report.
   // Summary-only — the raw sections and markdown stay out of the summary, no
@@ -788,7 +791,8 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     reasons: [...v0ReleaseCandidateReport.checklist.reasons],
   };
   const v0ReleaseCandidateWarnings =
-    v0ReleaseCandidateReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+    v0ReleaseCandidateReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ??
+    [];
 
   // Render the public v0 release notes draft from the v0 checklist and release
   // readiness report. Documentation-only — the raw sections and markdown stay
@@ -806,7 +810,8 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     reasons: [...publicV0ReleaseNotesReport.draft.reasons],
   };
   const publicV0ReleaseNotesWarnings =
-    publicV0ReleaseNotesReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+    publicV0ReleaseNotesReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ??
+    [];
 
   // Build the guarded release artifact plan from the local dry-run reports.
   // Planning-only — creation stays disabled, the raw items stay out of the
@@ -833,7 +838,9 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     reasons: [...guardedReleaseArtifactPlanReport.plan.reasons],
   };
   const guardedReleaseArtifactPlanWarnings =
-    guardedReleaseArtifactPlanReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+    guardedReleaseArtifactPlanReport.warnings?.map(
+      (warning) => `${warning.code}: ${warning.message}`,
+    ) ?? [];
 
   // Aggregate the guarded release artifact plan and the package assembly,
   // archive, metadata, integrity, and channel dry-runs into one local artifact
@@ -862,7 +869,9 @@ export function runInstallerPreview(root: string): InstallerPreviewResult {
     reasons: [...guardedLocalArtifactAssemblySummary.reasons],
   };
   const guardedLocalArtifactAssemblyWarnings =
-    guardedLocalArtifactAssemblyReport.warnings?.map((warning) => `${warning.code}: ${warning.message}`) ?? [];
+    guardedLocalArtifactAssemblyReport.warnings?.map(
+      (warning) => `${warning.code}: ${warning.message}`,
+    ) ?? [];
 
   // Evaluate whether artifact creation permission would be granted under the
   // default dry-run-only policy without approval. Evaluation-only — permission
@@ -1292,9 +1301,7 @@ export function formatInstallerPreview(
       ...(result.decision === undefined
         ? {}
         : { decision: { ...result.decision, markdown: undefined } }),
-      ...(result.audit === undefined
-        ? {}
-        : { audit: { ...result.audit, markdown: undefined } }),
+      ...(result.audit === undefined ? {} : { audit: { ...result.audit, markdown: undefined } }),
     };
     return `${JSON.stringify(jsonResult, null, 2)}\n`;
   }

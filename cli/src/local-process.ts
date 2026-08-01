@@ -8,15 +8,9 @@ import type { MemoryProcessOptions, ProviderDiagnosticsDeps } from "@oh-my-pm/ap
 import {
   createNodeProviderDiagnosticsDeps,
   loadConfiguredMarkdownProjectDocuments,
-  loadProviderConfig,
 } from "@oh-my-pm/application/node";
-import type { ProviderConfigLoadResult } from "@oh-my-pm/application/node";
 import { createNodeWasmKernelApi } from "@oh-my-pm/kernel";
-import {
-  createLocalProvider,
-  createProviderRegistry,
-  defaultProviderConfig,
-} from "@oh-my-pm/providers";
+import { createLocalProvider, createProviderRegistry } from "@oh-my-pm/providers";
 import type {
   GitHubHttpTransport,
   LocalProviderItemInput,
@@ -32,10 +26,7 @@ import { runMcpConfigCommand } from "./mcp-config.js";
 import { installedCommandExists } from "./mcp-config-resolve.js";
 import { formatMemoryOutcome, memoryOutcomeExitCode } from "./memory-format.js";
 import { parseCliArgs } from "./parser.js";
-import {
-  formatProviderDoctorReport,
-  formatProviderStatusReport,
-} from "./provider-format.js";
+import { formatProviderDoctorReport, formatProviderStatusReport } from "./provider-format.js";
 
 export type LocalCliProcessResult = {
   exitCode: number;
@@ -133,16 +124,6 @@ const SEED_ITEMS: LocalProviderItemInput[] = [
 
 const PROJECT_COMMANDS: ReadonlySet<string> = new Set(["brief", "risks", "next", "handoff"]);
 
-// v0.5.2: the GitHub token boundary moved to @oh-my-pm/application/node, so this
-// adapter no longer reads the environment for a token at all. The ambient
-// environment is still forwarded — never inspected here — to the provider
-// configuration loader used by the `providers` diagnostics commands. All
-// local-only commands never touch the environment.
-function ambientEnv(): Readonly<Record<string, string | undefined>> {
-  const proc = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
-  return proc?.env ?? {};
-}
-
 type NodeProcess = { platform?: NodeJS.Platform; cwd?: () => string; argv?: string[] };
 function ambientProcess(): NodeProcess {
   return (globalThis as { process?: NodeProcess }).process ?? {};
@@ -158,38 +139,6 @@ function ambientEntryScriptPath(): string {
 function ambientPlatform(): NodeJS.Platform {
   return ambientProcess().platform ?? "linux";
 }
-function ambientCwd(): string {
-  const proc = ambientProcess();
-  return typeof proc.cwd === "function" ? proc.cwd() : "/";
-}
-
-/**
- * Resolve provider configuration for the github/providers commands. A directly
- * injected config wins (offline unit tests). Otherwise the read-only loader
- * resolves the explicit/env/OS-standard location. Never reads a token.
- */
-function resolveProviderConfig(
-  explicitPath: string | undefined,
-  options: LocalCliProcessOptions | undefined,
-): { config: ResolvedProviderConfig; load: ProviderConfigLoadResult | null } {
-  if (options?.providerConfig !== undefined) {
-    return { config: options.providerConfig, load: null };
-  }
-  const load = loadProviderConfig({
-    ...(explicitPath !== undefined ? { explicitPath } : {}),
-    env: options?.env ?? ambientEnv(),
-    platform: options?.platform ?? ambientPlatform(),
-    cwd: options?.cwd ?? ambientCwd(),
-  });
-  return { config: load.ok ? load.config : defaultConfigForFailure(), load };
-}
-
-// A load failure still needs a config object for downstream reporting; the
-// defaults are safe because a failed load never proceeds to the network.
-function defaultConfigForFailure(): ResolvedProviderConfig {
-  return defaultProviderConfig();
-}
-
 type ParsedProviders = Extract<ReturnType<typeof parseCliArgs>, { command: "providers" }>;
 
 /**
@@ -212,9 +161,7 @@ function providerDiagnosticsDeps(
     ...(options?.platform !== undefined ? { platform: options.platform } : {}),
     ...(options?.cwd !== undefined ? { cwd: options.cwd } : {}),
     ...(options?.githubToken !== undefined ? { githubToken: options.githubToken } : {}),
-    ...(options?.githubTransport !== undefined
-      ? { githubTransport: options.githubTransport }
-      : {}),
+    ...(options?.githubTransport !== undefined ? { githubTransport: options.githubTransport } : {}),
   });
 }
 

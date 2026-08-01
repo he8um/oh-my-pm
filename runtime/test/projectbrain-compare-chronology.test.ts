@@ -70,7 +70,7 @@ function lexicalInventoryPort(
       if (manifest === null) return null;
       return { ...manifest, snapshotIds: [...manifest.snapshotIds].sort() };
     },
-    async listSnapshots(projectId: string): Promise<MemorySnapshotSummary[]> {
+    async listSnapshots(_projectId: string): Promise<MemorySnapshotSummary[]> {
       // Authoritative capture order, oldest first (as the real store returns).
       const latest = captureOrder[captureOrder.length - 1];
       return captureOrder.map((id) => ({ snapshotId: id, isLatest: id === latest }));

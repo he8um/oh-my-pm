@@ -5,10 +5,7 @@ import { z } from "zod";
 import { executeMcpGitHubTool, githubOperationForToolName } from "./github-tool-runner.js";
 import { loadOptionalProjectChangesExecutor } from "./project-changes-loader.js";
 import type { LoadProjectChangesExecutorOptions } from "./project-changes-loader.js";
-import {
-  findForbiddenMarker,
-  renderProjectChangesMarkdown,
-} from "./project-changes-projector.js";
+import { findForbiddenMarker, renderProjectChangesMarkdown } from "./project-changes-projector.js";
 import type {
   McpProjectChangesExecutor,
   McpProjectChangesResult,
@@ -76,13 +73,7 @@ export type McpSignalSource =
   | "generic";
 
 export type McpSignalItemType =
-  | "task"
-  | "document"
-  | "issue"
-  | "pullRequest"
-  | "record"
-  | "note"
-  | "unknown";
+  "task" | "document" | "issue" | "pullRequest" | "record" | "note" | "unknown";
 
 export type McpSignalMetadata = {
   source?: McpSignalSource;
@@ -190,7 +181,14 @@ const briefOutputShape = {
 // includes body text, labels, provider responses, or transport metadata.
 const signalMetadataShape = {
   source: z
-    .enum(["structured", "markdown", "github-repository", "github-issue", "github-pull-request", "generic"])
+    .enum([
+      "structured",
+      "markdown",
+      "github-repository",
+      "github-issue",
+      "github-pull-request",
+      "generic",
+    ])
     .optional(),
   sourceType: z
     .enum(["task", "document", "issue", "pullRequest", "record", "note", "unknown"])
@@ -251,9 +249,7 @@ const handoffOutputShape = {
   result: z
     .object({
       title: z.string(),
-      sections: z.array(
-        z.object({ heading: z.string(), items: z.array(z.string()) }).strict(),
-      ),
+      sections: z.array(z.object({ heading: z.string(), items: z.array(z.string()) }).strict()),
       generatedAt: z.string(),
     })
     .strict(),
@@ -286,9 +282,7 @@ function asStringArray(value: unknown): string[] | null {
   return result;
 }
 
-export function projectBriefResult(
-  execution: McpProjectToolSuccess,
-): McpProjectBriefResult | null {
+export function projectBriefResult(execution: McpProjectToolSuccess): McpProjectBriefResult | null {
   const output = execution.output;
   if (!isRecord(output)) return null;
   const { title, summary, counts, highlights, generatedAt } = output;
@@ -357,9 +351,7 @@ function signalMetadata(raw: Record<string, unknown>): McpSignalMetadata {
   return meta;
 }
 
-export function projectRisksResult(
-  execution: McpProjectToolSuccess,
-): McpProjectRisksResult | null {
+export function projectRisksResult(execution: McpProjectToolSuccess): McpProjectRisksResult | null {
   const output = execution.output;
   if (!isRecord(output) || !Array.isArray(output["risks"])) return null;
   const risks: McpProjectRisksOutput["risks"] = [];
@@ -380,9 +372,7 @@ export function projectRisksResult(
   };
 }
 
-export function projectNextResult(
-  execution: McpProjectToolSuccess,
-): McpProjectNextResult | null {
+export function projectNextResult(execution: McpProjectToolSuccess): McpProjectNextResult | null {
   const output = execution.output;
   if (!isRecord(output) || !Array.isArray(output["tasks"])) return null;
   const tasks: McpProjectNextOutput["tasks"] = [];
@@ -392,7 +382,12 @@ export function projectNextResult(
     if (typeof id !== "string" || typeof title !== "string" || typeof reason !== "string") {
       return null;
     }
-    const task: McpProjectNextOutput["tasks"][number] = { id, title, reason, ...signalMetadata(raw) };
+    const task: McpProjectNextOutput["tasks"][number] = {
+      id,
+      title,
+      reason,
+      ...signalMetadata(raw),
+    };
     if (priority === "low" || priority === "medium" || priority === "high") {
       task.priority = priority;
     }
@@ -443,9 +438,10 @@ export type McpGitHubToolExecutor = (
 
 export type McpProviderStatusExecutor = () => ProviderStatusReport;
 
-export type McpGitHubProviderDiagnosticsExecutor = (
-  input: { repository?: string; confirmNetwork?: boolean },
-) => Promise<ProviderDoctorReport>;
+export type McpGitHubProviderDiagnosticsExecutor = (input: {
+  repository?: string;
+  confirmNetwork?: boolean;
+}) => Promise<ProviderDoctorReport>;
 
 export type CreateOhMyPmMcpServerOptions = {
   executeProjectTool?: McpProjectToolExecutor;
@@ -701,7 +697,9 @@ const providerStatusOutputShape = {
           .object({
             defaultSource: z.enum(["overview", "repository", "issues", "pull-requests"]),
             defaultState: z.enum(["open", "closed", "all"]),
-            modes: z.array(z.enum(["overview", "repository", "issues", "pull-requests", "item", "search"])),
+            modes: z.array(
+              z.enum(["overview", "repository", "issues", "pull-requests", "item", "search"]),
+            ),
             states: z.array(z.enum(["open", "closed", "all"])),
             searchKinds: z.array(z.enum(["all", "issues", "pull-requests"])),
             singleItemFetch: z.literal(true),
@@ -752,7 +750,9 @@ const githubDiagnosticsInputShape = {
     .trim()
     .min(1)
     .optional()
-    .describe("Target GitHub repository in owner/repository form; falls back to the configured default"),
+    .describe(
+      "Target GitHub repository in owner/repository form; falls back to the configured default",
+    ),
   confirmNetwork: z
     .boolean()
     .default(false)
@@ -989,13 +989,11 @@ const projectTimelineOutputSchema = z.object(projectTimelineOutputShape).strict(
 
 const PROJECT_TIMELINE_OUTPUT_INVALID_TEXT =
   "project_timeline_output_invalid: result did not match the safe public shape";
-const PROJECT_TIMELINE_FAILED_TEXT =
-  "project_timeline_failed: unexpected project timeline failure";
+const PROJECT_TIMELINE_FAILED_TEXT = "project_timeline_failed: unexpected project timeline failure";
 
 const PROJECT_CHANGES_OUTPUT_INVALID_TEXT =
   "project_changes_output_invalid: result did not match the safe public shape";
-const PROJECT_CHANGES_FAILED_TEXT =
-  "project_changes_failed: unexpected project changes failure";
+const PROJECT_CHANGES_FAILED_TEXT = "project_changes_failed: unexpected project changes failure";
 
 const PROJECT_OUTPUT_INVALID_TEXT =
   "project_output_invalid: runtime output did not match the expected tool shape";

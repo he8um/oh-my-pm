@@ -150,7 +150,13 @@ function windowsShimContent(relativeTarget) {
  * Either way the resulting command and args are passed to execFileSync with no
  * shell, so paths containing spaces are safe argument-array values.
  */
-export function createInstalledCommandInvocation({ platform, nodeExecutable, shimPath, entrypoint, args }) {
+export function createInstalledCommandInvocation({
+  platform,
+  nodeExecutable,
+  shimPath,
+  entrypoint,
+  args,
+}) {
   if (platform === "win32") {
     return { command: nodeExecutable, args: [entrypoint, ...args] };
   }
@@ -188,7 +194,8 @@ async function run(prefix, expectedVersion) {
   // Exact schema.
   if (manifest.schemaVersion !== 1) return fail("install.json schemaVersion is not 1");
   if (manifest.product !== "oh-my-pm") return fail("install.json product is unexpected");
-  if (!isCanonicalSemver(manifest.version)) return fail("install.json version is not canonical SemVer");
+  if (!isCanonicalSemver(manifest.version))
+    return fail("install.json version is not canonical SemVer");
   const version = manifest.version;
   if (expectedVersion !== undefined && version !== expectedVersion) {
     return fail(`install.json version ${version} != expected ${expectedVersion}`);
@@ -236,7 +243,13 @@ async function run(prefix, expectedVersion) {
 
   // Forbidden internal fields must not leak into the manifest.
   const manifestText = readFileSync(manifestPath, "utf8");
-  for (const forbidden of ["timestamp", "hostname", "username", "runtimeResponse", "providerResponses"]) {
+  for (const forbidden of [
+    "timestamp",
+    "hostname",
+    "username",
+    "runtimeResponse",
+    "providerResponses",
+  ]) {
     if (manifestText.includes(forbidden)) {
       return fail(`install.json leaks a forbidden field: ${forbidden}`);
     }
@@ -256,8 +269,10 @@ async function run(prefix, expectedVersion) {
   } catch {
     return fail("installed RELEASE.json is not valid JSON");
   }
-  if (release.version !== version) return fail("installed RELEASE.json version disagrees with manifest");
-  if (release.bundle !== `oh-my-pm-v${version}`) return fail("installed RELEASE.json bundle disagrees");
+  if (release.version !== version)
+    return fail("installed RELEASE.json version disagrees with manifest");
+  if (release.bundle !== `oh-my-pm-v${version}`)
+    return fail("installed RELEASE.json bundle disagrees");
 
   // Resolve the installed MCP surface from the bundle's own declared profile and
   // fail closed on any unknown profile. The project-brain (v0.3) profile expects
@@ -292,7 +307,8 @@ async function run(prefix, expectedVersion) {
       "dist",
       "index.js",
     );
-    if (!isRegularFile(pmEntry)) return fail("installed @oh-my-pm/project-memory dist/index.js missing");
+    if (!isRegularFile(pmEntry))
+      return fail("installed @oh-my-pm/project-memory dist/index.js missing");
   }
 
   // Installed internal checksums and bundle verifier pass.
@@ -307,7 +323,13 @@ async function run(prefix, expectedVersion) {
   // The installed version directory must retain the complete generated Kernel
   // binding (JS glue + WASM + CommonJS manifest); a WASM-only install is not
   // acceptable.
-  const installedKernelDir = join(versionDir, "node_modules", "@oh-my-pm", "kernel", "generated-node");
+  const installedKernelDir = join(
+    versionDir,
+    "node_modules",
+    "@oh-my-pm",
+    "kernel",
+    "generated-node",
+  );
   for (const asset of ["oh_my_pm_kernel.js", "oh_my_pm_kernel_bg.wasm", "package.json"]) {
     if (!isRegularFile(join(installedKernelDir, asset))) {
       return fail(`installed kernel generated asset missing: ${asset}`);
@@ -328,11 +350,13 @@ async function run(prefix, expectedVersion) {
   for (const [name, expected] of Object.entries(expectedShims)) {
     const shimPath = join(binDir, name);
     if (!isRegularFile(shimPath)) return fail(`shim is missing: ${shimPath}`);
-    if (readFileSync(shimPath, "utf8") !== expected) return fail(`shim content mismatch: ${shimPath}`);
+    if (readFileSync(shimPath, "utf8") !== expected)
+      return fail(`shim content mismatch: ${shimPath}`);
   }
   if (!isWindows) {
     for (const name of RELEASE_INSTALL_COMMANDS) {
-      if (!isExecutable(join(binDir, name))) return fail(`shim is not executable: ${join(binDir, name)}`);
+      if (!isExecutable(join(binDir, name)))
+        return fail(`shim is not executable: ${join(binDir, name)}`);
     }
   }
 
@@ -348,8 +372,10 @@ async function run(prefix, expectedVersion) {
   // repository and never a package-manager bin directory.
   const cliEntrypoint = join(versionDir, "bin", "ohmypm.mjs");
   const mcpEntrypoint = join(versionDir, "bin", "ohmypm-mcp.mjs");
-  if (!isRegularFile(cliEntrypoint)) return fail(`installed CLI entrypoint missing: ${cliEntrypoint}`);
-  if (!isRegularFile(mcpEntrypoint)) return fail(`installed MCP entrypoint missing: ${mcpEntrypoint}`);
+  if (!isRegularFile(cliEntrypoint))
+    return fail(`installed CLI entrypoint missing: ${cliEntrypoint}`);
+  if (!isRegularFile(mcpEntrypoint))
+    return fail(`installed MCP entrypoint missing: ${mcpEntrypoint}`);
 
   // Launch the installed CLI as an argument vector with no shell. On Windows
   // that is `node <installed cli .mjs> ...`; on POSIX it is the executable shim.
@@ -371,9 +397,12 @@ async function run(prefix, expectedVersion) {
   } catch {
     return fail("installed CLI status did not exit cleanly");
   }
-  if (!statusOut.includes("OH MY PM status: healthy")) return fail("installed CLI status was not healthy");
-  if (!statusOut.includes(`version: ${version}`)) return fail("installed CLI status version mismatch");
-  if (!statusOut.includes(`kernel: ${version}`)) return fail("installed CLI kernel version mismatch");
+  if (!statusOut.includes("OH MY PM status: healthy"))
+    return fail("installed CLI status was not healthy");
+  if (!statusOut.includes(`version: ${version}`))
+    return fail("installed CLI status version mismatch");
+  if (!statusOut.includes(`kernel: ${version}`))
+    return fail("installed CLI kernel version mismatch");
   // The canonical command must never print a deprecation warning.
   if (statusOut.includes("deprecated")) return fail("canonical CLI emitted a deprecation warning");
 
@@ -394,7 +423,8 @@ async function run(prefix, expectedVersion) {
     });
     const legacy = spawnSync(invocation.command, invocation.args, { encoding: "utf8" });
     if (legacy.status !== 0) return fail("deprecated CLI alias status did not exit cleanly");
-    if (legacy.stdout !== statusOut) return fail("deprecated CLI alias stdout differs from canonical");
+    if (legacy.stdout !== statusOut)
+      return fail("deprecated CLI alias stdout differs from canonical");
     if (legacy.stdout.includes("deprecated")) {
       return fail("deprecated CLI alias wrote its warning to stdout");
     }
@@ -463,7 +493,10 @@ async function run(prefix, expectedVersion) {
   // The StdioClientTransport merges the SDK's default inherited environment with
   // these overrides, so only the data-home variables are set (no ambient install
   // environment is read) and no directory is created or removed by this verifier.
-  const isolatedDataHome = join(tmpdir(), `omp-install-check-${process.pid}-${basename(versionDir)}`);
+  const isolatedDataHome = join(
+    tmpdir(),
+    `omp-install-check-${process.pid}-${basename(versionDir)}`,
+  );
   const mcpEnv = {
     HOME: isolatedDataHome,
     XDG_DATA_HOME: join(isolatedDataHome, "xdg"),

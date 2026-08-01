@@ -93,9 +93,7 @@ export function nodeKernelConfigured(): boolean {
  * `ok: false` with a sanitized message and safe defaults, so a caller can
  * report the failure without proceeding to the network.
  */
-export function resolveNodeProviderConfig(
-  options: NodeDepsOptions,
-): ProviderConfigResolution {
+export function resolveNodeProviderConfig(options: NodeDepsOptions): ProviderConfigResolution {
   if (options.providerConfig !== undefined) {
     return {
       config: options.providerConfig,

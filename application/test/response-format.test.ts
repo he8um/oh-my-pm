@@ -13,9 +13,7 @@ const doctorResponse: RuntimeResponse = {
   id: "cli-doctor",
   ok: true,
   data: {
-    checks: [
-      { id: "kernel.validation", status: "ok", message: "Kernel validation is available" },
-    ],
+    checks: [{ id: "kernel.validation", status: "ok", message: "Kernel validation is available" }],
   },
 };
 
@@ -97,7 +95,12 @@ describe("cli formatting", () => {
     );
     expect(
       formatRuntimeResponse(
-        plan({ tasks: [{ id: "1", title: "Fix login" }, { id: "2", title: "Write docs" }] }),
+        plan({
+          tasks: [
+            { id: "1", title: "Fix login" },
+            { id: "2", title: "Write docs" },
+          ],
+        }),
         "brief",
       ),
     ).toBe("OH MY PM plan: ok\ntasks: 2\n- Fix login\n- Write docs\n");
@@ -105,10 +108,7 @@ describe("cli formatting", () => {
       formatRuntimeResponse(plan({ risks: [{ id: "r1", title: "Vendor delay" }] }), "brief"),
     ).toBe("OH MY PM plan: ok\nrisks: 1\n- Vendor delay\n");
     expect(
-      formatRuntimeResponse(
-        plan({ sections: [{ heading: "Summary", items: ["ok"] }] }),
-        "brief",
-      ),
+      formatRuntimeResponse(plan({ sections: [{ heading: "Summary", items: ["ok"] }] }), "brief"),
     ).toBe("OH MY PM plan: ok\nsections: 1\n- Summary\n");
     expect(formatRuntimeResponse(plan({ other: true }), "brief")).toBe("OH MY PM plan: ok\n");
   });
@@ -225,9 +225,7 @@ describe("cli formatting", () => {
       ok: true,
       data: { output: { risks: [] } },
     };
-    expect(formatRuntimeResponse(response, "brief")).toBe(
-      "OH MY PM risks: 0\nno risks detected\n",
-    );
+    expect(formatRuntimeResponse(response, "brief")).toBe("OH MY PM risks: 0\nno risks detected\n");
   });
 
   it("renders review state and file provenance in the canonical brief order", () => {
@@ -384,7 +382,9 @@ describe("cli formatting", () => {
       ok: true,
       data: {
         output: {
-          risks: [{ id: "a", title: "Supplier stall", severity: "high", reason: "keyword:blocked" }],
+          risks: [
+            { id: "a", title: "Supplier stall", severity: "high", reason: "keyword:blocked" },
+          ],
         },
       },
       trace: [{ step: "skill.execute", status: "ok" }],
@@ -766,7 +766,12 @@ describe("cli formatting — signal metadata", () => {
               number: 8,
               url: "https://github.com/o/r/issues/8",
             },
-            { id: "d1#task-1", title: "Local task", reason: "markdown_unchecked_task", source: "markdown" },
+            {
+              id: "d1#task-1",
+              title: "Local task",
+              reason: "markdown_unchecked_task",
+              source: "markdown",
+            },
           ],
         },
       },
@@ -785,7 +790,9 @@ describe("cli formatting — signal metadata", () => {
       ok: true,
       data: {
         output: {
-          risks: [{ id: "a", title: "T", severity: "low", reason: "explicit", source: "structured" }],
+          risks: [
+            { id: "a", title: "T", severity: "low", reason: "explicit", source: "structured" },
+          ],
         },
       },
     };

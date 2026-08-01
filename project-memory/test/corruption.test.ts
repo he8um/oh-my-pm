@@ -34,9 +34,9 @@ describe("corruption handling", () => {
     const fs = new MemoryFileSystem();
     await seed(fs);
     fs.poke(manifestPathFor(layout, deriveProjectKey(PID)), "{ not json");
-    await expect(new DependencyInjectedStore({ fs, dataRoot: DATA_ROOT }).readManifest(PID)).rejects.toMatchObject(
-      { code: PROJECT_MEMORY_ERROR_CODES.corruption },
-    );
+    await expect(
+      new DependencyInjectedStore({ fs, dataRoot: DATA_ROOT }).readManifest(PID),
+    ).rejects.toMatchObject({ code: PROJECT_MEMORY_ERROR_CODES.corruption });
   });
 
   it("reports a missing referenced record via verify", async () => {

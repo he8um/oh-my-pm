@@ -7,10 +7,10 @@ import {
   readFileSync,
   readdirSync,
   renameSync,
+  chmodSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -99,7 +99,9 @@ describe("release install e2e", () => {
     for (const shim of ["oh-my-pm", "oh-my-pm.cmd", "oh-my-pm-mcp", "oh-my-pm-mcp.cmd"]) {
       expect(existsSync(join(prefix, "bin", shim)), shim).toBe(true);
     }
-    const manifest = JSON.parse(readFileSync(join(prefix, "lib", "oh-my-pm", "install.json"), "utf8"));
+    const manifest = JSON.parse(
+      readFileSync(join(prefix, "lib", "oh-my-pm", "install.json"), "utf8"),
+    );
     expect(manifest.version).toBe(CANONICAL_VERSION);
     expect(manifest.activeVersion).toBe(CANONICAL_VERSION);
 
@@ -134,7 +136,9 @@ describe("release install e2e", () => {
     const localBundle = installBundle();
     const parent = tempDir("omp-e2e-reloc-");
     const prefix = join(parent, "prefix");
-    expect(run(wrapper, ["--bundle", localBundle.dir, "--prefix", prefix, "--apply"]).status).toBe(0);
+    expect(run(wrapper, ["--bundle", localBundle.dir, "--prefix", prefix, "--apply"]).status).toBe(
+      0,
+    );
 
     // Remove the source bundle entirely by deleting its exact owned root
     // (never an inferred parent of the bundle directory).
@@ -192,7 +196,14 @@ describe("release install e2e", () => {
     expect(`${blocked.stdout}${blocked.stderr}`).toContain("blocked");
 
     // Force replaces exact managed targets only.
-    const forced = run(wrapper, ["--bundle", localBundle, "--prefix", prefix, "--apply", "--force"]);
+    const forced = run(wrapper, [
+      "--bundle",
+      localBundle,
+      "--prefix",
+      prefix,
+      "--apply",
+      "--force",
+    ]);
     expect(forced.status, forced.stderr).toBe(0);
 
     // Unrelated files preserved.
@@ -200,7 +211,9 @@ describe("release install e2e", () => {
     expect(readFileSync(join(prefix, "lib", "other", "note.txt"), "utf8")).toBe("unrelated\n");
 
     // Managed shim repaired and install verifies.
-    expect(readFileSync(join(prefix, "bin", "oh-my-pm"), "utf8").startsWith("#!/bin/sh")).toBe(true);
+    expect(readFileSync(join(prefix, "bin", "oh-my-pm"), "utf8").startsWith("#!/bin/sh")).toBe(
+      true,
+    );
     expect(run(installedCheck, ["--prefix", prefix]).status).toBe(0);
   }, 240_000);
 
@@ -252,7 +265,13 @@ describe("platform-aware installed-state (post_install regression)", () => {
     // Baseline: a freshly applied prefix (exec bits set by apply on this POSIX
     // host) is already-installed under every platform.
     for (const platform of ["win32", "linux", "darwin"]) {
-      const plan = resolveReleaseInstallPlan({ bundleRoot: bundle.dir, prefix, apply: false, force: false, platform });
+      const plan = resolveReleaseInstallPlan({
+        bundleRoot: bundle.dir,
+        prefix,
+        apply: false,
+        force: false,
+        platform,
+      });
       expect(plan.action, platform).toBe("already-installed");
     }
 
@@ -260,11 +279,23 @@ describe("platform-aware installed-state (post_install regression)", () => {
     for (const shim of posixShims) chmodSync(join(prefix, "bin", shim), 0o644);
 
     // Windows: still already-installed (mode not required).
-    const winPlan = resolveReleaseInstallPlan({ bundleRoot: bundle.dir, prefix, apply: false, force: false, platform: "win32" });
+    const winPlan = resolveReleaseInstallPlan({
+      bundleRoot: bundle.dir,
+      prefix,
+      apply: false,
+      force: false,
+      platform: "win32",
+    });
     expect(winPlan.action).toBe("already-installed");
 
     // Linux: blocked, with the precise mode reason (not a content mismatch).
-    const linuxPlan = resolveReleaseInstallPlan({ bundleRoot: bundle.dir, prefix, apply: false, force: false, platform: "linux" });
+    const linuxPlan = resolveReleaseInstallPlan({
+      bundleRoot: bundle.dir,
+      prefix,
+      apply: false,
+      force: false,
+      platform: "linux",
+    });
     expect(linuxPlan.ok).toBe(false);
     expect(linuxPlan.action).toBe("blocked");
     expect(linuxPlan.reasons).toContain("posix_shim_not_executable");
@@ -272,7 +303,13 @@ describe("platform-aware installed-state (post_install regression)", () => {
 
     // Restore exec bits: Linux is already-installed again.
     for (const shim of posixShims) chmodSync(join(prefix, "bin", shim), 0o755);
-    const restored = resolveReleaseInstallPlan({ bundleRoot: bundle.dir, prefix, apply: false, force: false, platform: "linux" });
+    const restored = resolveReleaseInstallPlan({
+      bundleRoot: bundle.dir,
+      prefix,
+      apply: false,
+      force: false,
+      platform: "linux",
+    });
     expect(restored.action).toBe("already-installed");
   });
 
@@ -283,7 +320,12 @@ describe("platform-aware installed-state (post_install regression)", () => {
 
     // Valid prefix passes on every platform.
     for (const platform of ["win32", "linux", "darwin"]) {
-      const post = evaluatePostInstallState({ bundleRoot: bundle.dir, prefix, versionDirectory, platform });
+      const post = evaluatePostInstallState({
+        bundleRoot: bundle.dir,
+        prefix,
+        versionDirectory,
+        platform,
+      });
       expect(post.ok, `${platform}:${JSON.stringify(post.reasons)}`).toBe(true);
       expect(post.bundleVerifier.ok).toBe(true);
       expect(post.installedState.action).toBe("already-installed");
@@ -291,9 +333,19 @@ describe("platform-aware installed-state (post_install regression)", () => {
 
     // Strip exec bits: Windows still ok; Linux fails with the bounded mode reason.
     for (const shim of posixShims) chmodSync(join(prefix, "bin", shim), 0o644);
-    const winPost = evaluatePostInstallState({ bundleRoot: bundle.dir, prefix, versionDirectory, platform: "win32" });
+    const winPost = evaluatePostInstallState({
+      bundleRoot: bundle.dir,
+      prefix,
+      versionDirectory,
+      platform: "win32",
+    });
     expect(winPost.ok).toBe(true);
-    const linuxPost = evaluatePostInstallState({ bundleRoot: bundle.dir, prefix, versionDirectory, platform: "linux" });
+    const linuxPost = evaluatePostInstallState({
+      bundleRoot: bundle.dir,
+      prefix,
+      versionDirectory,
+      platform: "linux",
+    });
     expect(linuxPost.ok).toBe(false);
     expect(linuxPost.reasons).toContain("post_installed_state_not_exact");
     expect(linuxPost.reasons).toContain("post_posix_shim_mode_mismatch");
@@ -309,7 +361,12 @@ describe("platform-aware installed-state (post_install regression)", () => {
     const versionDirectory = join(prefix, "lib", "oh-my-pm", "versions", CANONICAL_VERSION);
     // Corrupt a shim's content.
     writeFileSync(join(prefix, "bin", "oh-my-pm"), "corrupted\n");
-    const post = evaluatePostInstallState({ bundleRoot: bundle.dir, prefix, versionDirectory, platform: "win32" });
+    const post = evaluatePostInstallState({
+      bundleRoot: bundle.dir,
+      prefix,
+      versionDirectory,
+      platform: "win32",
+    });
     expect(post.ok).toBe(false);
     expect(post.reasons).toContain("post_shim_content_mismatch");
     expect(post.reasons).not.toContain("post_posix_shim_mode_mismatch");
@@ -364,7 +421,10 @@ describe("installed-runtime launch policy (Windows-safe invocation)", () => {
     expect(existsSync(winMcp.args[0])).toBe(true);
 
     // POSIX CLI/MCP: the installed shim itself, no Node prefix.
-    for (const [shimName, entry] of [["oh-my-pm", cliEntry], ["oh-my-pm-mcp", mcpEntry]]) {
+    for (const [shimName, entry] of [
+      ["oh-my-pm", cliEntry],
+      ["oh-my-pm-mcp", mcpEntry],
+    ]) {
       const posix = createInstalledCommandInvocation({
         platform: "linux",
         nodeExecutable: node,

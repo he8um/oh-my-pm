@@ -91,7 +91,9 @@ describe("release integration suite inventory", () => {
       expect(typeof why === "string" && why.length > 0).toBe(true);
       // An exempt file must still not spawn a subprocess; if it starts to, the
       // exemption is stale and must be re-reviewed.
-      expect(strippedSource(file).includes("spawnSync"), `${file} now spawns a subprocess`).toBe(false);
+      expect(strippedSource(file).includes("spawnSync"), `${file} now spawns a subprocess`).toBe(
+        false,
+      );
     }
   });
 });

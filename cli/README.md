@@ -115,14 +115,14 @@ ohmypm github risks --markdown   # uses providers.json defaultRepository
 
 The `item` source can optionally include a single issue/PR's ordinary conversation comments (`--include-comments` / `--comment-limit`, `1..50`, default `20`; see [GitHub item comments](../docs/providers/github-item-comments.md)). A pull-request `item` can additionally include bounded review submissions (`--include-reviews` / `--review-limit`) and inline review comments (`--include-review-comments` / `--review-comment-limit`, `1..20`, default `10`), disabled by default and only when the item is a pull request; see [GitHub pull-request reviews](../docs/providers/github-pr-reviews.md).
 
-| source          | state | limit | number | query | kind |
-| --------------- | ----- | ----- | ------ | ----- | ---- |
-| overview        | yes   | yes   | no     | no    | no   |
-| repository      | no    | no    | no     | no    | no   |
-| issues          | yes   | yes   | no     | no    | no   |
-| pull-requests   | yes   | yes   | no     | no    | no   |
-| item            | no    | no    | yes    | no    | no   |
-| search          | yes   | yes   | no     | yes   | yes  |
+| source        | state | limit | number | query | kind |
+| ------------- | ----- | ----- | ------ | ----- | ---- |
+| overview      | yes   | yes   | no     | no    | no   |
+| repository    | no    | no    | no     | no    | no   |
+| issues        | yes   | yes   | no     | no    | no   |
+| pull-requests | yes   | yes   | no     | no    | no   |
+| item          | no    | no    | yes    | no    | no   |
+| search        | yes   | yes   | no     | yes   | yes  |
 
 ```bash
 ohmypm github brief owner/repository --source repository --markdown

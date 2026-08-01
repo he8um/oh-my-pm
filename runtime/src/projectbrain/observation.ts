@@ -7,10 +7,7 @@
 // warnings mark a source partial. No raw provider error message or failed
 // response payload is retained — only stable sanitized coverage codes.
 
-import type {
-  NormalizedProviderItem,
-  ProviderRequest,
-} from "@oh-my-pm/contracts";
+import type { NormalizedProviderItem, ProviderRequest } from "@oh-my-pm/contracts";
 import type { ProviderRegistry } from "@oh-my-pm/providers";
 import { requiredObservationFailedError } from "./errors.js";
 import type {

@@ -117,7 +117,15 @@ describe("github project workflows", () => {
 
   it("reads the clock exactly once, and only after selection resolves", async () => {
     let clockReads = 0;
-    await getGitHubProjectBrief({}, deps({ now: () => { clockReads += 1; return "2026-01-01T00:00:00.000Z"; } }));
+    await getGitHubProjectBrief(
+      {},
+      deps({
+        now: () => {
+          clockReads += 1;
+          return "2026-01-01T00:00:00.000Z";
+        },
+      }),
+    );
     expect(clockReads).toBe(1);
   });
 });
@@ -129,7 +137,10 @@ describe("github fail-closed ordering", () => {
       {},
       deps({
         resolveProviderConfig: () => ({ config: null, message: "config is not valid JSON" }),
-        now: () => { clockReads += 1; return "x"; },
+        now: () => {
+          clockReads += 1;
+          return "x";
+        },
       }),
     );
     expect(result.ok).toBe(false);
@@ -171,7 +182,12 @@ describe("github fail-closed ordering", () => {
     const result = await runGitHubProjectWorkflow(
       "brief",
       { source: "search", query: "" },
-      deps({ now: () => { clockReads += 1; return "x"; } }),
+      deps({
+        now: () => {
+          clockReads += 1;
+          return "x";
+        },
+      }),
     );
     expect(result.ok).toBe(false);
     expect(clockReads).toBe(0);
@@ -228,9 +244,10 @@ describe("github dependency-invocation ordering", () => {
    * environment read that the Node boundary performs lazily inside the transport
    * factory, so "never reads the token" is observable from the core surface.
    */
-  function countingDeps(
-    over: Partial<GitHubProjectDeps> = {},
-  ): { deps: GitHubProjectDeps; counts: Counters } {
+  function countingDeps(over: Partial<GitHubProjectDeps> = {}): {
+    deps: GitHubProjectDeps;
+    counts: Counters;
+  } {
     const counts: Counters = { transports: 0, tokens: 0, clocks: 0 };
     const base: GitHubProjectDeps = {
       caller: "mcp",
@@ -294,15 +311,12 @@ describe("github dependency-invocation ordering", () => {
     // environment, which is what keeps the offline suites offline. The env map is
     // a getter-trapped proxy, so any read at all fails the test.
     let envReads = 0;
-    const trappedEnv = new Proxy(
-      {} as Record<string, string | undefined>,
-      {
-        get: (_target, key) => {
-          envReads += 1;
-          return `leaked-${String(key)}`;
-        },
+    const trappedEnv = new Proxy({} as Record<string, string | undefined>, {
+      get: (_target, key) => {
+        envReads += 1;
+        return `leaked-${String(key)}`;
       },
-    );
+    });
     const injected = createNodeGitHubProjectDeps({
       caller: "mcp",
       version: "0.5.1",
@@ -313,10 +327,14 @@ describe("github dependency-invocation ordering", () => {
       platform: "linux",
       cwd: "/workspace",
     });
-    const result = await runGitHubProjectWorkflow("brief", {}, {
-      ...injected,
-      createRuntime: () => stubRuntime({ requests: [] }),
-    });
+    const result = await runGitHubProjectWorkflow(
+      "brief",
+      {},
+      {
+        ...injected,
+        createRuntime: () => stubRuntime({ requests: [] }),
+      },
+    );
     expect(result.ok).toBe(true);
     expect(envReads).toBe(0);
   });
@@ -325,15 +343,12 @@ describe("github dependency-invocation ordering", () => {
     // Without an injected transport the composed closure does consult the
     // environment — but only inside createTransport, i.e. after validation.
     let envReads = 0;
-    const trappedEnv = new Proxy(
-      {} as Record<string, string | undefined>,
-      {
-        get: (_target, key) => {
-          envReads += 1;
-          return key === "OH_MY_PM_GITHUB_TOKEN" ? "ghp_lazy_value" : undefined;
-        },
+    const trappedEnv = new Proxy({} as Record<string, string | undefined>, {
+      get: (_target, key) => {
+        envReads += 1;
+        return key === "OH_MY_PM_GITHUB_TOKEN" ? "ghp_lazy_value" : undefined;
       },
-    );
+    });
     const injected = createNodeGitHubProjectDeps({
       caller: "mcp",
       version: "0.5.1",

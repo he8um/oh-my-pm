@@ -10,7 +10,14 @@ function parseGitHub(args: string[]) {
 
 describe("github source options — parsing", () => {
   it("parses each source mode", () => {
-    for (const source of ["overview", "repository", "issues", "pull-requests", "item", "search"] as const) {
+    for (const source of [
+      "overview",
+      "repository",
+      "issues",
+      "pull-requests",
+      "item",
+      "search",
+    ] as const) {
       const r = parseCliArgs(["github", "brief", "owner/repo", "--source", source]);
       expect(r.ok, source).toBe(true);
       if (r.ok && r.command === "github") expect(r.source).toBe(source);
@@ -26,7 +33,16 @@ describe("github source options — parsing", () => {
 
   it("parses each search kind", () => {
     for (const kind of ["all", "issues", "pull-requests"] as const) {
-      const r = parseGitHub(["risks", "owner/repo", "--source", "search", "--query", "x", "--kind", kind]);
+      const r = parseGitHub([
+        "risks",
+        "owner/repo",
+        "--source",
+        "search",
+        "--query",
+        "x",
+        "--kind",
+        kind,
+      ]);
       expect(r.kind).toBe(kind);
     }
   });
@@ -37,7 +53,14 @@ describe("github source options — parsing", () => {
   });
 
   it("parses a query as one argument", () => {
-    const r = parseGitHub(["risks", "owner/repo", "--source", "search", "--query", "release blocker"]);
+    const r = parseGitHub([
+      "risks",
+      "owner/repo",
+      "--source",
+      "search",
+      "--query",
+      "release blocker",
+    ]);
     expect(r.query).toBe("release blocker");
   });
 
@@ -56,21 +79,37 @@ describe("github source options — parsing", () => {
   it("rejects an empty, whitespace-padded, or over-long query", () => {
     expect(parseCliArgs(["github", "brief", "owner/repo", "--query", ""]).ok).toBe(false);
     expect(parseCliArgs(["github", "brief", "owner/repo", "--query", " x "]).ok).toBe(false);
-    expect(parseCliArgs(["github", "brief", "owner/repo", "--query", "a".repeat(257)]).ok).toBe(false);
+    expect(parseCliArgs(["github", "brief", "owner/repo", "--query", "a".repeat(257)]).ok).toBe(
+      false,
+    );
   });
 
   it("rejects duplicate source/state/number/query/kind", () => {
-    expect(parseCliArgs(["github", "brief", "owner/repo", "--source", "issues", "--source", "overview"]).ok).toBe(false);
-    expect(parseCliArgs(["github", "brief", "owner/repo", "--state", "open", "--state", "closed"]).ok).toBe(false);
-    expect(parseCliArgs(["github", "brief", "owner/repo", "--number", "1", "--number", "2"]).ok).toBe(false);
-    expect(parseCliArgs(["github", "brief", "owner/repo", "--query", "a", "--query", "b"]).ok).toBe(false);
-    expect(parseCliArgs(["github", "brief", "owner/repo", "--kind", "all", "--kind", "issues"]).ok).toBe(false);
+    expect(
+      parseCliArgs(["github", "brief", "owner/repo", "--source", "issues", "--source", "overview"])
+        .ok,
+    ).toBe(false);
+    expect(
+      parseCliArgs(["github", "brief", "owner/repo", "--state", "open", "--state", "closed"]).ok,
+    ).toBe(false);
+    expect(
+      parseCliArgs(["github", "brief", "owner/repo", "--number", "1", "--number", "2"]).ok,
+    ).toBe(false);
+    expect(parseCliArgs(["github", "brief", "owner/repo", "--query", "a", "--query", "b"]).ok).toBe(
+      false,
+    );
+    expect(
+      parseCliArgs(["github", "brief", "owner/repo", "--kind", "all", "--kind", "issues"]).ok,
+    ).toBe(false);
   });
 
   it("rejects a missing option value", () => {
     for (const opt of ["--source", "--state", "--number", "--query", "--kind"]) {
       expect(parseCliArgs(["github", "brief", "owner/repo", opt]).ok, opt).toBe(false);
-      expect(parseCliArgs(["github", "brief", "owner/repo", opt, "--json"]).ok, `${opt} --json`).toBe(false);
+      expect(
+        parseCliArgs(["github", "brief", "owner/repo", opt, "--json"]).ok,
+        `${opt} --json`,
+      ).toBe(false);
     }
   });
 
@@ -81,7 +120,14 @@ describe("github source options — parsing", () => {
   });
 
   it("preserves the provider-config path alongside source options", () => {
-    const r = parseGitHub(["brief", "owner/repo", "--source", "repository", "--provider-config", "./p.json"]);
+    const r = parseGitHub([
+      "brief",
+      "owner/repo",
+      "--source",
+      "repository",
+      "--provider-config",
+      "./p.json",
+    ]);
     expect(r.providerConfigPath).toBe("./p.json");
     expect(r.source).toBe("repository");
   });
@@ -95,7 +141,15 @@ describe("github source options — parsing", () => {
   it("supports output modes with source options", () => {
     const j = parseGitHub(["brief", "owner/repo", "--source", "issues", "--json"]);
     expect(j.outputMode).toBe("json");
-    const m = parseGitHub(["risks", "owner/repo", "--source", "search", "--query", "x", "--markdown"]);
+    const m = parseGitHub([
+      "risks",
+      "owner/repo",
+      "--source",
+      "search",
+      "--query",
+      "x",
+      "--markdown",
+    ]);
     expect(m.outputMode).toBe("markdown");
   });
 });
@@ -116,25 +170,111 @@ describe("github --limit boundary matrix + canonical alias (F-DUP-1)", () => {
 
   it("rejects --limit 0 and 101 with the invalid-option code", () => {
     for (const limit of [0, 101]) {
-      const r = parseCliArgs(["github", "brief", "owner/repo", "--source", "issues", "--limit", String(limit)]);
+      const r = parseCliArgs([
+        "github",
+        "brief",
+        "owner/repo",
+        "--source",
+        "issues",
+        "--limit",
+        String(limit),
+      ]);
       expect(r.ok, String(limit)).toBe(false);
       if (!r.ok) expect(r.code).toBe("OMP-C-3002");
     }
   });
 
   it("keeps ordinary comment bounds (1..50) unchanged", () => {
-    expect(parseCliArgs(["github", "brief", "owner/repo", "--source", "item", "--number", "1", "--include-comments", "--comment-limit", "50"]).ok).toBe(true);
-    expect(parseCliArgs(["github", "brief", "owner/repo", "--source", "item", "--number", "1", "--include-comments", "--comment-limit", "51"]).ok).toBe(false);
+    expect(
+      parseCliArgs([
+        "github",
+        "brief",
+        "owner/repo",
+        "--source",
+        "item",
+        "--number",
+        "1",
+        "--include-comments",
+        "--comment-limit",
+        "50",
+      ]).ok,
+    ).toBe(true);
+    expect(
+      parseCliArgs([
+        "github",
+        "brief",
+        "owner/repo",
+        "--source",
+        "item",
+        "--number",
+        "1",
+        "--include-comments",
+        "--comment-limit",
+        "51",
+      ]).ok,
+    ).toBe(false);
   });
 
   it("keeps review bounds (1..20) unchanged", () => {
-    expect(parseCliArgs(["github", "brief", "owner/repo", "--source", "item", "--number", "1", "--include-reviews", "--review-limit", "20"]).ok).toBe(true);
-    expect(parseCliArgs(["github", "brief", "owner/repo", "--source", "item", "--number", "1", "--include-reviews", "--review-limit", "21"]).ok).toBe(false);
+    expect(
+      parseCliArgs([
+        "github",
+        "brief",
+        "owner/repo",
+        "--source",
+        "item",
+        "--number",
+        "1",
+        "--include-reviews",
+        "--review-limit",
+        "20",
+      ]).ok,
+    ).toBe(true);
+    expect(
+      parseCliArgs([
+        "github",
+        "brief",
+        "owner/repo",
+        "--source",
+        "item",
+        "--number",
+        "1",
+        "--include-reviews",
+        "--review-limit",
+        "21",
+      ]).ok,
+    ).toBe(false);
   });
 
   it("keeps review-comment bounds (1..20) unchanged", () => {
-    expect(parseCliArgs(["github", "brief", "owner/repo", "--source", "item", "--number", "1", "--include-review-comments", "--review-comment-limit", "20"]).ok).toBe(true);
-    expect(parseCliArgs(["github", "brief", "owner/repo", "--source", "item", "--number", "1", "--include-review-comments", "--review-comment-limit", "21"]).ok).toBe(false);
+    expect(
+      parseCliArgs([
+        "github",
+        "brief",
+        "owner/repo",
+        "--source",
+        "item",
+        "--number",
+        "1",
+        "--include-review-comments",
+        "--review-comment-limit",
+        "20",
+      ]).ok,
+    ).toBe(true);
+    expect(
+      parseCliArgs([
+        "github",
+        "brief",
+        "owner/repo",
+        "--source",
+        "item",
+        "--number",
+        "1",
+        "--include-review-comments",
+        "--review-comment-limit",
+        "21",
+      ]).ok,
+    ).toBe(false);
   });
 
   it("the CLI default-limit alias resolves to the canonical provider default", () => {

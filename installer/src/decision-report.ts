@@ -211,9 +211,7 @@ export function createInstallerDecisionDryRun(
 }
 
 /** Render a decision report as deterministic markdown with one trailing newline. */
-export function formatInstallerDecisionReportMarkdown(
-  report: InstallerDecisionReport,
-): string {
+export function formatInstallerDecisionReportMarkdown(report: InstallerDecisionReport): string {
   const lines = [
     "# OH MY PM Installer Decision Report",
     "",

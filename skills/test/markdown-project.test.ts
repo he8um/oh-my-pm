@@ -75,7 +75,11 @@ describe("parseMarkdownProjectSections", () => {
 
   it("strips checkbox markers and drops the checked/unchecked state", () => {
     const sections = parseMarkdownProjectSections(
-      doc("d", "D", ["## Tasks", "- [ ] Open task", "- [x] Done task", "- [X] Also done"].join("\n")),
+      doc(
+        "d",
+        "D",
+        ["## Tasks", "- [ ] Open task", "- [x] Done task", "- [X] Also done"].join("\n"),
+      ),
     );
     expect(sections[0]?.items).toEqual(["Open task", "Done task", "Also done"]);
   });
@@ -106,9 +110,16 @@ describe("parseMarkdownProjectSections", () => {
       doc(
         "d",
         "D",
-        ["## Code", "```", "- not a real item", "```", "~~~", "* also ignored", "~~~", "- real item"].join(
-          "\n",
-        ),
+        [
+          "## Code",
+          "```",
+          "- not a real item",
+          "```",
+          "~~~",
+          "* also ignored",
+          "~~~",
+          "- real item",
+        ].join("\n"),
       ),
     );
     expect(sections[0]?.items).toEqual(["real item"]);
@@ -235,12 +246,16 @@ describe("parseMarkdownSignalEntries", () => {
   });
 
   it("merges list continuation lines", () => {
-    const entries = parseMarkdownSignalEntries(item("# H\n\n- first line\n  continues here\n- second"));
+    const entries = parseMarkdownSignalEntries(
+      item("# H\n\n- first line\n  continues here\n- second"),
+    );
     expect(entries.map((e) => e.text)).toEqual(["first line continues here", "second"]);
   });
 
   it("ignores content before the first heading except explicit markers", () => {
-    const entries = parseMarkdownSignalEntries(item("plain preamble\nRisk: pre-heading risk\n# H\n\n- item"));
+    const entries = parseMarkdownSignalEntries(
+      item("plain preamble\nRisk: pre-heading risk\n# H\n\n- item"),
+    );
     expect(entries.map((e) => [e.kind, e.text])).toEqual([
       ["marker", "Risk: pre-heading risk"],
       ["list-item", "item"],

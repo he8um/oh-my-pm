@@ -18,9 +18,7 @@ export const LOCAL_MARKDOWN_SOURCE_IDENTITY = "local-markdown";
 export const LOCAL_MARKDOWN_INCLUDED_SCOPE = "configured-documents";
 
 /** Stable, sanitized identity-resolution error codes. */
-export type MemoryIdentityErrorCode =
-  | "memory_project_id_missing"
-  | "memory_project_id_invalid";
+export type MemoryIdentityErrorCode = "memory_project_id_missing" | "memory_project_id_invalid";
 
 export type MemoryIdentityResult =
   | { ok: true; projectId: string; source: "flag" | "config" }
@@ -73,9 +71,7 @@ export function localMarkdownObservationRequest(): ProjectObservationRequest {
 
 /** Sanitized outcome codes for the configured document load. */
 export type MemoryDocumentLoadErrorCode =
-  | "memory_project_config_invalid"
-  | "memory_project_root_invalid"
-  | "memory_no_documents";
+  "memory_project_config_invalid" | "memory_project_root_invalid" | "memory_no_documents";
 
 export type MemoryDocumentLoad =
   | {

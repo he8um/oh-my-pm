@@ -11,10 +11,18 @@ const load = (name: string): unknown => JSON.parse(readFileSync(join(fixtureDir,
 const context = { requestId: "req-test" };
 const SLUG = "riverline/field-guide";
 
-type Route = { match: (url: URL) => boolean; status?: number; headers?: Record<string, string>; body: unknown };
+type Route = {
+  match: (url: URL) => boolean;
+  status?: number;
+  headers?: Record<string, string>;
+  body: unknown;
+};
 
 /** A scripted transport that answers by URL path and records requests. */
-function scriptedTransport(routes: Route[]): { transport: GitHubHttpTransport; calls: GitHubHttpRequest[] } {
+function scriptedTransport(routes: Route[]): {
+  transport: GitHubHttpTransport;
+  calls: GitHubHttpRequest[];
+} {
   const calls: GitHubHttpRequest[] = [];
   const transport: GitHubHttpTransport = {
     async request(request: GitHubHttpRequest): Promise<GitHubHttpResponse> {
@@ -40,7 +48,10 @@ function req(overrides: Partial<ProviderRequest>): ProviderRequest {
   return { providerId: "github", action: "list", query: SLUG, ...overrides };
 }
 
-const repoRoute: Route = { match: (u) => u.pathname === `/repos/${SLUG}`, body: load("repository.json") };
+const repoRoute: Route = {
+  match: (u) => u.pathname === `/repos/${SLUG}`,
+  body: load("repository.json"),
+};
 const issuesRoute: Route = {
   match: (u) => u.pathname === `/repos/${SLUG}/issues`,
   body: load("issues.json"),
@@ -125,10 +136,14 @@ describe("search", () => {
 
   it("adds a warning for incomplete results", async () => {
     const incomplete = { ...(load("search.json") as object), incomplete_results: true };
-    const { provider: p } = provider([{ match: (u) => u.pathname === "/search/issues", body: incomplete }]);
+    const { provider: p } = provider([
+      { match: (u) => u.pathname === "/search/issues", body: incomplete },
+    ]);
     const result = await p.execute(req({ action: "search", query: `${SLUG}::trail` }), context);
     if (!result.ok) throw new Error("expected ok");
-    expect(result.response.warnings?.some((w) => w.code === "github_incomplete_results")).toBe(true);
+    expect(result.response.warnings?.some((w) => w.code === "github_incomplete_results")).toBe(
+      true,
+    );
   });
 });
 
@@ -176,7 +191,12 @@ describe("error mapping", () => {
   for (const c of cases) {
     it(`maps status ${c.status}${c.headers ? ` ${JSON.stringify(c.headers)}` : ""} to ${c.code}`, async () => {
       const { provider: p } = provider([
-        { match: (u) => u.pathname === `/repos/${SLUG}`, status: c.status, headers: c.headers, body: { message: "x" } },
+        {
+          match: (u) => u.pathname === `/repos/${SLUG}`,
+          status: c.status,
+          headers: c.headers,
+          body: { message: "x" },
+        },
       ]);
       const result = await p.execute(req({ action: "list", limit: 1 }), context);
       expect(result.ok).toBe(false);
@@ -229,7 +249,10 @@ describe("fetch — item comments", () => {
         body: [issueComment(1, "First"), issueComment(2, "Second")],
       },
     ]);
-    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#42::comments=20`, limit: 21 }), context);
+    const result = await p.execute(
+      req({ action: "fetch", query: `${SLUG}#42::comments=20`, limit: 21 }),
+      context,
+    );
     if (!result.ok) throw new Error("expected ok");
     // Primary item first, then comment notes in API order.
     expect(result.response.items[0]!.type).toBe("issue");
@@ -251,9 +274,15 @@ describe("fetch — item comments", () => {
     const { provider: p, calls } = provider([
       { match: (u) => u.pathname === `/repos/${SLUG}/issues/47`, body: prIssue },
       { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47`, body: load("pull-request.json") },
-      { match: (u) => u.pathname === `/repos/${SLUG}/issues/47/comments`, body: [issueComment(9, "PR note")] },
+      {
+        match: (u) => u.pathname === `/repos/${SLUG}/issues/47/comments`,
+        body: [issueComment(9, "PR note")],
+      },
     ]);
-    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#47::comments=5`, limit: 6 }), context);
+    const result = await p.execute(
+      req({ action: "fetch", query: `${SLUG}#47::comments=5`, limit: 6 }),
+      context,
+    );
     if (!result.ok) throw new Error("expected ok");
     expect(result.response.items[0]!.type).toBe("pullRequest");
     expect(calls.map((c) => new URL(c.url).pathname)).toEqual([
@@ -266,7 +295,10 @@ describe("fetch — item comments", () => {
   it("never requests review comments, reviews, or timeline endpoints", async () => {
     const { provider: p, calls } = provider([
       { match: (u) => u.pathname === `/repos/${SLUG}/issues/42`, body: load("issue.json") },
-      { match: (u) => u.pathname === `/repos/${SLUG}/issues/42/comments`, body: [issueComment(1, "x")] },
+      {
+        match: (u) => u.pathname === `/repos/${SLUG}/issues/42/comments`,
+        body: [issueComment(1, "x")],
+      },
     ]);
     await p.execute(req({ action: "fetch", query: `${SLUG}#42::comments=20`, limit: 21 }), context);
     const paths = calls.map((c) => new URL(c.url).pathname);
@@ -288,16 +320,25 @@ describe("fetch — item comments", () => {
       { match: (u) => u.pathname === `/repos/${SLUG}/issues/42`, body: load("issue.json") },
       { match: (u) => u.pathname === `/repos/${SLUG}/issues/42/comments`, status: 500, body: {} },
     ]);
-    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#42::comments=20`, limit: 21 }), context);
+    const result = await p.execute(
+      req({ action: "fetch", query: `${SLUG}#42::comments=20`, limit: 21 }),
+      context,
+    );
     expect(result.ok).toBe(false);
   });
 
   it("comment notes carry only bounded provenance, never the body's raw API object", async () => {
     const { provider: p } = provider([
       { match: (u) => u.pathname === `/repos/${SLUG}/issues/42`, body: load("issue.json") },
-      { match: (u) => u.pathname === `/repos/${SLUG}/issues/42/comments`, body: [issueComment(1, "hello")] },
+      {
+        match: (u) => u.pathname === `/repos/${SLUG}/issues/42/comments`,
+        body: [issueComment(1, "hello")],
+      },
     ]);
-    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#42::comments=20`, limit: 21 }), context);
+    const result = await p.execute(
+      req({ action: "fetch", query: `${SLUG}#42::comments=20`, limit: 21 }),
+      context,
+    );
     if (!result.ok) throw new Error("expected ok");
     const note = result.response.items[1]!;
     expect(note.id).toBe(`github:${SLUG}:item:42:comment:1`);
@@ -358,7 +399,10 @@ describe("fetch — pull-request reviews and review comments", () => {
         body: [review(1, "APPROVED"), review(2, "CHANGES_REQUESTED", "Please fix")],
       },
     ]);
-    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#47::reviews=10`, limit: 11 }), context);
+    const result = await p.execute(
+      req({ action: "fetch", query: `${SLUG}#47::reviews=10`, limit: 11 }),
+      context,
+    );
     if (!result.ok) throw new Error("expected ok");
     expect(result.response.items[0]!.type).toBe("pullRequest");
     const notes = result.response.items.slice(1);
@@ -408,8 +452,14 @@ describe("fetch — pull-request reviews and review comments", () => {
       { match: (u) => u.pathname === `/repos/${SLUG}/issues/47`, body: prIssue() },
       { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47`, body: load("pull-request.json") },
       { match: (u) => u.pathname === `/repos/${SLUG}/issues/47/comments`, body: [] },
-      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/reviews`, body: [review(1, "COMMENTED")] },
-      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/comments`, body: [reviewComment(11)] },
+      {
+        match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/reviews`,
+        body: [review(1, "COMMENTED")],
+      },
+      {
+        match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/comments`,
+        body: [reviewComment(11)],
+      },
     ]);
     const result = await p.execute(
       req({
@@ -435,7 +485,10 @@ describe("fetch — pull-request reviews and review comments", () => {
     const { provider: p, calls } = provider([
       { match: (u) => u.pathname === `/repos/${SLUG}/issues/42`, body: load("issue.json") },
     ]);
-    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#42::reviews=10`, limit: 11 }), context);
+    const result = await p.execute(
+      req({ action: "fetch", query: `${SLUG}#42::reviews=10`, limit: 11 }),
+      context,
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.code).toBe("OMP-P-4003");
@@ -465,7 +518,10 @@ describe("fetch — pull-request reviews and review comments", () => {
       { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47`, body: load("pull-request.json") },
       { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/reviews`, status: 500, body: {} },
     ]);
-    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#47::reviews=10`, limit: 11 }), context);
+    const result = await p.execute(
+      req({ action: "fetch", query: `${SLUG}#47::reviews=10`, limit: 11 }),
+      context,
+    );
     expect(result.ok).toBe(false);
   });
 
@@ -473,9 +529,15 @@ describe("fetch — pull-request reviews and review comments", () => {
     const { provider: p } = provider([
       { match: (u) => u.pathname === `/repos/${SLUG}/issues/47`, body: prIssue() },
       { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47`, body: load("pull-request.json") },
-      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/reviews`, body: [review(3, "APPROVED", "LGTM")] },
+      {
+        match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/reviews`,
+        body: [review(3, "APPROVED", "LGTM")],
+      },
     ]);
-    const result = await p.execute(req({ action: "fetch", query: `${SLUG}#47::reviews=10`, limit: 11 }), context);
+    const result = await p.execute(
+      req({ action: "fetch", query: `${SLUG}#47::reviews=10`, limit: 11 }),
+      context,
+    );
     if (!result.ok) throw new Error("expected ok");
     const note = result.response.items[1]!;
     expect(note.id).toBe(`github:${SLUG}:pull-request:47:review:3`);
@@ -496,7 +558,10 @@ describe("fetch — pull-request reviews and review comments", () => {
     const { provider: p } = provider([
       { match: (u) => u.pathname === `/repos/${SLUG}/issues/47`, body: prIssue() },
       { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47`, body: load("pull-request.json") },
-      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/comments`, body: [reviewComment(12, "here")] },
+      {
+        match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/comments`,
+        body: [reviewComment(12, "here")],
+      },
     ]);
     const result = await p.execute(
       req({ action: "fetch", query: `${SLUG}#47::review-comments=10`, limit: 11 }),
@@ -522,8 +587,14 @@ describe("fetch — pull-request reviews and review comments", () => {
     const { provider: p, calls } = provider([
       { match: (u) => u.pathname === `/repos/${SLUG}/issues/47`, body: prIssue() },
       { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47`, body: load("pull-request.json") },
-      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/reviews`, body: [review(1, "APPROVED")] },
-      { match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/comments`, body: [reviewComment(11)] },
+      {
+        match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/reviews`,
+        body: [review(1, "APPROVED")],
+      },
+      {
+        match: (u) => u.pathname === `/repos/${SLUG}/pulls/47/comments`,
+        body: [reviewComment(11)],
+      },
     ]);
     await p.execute(
       req({ action: "fetch", query: `${SLUG}#47::reviews=10&review-comments=10`, limit: 21 }),

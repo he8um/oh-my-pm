@@ -291,7 +291,10 @@ export function projectComparedResult(
 
 /** Escape a cell so a Markdown table row/column never breaks or injects. */
 function escapeCell(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\|/g, "\\|")
+    .replace(/[\r\n]+/g, " ");
 }
 
 /** Render the strict result as deterministic, sanitized Markdown. */

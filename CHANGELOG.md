@@ -174,7 +174,7 @@ publication; all workspace packages remain private.
   as the primary one. It is precise about product identity: the product name
   appears legitimately as a package scope, path segment, environment prefix,
   config filename, archive name, and server key, so the check matches only the
-  shapes a command *invocation* takes.
+  shapes a command _invocation_ takes.
 - **Legacy MCP configuration recognition** — `classifyMcpConfigCommand` and
   `legacyMcpConfigGuidance` report a pre-v0.5 configuration as
   legacy-but-functional and recommend regeneration, never as broken. No
@@ -495,8 +495,7 @@ maintenance-only.
   identifiers.
 - Live GitHub CLI and MCP workflows read the current time once at the
   process/tool-call boundary; local workflows keep a fixed deterministic clock.
-- Centralized the GitHub list limit constants (minimum 1, default 50, maximum
-  100) into one canonical source; behavior-preserving.
+- Centralized the GitHub list limit constants (minimum 1, default 50, maximum 100) into one canonical source; behavior-preserving.
 - Generalized version, bundle, and archive verification around self-describing
   metadata.
 

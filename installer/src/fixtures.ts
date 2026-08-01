@@ -378,7 +378,11 @@ export function exampleInstallerWriteConfirmationChecklistInput(): InstallerWrit
   // The write execution plan example evaluates capability with a ready-decision
   // requirement disabled; pair it with a ready decision so the confirmation
   // checklist's decision-ready item also passes.
-  const decision = { ...createInstallerDecisionReport(exampleInstallerDecisionReportInput()), decision: "ready" as const, ok: true };
+  const decision = {
+    ...createInstallerDecisionReport(exampleInstallerDecisionReportInput()),
+    decision: "ready" as const,
+    ok: true,
+  };
   const executionPlan = createInstallerWriteExecutionPlan(planInput);
   return {
     decision,

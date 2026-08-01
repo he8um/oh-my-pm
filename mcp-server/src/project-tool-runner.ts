@@ -4,11 +4,7 @@ import { createNodeWasmKernelApi } from "@oh-my-pm/kernel";
 import { createLocalProvider, createProviderRegistry } from "@oh-my-pm/providers";
 import { createRuntime } from "@oh-my-pm/runtime";
 import { createDefaultSkillRegistry } from "@oh-my-pm/skills";
-import type {
-  McpProjectOperation,
-  McpProjectToolExecution,
-  McpProjectToolName,
-} from "./types.js";
+import type { McpProjectOperation, McpProjectToolExecution, McpProjectToolName } from "./types.js";
 import { OH_MY_PM_MCP_VERSION } from "./version.js";
 
 // Deterministic runtime identity for the MCP server: no real clock, no

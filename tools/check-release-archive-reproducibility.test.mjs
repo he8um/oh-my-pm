@@ -50,7 +50,9 @@ describe("check-release-archive-reproducibility command", () => {
     const result = run(repro, ["--bundle", bundle]);
     expect(result.stderr, result.stderr).toBe("");
     expect(result.status).toBe(0);
-    expect(result.stdout).toBe(`OH MY PM release archive reproducibility: OK (${CANONICAL_VERSION})\n`);
+    expect(result.stdout).toBe(
+      `OH MY PM release archive reproducibility: OK (${CANONICAL_VERSION})\n`,
+    );
   }, 180_000);
 
   it("requires --bundle", () => {

@@ -183,7 +183,9 @@ describe("createControlledWriteExecutionDryRun", () => {
     expect(dryRun.warnings).toBeDefined();
     expect(dryRun.warnings?.every((warning) => warning.code === "OMP-I-6001")).toBe(true);
     expect(
-      dryRun.warnings?.some((warning) => warning.message === "controlled_write_capability_not_allowed"),
+      dryRun.warnings?.some(
+        (warning) => warning.message === "controlled_write_capability_not_allowed",
+      ),
     ).toBe(true);
   });
 });

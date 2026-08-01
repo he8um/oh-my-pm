@@ -43,7 +43,8 @@ function reviewComment(over: Partial<TextItem> & { body: string }): TextItem {
 }
 
 const risks = (items: TextItem[]) => extractRiskCandidates({ explicitRisks: [], items, now: NOW });
-const tasks = (items: TextItem[]) => extractNextTaskCandidates({ explicitTasks: [], items, now: NOW });
+const tasks = (items: TextItem[]) =>
+  extractNextTaskCandidates({ explicitTasks: [], items, now: NOW });
 
 describe("review-state-derived signals", () => {
   it("open PR + changesRequested yields a high state risk and a high state task", () => {
@@ -87,21 +88,31 @@ describe("review-state-derived signals", () => {
 
 describe("review body signals", () => {
   it("extracts an English risk heading as a github_review risk", () => {
-    const item = review({ reviewState: "commented", body: "## Blockers\n- the migration is unsafe" });
+    const item = review({
+      reviewState: "commented",
+      body: "## Blockers\n- the migration is unsafe",
+    });
     const r = risks([item]);
-    expect(r.some((x) => x.reason === "github_review:heading:blockers" && x.source === "github-review")).toBe(true);
+    expect(
+      r.some((x) => x.reason === "github_review:heading:blockers" && x.source === "github-review"),
+    ).toBe(true);
   });
 
   it("extracts a Persian risk heading as a github_review risk", () => {
-    const item = review({ reviewState: "commented", body: "## موانع\n- ممکن است داده از دست برود" });
+    const item = review({
+      reviewState: "commented",
+      body: "## موانع\n- ممکن است داده از دست برود",
+    });
     const r = risks([item]);
-    expect(r.some((x) => x.source === "github-review" && x.reason === "github_review:heading:blockers")).toBe(
-      true,
-    );
+    expect(
+      r.some((x) => x.source === "github-review" && x.reason === "github_review:heading:blockers"),
+    ).toBe(true);
   });
 
   it("extracts an English action heading and a Persian action heading as tasks", () => {
-    const en = tasks([review({ reviewState: "commented", body: "## Next Steps\n- rebase the branch" })]);
+    const en = tasks([
+      review({ reviewState: "commented", body: "## Next Steps\n- rebase the branch" }),
+    ]);
     expect(en.some((x) => x.source === "github-review")).toBe(true);
     const fa = tasks([
       review({
@@ -114,25 +125,37 @@ describe("review body signals", () => {
   });
 
   it("extracts an unchecked checkbox as a task and excludes a checked one", () => {
-    const t = tasks([review({ reviewState: "commented", body: "- [ ] fix the leak\n- [x] already merged" })]);
+    const t = tasks([
+      review({ reviewState: "commented", body: "- [ ] fix the leak\n- [x] already merged" }),
+    ]);
     expect(t).toHaveLength(1);
     expect(t[0]!.title).toBe("fix the leak");
   });
 
   it("preserves a priority marker on a review body task", () => {
-    const t = tasks([review({ reviewState: "commented", body: "## Actions\n- [P0] page the on-call" })]);
+    const t = tasks([
+      review({ reviewState: "commented", body: "## Actions\n- [P0] page the on-call" }),
+    ]);
     expect(t[0]!.priority).toBe("high");
     expect(t[0]!.title).toBe("page the on-call");
   });
 
   it("does NOT extract body tasks when the parent PR is merged, but keeps historical body risks", () => {
-    const merged = review({ reviewState: "commented", parentStatus: "merged", body: "## Blockers\n- data loss risk\n## Actions\n- [ ] nope" });
+    const merged = review({
+      reviewState: "commented",
+      parentStatus: "merged",
+      body: "## Blockers\n- data loss risk\n## Actions\n- [ ] nope",
+    });
     expect(tasks([merged])).toHaveLength(0);
     expect(risks([merged]).some((x) => x.source === "github-review")).toBe(true);
   });
 
   it("does NOT treat arbitrary review prose or the generated title as a signal", () => {
-    const item = review({ reviewState: "commented", title: "Review by @alice: changes requested", body: "This looks risky and dangerous to me." });
+    const item = review({
+      reviewState: "commented",
+      title: "Review by @alice: changes requested",
+      body: "This looks risky and dangerous to me.",
+    });
     expect(risks([item])).toHaveLength(0);
     expect(tasks([item])).toHaveLength(0);
   });
@@ -170,8 +193,12 @@ describe("reviews and review comments are never top-level items", () => {
     ];
     const r = risks(items);
     const t = tasks(items);
-    expect(r.every((x) => x.source === "github-review" || x.source === "github-review-comment")).toBe(true);
-    expect(t.every((x) => x.source === "github-review" || x.source === "github-review-comment")).toBe(true);
+    expect(
+      r.every((x) => x.source === "github-review" || x.source === "github-review-comment"),
+    ).toBe(true);
+    expect(
+      t.every((x) => x.source === "github-review" || x.source === "github-review-comment"),
+    ).toBe(true);
   });
 
   it("produces deterministic, repeatable output", () => {
@@ -185,7 +212,17 @@ describe("reviews and review comments are never top-level items", () => {
 
   it("orders candidates by group: primary issue/PR, then comments, then reviews, then review comments", () => {
     const items: TextItem[] = [
-      { id: "github:pull-request:owner/repo#7", title: "#7 PR", source: "github", type: "pullRequest", kind: "pullRequest", repository: "owner/repo", number: 7, status: "open", body: "## Blockers\n- primary blocker" } as TextItem,
+      {
+        id: "github:pull-request:owner/repo#7",
+        title: "#7 PR",
+        source: "github",
+        type: "pullRequest",
+        kind: "pullRequest",
+        repository: "owner/repo",
+        number: 7,
+        status: "open",
+        body: "## Blockers\n- primary blocker",
+      } as TextItem,
       review({ reviewState: "changesRequested" }),
       reviewComment({ body: "Blocker: from the review comment" }),
     ];

@@ -60,9 +60,7 @@ export function compareVersionStrings(left: string, right: string): number {
 }
 
 /** Evaluate whether the latest candidate is eligible for update. */
-export function evaluateLocalUpdatePolicy(
-  input: LocalUpdatePolicyInput,
-): LocalUpdatePolicyReport {
+export function evaluateLocalUpdatePolicy(input: LocalUpdatePolicyInput): LocalUpdatePolicyReport {
   const channel = input.channel.channel;
   const candidate = selectUpdateCandidate(input);
 

@@ -5,7 +5,7 @@
 // into line/item-level risk and next-task candidates.
 
 import type { NormalizedItemType } from "@oh-my-pm/contracts";
-import { isBlockedItem, isDoneItem, normalizeText } from "./helpers.js";
+import { isBlockedItem, isDoneItem } from "./helpers.js";
 import {
   matchActionMarker,
   matchRiskMarker,
@@ -93,9 +93,11 @@ export function normalizeSignalText(value: string): string {
  */
 export function normalizeSignalToken(value: string): string {
   const base = normalizeSignalText(value);
-  return base.replace(/[_/\s]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  return base
+    .replace(/[_/\s]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 }
-
 
 // --- Deterministic due-date comparison (Step 5) ----------------------------
 
@@ -177,13 +179,7 @@ const MEDIUM_LABELS = new Set([
   "sev2",
 ]);
 const LOW_LABELS = new Set(["risk-low", "p2", "priority-low", "sev3"]);
-const NO_ACTION_LABELS = new Set([
-  "duplicate",
-  "invalid",
-  "wontfix",
-  "won't-fix",
-  "not-planned",
-]);
+const NO_ACTION_LABELS = new Set(["duplicate", "invalid", "wontfix", "won't-fix", "not-planned"]);
 
 function labelSeverity(label: string): Severity | null {
   const token = normalizeSignalToken(label);
@@ -366,7 +362,9 @@ function commentMetadata(item: TextItem): Partial<RiskCandidate> & Partial<NextT
 }
 
 /** Map a comment risk-section heading to a bounded github_comment reason. */
-function commentHeadingRisk(normalizedHeading: string): { severity: Severity; reason: string } | null {
+function commentHeadingRisk(
+  normalizedHeading: string,
+): { severity: Severity; reason: string } | null {
   if (RISK_HEADING_HIGH.has(normalizedHeading)) {
     return { severity: "high", reason: "github_comment:heading:blockers" };
   }
@@ -426,10 +424,18 @@ export function classifyGitHubCommentRisks(item: TextItem): RiskCandidate[] {
       }
       if (section.meta.risk === null) continue;
       if (entry.kind === "checked-task") continue;
-      if (entry.kind === "list-item" || entry.kind === "numbered-item" || entry.kind === "unchecked-task") {
-        out.push(makeCommentRisk(item, entry, section.meta.risk.severity, section.meta.risk.reason));
+      if (
+        entry.kind === "list-item" ||
+        entry.kind === "numbered-item" ||
+        entry.kind === "unchecked-task"
+      ) {
+        out.push(
+          makeCommentRisk(item, entry, section.meta.risk.severity, section.meta.risk.reason),
+        );
       } else if (entry.kind === "paragraph" && !hasListItems) {
-        out.push(makeCommentRisk(item, entry, section.meta.risk.severity, section.meta.risk.reason));
+        out.push(
+          makeCommentRisk(item, entry, section.meta.risk.severity, section.meta.risk.reason),
+        );
       }
     }
   }
@@ -458,7 +464,10 @@ function makeCommentRisk(
 
 /** github_comment action-heading reason (mirrors markdown_heading:* mapping). */
 function commentActionHeadingReason(normalizedHeading: string): string {
-  return actionHeadingReason(normalizedHeading).replace("markdown_heading:", "github_comment:heading:");
+  return actionHeadingReason(normalizedHeading).replace(
+    "markdown_heading:",
+    "github_comment:heading:",
+  );
 }
 
 /** github_comment action-marker reason (mirrors markdown_marker:* mapping). */
@@ -487,7 +496,13 @@ export function classifyGitHubCommentTasks(item: TextItem): NextTaskCandidate[] 
         const marker = matchActionMarker(entry.text);
         if (marker !== null) {
           out.push(
-            makeCommentTask(item, entry, commentActionMarkerReason(marker.prefix), marker.body, "action"),
+            makeCommentTask(
+              item,
+              entry,
+              commentActionMarkerReason(marker.prefix),
+              marker.body,
+              "action",
+            ),
           );
         }
         continue;
@@ -499,7 +514,13 @@ export function classifyGitHubCommentTasks(item: TextItem): NextTaskCandidate[] 
       if (entry.kind === "checked-task") continue;
       if ((entry.kind === "list-item" || entry.kind === "numbered-item") && section.meta.action) {
         out.push(
-          makeCommentTask(item, entry, commentActionHeadingReason(entry.normalizedHeading), entry.text, "action"),
+          makeCommentTask(
+            item,
+            entry,
+            commentActionHeadingReason(entry.normalizedHeading),
+            entry.text,
+            "action",
+          ),
         );
       }
     }
@@ -542,7 +563,11 @@ function groupBySection<M>(
   for (const entry of entries) {
     const last = sections[sections.length - 1];
     if (last === undefined || last.heading !== entry.heading) {
-      sections.push({ heading: entry.heading, meta: metaFor(entry.normalizedHeading), entries: [] });
+      sections.push({
+        heading: entry.heading,
+        meta: metaFor(entry.normalizedHeading),
+        entries: [],
+      });
     }
     sections[sections.length - 1]!.entries.push(entry);
   }
@@ -597,7 +622,8 @@ function reviewMetadata(
   if (item.author !== undefined) meta.author = item.author;
   if (item.repository !== undefined) meta.repository = item.repository;
   if (item.parentNumber !== undefined) meta.number = item.parentNumber;
-  if (source === "github-review" && item.reviewState !== undefined) meta.reviewState = item.reviewState;
+  if (source === "github-review" && item.reviewState !== undefined)
+    meta.reviewState = item.reviewState;
   if (source === "github-review-comment") {
     if (item.filePath !== undefined) meta.filePath = item.filePath;
     if (item.line !== undefined) meta.line = item.line;
@@ -621,7 +647,10 @@ function reviewHeadingRisk(
 }
 
 /** Map a review body risk marker prefix to a source-specific reason. */
-function reviewMarkerRisk(markerPrefix: string, prefix: string): { severity: Severity; reason: string } {
+function reviewMarkerRisk(
+  markerPrefix: string,
+  prefix: string,
+): { severity: Severity; reason: string } {
   const p = normalizeSignalText(markerPrefix);
   if (p === "blocker" || p === "blocked by" || p === "مانع" || p === "مسدودکننده") {
     return { severity: "high", reason: `${prefix}:marker:blocker` };
@@ -668,16 +697,26 @@ function classifyReviewBodyRisks(
         const marker = matchRiskMarker(entry.text);
         if (marker !== null) {
           const mapped = reviewMarkerRisk(marker.prefix, prefix);
-          out.push(makeReviewRisk(item, source, entry, mapped.severity, mapped.reason, marker.body));
+          out.push(
+            makeReviewRisk(item, source, entry, mapped.severity, mapped.reason, marker.body),
+          );
         }
         continue;
       }
       if (section.meta.risk === null) continue;
       if (entry.kind === "checked-task") continue;
-      if (entry.kind === "list-item" || entry.kind === "numbered-item" || entry.kind === "unchecked-task") {
-        out.push(makeReviewRisk(item, source, entry, section.meta.risk.severity, section.meta.risk.reason));
+      if (
+        entry.kind === "list-item" ||
+        entry.kind === "numbered-item" ||
+        entry.kind === "unchecked-task"
+      ) {
+        out.push(
+          makeReviewRisk(item, source, entry, section.meta.risk.severity, section.meta.risk.reason),
+        );
       } else if (entry.kind === "paragraph" && !hasListItems) {
-        out.push(makeReviewRisk(item, source, entry, section.meta.risk.severity, section.meta.risk.reason));
+        out.push(
+          makeReviewRisk(item, source, entry, section.meta.risk.severity, section.meta.risk.reason),
+        );
       }
     }
   }
@@ -743,7 +782,9 @@ function classifyReviewBodyTasks(
         continue;
       }
       if (entry.kind === "unchecked-task" && !section.meta.risk) {
-        out.push(makeReviewTask(item, source, entry, `${prefix}:unchecked_task`, entry.text, "task"));
+        out.push(
+          makeReviewTask(item, source, entry, `${prefix}:unchecked_task`, entry.text, "task"),
+        );
         continue;
       }
       if (entry.kind === "checked-task") continue;
@@ -753,7 +794,10 @@ function classifyReviewBodyTasks(
             item,
             source,
             entry,
-            actionHeadingReason(entry.normalizedHeading).replace("markdown_heading:", `${prefix}:heading:`),
+            actionHeadingReason(entry.normalizedHeading).replace(
+              "markdown_heading:",
+              `${prefix}:heading:`,
+            ),
             entry.text,
             "action",
           ),
@@ -875,10 +919,7 @@ export function classifyGitHubReviewCommentTasks(item: TextItem): NextTaskCandid
  * Classify a single GitHub issue/PR into at most one risk candidate, following
  * the exact precedence ladder. Returns null when no risk signal applies.
  */
-export function classifyGitHubRisk(
-  item: TextItem,
-  now: string,
-): RiskCandidate | null {
+export function classifyGitHubRisk(item: TextItem, now: string): RiskCandidate | null {
   const status = normalizeSignalText(item.status ?? "");
   const done = isDoneItem(item);
   const base = {
@@ -890,7 +931,11 @@ export function classifyGitHubRisk(
   };
 
   // 1. overdue due date on an open/draft (not done/closed/merged) item.
-  if (!done && (status === "open" || status === "draft" || status === "") && isOverdue(item.due, now)) {
+  if (
+    !done &&
+    (status === "open" || status === "draft" || status === "") &&
+    isOverdue(item.due, now)
+  ) {
     return { ...base, severity: "high", reason: "github_due:overdue" };
   }
   // 2. blocked status or exact blocker/blocked label/tag.
@@ -908,7 +953,8 @@ export function classifyGitHubRisk(
   }
   // 5. first medium-risk label.
   const medium = firstLabelOfSeverity(labels, "medium");
-  if (medium !== null) return { ...base, severity: "medium", reason: `github_label:${medium.token}` };
+  if (medium !== null)
+    return { ...base, severity: "medium", reason: `github_label:${medium.token}` };
   // 6. explicit risk/dependency heading/marker in body.
   if (body !== null && body.kind === "risk") {
     return { ...base, severity: "medium", reason: body.reason };
@@ -927,7 +973,11 @@ export function classifyGitHubRisk(
   }
   const mediumTitle = titlePhrase(item.title, MEDIUM_TITLE);
   if (mediumTitle !== null) {
-    return { ...base, severity: "medium", reason: `github_title:${mediumTitle.replace(/\s+/g, "-")}` };
+    return {
+      ...base,
+      severity: "medium",
+      reason: `github_title:${mediumTitle.replace(/\s+/g, "-")}`,
+    };
   }
   const lowTitle = titlePhrase(item.title, LOW_TITLE);
   if (lowTitle !== null) {
@@ -938,7 +988,10 @@ export function classifyGitHubRisk(
 
 /** Repository record risk (archived/disabled), or null. */
 function classifyGitHubRepositoryRisk(item: TextItem): RiskCandidate | null {
-  const signals = [normalizeSignalText(item.status ?? ""), ...(item.tags ?? []).map(normalizeSignalText)];
+  const signals = [
+    normalizeSignalText(item.status ?? ""),
+    ...(item.tags ?? []).map(normalizeSignalText),
+  ];
   const base = {
     id: item.id,
     title: item.title,
@@ -960,10 +1013,7 @@ function classifyGitHubRepositoryRisk(item: TextItem): RiskCandidate | null {
  * eligible (repository record, terminal state, no-action label, blocked, empty
  * title). Priority is derived deterministically.
  */
-export function classifyGitHubNextTask(
-  item: TextItem,
-  now: string,
-): NextTaskCandidate | null {
+export function classifyGitHubNextTask(item: TextItem, now: string): NextTaskCandidate | null {
   if (isRepositoryRecord(item)) return null;
   if (item.title.trim() === "") return null;
   const status = normalizeSignalText(item.status ?? "");
@@ -1069,7 +1119,10 @@ function markdownHeadingSeverity(
       normalizedHeading === normalizeSignalText("وابستگی") ||
       normalizedHeading === normalizeSignalText("وابستگی‌ها") ||
       normalizedHeading === normalizeSignalText("وابستگی ها");
-    return { severity: "medium", reason: isDependency ? "markdown_heading:dependencies" : "markdown_heading:risks" };
+    return {
+      severity: "medium",
+      reason: isDependency ? "markdown_heading:dependencies" : "markdown_heading:risks",
+    };
   }
   if (MD_RISK_HEADING_LOW.has(normalizedHeading)) {
     return { severity: "low", reason: "markdown_heading:risks" };
@@ -1286,7 +1339,11 @@ function markdownRiskCandidates(item: TextItem): RiskCandidate[] {
   const out: RiskCandidate[] = [];
 
   // First pass to know per-section list presence: re-parse grouping by heading.
-  const bySection: Array<{ heading: string; sev: { severity: Severity; reason: string } | null; entries: MarkdownSignalEntry[] }> = [];
+  const bySection: Array<{
+    heading: string;
+    sev: { severity: Severity; reason: string } | null;
+    entries: MarkdownSignalEntry[];
+  }> = [];
   for (const entry of entries) {
     if (bySection.length === 0 || bySection[bySection.length - 1]!.heading !== entry.heading) {
       bySection.push({
@@ -1300,7 +1357,11 @@ function markdownRiskCandidates(item: TextItem): RiskCandidate[] {
 
   for (const section of bySection) {
     const hasListItems = section.entries.some(
-      (e) => e.kind === "list-item" || e.kind === "numbered-item" || e.kind === "unchecked-task" || e.kind === "checked-task",
+      (e) =>
+        e.kind === "list-item" ||
+        e.kind === "numbered-item" ||
+        e.kind === "unchecked-task" ||
+        e.kind === "checked-task",
     );
     for (const entry of section.entries) {
       // Explicit markers are always candidates regardless of heading.
@@ -1315,7 +1376,11 @@ function markdownRiskCandidates(item: TextItem): RiskCandidate[] {
       if (section.sev === null) continue;
       // Checked tasks are resolved and excluded.
       if (entry.kind === "checked-task") continue;
-      if (entry.kind === "list-item" || entry.kind === "numbered-item" || entry.kind === "unchecked-task") {
+      if (
+        entry.kind === "list-item" ||
+        entry.kind === "numbered-item" ||
+        entry.kind === "unchecked-task"
+      ) {
         out.push(makeMdRisk(item, entry, section.sev.severity, section.sev.reason));
       } else if (entry.kind === "paragraph" && !hasListItems) {
         out.push(makeMdRisk(item, entry, section.sev.severity, section.sev.reason));
@@ -1350,7 +1415,12 @@ function markdownTaskCandidates(item: TextItem): NextTaskCandidate[] {
   // Determine which headings are risk sections (their list items are risks,
   // never tasks).
   const sectionRisk = new Map<string, boolean>();
-  const bySection: Array<{ heading: string; isAction: boolean; isRisk: boolean; entries: MarkdownSignalEntry[] }> = [];
+  const bySection: Array<{
+    heading: string;
+    isAction: boolean;
+    isRisk: boolean;
+    entries: MarkdownSignalEntry[];
+  }> = [];
   for (const entry of entries) {
     if (bySection.length === 0 || bySection[bySection.length - 1]!.heading !== entry.heading) {
       bySection.push({
@@ -1369,7 +1439,9 @@ function markdownTaskCandidates(item: TextItem): NextTaskCandidate[] {
       if (entry.kind === "marker") {
         const marker = matchActionMarker(entry.text);
         if (marker !== null) {
-          out.push(makeMdTask(item, entry, actionMarkerReason(marker.prefix), marker.body, "action"));
+          out.push(
+            makeMdTask(item, entry, actionMarkerReason(marker.prefix), marker.body, "action"),
+          );
         }
         continue;
       }
@@ -1383,7 +1455,15 @@ function markdownTaskCandidates(item: TextItem): NextTaskCandidate[] {
       if (entry.kind === "checked-task") continue;
       // List/numbered items under an action heading become tasks.
       if ((entry.kind === "list-item" || entry.kind === "numbered-item") && section.isAction) {
-        out.push(makeMdTask(item, entry, actionHeadingReason(entry.normalizedHeading), entry.text, "action"));
+        out.push(
+          makeMdTask(
+            item,
+            entry,
+            actionHeadingReason(entry.normalizedHeading),
+            entry.text,
+            "action",
+          ),
+        );
       }
     }
   }
@@ -1480,8 +1560,10 @@ export function extractRiskCandidates(input: {
     const titleHigh = titlePhrase(item.title, HIGH_TITLE);
     const titleMedium = titlePhrase(item.title, MEDIUM_TITLE);
     let severity: Severity | null = null;
-    if (signals.some((s) => GENERIC_HIGH_TOKENS.includes(s)) || titleHigh !== null) severity = "high";
-    else if (signals.some((s) => GENERIC_MEDIUM_TOKENS.includes(s)) || titleMedium !== null) severity = "medium";
+    if (signals.some((s) => GENERIC_HIGH_TOKENS.includes(s)) || titleHigh !== null)
+      severity = "high";
+    else if (signals.some((s) => GENERIC_MEDIUM_TOKENS.includes(s)) || titleMedium !== null)
+      severity = "medium";
     if (severity === null) continue;
     risks.add({
       id: item.id,
@@ -1576,4 +1658,3 @@ export function extractNextTaskCandidates(input: {
 
   return tasks.items.slice(0, MAX_NEXT_TASKS);
 }
-

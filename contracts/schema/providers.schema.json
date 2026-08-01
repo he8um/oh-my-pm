@@ -49,8 +49,17 @@
       "doc": "Normalized response from a context provider.",
       "fields": [
         { "name": "providerId", "type": { "ref": "ProviderId" }, "doc": "Responding provider." },
-        { "name": "items", "type": { "array": { "ref": "NormalizedProviderItem" } }, "doc": "Normalized items." },
-        { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings.", "optional": true }
+        {
+          "name": "items",
+          "type": { "array": { "ref": "NormalizedProviderItem" } },
+          "doc": "Normalized items."
+        },
+        {
+          "name": "warnings",
+          "type": { "array": { "ref": "KernelWarning" } },
+          "doc": "Warnings.",
+          "optional": true
+        }
       ]
     }
   ]

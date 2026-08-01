@@ -89,30 +89,20 @@ export interface DeriveProjectTimelineInput {
 
 /** The eight approved Project Brain Kernel binding operations. */
 export interface ProjectBrainKernelApi {
-  deriveProjectIdentity(
-    seed: ProjectIdentitySeedInput,
-  ): ProjectBrainKernelResult<ProjectIdentity>;
-  fingerprintMinimizedContent(
-    input: FingerprintContentInput,
-  ): ProjectBrainKernelResult<string>;
+  deriveProjectIdentity(seed: ProjectIdentitySeedInput): ProjectBrainKernelResult<ProjectIdentity>;
+  fingerprintMinimizedContent(input: FingerprintContentInput): ProjectBrainKernelResult<string>;
   deriveEvidenceId(record: EvidenceRecord): ProjectBrainKernelResult<string>;
   deriveFreshness(input: DeriveFreshnessInput): ProjectBrainKernelResult<Freshness>;
   finalizeProjectState(state: ProjectState): ProjectBrainKernelResult<ProjectState>;
-  finalizeProjectSnapshot(
-    snapshot: ProjectSnapshot,
-  ): ProjectBrainKernelResult<ProjectSnapshot>;
-  diffProjectSnapshots(
-    input: DiffProjectSnapshotsInput,
-  ): ProjectBrainKernelResult<ChangeSet>;
+  finalizeProjectSnapshot(snapshot: ProjectSnapshot): ProjectBrainKernelResult<ProjectSnapshot>;
+  diffProjectSnapshots(input: DiffProjectSnapshotsInput): ProjectBrainKernelResult<ChangeSet>;
   deriveProjectTimeline(
     input: DeriveProjectTimelineInput,
   ): ProjectBrainKernelResult<TimelineResult>;
 }
 
 /** The unavailable-error envelope factory (fail-closed for every operation). */
-export function unavailableProjectBrainError<T>(
-  reason: string,
-): ProjectBrainKernelResult<T> {
+export function unavailableProjectBrainError<T>(reason: string): ProjectBrainKernelResult<T> {
   return {
     ok: false,
     error: { code: "OMP-K-PB-0000", message: `Kernel binding unavailable: ${reason}` },

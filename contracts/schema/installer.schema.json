@@ -8,7 +8,11 @@
       "fields": [
         { "name": "schemaVersion", "type": "string", "doc": "Manifest schema version." },
         { "name": "version", "type": "string", "doc": "Installed system version." },
-        { "name": "installedAt", "type": "string", "doc": "Installation time supplied by the caller." },
+        {
+          "name": "installedAt",
+          "type": "string",
+          "doc": "Installation time supplied by the caller."
+        },
         { "name": "root", "type": "string", "doc": "Install root path." }
       ]
     },
@@ -31,11 +35,36 @@
         { "name": "version", "type": "string", "doc": "Package version." },
         { "name": "checksum", "type": "string", "doc": "Package content checksum." },
         { "name": "files", "type": { "array": "string" }, "doc": "Package-relative file paths." },
-        { "name": "schemaVersion", "type": "string", "doc": "Manifest schema version.", "optional": true },
-        { "name": "platform", "type": "string", "doc": "Supported target platform.", "optional": true },
-        { "name": "architecture", "type": "string", "doc": "Supported target architecture.", "optional": true },
-        { "name": "createdAt", "type": "string", "doc": "Package creation time supplied by the caller.", "optional": true },
-        { "name": "fileEntries", "type": { "array": { "ref": "PackageFileEntry" } }, "doc": "Package file metadata.", "optional": true }
+        {
+          "name": "schemaVersion",
+          "type": "string",
+          "doc": "Manifest schema version.",
+          "optional": true
+        },
+        {
+          "name": "platform",
+          "type": "string",
+          "doc": "Supported target platform.",
+          "optional": true
+        },
+        {
+          "name": "architecture",
+          "type": "string",
+          "doc": "Supported target architecture.",
+          "optional": true
+        },
+        {
+          "name": "createdAt",
+          "type": "string",
+          "doc": "Package creation time supplied by the caller.",
+          "optional": true
+        },
+        {
+          "name": "fileEntries",
+          "type": { "array": { "ref": "PackageFileEntry" } },
+          "doc": "Package file metadata.",
+          "optional": true
+        }
       ]
     },
     {
@@ -44,8 +73,17 @@
       "doc": "Result of an installation run.",
       "fields": [
         { "name": "ok", "type": "boolean", "doc": "Whether installation succeeded." },
-        { "name": "manifest", "type": { "ref": "InstallManifest" }, "doc": "Resulting install manifest." },
-        { "name": "warnings", "type": { "array": { "ref": "KernelWarning" } }, "doc": "Warnings.", "optional": true }
+        {
+          "name": "manifest",
+          "type": { "ref": "InstallManifest" },
+          "doc": "Resulting install manifest."
+        },
+        {
+          "name": "warnings",
+          "type": { "array": { "ref": "KernelWarning" } },
+          "doc": "Warnings.",
+          "optional": true
+        }
       ]
     },
     {
@@ -55,7 +93,11 @@
       "fields": [
         { "name": "ok", "type": "boolean", "doc": "Whether the update applied cleanly." },
         { "name": "planId", "type": "string", "doc": "Applied plan identifier." },
-        { "name": "appliedSteps", "type": { "array": "string" }, "doc": "Applied step descriptions." }
+        {
+          "name": "appliedSteps",
+          "type": { "array": "string" },
+          "doc": "Applied step descriptions."
+        }
       ]
     },
     {

@@ -12,11 +12,7 @@ import type { KernelApi } from "@oh-my-pm/kernel";
 
 /** Registered installer error codes. */
 export type InstallerErrorCode =
-  | "OMP-I-6001"
-  | "OMP-I-6002"
-  | "OMP-I-6003"
-  | "OMP-I-6004"
-  | "OMP-I-6005";
+  "OMP-I-6001" | "OMP-I-6002" | "OMP-I-6003" | "OMP-I-6004" | "OMP-I-6005";
 
 /**
  * Package-local failure shape; current contracts do not include a failed
@@ -567,10 +563,7 @@ export type InstallerAuditEventLevel = "info" | "warning" | "error";
 
 /** Kind of installer audit event in a local preview pipeline. */
 export type InstallerAuditEventKind =
-  | "preview_started"
-  | "section_evaluated"
-  | "decision_reported"
-  | "preview_completed";
+  "preview_started" | "section_evaluated" | "decision_reported" | "preview_completed";
 
 /**
  * One deterministic in-memory audit event. There is no timestamp, user,
@@ -933,9 +926,7 @@ export type InstallerReleaseReadinessStatus = "ready" | "blocked" | "review-requ
 
 /** Identifier for one release-readiness section. */
 export type InstallerReleaseReadinessSectionId =
-  | "installer-decision"
-  | "audit-export"
-  | "controlled-write";
+  "installer-decision" | "audit-export" | "controlled-write";
 
 /** One named readiness layer inside the release-readiness report. */
 export type InstallerReleaseReadinessSection = {
@@ -1064,12 +1055,7 @@ export type PublicV0ReleaseNotesDraftInput = {
 
 /** Identifier for one public v0 release notes draft section. */
 export type PublicV0ReleaseNotesDraftSectionId =
-  | "status"
-  | "included"
-  | "safety"
-  | "not-included"
-  | "validation"
-  | "next";
+  "status" | "included" | "safety" | "not-included" | "validation" | "next";
 
 /** One public-safe release notes section. */
 export type PublicV0ReleaseNotesDraftSection = {
@@ -1228,10 +1214,7 @@ export type GuardedLocalArtifactAssemblyDryRunReport = {
 };
 
 /** Modes a guarded artifact creation permission policy may declare. */
-export type GuardedArtifactCreationPermissionMode =
-  | "disabled"
-  | "dry-run-only"
-  | "explicit";
+export type GuardedArtifactCreationPermissionMode = "disabled" | "dry-run-only" | "explicit";
 
 /**
  * Policy governing whether a future explicitly-enabled local artifact
@@ -1355,9 +1338,7 @@ export type LocalArtifactCreationExecutionPlanDryRunReport = {
 };
 
 /** Capability labels a local artifact creation adapter contract may declare. */
-export type LocalArtifactCreationAdapterCapability =
-  | "write-text-output"
-  | "write-binary-output";
+export type LocalArtifactCreationAdapterCapability = "write-text-output" | "write-binary-output";
 
 /**
  * Declared, metadata-only description of a future local artifact creation

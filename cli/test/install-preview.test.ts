@@ -38,10 +38,7 @@ describe("runInstallerPreview", () => {
       expect(result.ok).toBe(true);
       expect(result.packageName).toBe("oh-my-pm-local");
       expect(result.packageVersion).toBe("2.0.0-alpha.0");
-      expect(result.operations.map((operation) => operation.kind)).toEqual([
-        "replace",
-        "replace",
-      ]);
+      expect(result.operations.map((operation) => operation.kind)).toEqual(["replace", "replace"]);
       // The preview compares the root against itself, so the update and
       // rollback layers report no changes; those are review reasons, not
       // blocking ones, and surface as decision warnings.
@@ -261,9 +258,7 @@ describe("runInstallerPreview", () => {
       expect(parsed.writeExecutionPlan.intent).toBe("install");
       expect(typeof parsed.writeExecutionPlan.steps).toBe("number");
       expect(parsed.writeExecutionPlan.ok).toBe(false);
-      expect(parsed.writeExecutionPlan.reasons).toContain(
-        "write_execution_capability_not_allowed",
-      );
+      expect(parsed.writeExecutionPlan.reasons).toContain("write_execution_capability_not_allowed");
       expect(parsed.writeExecutionPlan).not.toHaveProperty("plan");
       for (const key of Object.keys(parsed.writeExecutionPlan)) {
         expect(key).not.toMatch(/content|command|dest|adapter|writer|result|remote|url/i);
@@ -313,7 +308,9 @@ describe("runInstallerPreview", () => {
       expect(parsed.releaseReadiness).not.toHaveProperty("markdown");
       expect(parsed.releaseReadiness).not.toHaveProperty("report");
       for (const key of Object.keys(parsed.releaseReadiness)) {
-        expect(key).not.toMatch(/artifact|asset|content|command|dest|adapter|object|result|remote|url/i);
+        expect(key).not.toMatch(
+          /artifact|asset|content|command|dest|adapter|object|result|remote|url/i,
+        );
       }
       // v0 release candidate checklist summary; raw items and markdown never
       // reach JSON.
@@ -323,7 +320,9 @@ describe("runInstallerPreview", () => {
       expect(parsed.v0ReleaseCandidate).not.toHaveProperty("checklist");
       expect(parsed.v0ReleaseCandidate).not.toHaveProperty("markdown");
       for (const key of Object.keys(parsed.v0ReleaseCandidate)) {
-        expect(key).not.toMatch(/artifact|asset|content|command|dest|adapter|object|result|remote|url/i);
+        expect(key).not.toMatch(
+          /artifact|asset|content|command|dest|adapter|object|result|remote|url/i,
+        );
       }
       // Public v0 release notes draft summary; raw sections and markdown never
       // reach JSON.
@@ -333,7 +332,9 @@ describe("runInstallerPreview", () => {
       expect(parsed.publicV0ReleaseNotes).not.toHaveProperty("draft");
       expect(parsed.publicV0ReleaseNotes).not.toHaveProperty("markdown");
       for (const key of Object.keys(parsed.publicV0ReleaseNotes)) {
-        expect(key).not.toMatch(/artifact|asset|download|content|command|dest|adapter|object|result|remote|url/i);
+        expect(key).not.toMatch(
+          /artifact|asset|download|content|command|dest|adapter|object|result|remote|url/i,
+        );
       }
       // Guarded release artifact plan summary; raw items and markdown never
       // reach JSON, and creation stays disallowed.
@@ -344,7 +345,9 @@ describe("runInstallerPreview", () => {
       expect(parsed.guardedReleaseArtifactPlan).not.toHaveProperty("items");
       expect(parsed.guardedReleaseArtifactPlan).not.toHaveProperty("markdown");
       for (const key of Object.keys(parsed.guardedReleaseArtifactPlan)) {
-        expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|bytes|result|remote|url|download|upload/i);
+        expect(key).not.toMatch(
+          /content|path|dest|command|publish|adapter|object|bytes|result|remote|url|download|upload/i,
+        );
       }
       // Guarded local artifact assembly readiness summary; raw envelope and
       // pass-through reports never reach JSON, and creation stays disallowed.
@@ -356,7 +359,9 @@ describe("runInstallerPreview", () => {
       expect(parsed.guardedLocalArtifactAssembly).not.toHaveProperty("assembly");
       expect(parsed.guardedLocalArtifactAssembly).not.toHaveProperty("markdown");
       for (const key of Object.keys(parsed.guardedLocalArtifactAssembly)) {
-        expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|bytes|result|remote|url|download|upload/i);
+        expect(key).not.toMatch(
+          /content|path|dest|command|publish|adapter|object|bytes|result|remote|url|download|upload/i,
+        );
       }
       // Guarded artifact creation permission summary; the default policy is
       // dry-run-only without approval, so permission is never granted here,
@@ -378,7 +383,9 @@ describe("runInstallerPreview", () => {
       expect(parsed.guardedArtifactCreationPermission).not.toHaveProperty("markdown");
       expect(parsed.guardedArtifactCreationPermission).not.toHaveProperty("report");
       for (const key of Object.keys(parsed.guardedArtifactCreationPermission)) {
-        expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|bytes|result|remote|url|download|upload/i);
+        expect(key).not.toMatch(
+          /content|path|dest|command|publish|adapter|object|bytes|result|remote|url|download|upload/i,
+        );
       }
       // Local artifact creation execution plan summary; planning-only. The
       // raw steps and markdown never reach JSON, no step is executed, and
@@ -398,7 +405,9 @@ describe("runInstallerPreview", () => {
       expect(parsed.localArtifactCreationPlan).not.toHaveProperty("plan");
       expect(parsed.localArtifactCreationPlan).not.toHaveProperty("markdown");
       for (const key of Object.keys(parsed.localArtifactCreationPlan)) {
-        expect(key).not.toMatch(/content|path|dest|command|publish|adapter|object|fn|func|method|target|bytes|result|remote|url|download|upload/i);
+        expect(key).not.toMatch(
+          /content|path|dest|command|publish|adapter|object|fn|func|method|target|bytes|result|remote|url|download|upload/i,
+        );
       }
       // Local artifact creation adapter contract summary; metadata-only. No
       // adapter instance, function, or method reaches JSON, no adapter is
@@ -419,7 +428,9 @@ describe("runInstallerPreview", () => {
       expect(parsed.localArtifactAdapterContract).not.toHaveProperty("report");
       expect(parsed.localArtifactAdapterContract).not.toHaveProperty("markdown");
       for (const key of Object.keys(parsed.localArtifactAdapterContract)) {
-        expect(key).not.toMatch(/object|fn|func|method|content|bytes|path|dest|command|target|publish|url|result|remote|download|upload/i);
+        expect(key).not.toMatch(
+          /object|fn|func|method|content|bytes|path|dest|command|target|publish|url|result|remote|download|upload/i,
+        );
       }
       // Local artifact creation confirmation checklist summary;
       // confirmation-only. The raw checklist items and markdown never reach
@@ -429,9 +440,9 @@ describe("runInstallerPreview", () => {
       expect(parsed.localArtifactConfirmation.total).toBe(7);
       expect(parsed.localArtifactConfirmation.passed).toBe(4);
       expect(parsed.localArtifactConfirmation.failed).toBe(3);
-      expect(parsed.localArtifactConfirmation.passed + parsed.localArtifactConfirmation.failed).toBe(
-        parsed.localArtifactConfirmation.total,
-      );
+      expect(
+        parsed.localArtifactConfirmation.passed + parsed.localArtifactConfirmation.failed,
+      ).toBe(parsed.localArtifactConfirmation.total);
       expect(parsed.localArtifactConfirmation.creationAllowed).toBe(false);
       expect(parsed.localArtifactConfirmation.reasons).toEqual([
         "local_artifact_confirmation_permission_not_allowed",
@@ -443,7 +454,9 @@ describe("runInstallerPreview", () => {
       expect(parsed.localArtifactConfirmation).not.toHaveProperty("markdown");
       expect(parsed.localArtifactConfirmation).not.toHaveProperty("adapter");
       for (const key of Object.keys(parsed.localArtifactConfirmation)) {
-        expect(key).not.toMatch(/adapter|object|fn|func|method|content|bytes|path|dest|command|target|publish|url|result|remote|download|upload/i);
+        expect(key).not.toMatch(
+          /adapter|object|fn|func|method|content|bytes|path|dest|command|target|publish|url|result|remote|download|upload/i,
+        );
       }
       expect(output).not.toContain("backupFile");
       expect(output).not.toContain("removeFile");

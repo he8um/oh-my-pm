@@ -6,16 +6,9 @@
 // permitted. Repository grammar is delegated to the existing strict parser so
 // there is exactly one owner/repository definition.
 
-import {
-  GITHUB_DEFAULT_LIMIT,
-  GITHUB_MAX_LIMIT,
-  GITHUB_MIN_LIMIT,
-} from "./github/constants.js";
+import { GITHUB_DEFAULT_LIMIT, GITHUB_MAX_LIMIT, GITHUB_MIN_LIMIT } from "./github/constants.js";
 import { parseGitHubRepository } from "./github/query.js";
-import {
-  GITHUB_CONFIGURABLE_SOURCES,
-  GITHUB_SOURCE_STATES,
-} from "./github/selection.js";
+import { GITHUB_CONFIGURABLE_SOURCES, GITHUB_SOURCE_STATES } from "./github/selection.js";
 import type { GitHubConfigurableSource, GitHubSourceState } from "./github/selection.js";
 
 export const PROVIDER_CONFIG_VERSION = 1;
@@ -65,14 +58,7 @@ export type ProviderConfigValidationResult =
 // Case-insensitive substrings that mark a key as secret-bearing. A key
 // containing any of these is rejected outright, at every level, before any
 // other check, so a token can never enter provider configuration.
-const SECRET_KEY_MARKERS = [
-  "token",
-  "secret",
-  "password",
-  "authorization",
-  "cookie",
-  "apikey",
-];
+const SECRET_KEY_MARKERS = ["token", "secret", "password", "authorization", "cookie", "apikey"];
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -121,7 +107,9 @@ function rejectSecretKeys(
   return null;
 }
 
-function validateGitHub(value: unknown): GitHubProviderConfig | { error: ProviderConfigValidationResult } {
+function validateGitHub(
+  value: unknown,
+): GitHubProviderConfig | { error: ProviderConfigValidationResult } {
   if (!isPlainObject(value)) {
     return { error: fail("provider_config_invalid_github", "providers.github must be an object") };
   }
@@ -150,7 +138,10 @@ function validateGitHub(value: unknown): GitHubProviderConfig | { error: Provide
   if ("enabled" in value && value["enabled"] !== undefined) {
     if (typeof value["enabled"] !== "boolean") {
       return {
-        error: fail("provider_config_invalid_enabled", "providers.github.enabled must be a boolean"),
+        error: fail(
+          "provider_config_invalid_enabled",
+          "providers.github.enabled must be a boolean",
+        ),
       };
     }
     enabled = value["enabled"];

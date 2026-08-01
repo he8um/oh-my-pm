@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, parse } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -32,7 +40,11 @@ describe("createSafeTempWorkspace", () => {
       expect(existsSync(ws.root)).toBe(true);
       expect(ws.root.split(/[\\/]/).pop()?.startsWith(WORKSPACE_PREFIX)).toBe(true);
       const marker = JSON.parse(readFileSync(ws.ownershipFile, "utf8"));
-      expect(marker).toMatchObject({ schemaVersion: 1, product: "oh-my-pm", purpose: "test-workspace" });
+      expect(marker).toMatchObject({
+        schemaVersion: 1,
+        product: "oh-my-pm",
+        purpose: "test-workspace",
+      });
       expect(typeof marker.ownershipToken).toBe("string");
       expect(marker.ownershipToken).toBe(ws.ownershipToken);
     } finally {
@@ -111,7 +123,16 @@ describe("cleanupSafeTempWorkspace", () => {
     try {
       const realTarget = track(mkdtempSync(join(tmpdir(), `${WORKSPACE_PREFIX}linktarget-`)));
       const fakeMarker = join(realTarget, "marker.json");
-      writeFileSync(fakeMarker, JSON.stringify({ schemaVersion: 1, product: "oh-my-pm", purpose: "test-workspace", ownershipToken: ws.ownershipToken }), "utf8");
+      writeFileSync(
+        fakeMarker,
+        JSON.stringify({
+          schemaVersion: 1,
+          product: "oh-my-pm",
+          purpose: "test-workspace",
+          ownershipToken: ws.ownershipToken,
+        }),
+        "utf8",
+      );
       rmSync(ws.ownershipFile, { force: true });
       symlinkSync(fakeMarker, ws.ownershipFile);
       expect(() => cleanupSafeTempWorkspace(ws)).toThrow(/temp_cleanup_symlink/);

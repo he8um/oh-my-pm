@@ -13,6 +13,13 @@
     "build:contracts": "node tools/gen-contracts.mjs",
     "build:kernel": "cargo build --workspace && node tools/build-kernel-wasm.mjs",
     "build": "pnpm -r build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "rust:fmt:check": "cargo fmt --all --check",
+    "rust:clippy": "cargo clippy --workspace --all-targets -- -D warnings",
+    "quality": "pnpm lint && pnpm format:check && pnpm rust:fmt:check && pnpm rust:clippy",
     "test:unit": "vitest run --project unit",
     "test:release": "vitest run --project release",
     "test:rust": "cargo test --workspace",
@@ -43,12 +50,15 @@
     "github:smoke": "node tools/check-github-provider-live.mjs"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@oh-my-pm/cli": "workspace:*",
     "@oh-my-pm/mcp-server": "workspace:*",
     "@oh-my-pm/providers": "workspace:*",
     "@types/node": "^20.0.0",
     "eslint": "^9.0.0",
+    "prettier": "^3.9.6",
     "typescript": "^5.0.0",
+    "typescript-eslint": "^8.65.0",
     "vitest": "^2.0.0"
   }
 }

@@ -48,19 +48,13 @@ export type ProviderResult =
 
 export type Provider = {
   descriptor: ProviderDescriptor;
-  execute(
-    request: ProviderRequest,
-    context: ProviderExecutionContext,
-  ): Promise<ProviderResult>;
+  execute(request: ProviderRequest, context: ProviderExecutionContext): Promise<ProviderResult>;
 };
 
 export type ProviderRegistry = {
   list(): readonly ProviderDescriptor[];
   get(id: ProviderId): Provider | undefined;
-  execute(
-    request: ProviderRequest,
-    context: ProviderExecutionContext,
-  ): Promise<ProviderResult>;
+  execute(request: ProviderRequest, context: ProviderExecutionContext): Promise<ProviderResult>;
 };
 
 export type LocalProviderItemInput = {

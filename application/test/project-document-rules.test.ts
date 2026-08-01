@@ -167,8 +167,9 @@ describe("validateLocalProjectConfig", () => {
         code: "project_config_invalid_shape",
       });
     }
-    expect(
-      validateLocalProjectConfig({ version: 1, documents: 5 }, LIMITS),
-    ).toMatchObject({ ok: false, code: "project_config_documents_invalid" });
+    expect(validateLocalProjectConfig({ version: 1, documents: 5 }, LIMITS)).toMatchObject({
+      ok: false,
+      code: "project_config_documents_invalid",
+    });
   });
 });

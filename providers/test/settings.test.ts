@@ -3,7 +3,9 @@ import { defaultProviderConfig } from "../src/config.js";
 import type { ResolvedProviderConfig } from "../src/config.js";
 import { resolveGitHubProviderSettings } from "../src/settings.js";
 
-function configWith(github: Partial<ResolvedProviderConfig["providers"]["github"]>): ResolvedProviderConfig {
+function configWith(
+  github: Partial<ResolvedProviderConfig["providers"]["github"]>,
+): ResolvedProviderConfig {
   const base = defaultProviderConfig();
   return {
     ...base,
@@ -158,7 +160,10 @@ describe("resolveGitHubProviderSettings — purity", () => {
 
 describe("resolveGitHubProviderSettings — source/state provenance", () => {
   it("reports default source/state provenance when using schema defaults", () => {
-    const r = resolveGitHubProviderSettings({ config: configWith({ defaultRepository: "a/b" }), overrides: {} });
+    const r = resolveGitHubProviderSettings({
+      config: configWith({ defaultRepository: "a/b" }),
+      overrides: {},
+    });
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.defaultSource).toBe("overview");
@@ -170,7 +175,11 @@ describe("resolveGitHubProviderSettings — source/state provenance", () => {
 
   it("reports config provenance when the file sets non-default source/state", () => {
     const r = resolveGitHubProviderSettings({
-      config: configWith({ defaultRepository: "a/b", defaultSource: "issues", defaultState: "closed" }),
+      config: configWith({
+        defaultRepository: "a/b",
+        defaultSource: "issues",
+        defaultState: "closed",
+      }),
       overrides: {},
     });
     expect(r.ok).toBe(true);
@@ -184,7 +193,11 @@ describe("resolveGitHubProviderSettings — source/state provenance", () => {
 
   it("explicit source/state overrides win and report explicit provenance", () => {
     const r = resolveGitHubProviderSettings({
-      config: configWith({ defaultRepository: "a/b", defaultSource: "issues", defaultState: "closed" }),
+      config: configWith({
+        defaultRepository: "a/b",
+        defaultSource: "issues",
+        defaultState: "closed",
+      }),
       overrides: { source: "pull-requests", state: "all" },
     });
     expect(r.ok).toBe(true);

@@ -8,7 +8,15 @@
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  rmSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -155,7 +163,10 @@ async function run(bundle) {
     expectedTools = [...TEN_TOOLS, "project_changes"];
     expectedReadTools = 1;
     expectedMemorySubcommands = ["capture", "changes", "status", "history", "export", "delete"];
-  } else if (bundleProfile === "project-brain-timeline" || bundleProfile === "ohmypm-cli-namespace") {
+  } else if (
+    bundleProfile === "project-brain-timeline" ||
+    bundleProfile === "ohmypm-cli-namespace"
+  ) {
     expectedTools = [...TEN_TOOLS, "project_changes", "project_timeline"];
     expectedReadTools = 2;
     expectedMemorySubcommands = [
@@ -182,7 +193,10 @@ async function run(bundle) {
   }
   // When declared, expectedMcpToolCount must equal the resolved tool count, and
   // the profile's Project Brain metadata block must be internally consistent.
-  if (release.expectedMcpToolCount !== undefined && release.expectedMcpToolCount !== expectedTools.length) {
+  if (
+    release.expectedMcpToolCount !== undefined &&
+    release.expectedMcpToolCount !== expectedTools.length
+  ) {
     return fail("RELEASE.json expectedMcpToolCount disagrees with mcpTools");
   }
   if (hasProjectBrain) {
@@ -191,16 +205,21 @@ async function run(bundle) {
       return fail(`RELEASE.json projectBrain metadata is missing for the ${bundleProfile} profile`);
     }
     if (pb.schemaVersion !== 1) return fail("RELEASE.json projectBrain.schemaVersion must be 1");
-    if (pb.storeFormatVersion !== 2) return fail("RELEASE.json projectBrain.storeFormatVersion must be 2");
+    if (pb.storeFormatVersion !== 2)
+      return fail("RELEASE.json projectBrain.storeFormatVersion must be 2");
     if (pb.mcpReadTools !== expectedReadTools) {
       return fail(`RELEASE.json projectBrain.mcpReadTools must be ${expectedReadTools}`);
     }
     if (JSON.stringify(pb.memorySubcommands) !== JSON.stringify(expectedMemorySubcommands)) {
-      return fail(`RELEASE.json projectBrain.memorySubcommands must be exactly the ${bundleProfile} set`);
+      return fail(
+        `RELEASE.json projectBrain.memorySubcommands must be exactly the ${bundleProfile} set`,
+      );
     }
     if (pb.mcpWriteTools !== 0) return fail("RELEASE.json projectBrain.mcpWriteTools must be 0");
-    if (pb.automaticMigration !== false) return fail("RELEASE.json projectBrain.automaticMigration must be false");
-    if (pb.projectWrites !== false) return fail("RELEASE.json projectBrain.projectWrites must be false");
+    if (pb.automaticMigration !== false)
+      return fail("RELEASE.json projectBrain.automaticMigration must be false");
+    if (pb.projectWrites !== false)
+      return fail("RELEASE.json projectBrain.projectWrites must be false");
     // v0.4 and v0.5: the timeline is derived, so the profile must declare that no
     // timeline is persisted and that no store migration is required. v0.5 changes
     // command names only, so this stays true and is asserted for it too.
@@ -232,7 +251,8 @@ async function run(bundle) {
     return fail("RELEASE.json network.outboundProviders is unexpected");
   }
   const gh = network.outboundProviders[0];
-  if (gh === null || typeof gh !== "object") return fail("RELEASE.json github network entry is missing");
+  if (gh === null || typeof gh !== "object")
+    return fail("RELEASE.json github network entry is missing");
   if (gh.id !== "github") return fail("RELEASE.json network provider id must be github");
   if (gh.optIn !== true) return fail("RELEASE.json github network must be opt-in");
   if (gh.readOnly !== true) return fail("RELEASE.json github network must be read-only");
@@ -241,7 +261,8 @@ async function run(bundle) {
   }
   if (gh.origin !== expectedGithubOrigin) return fail("RELEASE.json github origin is unexpected");
   if (gh.apiVersion !== "2026-03-10") return fail("RELEASE.json github apiVersion is unexpected");
-  if (gh.tokenEnv !== "OH_MY_PM_GITHUB_TOKEN") return fail("RELEASE.json github tokenEnv is unexpected");
+  if (gh.tokenEnv !== "OH_MY_PM_GITHUB_TOKEN")
+    return fail("RELEASE.json github tokenEnv is unexpected");
   if (gh.tokenOptionalForPublicRepositories !== true) {
     return fail("RELEASE.json github tokenOptionalForPublicRepositories must be true");
   }
@@ -251,8 +272,10 @@ async function run(bundle) {
   if (sel === null || typeof sel !== "object") {
     return fail("RELEASE.json github sourceSelection metadata is missing");
   }
-  if (sel.defaultSource !== "overview") return fail("RELEASE.json sourceSelection.defaultSource must be overview");
-  if (sel.defaultState !== "open") return fail("RELEASE.json sourceSelection.defaultState must be open");
+  if (sel.defaultSource !== "overview")
+    return fail("RELEASE.json sourceSelection.defaultSource must be overview");
+  if (sel.defaultState !== "open")
+    return fail("RELEASE.json sourceSelection.defaultState must be open");
   if (
     JSON.stringify(sel.modes) !==
     JSON.stringify(["overview", "repository", "issues", "pull-requests", "item", "search"])
@@ -265,9 +288,11 @@ async function run(bundle) {
   if (JSON.stringify(sel.searchKinds) !== JSON.stringify(["all", "issues", "pull-requests"])) {
     return fail("RELEASE.json sourceSelection.searchKinds is unexpected");
   }
-  if (sel.singleItemAutoDetect !== true) return fail("RELEASE.json sourceSelection.singleItemAutoDetect must be true");
+  if (sel.singleItemAutoDetect !== true)
+    return fail("RELEASE.json sourceSelection.singleItemAutoDetect must be true");
   if (sel.maxItems !== 100) return fail("RELEASE.json sourceSelection.maxItems must be 100");
-  if (sel.pagination !== "single-page") return fail("RELEASE.json sourceSelection.pagination must be single-page");
+  if (sel.pagination !== "single-page")
+    return fail("RELEASE.json sourceSelection.pagination must be single-page");
   if (sel.diffs !== false) {
     return fail("RELEASE.json sourceSelection must not enable diffs");
   }
@@ -315,10 +340,14 @@ async function run(bundle) {
   if (installer.entrypoint !== "bin/ohmypm-install.mjs") {
     return fail("RELEASE.json installer.entrypoint is unexpected");
   }
-  if (installer.previewFirst !== true) return fail("RELEASE.json installer.previewFirst must be true");
-  if (installer.prefixRequired !== true) return fail("RELEASE.json installer.prefixRequired must be true");
-  if (installer.applyFlag !== "--apply") return fail("RELEASE.json installer.applyFlag must be --apply");
-  if (installer.forceFlag !== "--force") return fail("RELEASE.json installer.forceFlag must be --force");
+  if (installer.previewFirst !== true)
+    return fail("RELEASE.json installer.previewFirst must be true");
+  if (installer.prefixRequired !== true)
+    return fail("RELEASE.json installer.prefixRequired must be true");
+  if (installer.applyFlag !== "--apply")
+    return fail("RELEASE.json installer.applyFlag must be --apply");
+  if (installer.forceFlag !== "--force")
+    return fail("RELEASE.json installer.forceFlag must be --force");
   if (installer.network !== false) return fail("RELEASE.json installer.network must be false");
   if (installer.shellProfileWrites !== false) {
     return fail("RELEASE.json installer.shellProfileWrites must be false");
@@ -326,7 +355,8 @@ async function run(bundle) {
   if (installer.clientConfigWrites !== false) {
     return fail("RELEASE.json installer.clientConfigWrites must be false");
   }
-  if (installer.projectWrites !== false) return fail("RELEASE.json installer.projectWrites must be false");
+  if (installer.projectWrites !== false)
+    return fail("RELEASE.json installer.projectWrites must be false");
 
   // Provider configuration metadata: read-only, no secret values, schema v1,
   // the exact configurable/fixed GitHub key partition.
@@ -366,7 +396,13 @@ async function run(bundle) {
   }
   if (
     JSON.stringify(providerConfig.githubFields) !==
-    JSON.stringify(["enabled", "defaultRepository", "defaultLimit", "defaultSource", "defaultState"])
+    JSON.stringify([
+      "enabled",
+      "defaultRepository",
+      "defaultLimit",
+      "defaultSource",
+      "defaultState",
+    ])
   ) {
     return fail("RELEASE.json providerConfiguration.githubFields is unexpected");
   }
@@ -399,7 +435,7 @@ async function run(bundle) {
   const listed = new Map();
   for (const line of readFileSync(sumsPath, "utf8").split("\n")) {
     if (line.trim() === "") continue;
-    const match = /^([0-9a-f]{64})  (.+)$/.exec(line);
+    const match = /^([0-9a-f]{64}) {2}(.+)$/.exec(line);
     if (!match) return fail(`malformed SHA256SUMS line: ${line}`);
     listed.set(match[2], match[1]);
   }
@@ -453,7 +489,8 @@ async function run(bundle) {
   const notSymlinkRegular = (p) => isRegularFile(p) && !lstatSync(p).isSymbolicLink();
   if (!notSymlinkRegular(kernelJs)) return fail("bundled kernel WASM JS missing");
   if (!notSymlinkRegular(kernelWasm)) return fail("bundled kernel WASM binary missing");
-  if (!notSymlinkRegular(kernelPkg)) return fail("bundled kernel generated package manifest missing");
+  if (!notSymlinkRegular(kernelPkg))
+    return fail("bundled kernel generated package manifest missing");
   const kernelGeneratedFiles = readdirSync(kernelDir).sort();
   const expectedKernelFiles = ["oh_my_pm_kernel.js", "oh_my_pm_kernel_bg.wasm", "package.json"];
   if (
@@ -496,8 +533,10 @@ async function run(bundle) {
   if (hasProjectBrain) {
     const pmManifest = join(bundle, "node_modules", "@oh-my-pm", "project-memory", "package.json");
     const pmEntry = join(bundle, "node_modules", "@oh-my-pm", "project-memory", "dist", "index.js");
-    if (!isRegularFile(pmManifest)) return fail("bundled @oh-my-pm/project-memory package.json missing");
-    if (!isRegularFile(pmEntry)) return fail("bundled @oh-my-pm/project-memory dist/index.js missing");
+    if (!isRegularFile(pmManifest))
+      return fail("bundled @oh-my-pm/project-memory package.json missing");
+    if (!isRegularFile(pmEntry))
+      return fail("bundled @oh-my-pm/project-memory dist/index.js missing");
   }
 
   // Fictional fixture

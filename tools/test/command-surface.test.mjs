@@ -175,12 +175,7 @@ describe("the repository manifest", () => {
   it("orders installed commands canonical-first", () => {
     expect(CANONICAL_INSTALLED_COMMANDS).toEqual(["ohmypm", "ohmypm-mcp"]);
     expect(LEGACY_INSTALLED_COMMANDS).toEqual(["oh-my-pm", "oh-my-pm-mcp"]);
-    expect(ALL_INSTALLED_COMMANDS).toEqual([
-      "ohmypm",
-      "ohmypm-mcp",
-      "oh-my-pm",
-      "oh-my-pm-mcp",
-    ]);
+    expect(ALL_INSTALLED_COMMANDS).toEqual(["ohmypm", "ohmypm-mcp", "oh-my-pm", "oh-my-pm-mcp"]);
   });
 });
 

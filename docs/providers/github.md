@@ -83,15 +83,15 @@ and never retries automatically.
 
 ## Error codes
 
-| Code | Meaning |
-| --- | --- |
-| `OMP-P-4003` | invalid request (bad repository/limit/query, or a `422` from GitHub) |
-| `OMP-P-4004` | authentication failed (`401`) |
-| `OMP-P-4005` | access forbidden (`403` without rate-limit evidence) |
-| `OMP-P-4006` | resource not found (`404`/`410`) |
-| `OMP-P-4007` | rate limited (`403`/`429` with rate-limit evidence) |
+| Code         | Meaning                                                                |
+| ------------ | ---------------------------------------------------------------------- |
+| `OMP-P-4003` | invalid request (bad repository/limit/query, or a `422` from GitHub)   |
+| `OMP-P-4004` | authentication failed (`401`)                                          |
+| `OMP-P-4005` | access forbidden (`403` without rate-limit evidence)                   |
+| `OMP-P-4006` | resource not found (`404`/`410`)                                       |
+| `OMP-P-4007` | rate limited (`403`/`429` with rate-limit evidence)                    |
 | `OMP-P-4008` | transport failed (timeout, DNS, connection, abort, redirect rejection) |
-| `OMP-P-4009` | invalid response (malformed JSON, oversized, wrong shape) |
+| `OMP-P-4009` | invalid response (malformed JSON, oversized, wrong shape)              |
 
 ## Deterministic extraction over GitHub context
 

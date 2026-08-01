@@ -149,8 +149,6 @@ export function createReleaseMetadataDryRun(
     metadata,
     signingPayload,
     validation,
-    warnings: validation.reasons.map((reason) =>
-      installerWarning(OMP_I_INVALID_PACKAGE, reason),
-    ),
+    warnings: validation.reasons.map((reason) => installerWarning(OMP_I_INVALID_PACKAGE, reason)),
   };
 }

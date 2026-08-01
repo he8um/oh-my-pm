@@ -22,7 +22,8 @@ function comment(over: Partial<TextItem> & { body: string }): TextItem {
 }
 
 const risks = (items: TextItem[]) => extractRiskCandidates({ explicitRisks: [], items, now: NOW });
-const tasks = (items: TextItem[]) => extractNextTaskCandidates({ explicitTasks: [], items, now: NOW });
+const tasks = (items: TextItem[]) =>
+  extractNextTaskCandidates({ explicitTasks: [], items, now: NOW });
 
 describe("github comment risks", () => {
   it("extracts an explicit blocker marker as a high github_comment risk", () => {
@@ -55,7 +56,12 @@ describe("github comment risks", () => {
   });
 
   it("does NOT treat arbitrary prose or a comment title as a risk", () => {
-    const r = risks([comment({ title: "Comment by @alice about a blocker", body: "I think this might be risky and dangerous." })]);
+    const r = risks([
+      comment({
+        title: "Comment by @alice about a blocker",
+        body: "I think this might be risky and dangerous.",
+      }),
+    ]);
     expect(r).toHaveLength(0);
   });
 });
@@ -73,29 +79,46 @@ describe("github comment tasks", () => {
   it("extracts an explicit action marker and a Persian action marker", () => {
     const en = tasks([comment({ body: "Action: rotate the credentials" })]);
     expect(en[0]!.reason).toBe("github_comment:marker:action");
-    const fa = tasks([comment({ id: "github:owner/repo:item:7:comment:2", body: "اقدام: کلیدها را عوض کنید" })]);
+    const fa = tasks([
+      comment({ id: "github:owner/repo:item:7:comment:2", body: "اقدام: کلیدها را عوض کنید" }),
+    ]);
     expect(fa[0]!.source).toBe("github-comment");
     expect(fa[0]!.reason.startsWith("github_comment:")).toBe(true);
   });
 
   it("extracts items under a recognized action heading", () => {
-    const body = ["## Next Steps", "- draft the migration plan", "- schedule the review"].join("\n");
+    const body = ["## Next Steps", "- draft the migration plan", "- schedule the review"].join(
+      "\n",
+    );
     const t = tasks([comment({ body })]);
     expect(t.length).toBeGreaterThanOrEqual(2);
     expect(t.every((x) => x.source === "github-comment")).toBe(true);
   });
 
   it("does NOT extract tasks when the parent issue is closed", () => {
-    const t = tasks([comment({ parentStatus: "closed", body: "- [ ] this should not become a task" })]);
+    const t = tasks([
+      comment({ parentStatus: "closed", body: "- [ ] this should not become a task" }),
+    ]);
     expect(t).toHaveLength(0);
   });
 
   it("does NOT extract tasks when the parent PR is merged, but does for an open PR", () => {
-    const merged = tasks([comment({ parentType: "pullRequest", parentStatus: "merged", body: "- [ ] nope" })]);
+    const merged = tasks([
+      comment({ parentType: "pullRequest", parentStatus: "merged", body: "- [ ] nope" }),
+    ]);
     expect(merged).toHaveLength(0);
-    const openPr = tasks([comment({ parentType: "pullRequest", parentStatus: "open", body: "- [ ] yes please" })]);
+    const openPr = tasks([
+      comment({ parentType: "pullRequest", parentStatus: "open", body: "- [ ] yes please" }),
+    ]);
     expect(openPr).toHaveLength(1);
-    const draftPr = tasks([comment({ id: "github:owner/repo:item:7:comment:9", parentType: "pullRequest", parentStatus: "draft", body: "- [ ] draft ok" })]);
+    const draftPr = tasks([
+      comment({
+        id: "github:owner/repo:item:7:comment:9",
+        parentType: "pullRequest",
+        parentStatus: "draft",
+        body: "- [ ] draft ok",
+      }),
+    ]);
     expect(draftPr).toHaveLength(1);
   });
 

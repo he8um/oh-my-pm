@@ -1,4 +1,8 @@
-import type { GitHubHttpRequest, GitHubHttpResponse, GitHubHttpTransport } from "@oh-my-pm/providers";
+import type {
+  GitHubHttpRequest,
+  GitHubHttpResponse,
+  GitHubHttpTransport,
+} from "@oh-my-pm/providers";
 import { defaultProviderConfig } from "@oh-my-pm/providers";
 import type { ResolvedProviderConfig } from "@oh-my-pm/providers";
 import { describe, expect, it } from "vitest";
@@ -9,7 +13,9 @@ import {
 
 const SLUG = "riverline/field-guide";
 
-function configWith(github: Partial<ResolvedProviderConfig["providers"]["github"]>): ResolvedProviderConfig {
+function configWith(
+  github: Partial<ResolvedProviderConfig["providers"]["github"]>,
+): ResolvedProviderConfig {
   const base = defaultProviderConfig();
   return {
     ...base,
@@ -17,7 +23,10 @@ function configWith(github: Partial<ResolvedProviderConfig["providers"]["github"
   };
 }
 
-function repoTransport(status = 200): { transport: GitHubHttpTransport; calls: GitHubHttpRequest[] } {
+function repoTransport(status = 200): {
+  transport: GitHubHttpTransport;
+  calls: GitHubHttpRequest[];
+} {
   const calls: GitHubHttpRequest[] = [];
   return {
     calls,
@@ -27,7 +36,10 @@ function repoTransport(status = 200): { transport: GitHubHttpTransport; calls: G
         return {
           status,
           headers: {},
-          body: status === 200 ? { full_name: SLUG, name: "field-guide", owner: { login: "riverline" } } : { message: "detail" },
+          body:
+            status === 200
+              ? { full_name: SLUG, name: "field-guide", owner: { login: "riverline" } }
+              : { message: "detail" },
         };
       },
     },
@@ -129,7 +141,11 @@ describe("executeMcpGitHubProviderDiagnostics — network", () => {
     const { transport } = repoTransport();
     const report = await executeMcpGitHubProviderDiagnostics(
       { repository: SLUG, confirmNetwork: true },
-      { providerConfig: configWith({ defaultRepository: SLUG }), transport, token: "ghp_secretdiag" },
+      {
+        providerConfig: configWith({ defaultRepository: SLUG }),
+        transport,
+        token: "ghp_secretdiag",
+      },
     );
     expect(JSON.stringify(report)).not.toContain("ghp_secretdiag");
     expect(report.github?.authentication).toBe("token-present");

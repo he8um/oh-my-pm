@@ -1,4 +1,9 @@
-import type { JsonValue, SkillId, SkillInputEnvelope, SkillOutputEnvelope } from "@oh-my-pm/contracts";
+import type {
+  JsonValue,
+  SkillId,
+  SkillInputEnvelope,
+  SkillOutputEnvelope,
+} from "@oh-my-pm/contracts";
 import { NORMALIZED_ITEM_TYPE_VALUES, PROVIDER_ID_VALUES } from "@oh-my-pm/contracts";
 import type { NormalizedItemType, ProviderId } from "@oh-my-pm/contracts";
 import type { SkillFailureCode, SkillInputObject, TextItem } from "./types.js";

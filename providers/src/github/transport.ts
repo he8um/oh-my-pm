@@ -6,11 +6,7 @@
 // It never retries, never persists cookies, never forwards arbitrary caller
 // headers, and never exposes response bodies in thrown errors.
 
-import {
-  GITHUB_ACCEPT,
-  GITHUB_API_HOSTNAME,
-  GITHUB_API_VERSION,
-} from "./constants.js";
+import { GITHUB_ACCEPT, GITHUB_API_HOSTNAME, GITHUB_API_VERSION } from "./constants.js";
 import type { GitHubHttpRequest, GitHubHttpResponse, GitHubHttpTransport } from "./types.js";
 
 const MAX_REDIRECTS = 2;

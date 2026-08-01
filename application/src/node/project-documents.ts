@@ -84,7 +84,10 @@ function isInsideRoot(rootPath: string, candidatePath: string): boolean {
 }
 
 function toRelativePosixPath(rootPath: string, absolutePath: string): string {
-  const relative = absolutePath.slice(rootPath.length + 1).split(sep).join("/");
+  const relative = absolutePath
+    .slice(rootPath.length + 1)
+    .split(sep)
+    .join("/");
   return relative === "" ? "." : relative;
 }
 

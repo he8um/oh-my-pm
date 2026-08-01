@@ -33,10 +33,7 @@ export function memoryOutcomeExitCode(outcome: MemoryCommandOutcome): number {
 }
 
 /** Render a completed outcome to the selected mode. */
-export function formatMemoryOutcome(
-  outcome: MemoryCommandOutcome,
-  mode: CliOutputMode,
-): string {
+export function formatMemoryOutcome(outcome: MemoryCommandOutcome, mode: CliOutputMode): string {
   if (!outcome.ok) {
     return formatFailure(outcome, mode);
   }
@@ -136,10 +133,7 @@ function changesBrief(o: MemoryChangesOutcome): string {
   if (o.status === "insufficientHistory") {
     return `OH MY PM memory changes: insufficient history\nproject: ${o.projectId}\n`;
   }
-  const lines = [
-    `OH MY PM memory changes: ${o.changeCount ?? 0}`,
-    `project: ${o.projectId}`,
-  ];
+  const lines = [`OH MY PM memory changes: ${o.changeCount ?? 0}`, `project: ${o.projectId}`];
   if (o.previousSnapshotId !== undefined) lines.push(`previous: ${o.previousSnapshotId}`);
   if (o.currentSnapshotId !== undefined) lines.push(`current: ${o.currentSnapshotId}`);
   lines.push("");
@@ -262,7 +256,9 @@ function renderMarkdown(outcome: Extract<MemoryCommandOutcome, { ok: true }>): s
 function captureMarkdown(o: MemoryCaptureOutcome): string {
   const rows = [
     `- Mode: ${o.mode}`,
-    o.mode === "preview" ? `- Would write: ${o.wouldWrite === false ? "no" : "yes"}` : `- Written: ${o.written ? "yes" : "no"}`,
+    o.mode === "preview"
+      ? `- Would write: ${o.wouldWrite === false ? "no" : "yes"}`
+      : `- Written: ${o.written ? "yes" : "no"}`,
     o.mode === "preview"
       ? `- Would create snapshot: ${o.wouldCreateSnapshot ? "yes" : "no"}`
       : `- Idempotent: ${o.idempotent ? "yes" : "no"}`,
@@ -344,7 +340,9 @@ function historyMarkdown(o: MemoryHistoryOutcome): string {
 function exportMarkdown(o: MemoryExportOutcome): string {
   const rows = [
     `- Mode: ${o.mode}`,
-    o.mode === "preview" ? `- Would export: ${o.wouldExport ? "yes" : "no"}` : `- Exported: ${o.exported ? "yes" : "no"}`,
+    o.mode === "preview"
+      ? `- Would export: ${o.wouldExport ? "yes" : "no"}`
+      : `- Exported: ${o.exported ? "yes" : "no"}`,
     `- Project: \`${o.projectId}\``,
     `- Destination: \`${o.destination}\``,
     `- Snapshots: ${o.snapshotCount}`,

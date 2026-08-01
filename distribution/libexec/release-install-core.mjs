@@ -50,15 +50,6 @@ export const RELEASE_INSTALL_COMMANDS = [
 /** The canonical installer entrypoint, as a bundle-relative POSIX path. */
 export const RELEASE_INSTALLER_ENTRYPOINT = "bin/ohmypm-install.mjs";
 
-/**
- * Which canonical command each deprecated alias forwards to. Used only to build
- * a shim that points at the same versioned target, never to warn (the warning
- * lives in the bundle's own alias entrypoint).
- */
-const LEGACY_COMMAND_TARGETS = {
-  "oh-my-pm": "ohmypm",
-  "oh-my-pm-mcp": "ohmypm-mcp",
-};
 const EXPECTED_CLI_WORKFLOWS = ["brief", "risks", "next", "handoff"];
 const EXPECTED_GITHUB_WORKFLOWS = ["brief", "risks", "next", "handoff"];
 // The ten historical MCP tools. The v0.3 "project-brain" profile appends one
@@ -209,7 +200,7 @@ export function createPosixShim(relativeTarget) {
   // source path is embedded; the whole prefix stays movable.
   return [
     "#!/bin/sh",
-    '# OH MY PM installed command shim. Relative to this bin directory so the',
+    "# OH MY PM installed command shim. Relative to this bin directory so the",
     "# whole prefix can be relocated as one tree.",
     'dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)',
     `exec node "$dir/${relativeTarget}" "$@"`,
@@ -224,11 +215,7 @@ export function createWindowsShim(relativeTarget) {
   }
   const backslashed = relativeTarget.split("/").join("\\");
   // CRLF line endings, deterministic and tested. %~dp0 is the script directory.
-  return [
-    "@echo off",
-    `node "%~dp0${backslashed}" %*`,
-    "",
-  ].join("\r\n");
+  return ["@echo off", `node "%~dp0${backslashed}" %*`, ""].join("\r\n");
 }
 
 /**
@@ -375,7 +362,10 @@ export function validateReleaseBundleForInstall(bundleRoot) {
   let expectedMcpTools;
   if (bundleProfile === "project-brain") {
     expectedMcpTools = [...TEN_MCP_TOOLS, "project_changes"];
-  } else if (bundleProfile === "project-brain-timeline" || bundleProfile === "ohmypm-cli-namespace") {
+  } else if (
+    bundleProfile === "project-brain-timeline" ||
+    bundleProfile === "ohmypm-cli-namespace"
+  ) {
     // v0.4 ("project-brain-timeline") appends project_timeline after
     // project_changes, for twelve. v0.5 ("ohmypm-cli-namespace") migrates the
     // command names only and keeps that exact twelve-tool surface, so the two
@@ -387,7 +377,10 @@ export function validateReleaseBundleForInstall(bundleRoot) {
     expectedMcpTools = null;
     add("release_bundle_profile_unknown");
   }
-  if (expectedMcpTools !== null && JSON.stringify(release.mcpTools) !== JSON.stringify(expectedMcpTools)) {
+  if (
+    expectedMcpTools !== null &&
+    JSON.stringify(release.mcpTools) !== JSON.stringify(expectedMcpTools)
+  ) {
     add("release_mcp_tools_unexpected");
   }
   if (
@@ -426,7 +419,8 @@ export function validateReleaseBundleForInstall(bundleRoot) {
         }
         if (gh.origin !== EXPECTED_GITHUB_ORIGIN) add("release_network_github_origin_unexpected");
         if (gh.apiVersion !== "2026-03-10") add("release_network_github_api_version_unexpected");
-        if (gh.tokenEnv !== "OH_MY_PM_GITHUB_TOKEN") add("release_network_github_token_env_unexpected");
+        if (gh.tokenEnv !== "OH_MY_PM_GITHUB_TOKEN")
+          add("release_network_github_token_env_unexpected");
         if (gh.tokenOptionalForPublicRepositories !== true) {
           add("release_network_github_token_optional_not_true");
         }
@@ -435,7 +429,14 @@ export function validateReleaseBundleForInstall(bundleRoot) {
           add("release_network_github_source_selection_missing");
         } else if (
           JSON.stringify(sel.modes) !==
-            JSON.stringify(["overview", "repository", "issues", "pull-requests", "item", "search"]) ||
+            JSON.stringify([
+              "overview",
+              "repository",
+              "issues",
+              "pull-requests",
+              "item",
+              "search",
+            ]) ||
           sel.pagination !== "single-page"
         ) {
           add("release_network_github_source_selection_unexpected");
@@ -448,14 +449,17 @@ export function validateReleaseBundleForInstall(bundleRoot) {
   if (installer === undefined || installer === null || typeof installer !== "object") {
     add("release_installer_metadata_missing");
   } else {
-    if (installer.entrypoint !== RELEASE_INSTALLER_ENTRYPOINT) add("release_installer_entrypoint_unexpected");
+    if (installer.entrypoint !== RELEASE_INSTALLER_ENTRYPOINT)
+      add("release_installer_entrypoint_unexpected");
     if (installer.previewFirst !== true) add("release_installer_preview_first_not_true");
     if (installer.prefixRequired !== true) add("release_installer_prefix_required_not_true");
     if (installer.applyFlag !== "--apply") add("release_installer_apply_flag_unexpected");
     if (installer.forceFlag !== "--force") add("release_installer_force_flag_unexpected");
     if (installer.network !== false) add("release_installer_network_not_false");
-    if (installer.shellProfileWrites !== false) add("release_installer_shell_profile_writes_not_false");
-    if (installer.clientConfigWrites !== false) add("release_installer_client_config_writes_not_false");
+    if (installer.shellProfileWrites !== false)
+      add("release_installer_shell_profile_writes_not_false");
+    if (installer.clientConfigWrites !== false)
+      add("release_installer_client_config_writes_not_false");
     if (installer.projectWrites !== false) add("release_installer_project_writes_not_false");
   }
 
@@ -556,10 +560,7 @@ export function validateReleaseBundleForInstall(bundleRoot) {
     // RELEASE.json and SHA256SUMS legitimately contain none; other bundle files
     // are checked against machine-local absolute path shapes only, not exact
     // source roots (which the core never learns).
-    if (
-      (entry.rel === "RELEASE.json" || entry.rel === "SHA256SUMS") &&
-      repoPathRe.test(text)
-    ) {
+    if ((entry.rel === "RELEASE.json" || entry.rel === "SHA256SUMS") && repoPathRe.test(text)) {
       add("bundle_absolute_path_leak");
     }
   }
@@ -668,7 +669,9 @@ export function resolveReleaseInstallPlan(options) {
 
   const version = sourceValidation.version;
   const bundleName = sourceValidation.bundleName;
-  const versionDirectory = version ? join(versionsDirectory, version) : join(versionsDirectory, "unknown");
+  const versionDirectory = version
+    ? join(versionsDirectory, version)
+    : join(versionsDirectory, "unknown");
 
   const commandShims = releaseInstallShimFileNames().map((name) => join(binDirectory, name));
 
@@ -721,7 +724,8 @@ export function resolveReleaseInstallPlan(options) {
   const manifestIsSymlink = safeIsSymlink(manifestPath);
 
   let anyManagedPresent = versionDirExists || manifestExists;
-  let anyUnexpectedType = versionDirIsSymlink || manifestIsSymlink || (versionDirExists && !versionDirIsDir);
+  let anyUnexpectedType =
+    versionDirIsSymlink || manifestIsSymlink || (versionDirExists && !versionDirIsDir);
 
   const shimPresence = shimEntries.map((entry) => {
     const present = existsSync(entry.path);
@@ -772,7 +776,9 @@ export function resolveReleaseInstallPlan(options) {
   const shimsMatch = shimsContentMatch && posixShimModesMatch;
 
   const versionMatches =
-    versionDirExists && versionDirIsDir && installedVersionMatchesSource(bundleRoot, versionDirectory);
+    versionDirExists &&
+    versionDirIsDir &&
+    installedVersionMatchesSource(bundleRoot, versionDirectory);
 
   // Run the installed bundle's own verifier when a plausible install exists.
   let installedVerifierOk = false;
@@ -849,8 +855,18 @@ export function evaluatePostInstallState(options) {
   }
 
   // 2. The re-derived installed state must be exactly already-installed.
-  const plan = resolveReleaseInstallPlan({ bundleRoot, prefix, apply: false, force: false, platform });
-  const installedState = { ok: plan.action === "already-installed", action: plan.action, reasons: [] };
+  const plan = resolveReleaseInstallPlan({
+    bundleRoot,
+    prefix,
+    apply: false,
+    force: false,
+    platform,
+  });
+  const installedState = {
+    ok: plan.action === "already-installed",
+    action: plan.action,
+    reasons: [],
+  };
   if (!installedState.ok) {
     reasons.push("post_installed_state_not_exact");
     // Map the plan's own reasons to bounded post-check sub-reasons.
@@ -939,7 +955,9 @@ export function formatReleaseInstallPlan(plan, mode) {
       lines.push(`- ${reason}`);
     }
   }
-  lines.push(`apply required: ${plan.ok && plan.action === "create" ? "yes" : plan.ok ? "yes" : "no"}`);
+  lines.push(
+    `apply required: ${plan.ok && plan.action === "create" ? "yes" : plan.ok ? "yes" : "no"}`,
+  );
   lines.push("");
   return lines.join("\n");
 }
@@ -948,9 +966,7 @@ export function formatReleaseInstallPlan(plan, mode) {
 function withinPrefix(prefix, candidate) {
   const resolvedPrefix = resolve(prefix);
   const resolvedCandidate = resolve(candidate);
-  return (
-    resolvedCandidate === resolvedPrefix || resolvedCandidate.startsWith(resolvedPrefix + sep)
-  );
+  return resolvedCandidate === resolvedPrefix || resolvedCandidate.startsWith(resolvedPrefix + sep);
 }
 
 /** Recursively verify no symlink under a root escapes it and none dangle. */
@@ -1027,7 +1043,11 @@ export function applyReleaseInstallPlan(plan) {
     ...fresh.targets.shims,
   ]) {
     if (!withinPrefix(prefix, candidate)) {
-      return { ok: false, code: "prefix_boundary_violation", reasons: ["prefix_boundary_violation"] };
+      return {
+        ok: false,
+        code: "prefix_boundary_violation",
+        reasons: ["prefix_boundary_violation"],
+      };
     }
   }
 
@@ -1061,7 +1081,8 @@ export function applyReleaseInstallPlan(plan) {
     // Restore any backed-up managed targets and remove partial new state.
     if (movedIntoPlace.versionDir) {
       try {
-        if (existsSync(versionDirectory)) rmSync(versionDirectory, { recursive: true, force: true });
+        if (existsSync(versionDirectory))
+          rmSync(versionDirectory, { recursive: true, force: true });
       } catch {
         // best-effort
       }
@@ -1127,10 +1148,14 @@ export function applyReleaseInstallPlan(plan) {
       cleanupTempOnly();
       return { ok: false, code: "staged_verifier_missing", reasons: ["staged_verifier_missing"] };
     }
-    const stagedVerify = spawnSync(process.execPath, [stagedVerifier, "--bundle", stagedVersionDir], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const stagedVerify = spawnSync(
+      process.execPath,
+      [stagedVerifier, "--bundle", stagedVersionDir],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
     if (stagedVerify.status !== 0) {
       cleanupTempOnly();
       return { ok: false, code: "staged_verifier_failed", reasons: ["staged_verifier_failed"] };
@@ -1211,7 +1236,6 @@ export function applyReleaseInstallPlan(plan) {
 
   return { ok: true, code: fresh.action === "replace" ? "replaced" : "created", reasons: [] };
 }
-
 
 // -----------------------------------------------------------------------------
 // Shared installer entrypoint behavior.

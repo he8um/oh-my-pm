@@ -215,7 +215,13 @@ try {
     fail("provider_status structured content missing schemaVersion 1");
   }
   const statusSerialized = JSON.stringify(statusStructured);
-  for (const forbidden of ["runtimeResponse", "providerResponses", "trace", "Authorization", "Bearer "]) {
+  for (const forbidden of [
+    "runtimeResponse",
+    "providerResponses",
+    "trace",
+    "Authorization",
+    "Bearer ",
+  ]) {
     if (statusSerialized.includes(forbidden)) {
       ok = false;
       fail(`provider_status leaked forbidden field: ${forbidden}`);

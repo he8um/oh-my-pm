@@ -1,4 +1,10 @@
-import type { IntentCategory, JsonValue, ProviderRequest, TaskGraph, TaskNode } from "@oh-my-pm/contracts";
+import type {
+  IntentCategory,
+  JsonValue,
+  ProviderRequest,
+  TaskGraph,
+  TaskNode,
+} from "@oh-my-pm/contracts";
 import type { PlannerNodeIds, TaskGraphBuildInput } from "./types.js";
 
 /** Rebuild a provider request as a plain JSON value for node payloads. */

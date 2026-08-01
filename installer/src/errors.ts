@@ -15,10 +15,7 @@ export function installerWarning(code: string, message: string): KernelWarning {
 }
 
 /** Build a structured installer failure; never thrown. */
-export function installerFailure(
-  code: InstallerErrorCode,
-  message: string,
-): InstallerFailure {
+export function installerFailure(code: InstallerErrorCode, message: string): InstallerFailure {
   return {
     ok: false,
     code,

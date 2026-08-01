@@ -150,7 +150,10 @@ mod tests {
         manifest.components[0].version = String::new();
         let findings = validate_version_registry(&manifest);
         assert_eq!(
-            findings.iter().filter(|f| f.code == OMP_K_INVALID_PAYLOAD).count(),
+            findings
+                .iter()
+                .filter(|f| f.code == OMP_K_INVALID_PAYLOAD)
+                .count(),
             3
         );
     }

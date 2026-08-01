@@ -141,7 +141,12 @@ export function probeGnuTar(options = {}) {
 
   let firstFailure;
   for (const candidate of ["tar", "gtar"]) {
-    const result = probeUtility(candidate, { args: ["--version"], isAvailable: isGnuTar, spawn, maxAttempts });
+    const result = probeUtility(candidate, {
+      args: ["--version"],
+      isAvailable: isGnuTar,
+      spawn,
+      maxAttempts,
+    });
     if (result.kind === "available") return result;
     // A transient/unclassified failure must not be downgraded to "missing".
     if (result.kind === "failed" && firstFailure === undefined) firstFailure = result;
@@ -267,7 +272,14 @@ export function resolveReleaseArchivePlan(options) {
     {
       id: "bundled_wasm",
       ok: isRegularFile(
-        join(bundleDirectory, "node_modules", "@oh-my-pm", "kernel", "generated-node", "oh_my_pm_kernel_bg.wasm"),
+        join(
+          bundleDirectory,
+          "node_modules",
+          "@oh-my-pm",
+          "kernel",
+          "generated-node",
+          "oh_my_pm_kernel_bg.wasm",
+        ),
       ),
     },
   ];
@@ -518,13 +530,25 @@ export function applyReleaseArchivePlan(plan) {
     return { ok: false, code: "archive_exists", reasons: ["release_archive_exists"] };
   }
 
-  const workspace = join(plan.outputRoot, `.${RELEASE_ARCHIVE_BUNDLE_NAME}.archive.tmp-${process.pid}`);
+  const workspace = join(
+    plan.outputRoot,
+    `.${RELEASE_ARCHIVE_BUNDLE_NAME}.archive.tmp-${process.pid}`,
+  );
   const tarTmp = `${plan.tarPath}.tmp-${process.pid}`;
   const zipTmp = `${plan.zipPath}.tmp-${process.pid}`;
   const sumsTmp = `${plan.sumsPath}.tmp-${process.pid}`;
   const cleanupTemps = () => {
     for (const path of [workspace, tarTmp, zipTmp, sumsTmp]) {
-      if (existsSync(path) || (() => { try { return lstatSync(path) !== undefined; } catch { return false; } })()) {
+      if (
+        existsSync(path) ||
+        (() => {
+          try {
+            return lstatSync(path) !== undefined;
+          } catch {
+            return false;
+          }
+        })()
+      ) {
         rmSync(path, { recursive: true, force: true });
       }
     }
@@ -561,7 +585,11 @@ export function applyReleaseArchivePlan(plan) {
     ]);
     if (verify.status !== 0) {
       cleanupTemps();
-      return { ok: false, code: "normalized_bundle_invalid", reasons: ["normalized_bundle_invalid"] };
+      return {
+        ok: false,
+        code: "normalized_bundle_invalid",
+        reasons: ["normalized_bundle_invalid"],
+      };
     }
 
     createTarGz(plan.gnuTar, workspace, RELEASE_ARCHIVE_BUNDLE_NAME, tarTmp);

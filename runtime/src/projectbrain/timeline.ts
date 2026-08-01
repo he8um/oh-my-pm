@@ -19,7 +19,7 @@ import {
   invalidInput,
   isProjectBrainRuntimeError,
   kernelFailed,
-  ProjectBrainRuntimeError,
+  type ProjectBrainRuntimeError,
   storedRecordReadFailed,
   timelineFailed,
 } from "./errors.js";
@@ -31,7 +31,6 @@ import type {
 } from "./types.js";
 
 /** Inclusive bounds for the page size, mirroring the Kernel derivation. */
-const DEFAULT_LIMIT = 20;
 const MIN_LIMIT = 1;
 const MAX_LIMIT = 100;
 
@@ -124,9 +123,7 @@ function readChronology(
     ) {
       // NO fallback to lexical snapshot-id ordering and NO fallback to
       // timestamps: the capture sequence is the only authoritative order.
-      throw storedRecordReadFailed(
-        "the store does not expose an authoritative capture chronology",
-      );
+      throw storedRecordReadFailed("the store does not expose an authoritative capture chronology");
     }
     entries.push({
       snapshotId: summary.snapshotId,

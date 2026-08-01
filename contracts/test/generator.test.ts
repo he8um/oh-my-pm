@@ -24,9 +24,7 @@ const read = (dir: string, file: string) => readFileSync(join(dir, file), "utf8"
 
 describe("contracts generator", () => {
   it("regenerates deterministically with no drift", () => {
-    const before = new Map(
-      readdirSync(tsDir).map((f) => [`ts/${f}`, read(tsDir, f)] as const),
-    );
+    const before = new Map(readdirSync(tsDir).map((f) => [`ts/${f}`, read(tsDir, f)] as const));
     for (const f of readdirSync(rustDir)) before.set(`rust/${f}`, read(rustDir, f));
 
     execFileSync(process.execPath, [join(repoRoot, "tools", "gen-contracts.mjs")], {

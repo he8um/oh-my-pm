@@ -188,10 +188,14 @@ describe("createInstallerReleaseReadinessReport", () => {
   it("carries no content, artifact, destination, command, adapter object, or result fields", () => {
     const report = createInstallerReleaseReadinessReport(input());
     for (const key of Object.keys(report)) {
-      expect(key).not.toMatch(/content|artifact|asset|dest|command|adapter|object|result|remote|url/i);
+      expect(key).not.toMatch(
+        /content|artifact|asset|dest|command|adapter|object|result|remote|url/i,
+      );
     }
     for (const key of Object.keys(report.summary)) {
-      expect(key).not.toMatch(/content|artifact|asset|dest|command|adapter|object|result|remote|url/i);
+      expect(key).not.toMatch(
+        /content|artifact|asset|dest|command|adapter|object|result|remote|url/i,
+      );
     }
     const serialized = JSON.stringify(report);
     expect(serialized).not.toContain("writeFile");

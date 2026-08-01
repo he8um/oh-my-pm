@@ -2,13 +2,13 @@
 
 Every entry below carries one of five explicit states:
 
-| State | Meaning |
-| --- | --- |
-| **Shipped** | implemented, released, and published |
+| State                        | Meaning                                                     |
+| ---------------------------- | ----------------------------------------------------------- |
+| **Shipped**                  | implemented, released, and published                        |
 | **Prepared but unpublished** | implemented and merged, but no tag or GitHub release exists |
-| **Active maintenance** | the scope currently being worked on |
-| **Planned** | agreed direction, not designed or implemented |
-| **Out of scope** | deliberately excluded |
+| **Active maintenance**       | the scope currently being worked on                         |
+| **Planned**                  | agreed direction, not designed or implemented               |
+| **Out of scope**             | deliberately excluded                                       |
 
 The latest **published** stable release is
 [`v0.5.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.1). The active

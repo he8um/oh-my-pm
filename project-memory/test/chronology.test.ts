@@ -8,20 +8,12 @@
 import { describe, expect, it } from "vitest";
 
 import { PROJECT_MEMORY_ERROR_CODES } from "../src/errors.js";
-import {
-  computeIntegrity,
-  deriveProjectKey,
-  DOMAIN_MANIFEST_INTEGRITY,
-} from "../src/integrity.js";
-import {
-  buildManifest,
-  parseAndVerifyManifest,
-  serializeManifest,
-} from "../src/manifest.js";
+import { computeIntegrity, deriveProjectKey, DOMAIN_MANIFEST_INTEGRITY } from "../src/integrity.js";
+import { buildManifest, serializeManifest } from "../src/manifest.js";
 import { manifestPathFor, resolveStoreLayout } from "../src/path-safety.js";
 import { DependencyInjectedStore } from "../src/store.js";
 import type { ProjectStoreManifest, SnapshotHistoryEntry } from "../src/types.js";
-import { DATA_ROOT, makeEvidence, makeSnapshot, PROJECT_ROOT } from "./fixtures.js";
+import { DATA_ROOT, makeSnapshot, PROJECT_ROOT } from "./fixtures.js";
 import { MemoryFileSystem } from "./memory-filesystem.js";
 
 const layout = resolveStoreLayout(DATA_ROOT);
@@ -232,7 +224,7 @@ describe("v2 chronology corruption", () => {
 
   it("rejects an invalid chronology origin", async () => {
     const fs = new MemoryFileSystem();
-    const m = await seed(fs);
+    await seed(fs);
     // Hand-build a body with an invalid origin and a fresh integrity digest.
     const raw = JSON.parse(fs.peek(manifestPath) as string);
     raw.snapshotChronologyOrigin = "bogus";

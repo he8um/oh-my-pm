@@ -41,9 +41,7 @@ function itemById(
   base: LocalArtifactCreationConfirmationChecklistInput,
   id: LocalArtifactCreationConfirmationChecklistItemId,
 ) {
-  return createLocalArtifactCreationConfirmationChecklistItems(base).find(
-    (item) => item.id === id,
-  );
+  return createLocalArtifactCreationConfirmationChecklistItems(base).find((item) => item.id === id);
 }
 
 describe("createLocalArtifactCreationConfirmationChecklistItems", () => {
@@ -219,9 +217,9 @@ describe("createLocalArtifactCreationConfirmationChecklist", () => {
     expect(checklist.reasons).not.toContain("artifact_creation_permission_not_approved");
     expect(checklist.reasons).not.toContain("local_artifact_creation_permission_not_allowed");
     expect(checklist.reasons).not.toContain("local_artifact_adapter_capability_missing");
-    expect(checklist.reasons.every((reason) => reason.startsWith("local_artifact_confirmation_"))).toBe(
-      true,
-    );
+    expect(
+      checklist.reasons.every((reason) => reason.startsWith("local_artifact_confirmation_")),
+    ).toBe(true);
   });
 
   it("keeps creationAllowed false whether ready or blocked", () => {

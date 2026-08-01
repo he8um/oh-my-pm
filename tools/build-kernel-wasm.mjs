@@ -42,19 +42,10 @@ const run = (command, args) => {
 
 const wasmBindgen = resolveWasmBindgen();
 if (wasmBindgen === null) {
-  fail(
-    "wasm-bindgen is not available. Install it with: cargo install wasm-bindgen-cli --locked",
-  );
+  fail("wasm-bindgen is not available. Install it with: cargo install wasm-bindgen-cli --locked");
 }
 
-run("cargo", [
-  "build",
-  "--target",
-  "wasm32-unknown-unknown",
-  "-p",
-  "oh-my-pm-kernel",
-  "--release",
-]);
+run("cargo", ["build", "--target", "wasm32-unknown-unknown", "-p", "oh-my-pm-kernel", "--release"]);
 
 const wasmArtifact = join(
   repoRoot,
@@ -64,9 +55,7 @@ const wasmArtifact = join(
   "oh_my_pm_kernel.wasm",
 );
 if (!existsSync(wasmArtifact)) {
-  fail(
-    "expected artifact missing: target/wasm32-unknown-unknown/release/oh_my_pm_kernel.wasm",
-  );
+  fail("expected artifact missing: target/wasm32-unknown-unknown/release/oh_my_pm_kernel.wasm");
 }
 
 const outDir = join(repoRoot, "kernel", "binding", "generated-node");

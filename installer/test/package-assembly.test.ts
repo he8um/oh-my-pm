@@ -94,7 +94,10 @@ describe("createPackageAssemblyDryRun", () => {
   });
 
   it("fails with warnings for invalid input", () => {
-    const report = createPackageAssemblyDryRun(input({ name: "", include: [] }), seededFilesystem());
+    const report = createPackageAssemblyDryRun(
+      input({ name: "", include: [] }),
+      seededFilesystem(),
+    );
     expect(report.ok).toBe(false);
     expect(report.plan.files).toEqual([]);
     expect(report.manifest.files).toEqual([]);

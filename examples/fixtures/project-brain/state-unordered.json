@@ -13,16 +13,24 @@
     { "sourceKind": "markdown", "sourceIdentity": "docs/risks.md" }
   ],
   "statusSummary": { "Open": 3, "done": 1 },
-  "evidenceRefs": [
-    "evidence:beta",
-    "evidence:alpha",
-    "evidence:beta"
-  ],
+  "evidenceRefs": ["evidence:beta", "evidence:alpha", "evidence:beta"],
   "freshness": {
-    "observationFreshness": { "status": "known", "ageSeconds": 3600, "referenceTimestamp": "2026-03-01T11:00:00Z" },
+    "observationFreshness": {
+      "status": "known",
+      "ageSeconds": 3600,
+      "referenceTimestamp": "2026-03-01T11:00:00Z"
+    },
     "sourceFreshness": { "status": "unknown" },
-    "evidenceFreshness": { "status": "known", "ageSeconds": 7200, "referenceTimestamp": "2026-03-01T11:00:00Z" },
-    "derivedStateFreshness": { "status": "known", "ageSeconds": 7200, "referenceTimestamp": "2026-03-01T11:00:00Z" },
+    "evidenceFreshness": {
+      "status": "known",
+      "ageSeconds": 7200,
+      "referenceTimestamp": "2026-03-01T11:00:00Z"
+    },
+    "derivedStateFreshness": {
+      "status": "known",
+      "ageSeconds": 7200,
+      "referenceTimestamp": "2026-03-01T11:00:00Z"
+    },
     "coverageComplete": false,
     "coverageGaps": ["issues/labels تحلیل‌نشده", "docs/archive نادیده"],
     "schemaVersion": 1

@@ -5,7 +5,10 @@ import type { RiskSummary } from "../src/index.js";
 
 const skill = createExtractRisksSkill();
 
-function envelope(input: SkillInputEnvelope["input"], now = "2026-03-01T00:00:00.000Z"): SkillInputEnvelope {
+function envelope(
+  input: SkillInputEnvelope["input"],
+  now = "2026-03-01T00:00:00.000Z",
+): SkillInputEnvelope {
   return { skillId: "extractRisks", context: { locale: "en", now }, input };
 }
 
@@ -26,7 +29,12 @@ function gh(over: Record<string, unknown>) {
 describe("extractRisks — Markdown", () => {
   it("extracts line-level risks from a Blockers heading, not the document title", () => {
     const risks = risksOf({
-      items: [doc("d1", "# Project\n\n## Blockers\n\n- The vendor build is blocked.\n- Certs are missing.")],
+      items: [
+        doc(
+          "d1",
+          "# Project\n\n## Blockers\n\n- The vendor build is blocked.\n- Certs are missing.",
+        ),
+      ],
     });
     expect(risks).toEqual([
       {
@@ -94,7 +102,9 @@ describe("extractRisks — Markdown", () => {
 
   it("ignores fenced code blocks", () => {
     const risks = risksOf({
-      items: [doc("d1", "## Risks\n\n```\n- This looks like a risk but is code.\n```\n\n- Real risk.")],
+      items: [
+        doc("d1", "## Risks\n\n```\n- This looks like a risk but is code.\n```\n\n- Real risk."),
+      ],
     });
     expect(risks.map((r) => r.title)).toEqual(["Real risk."]);
   });
@@ -116,7 +126,13 @@ describe("extractRisks — explicit structured", () => {
       ],
     });
     expect(risks).toEqual([
-      { id: "r1", title: "Vendor unclear", severity: "low", reason: "explicit", source: "structured" },
+      {
+        id: "r1",
+        title: "Vendor unclear",
+        severity: "low",
+        reason: "explicit",
+        source: "structured",
+      },
       { id: "r2", title: "Infra", severity: "high", reason: "explicit", source: "structured" },
     ]);
   });
@@ -157,7 +173,15 @@ describe("extractRisks — GitHub", () => {
     const risks = risksOf(
       {
         items: [
-          gh({ id: "github:issue:o/r#8", type: "issue", title: "#8 Late", status: "open", due: "2026-02-01", repository: "o/r", number: 8 }),
+          gh({
+            id: "github:issue:o/r#8",
+            type: "issue",
+            title: "#8 Late",
+            status: "open",
+            due: "2026-02-01",
+            repository: "o/r",
+            number: 8,
+          }),
         ],
       },
       "2026-03-01T00:00:00.000Z",
@@ -169,7 +193,15 @@ describe("extractRisks — GitHub", () => {
   it("recognizes a risk heading inside a GitHub body", () => {
     const risks = risksOf({
       items: [
-        gh({ id: "github:issue:o/r#9", type: "issue", title: "#9 Investigate", status: "open", body: "## Risks\n\n- External dependency.", repository: "o/r", number: 9 }),
+        gh({
+          id: "github:issue:o/r#9",
+          type: "issue",
+          title: "#9 Investigate",
+          status: "open",
+          body: "## Risks\n\n- External dependency.",
+          repository: "o/r",
+          number: 9,
+        }),
       ],
     });
     expect(risks[0]?.reason).toBe("github_body:risk");
@@ -179,7 +211,15 @@ describe("extractRisks — GitHub", () => {
   it("creates one risk per GitHub issue even with several signals", () => {
     const risks = risksOf({
       items: [
-        gh({ id: "github:issue:o/r#10", type: "issue", title: "#10 Critical blocked", status: "blocked", labels: ["blocker", "critical"], repository: "o/r", number: 10 }),
+        gh({
+          id: "github:issue:o/r#10",
+          type: "issue",
+          title: "#10 Critical blocked",
+          status: "blocked",
+          labels: ["blocker", "critical"],
+          repository: "o/r",
+          number: 10,
+        }),
       ],
     });
     expect(risks).toHaveLength(1);
@@ -188,8 +228,22 @@ describe("extractRisks — GitHub", () => {
   it("maps archived and disabled repository records to risks", () => {
     const risks = risksOf({
       items: [
-        gh({ id: "github:repository:o/a", type: "record", kind: "repository", title: "o/a", status: "archived", repository: "o/a" }),
-        gh({ id: "github:repository:o/d", type: "record", kind: "repository", title: "o/d", status: "disabled", repository: "o/d" }),
+        gh({
+          id: "github:repository:o/a",
+          type: "record",
+          kind: "repository",
+          title: "o/a",
+          status: "archived",
+          repository: "o/a",
+        }),
+        gh({
+          id: "github:repository:o/d",
+          type: "record",
+          kind: "repository",
+          title: "o/d",
+          status: "disabled",
+          repository: "o/d",
+        }),
       ],
     });
     expect(risks.map((r) => [r.reason, r.severity])).toEqual([
@@ -201,7 +255,14 @@ describe("extractRisks — GitHub", () => {
   it("does not treat unblocked/riskless as blocked/risk (false-positive guard)", () => {
     const risks = risksOf({
       items: [
-        gh({ id: "github:issue:o/r#11", type: "issue", title: "#11 Now unblocked and riskless", status: "open", repository: "o/r", number: 11 }),
+        gh({
+          id: "github:issue:o/r#11",
+          type: "issue",
+          title: "#11 Now unblocked and riskless",
+          status: "open",
+          repository: "o/r",
+          number: 11,
+        }),
       ],
     });
     expect(risks).toEqual([]);
@@ -211,7 +272,14 @@ describe("extractRisks — GitHub", () => {
 describe("extractRisks — limits and purity", () => {
   it("caps at 20 risks", () => {
     const items = Array.from({ length: 30 }, (_v, i) =>
-      gh({ id: `github:issue:o/r#${i + 1}`, type: "issue", title: `#${i + 1} blocked`, status: "blocked", repository: "o/r", number: i + 1 }),
+      gh({
+        id: `github:issue:o/r#${i + 1}`,
+        type: "issue",
+        title: `#${i + 1} blocked`,
+        status: "blocked",
+        repository: "o/r",
+        number: i + 1,
+      }),
     );
     expect(risksOf({ items }).length).toBe(20);
   });
@@ -226,7 +294,11 @@ describe("extractRisks — limits and purity", () => {
   });
 
   it("rejects the wrong skill id", () => {
-    const out = skill.execute({ skillId: "deriveNextTasks", context: { locale: "en", now: "t0" }, input: {} });
+    const out = skill.execute({
+      skillId: "deriveNextTasks",
+      context: { locale: "en", now: "t0" },
+      input: {},
+    });
     expect(out.ok).toBe(false);
   });
 });

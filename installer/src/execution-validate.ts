@@ -31,8 +31,7 @@ export function validateExecutionPlan(plan: InstallPlan): string[] {
   const normalizedRoot = normalizeInstallerPath(plan.root);
   for (const operation of plan.operations) {
     const path = normalizeInstallerPath(operation.path);
-    const underRoot =
-      isNonEmptyString(plan.root) && path.startsWith(`${normalizedRoot}/`);
+    const underRoot = isNonEmptyString(plan.root) && path.startsWith(`${normalizedRoot}/`);
     if (path.length === 0 || (isNonEmptyString(plan.root) && !underRoot)) {
       pushOnce(reasons, "install_plan_operation_path_invalid");
     }

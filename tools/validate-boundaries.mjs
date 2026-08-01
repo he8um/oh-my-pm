@@ -62,7 +62,8 @@ for (const prefix of ["specs/", "_dev/", "scripts/"]) {
 }
 
 // 3 + 4. No cross-package src imports; no imports from kernel/crate.
-const PACKAGE_SRC = /^(contracts|kernel\/binding|runtime|planner|providers|skills|cli|installer|examples|mcp-server)\/src\/.*\.ts$/;
+const PACKAGE_SRC =
+  /^(contracts|kernel\/binding|runtime|planner|providers|skills|cli|installer|examples|mcp-server)\/src\/.*\.ts$/;
 const IMPORT_SPECIFIER = /(?:from\s+|import\s*\(\s*|import\s+)["']([^"']+)["']/g;
 const CROSS_SRC =
   /(?:@oh-my-pm\/[a-z-]+|(?:\.\.\/)+(?:contracts|kernel|runtime|planner|providers|skills|cli|installer))\/src\//;
@@ -120,7 +121,20 @@ for (const file of trackedFiles) {
     if (
       /^(contracts|runtime|planner|providers|skills)\/src\/.*\.ts$/.test(file) &&
       (spec.startsWith("node:") ||
-        ["fs", "path", "os", "http", "https", "net", "tls", "dgram", "crypto", "zlib", "stream", "child_process"].includes(spec))
+        [
+          "fs",
+          "path",
+          "os",
+          "http",
+          "https",
+          "net",
+          "tls",
+          "dgram",
+          "crypto",
+          "zlib",
+          "stream",
+          "child_process",
+        ].includes(spec))
     ) {
       err(`${file} imports a Node built-in module: "${spec}"`);
     }
@@ -147,7 +161,10 @@ for (const file of trackedFiles) {
       CLI_NODE_BOUNDARY_SRC.has(file) &&
       spec !== "node:fs" &&
       spec !== "node:path" &&
-      (spec.startsWith("node:") || ["fs", "path", "os", "http", "https", "net", "tls", "dgram", "child_process"].includes(spec))
+      (spec.startsWith("node:") ||
+        ["fs", "path", "os", "http", "https", "net", "tls", "dgram", "child_process"].includes(
+          spec,
+        ))
     ) {
       err(`${file} imports a Node module outside the read-only boundary allowlist: "${spec}"`);
     }
@@ -155,22 +172,50 @@ for (const file of trackedFiles) {
     if (
       file === "cli/src/project-document-rules.ts" &&
       (spec.startsWith("node:") ||
-        ["fs", "path", "os", "http", "https", "net", "tls", "dgram", "crypto", "zlib", "stream", "child_process"].includes(spec))
+        [
+          "fs",
+          "path",
+          "os",
+          "http",
+          "https",
+          "net",
+          "tls",
+          "dgram",
+          "crypto",
+          "zlib",
+          "stream",
+          "child_process",
+        ].includes(spec))
     ) {
       err(`${file} must not import a Node built-in module: "${spec}"`);
     }
     // MCP server package: no filesystem/network/child-process Node built-ins in
     // package source; document reads flow only through the CLI public loader.
     if (
-      file.startsWith("mcp-server/src/") && !file.endsWith(".test.ts") &&
+      file.startsWith("mcp-server/src/") &&
+      !file.endsWith(".test.ts") &&
       (spec.startsWith("node:") ||
-        ["fs", "path", "os", "http", "https", "net", "tls", "dgram", "crypto", "zlib", "stream", "child_process"].includes(spec))
+        [
+          "fs",
+          "path",
+          "os",
+          "http",
+          "https",
+          "net",
+          "tls",
+          "dgram",
+          "crypto",
+          "zlib",
+          "stream",
+          "child_process",
+        ].includes(spec))
     ) {
       err(`${file} must not import a Node built-in module: "${spec}"`);
     }
     // The MCP SDK stdio transport may be imported only by the server module.
     if (
-      file.startsWith("mcp-server/src/") && !file.endsWith(".test.ts") &&
+      file.startsWith("mcp-server/src/") &&
+      !file.endsWith(".test.ts") &&
       file !== "mcp-server/src/server.ts" &&
       spec.includes("@modelcontextprotocol/sdk")
     ) {
@@ -178,14 +223,16 @@ for (const file of trackedFiles) {
     }
     // Only the official stdio SDK transport is allowed; no HTTP/SSE variants.
     if (
-      file.startsWith("mcp-server/src/") && !file.endsWith(".test.ts") &&
+      file.startsWith("mcp-server/src/") &&
+      !file.endsWith(".test.ts") &&
       /@modelcontextprotocol\/sdk\/(server|client)\/(streamableHttp|sse)/.test(spec)
     ) {
       err(`${file} imports a non-stdio MCP transport: "${spec}"`);
     }
     // No HTTP server frameworks or dotenv anywhere in the MCP package.
     if (
-      file.startsWith("mcp-server/src/") && !file.endsWith(".test.ts") &&
+      file.startsWith("mcp-server/src/") &&
+      !file.endsWith(".test.ts") &&
       ["express", "hono", "fastify", "dotenv", "ws", "undici"].includes(spec)
     ) {
       err(`${file} imports a forbidden server/network/env module: "${spec}"`);
@@ -194,9 +241,16 @@ for (const file of trackedFiles) {
       (file.startsWith("installer/src/") ||
         file.startsWith("cli/src/") ||
         file.startsWith("examples/src/")) &&
-      ["zlib", "node:zlib", "archiver", "adm-zip", "jszip", "tar", "stream", "node:stream"].includes(
-        spec,
-      )
+      [
+        "zlib",
+        "node:zlib",
+        "archiver",
+        "adm-zip",
+        "jszip",
+        "tar",
+        "stream",
+        "node:stream",
+      ].includes(spec)
     ) {
       err(`${file} imports an archive/compression module: "${spec}"`);
     }
@@ -574,8 +628,8 @@ const MCP_SOURCE_FILES = trackedFiles.filter(
 // The GitHub MCP tool runner is the approved GitHub MCP boundary: it may read
 // the OH_MY_PM_GITHUB_TOKEN at the tool-call boundary and construct the GitHub
 // transport. It still must not itself fetch, log, or write; those markers are
-// enforced below with the token-env allowance carved out.
-const MCP_GITHUB_BOUNDARY = "mcp-server/src/github-tool-runner.ts";
+// enforced below with the token-env allowance carved out, keyed on the file
+// path where each scan runs.
 const MCP_FORBIDDEN = [
   "writeFile",
   "appendFile",
@@ -670,7 +724,14 @@ for (const MCP_BIN of MCP_BINS) {
     continue;
   }
   const contents = readFileSync(MCP_BIN, "utf8");
-  for (const marker of ["process.stdout", "console.log", "console.error", "process.env", "fetch(", "child_process"]) {
+  for (const marker of [
+    "process.stdout",
+    "console.log",
+    "console.error",
+    "process.env",
+    "fetch(",
+    "child_process",
+  ]) {
     if (contents.includes(marker)) {
       err(`${MCP_BIN} contains forbidden wrapper API "${marker}"`);
     }
@@ -753,7 +814,14 @@ for (const file of LOCAL_INSTALL_TOOLS) {
   }
   // child_process only in the verifier.
   if (!LOCAL_INSTALL_CHILD_PROC_ALLOWED.has(file)) {
-    for (const api of ["child_process", "execSync", "execFileSync", "spawn", "spawnSync", "fork("]) {
+    for (const api of [
+      "child_process",
+      "execSync",
+      "execFileSync",
+      "spawn",
+      "spawnSync",
+      "fork(",
+    ]) {
       if (contents.includes(api)) {
         err(`${file} uses a child-process API outside the verifier: "${api}"`);
       }
@@ -1005,7 +1073,10 @@ if (trackedFiles.includes(RELEASE_INSTALL_CORE)) {
   const requireInCore = [
     // The single platform-mode policy helper and the separated post-install
     // evaluator must both exist and be exported.
-    ["export function requiresPosixShimExecutableMode", "the platform executable-mode policy helper"],
+    [
+      "export function requiresPosixShimExecutableMode",
+      "the platform executable-mode policy helper",
+    ],
     ["export function evaluatePostInstallState", "the separated post-install state evaluator"],
     // Platform detection is the exact literal comparison, not inference.
     ['platform !== "win32"', 'the exact `platform !== "win32"` mode policy'],
@@ -1026,7 +1097,9 @@ if (trackedFiles.includes(RELEASE_INSTALL_CORE)) {
   // platform policy helper — never behind a bare process.platform OS check that
   // would silently disable the check on every non-Windows deployment too.
   if (/isExecutable[\s\S]{0,40}process\.platform\s*===\s*["']win32["']/.test(core)) {
-    err(`${RELEASE_INSTALL_CORE} gates the executable check on a raw OS test; use requiresPosixShimExecutableMode`);
+    err(
+      `${RELEASE_INSTALL_CORE} gates the executable check on a raw OS test; use requiresPosixShimExecutableMode`,
+    );
   }
 }
 
@@ -1040,21 +1113,29 @@ if (trackedFiles.includes(RELEASE_INSTALL_VERIFIER)) {
   const verifier = readFileSync(RELEASE_INSTALL_VERIFIER, "utf8");
   // The launch-policy helper must exist and drive both CLI and MCP launches.
   if (!verifier.includes("export function createInstalledCommandInvocation")) {
-    err(`${RELEASE_INSTALL_VERIFIER} must define createInstalledCommandInvocation for platform-safe launching`);
+    err(
+      `${RELEASE_INSTALL_VERIFIER} must define createInstalledCommandInvocation for platform-safe launching`,
+    );
   }
   // No shell-based execution anywhere in the verifier.
   if (/\bshell:\s*(true|isWindows)\b/.test(verifier)) {
-    err(`${RELEASE_INSTALL_VERIFIER} must not spawn with a shell; launch the installed .mjs via process.execPath on Windows`);
+    err(
+      `${RELEASE_INSTALL_VERIFIER} must not spawn with a shell; launch the installed .mjs via process.execPath on Windows`,
+    );
   }
   for (const marker of ["cmd.exe", "/c ", "powershell", "child_process.exec("]) {
     if (verifier.includes(marker)) {
-      err(`${RELEASE_INSTALL_VERIFIER} constructs a shell invocation ("${marker}"); use an argument vector`);
+      err(
+        `${RELEASE_INSTALL_VERIFIER} constructs a shell invocation ("${marker}"); use an argument vector`,
+      );
     }
   }
   // The installed .mjs entrypoints (not node_modules/.bin, not source repo)
   // must be the Windows launch target.
   if (!verifier.includes('join(versionDir, "bin", "ohmypm.mjs")')) {
-    err(`${RELEASE_INSTALL_VERIFIER} must launch the installed CLI .mjs entrypoint from the version directory`);
+    err(
+      `${RELEASE_INSTALL_VERIFIER} must launch the installed CLI .mjs entrypoint from the version directory`,
+    );
   }
   if (verifier.includes("node_modules/.bin")) {
     err(`${RELEASE_INSTALL_VERIFIER} must not execute node_modules/.bin`);
@@ -1164,7 +1245,9 @@ for (const file of GITHUB_PRODUCTION_FILES) {
   if (!GITHUB_NETWORK_BOUNDARY.has(file)) {
     for (const marker of ["fetch(", "AbortController", "api.github.com"]) {
       if (contents.includes(marker)) {
-        err(`${file} references a network marker outside the GitHub transport boundary: "${marker}"`);
+        err(
+          `${file} references a network marker outside the GitHub transport boundary: "${marker}"`,
+        );
       }
     }
   }
@@ -1221,7 +1304,8 @@ const GITHUB_LIMIT_CONSUMER_LAYERS = [
 // Local re-declaration of a numeric bound: `const <NAME> = <int>;` (optionally
 // exported). The canonical sources live elsewhere, so any such local literal in a
 // consumer layer is a re-declaration.
-const LOCAL_LIMIT_CONST = /(?:export\s+)?const\s+[A-Za-z_][A-Za-z0-9_]*(?:MIN|MAX|DEFAULT)[A-Za-z0-9_]*LIMIT[A-Za-z0-9_]*\s*=\s*\d+\s*;/;
+const LOCAL_LIMIT_CONST =
+  /(?:export\s+)?const\s+[A-Za-z_][A-Za-z0-9_]*(?:MIN|MAX|DEFAULT)[A-Za-z0-9_]*LIMIT[A-Za-z0-9_]*\s*=\s*\d+\s*;/;
 // Inline list-range literal: `>= 1 && ... <= 100` (any spacing).
 const INLINE_LIST_RANGE = />=\s*1\s*&&[^\n]*<=\s*100/;
 for (const file of GITHUB_LIMIT_CONSUMER_LAYERS) {
@@ -1231,10 +1315,14 @@ for (const file of GITHUB_LIMIT_CONSUMER_LAYERS) {
   }
   const contents = readFileSync(file, "utf8");
   if (LOCAL_LIMIT_CONST.test(contents)) {
-    err(`${file} re-declares a GitHub limit bound locally; import the canonical constant instead (F-DUP-1)`);
+    err(
+      `${file} re-declares a GitHub limit bound locally; import the canonical constant instead (F-DUP-1)`,
+    );
   }
   if (INLINE_LIST_RANGE.test(contents)) {
-    err(`${file} inlines the 1..100 list-limit range; use GITHUB_MIN_LIMIT/GITHUB_MAX_LIMIT (F-DUP-1)`);
+    err(
+      `${file} inlines the 1..100 list-limit range; use GITHUB_MIN_LIMIT/GITHUB_MAX_LIMIT (F-DUP-1)`,
+    );
   }
 }
 
@@ -1369,7 +1457,12 @@ for (const file of PROVIDER_PURE_CONFIG) {
 // No config-initialization / config-writing command may be introduced. This
 // validator itself names the forbidden markers as its detection list, so it is
 // excluded from the scan.
-const CONFIG_INIT_MARKERS = ['"config init"', '"config set"', "writeProviderConfig", "initProviderConfig"];
+const CONFIG_INIT_MARKERS = [
+  '"config init"',
+  '"config set"',
+  "writeProviderConfig",
+  "initProviderConfig",
+];
 for (const file of trackedFiles) {
   if (!/\.(mjs|ts)$/.test(file)) continue;
   if (file.endsWith(".test.ts") || file.endsWith(".test.mjs")) continue;
@@ -1412,7 +1505,12 @@ function checkReleaseWorkflowCommon(path, confirmation) {
   if (!/^on:\s*\n\s+workflow_dispatch:/m.test(wf)) {
     err(`${path} must trigger on workflow_dispatch only`);
   }
-  for (const forbiddenTrigger of ["\n  push:", "\n  pull_request:", "\n  schedule:", "\n  release:"]) {
+  for (const forbiddenTrigger of [
+    "\n  push:",
+    "\n  pull_request:",
+    "\n  schedule:",
+    "\n  release:",
+  ]) {
     if (wf.includes(forbiddenTrigger)) {
       err(`${path} must not use trigger "${forbiddenTrigger.trim()}"`);
     }
@@ -1451,7 +1549,10 @@ if (rcWf !== null) {
     err(`${RC_RELEASE_WORKFLOW} must gate on the exact version 0.2.0-rc.1`);
   }
   // version.json must be checked against the input version.
-  if (!rcWf.includes("require('./version.json').version") && !rcWf.includes('require("./version.json").version')) {
+  if (
+    !rcWf.includes("require('./version.json').version") &&
+    !rcWf.includes('require("./version.json").version')
+  ) {
     err(`${RC_RELEASE_WORKFLOW} must verify version.json equals the input version`);
   }
   // Prerelease, never latest.
@@ -1673,7 +1774,9 @@ if (v03StableWf !== null) {
     err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must create the stable release with --latest`);
   }
   if (!/isPrerelease\s*!==\s*false/.test(v03StableWf)) {
-    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must verify the published release isPrerelease === false`);
+    err(
+      `${ACTIVE_STABLE_RELEASE_WORKFLOW} must verify the published release isPrerelease === false`,
+    );
   }
   // Latest-stable verification against releases/latest.
   if (!v03StableWf.includes("releases/latest")) {
@@ -1686,14 +1789,18 @@ if (v03StableWf !== null) {
   // It must gate on the immutable base stable lineage: the v0.3.0 tag must still
   // resolve to its exact published commit before a patch may be published.
   if (!v03StableWf.includes(V03_BASE_STABLE_TAG)) {
-    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must gate on the base stable tag ${V03_BASE_STABLE_TAG}`);
+    err(
+      `${ACTIVE_STABLE_RELEASE_WORKFLOW} must gate on the base stable tag ${V03_BASE_STABLE_TAG}`,
+    );
   }
   if (!v03StableWf.includes(V03_BASE_STABLE_SHA)) {
     err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must pin the base stable commit ${V03_BASE_STABLE_SHA}`);
   }
   // The publish job must depend on the cross-platform installed qualification.
   if (!/needs:\s*\[\s*prepare\s*,\s*installed-qualification\s*\]/.test(v03StableWf)) {
-    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} publish must depend on the installed-qualification matrix`);
+    err(
+      `${ACTIVE_STABLE_RELEASE_WORKFLOW} publish must depend on the installed-qualification matrix`,
+    );
   }
   // The release must target the exact workflow commit SHA, not floating main.
   if (!v03StableWf.includes('--target "$GITHUB_SHA"')) {
@@ -1721,7 +1828,9 @@ if (v03StableWf !== null) {
   // contents: write granted exactly once (publish job only).
   const v03WriteKeyCount = (v03StableWf.match(/^\s+contents: write\s*$/gm) || []).length;
   if (v03WriteKeyCount !== 1) {
-    err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must grant contents: write exactly once (publish job only)`);
+    err(
+      `${ACTIVE_STABLE_RELEASE_WORKFLOW} must grant contents: write exactly once (publish job only)`,
+    );
   }
 }
 
@@ -1770,7 +1879,9 @@ for (const file of trackedFiles) {
   const contents = readFileSync(file, "utf8");
   for (const marker of RELEASE_PUBLISH_MARKERS) {
     if (contents.includes(marker)) {
-      err(`${file} contains a GitHub-Release publish marker outside the release workflow: "${marker}"`);
+      err(
+        `${file} contains a GitHub-Release publish marker outside the release workflow: "${marker}"`,
+      );
     }
   }
 }
@@ -1797,7 +1908,9 @@ for (const file of REUSABLE_VERSION_CHECKERS) {
   }
   const contents = readFileSync(file, "utf8");
   if (/\b0\.1\.0\b/.test(contents)) {
-    err(`${file} hard-codes the release version 0.1.0; derive it from version.json/RELEASE.json/filenames instead`);
+    err(
+      `${file} hard-codes the release version 0.1.0; derive it from version.json/RELEASE.json/filenames instead`,
+    );
   }
 }
 
@@ -1878,7 +1991,8 @@ for (const file of trackedFiles) {
 
 // 5. contracts/generated/** must be generator output: header present, no
 // timestamps, no machine-local absolute paths.
-const GENERATED_HEADER = "// This file is generated by tools/gen-contracts.mjs.\n// Do not edit by hand.\n";
+const GENERATED_HEADER =
+  "// This file is generated by tools/gen-contracts.mjs.\n// Do not edit by hand.\n";
 const TIMESTAMP_RE = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 const ABSOLUTE_PATH_RE = /\/Users\/|\/home\/|[A-Z]:\\/;
 const generatedTracked = trackedFiles.filter((f) => f.startsWith("contracts/generated/"));
@@ -1986,9 +2100,7 @@ const PROJECT_BRAIN_RUST_FORBIDDEN = [
 // The purity test itself enumerates the impurity markers as detection strings,
 // exactly as this validator does; it is exempted from the capability scan (its
 // own assertions enforce purity).
-const PROJECT_BRAIN_MARKER_DETECTORS = new Set([
-  "kernel/crate/tests/projectbrain_purity.rs",
-]);
+const PROJECT_BRAIN_MARKER_DETECTORS = new Set(["kernel/crate/tests/projectbrain_purity.rs"]);
 for (const file of projectBrainFiles) {
   if (!file.endsWith(".rs")) continue; // TypeScript layers scanned separately
   if (PROJECT_BRAIN_MARKER_DETECTORS.has(file)) continue;
@@ -2095,11 +2207,7 @@ for (const file of projectBrainModuleFiles) {
 // persistence adapter lives only in project-memory/**; these hyphenated file
 // markers must never appear in the Kernel, Runtime, Skills, Providers, CLI, or
 // MCP source trees.
-const PHASE2_PLUS_FILE_MARKERS = [
-  "memory-store",
-  "snapshot-store",
-  "persistence-adapter",
-];
+const PHASE2_PLUS_FILE_MARKERS = ["memory-store", "snapshot-store", "persistence-adapter"];
 for (const file of trackedFiles) {
   if (file.startsWith("docs/")) continue; // documentation may name deferred phases
   if (file.startsWith("project-memory/")) continue; // the approved persistence package
@@ -2138,9 +2246,7 @@ if (trackedFiles.includes("mcp-server/src/server.ts")) {
     }
   }
   // Exactly one Project Brain read-only tool is allowed: project_changes.
-  const projectBrainTools = [...registeredTools].filter(
-    (name) => name === "project_changes",
-  );
+  const projectBrainTools = [...registeredTools].filter((name) => name === "project_changes");
   if (projectBrainTools.length > 1) {
     err("mcp-server/src/server.ts must register at most one Project Brain MCP tool");
   }
@@ -2190,7 +2296,9 @@ if (trackedFiles.includes("mcp-server/src/project-changes-runner.ts")) {
     ".capture(",
   ]) {
     if (runner.includes(marker)) {
-      err(`mcp-server/src/project-changes-runner.ts must not invoke a mutating/capture call ("${marker}")`);
+      err(
+        `mcp-server/src/project-changes-runner.ts must not invoke a mutating/capture call ("${marker}")`,
+      );
     }
   }
 }
@@ -2254,7 +2362,9 @@ if (trackedFiles.includes("kernel/binding/src/index.ts")) {
     }
     for (const pbMethod of APPROVED_PB_WASM_EXPORTS) {
       if (body.includes(`${pbMethod}(`)) {
-        err(`kernel/binding/src/index.ts must not add "${pbMethod}" to KernelApi (use ProjectBrainKernelApi)`);
+        err(
+          `kernel/binding/src/index.ts must not add "${pbMethod}" to KernelApi (use ProjectBrainKernelApi)`,
+        );
       }
     }
   }
@@ -2264,7 +2374,9 @@ if (trackedFiles.includes("kernel/binding/src/index.ts")) {
     const pb = readFileSync("kernel/binding/src/projectbrain.ts", "utf8");
     for (const method of APPROVED_PB_WASM_EXPORTS) {
       if (!pb.includes(`${method}(`)) {
-        err(`kernel/binding/src/projectbrain.ts must declare the approved binding method "${method}"`);
+        err(
+          `kernel/binding/src/projectbrain.ts must declare the approved binding method "${method}"`,
+        );
       }
     }
   }
@@ -2537,7 +2649,12 @@ if (trackedFiles.includes("project-memory/package.json")) {
   if (pkg.version !== EXPECTED_SOURCE_VERSION) {
     err(`project-memory/package.json must be version ${EXPECTED_SOURCE_VERSION}`);
   }
-  for (const field of ["dependencies", "peerDependencies", "optionalDependencies", "devDependencies"]) {
+  for (const field of [
+    "dependencies",
+    "peerDependencies",
+    "optionalDependencies",
+    "devDependencies",
+  ]) {
     if (pkg[field] && Object.keys(pkg[field]).length > 0) {
       err(`project-memory/package.json must declare no ${field} (Node built-ins only)`);
     }
@@ -2668,13 +2785,21 @@ for (const file of trackedFiles) {
 // there.
 if (trackedFiles.includes("runtime/src/runtime.ts")) {
   const runtime = readFileSync("runtime/src/runtime.ts", "utf8");
-  for (const kind of ['request.kind === "status"', 'request.kind === "doctor"', 'request.kind === "plan"']) {
+  for (const kind of [
+    'request.kind === "status"',
+    'request.kind === "doctor"',
+    'request.kind === "plan"',
+  ]) {
     if (!runtime.includes(kind)) {
       err(`runtime/src/runtime.ts must keep the "${kind}" dispatch`);
     }
   }
   // Runtime.handle must not learn a capture/compare kind.
-  if (/request\.kind\s*===\s*"(capture|compare|projectBrainCapture|projectBrainCompare)"/.test(runtime)) {
+  if (
+    /request\.kind\s*===\s*"(capture|compare|projectBrainCapture|projectBrainCompare)"/.test(
+      runtime,
+    )
+  ) {
     err("runtime/src/runtime.ts must not dispatch a Project Brain capture/compare request kind");
   }
 }
@@ -2694,7 +2819,13 @@ if (trackedFiles.includes("contracts/generated/ts/skills.ts")) {
     err("contracts/generated/ts/skills.ts must declare SKILL_ID_VALUES");
   } else {
     const ids = [...match[1].matchAll(/"([a-zA-Z]+)"/g)].map((m) => m[1]).sort();
-    const expected = ["createHandoff", "deriveNextTasks", "extractRisks", "reviewChanges", "summarizeStatus"].sort();
+    const expected = [
+      "createHandoff",
+      "deriveNextTasks",
+      "extractRisks",
+      "reviewChanges",
+      "summarizeStatus",
+    ].sort();
     if (JSON.stringify(ids) !== JSON.stringify(expected)) {
       err(`SKILL_ID_VALUES must remain the five original ids (found ${ids.join(", ")})`);
     }
@@ -2756,10 +2887,22 @@ if (trackedFiles.includes("cli/src/memory-types.ts")) {
       "timeline",
     ];
     if (JSON.stringify(subs) !== JSON.stringify(expected)) {
-      err(`MEMORY_SUBCOMMANDS must be exactly ${expected.join(", ")} in order (found ${subs.join(", ")})`);
+      err(
+        `MEMORY_SUBCOMMANDS must be exactly ${expected.join(", ")} in order (found ${subs.join(", ")})`,
+      );
     }
     // No forbidden seventh subcommand may be smuggled in.
-    for (const forbidden of ["init", "import", "repair", "migrate", "prune", "config", "sync", "watch", "serve"]) {
+    for (const forbidden of [
+      "init",
+      "import",
+      "repair",
+      "migrate",
+      "prune",
+      "config",
+      "sync",
+      "watch",
+      "serve",
+    ]) {
       if (subs.includes(forbidden)) {
         err(`MEMORY_SUBCOMMANDS must not include the forbidden subcommand "${forbidden}"`);
       }
@@ -2772,7 +2915,9 @@ if (trackedFiles.includes("cli/src/memory-parser.ts")) {
   const parser = readFileSync("cli/src/memory-parser.ts", "utf8");
   const applyBlock = parser.match(/APPLY_SUBCOMMANDS[^=]*=\s*new Set\(\[([\s\S]*?)\]\)/);
   if (applyBlock !== null && /"timeline"/.test(applyBlock[1])) {
-    err("cli/src/memory-parser.ts must never allow --apply for timeline (the timeline is read-only)");
+    err(
+      "cli/src/memory-parser.ts must never allow --apply for timeline (the timeline is read-only)",
+    );
   }
   for (const option of ["--before-sequence", "--category", "--kind"]) {
     if (!parser.includes(`${option} is only valid for timeline`)) {
@@ -2798,7 +2943,9 @@ if (trackedFiles.includes("cli/src/memory-process.ts")) {
       "previewMigration",
     ]) {
       if (timelineFn[0].includes(marker)) {
-        err(`cli/src/memory-process.ts runTimeline must not use "${marker}" (the timeline is read-only)`);
+        err(
+          `cli/src/memory-process.ts runTimeline must not use "${marker}" (the timeline is read-only)`,
+        );
       }
     }
   }
@@ -2846,9 +2993,17 @@ for (const file of trackedFiles) {
 for (const file of trackedFiles) {
   if (!file.startsWith("providers/src/") || !file.endsWith(".ts")) continue;
   const contents = readFileSync(file, "utf8");
-  for (const marker of ["@oh-my-pm/project-memory", "@oh-my-pm/runtime", "commitSnapshotBundle", "ProjectSnapshot", "captureProject"]) {
+  for (const marker of [
+    "@oh-my-pm/project-memory",
+    "@oh-my-pm/runtime",
+    "commitSnapshotBundle",
+    "ProjectSnapshot",
+    "captureProject",
+  ]) {
     if (contents.includes(marker)) {
-      err(`${file} references a forbidden capture/memory marker "${marker}"; providers stay persistence-unaware`);
+      err(
+        `${file} references a forbidden capture/memory marker "${marker}"; providers stay persistence-unaware`,
+      );
     }
   }
 }
@@ -2860,7 +3015,7 @@ for (const file of trackedFiles) {
 // profile and ships the ten-tool surface.
 if (trackedFiles.includes("tools/release-bundle-utils.mjs")) {
   const bundle = readFileSync("tools/release-bundle-utils.mjs", "utf8");
-  if (!bundle.includes('bundleProfile: BUNDLE_PROFILE') && !bundle.includes('"project-brain"')) {
+  if (!bundle.includes("bundleProfile: BUNDLE_PROFILE") && !bundle.includes('"project-brain"')) {
     err("tools/release-bundle-utils.mjs must declare the project-brain release profile");
   }
   if (!bundle.includes("project-memory")) {
@@ -2911,7 +3066,9 @@ if (trackedFiles.includes("project-memory/src/store.ts")) {
   }
   // The chronology capturedAt is the snapshot payload's own, never a clock read.
   if (!store.includes("requireSnapshotCapturedAt")) {
-    err("project-memory/src/store.ts must take the chronology capturedAt from the snapshot payload");
+    err(
+      "project-memory/src/store.ts must take the chronology capturedAt from the snapshot payload",
+    );
   }
   for (const marker of ["Date.now", "new Date(", "referenceNow(", "this.fs.referenceNow"]) {
     if (store.includes(marker)) {
@@ -2986,7 +3143,10 @@ if (trackedFiles.includes("cli/src/memory-types.ts")) {
 // use the memory chronology (listSnapshots), selecting the immediate predecessor.
 if (trackedFiles.includes("runtime/src/projectbrain/compare.ts")) {
   const compare = readFileSync("runtime/src/projectbrain/compare.ts", "utf8");
-  if (/lexical/i.test(compare) && !/NOT a lexical|not a lexical|no lexical-order fallback/i.test(compare)) {
+  if (
+    /lexical/i.test(compare) &&
+    !/NOT a lexical|not a lexical|no lexical-order fallback/i.test(compare)
+  ) {
     err("runtime/src/projectbrain/compare.ts must not reintroduce a lexical-order selection");
   }
   if (/Fall back to the last two ids in stored order/.test(compare)) {
@@ -3344,7 +3504,9 @@ if (trackedFiles.includes(GITHUB_USE_CASE)) {
     'from "node:fs"',
   ]) {
     if (code.includes(marker)) {
-      err(`${GITHUB_USE_CASE} must not reference "${marker}" (inject it through GitHubProjectDeps)`);
+      err(
+        `${GITHUB_USE_CASE} must not reference "${marker}" (inject it through GitHubProjectDeps)`,
+      );
     }
   }
   // The caller identity must be injected, never hardcoded: a literal caller would

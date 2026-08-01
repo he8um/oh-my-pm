@@ -29,17 +29,72 @@ const ALL_CAPS_RE = /^[A-Z][A-Z0-9_]*$/;
 const CAMEL_RE = /^[a-z][A-Za-z0-9]*$/;
 
 const toPascal = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-const toSnake = (s) => s.replace(/([A-Z])/g, "_$1").toLowerCase().replace(/^_/, "");
+const toSnake = (s) =>
+  s
+    .replace(/([A-Z])/g, "_$1")
+    .toLowerCase()
+    .replace(/^_/, "");
 const toScreamingSnake = (s) => toSnake(s).toUpperCase();
 
 const RUST_KEYWORDS = new Set([
-  "as", "async", "await", "become", "box", "break", "const", "continue", "crate", "do",
-  "dyn", "else", "enum", "extern", "false", "final", "fn", "for", "if", "impl", "in",
-  "let", "loop", "macro", "match", "mod", "move", "mut", "override", "priv", "pub",
-  "ref", "return", "self", "static", "struct", "super", "trait", "true", "try", "type",
-  "typeof", "unsafe", "unsized", "use", "virtual", "where", "while", "yield",
+  "as",
+  "async",
+  "await",
+  "become",
+  "box",
+  "break",
+  "const",
+  "continue",
+  "crate",
+  "do",
+  "dyn",
+  "else",
+  "enum",
+  "extern",
+  "false",
+  "final",
+  "fn",
+  "for",
+  "if",
+  "impl",
+  "in",
+  "let",
+  "loop",
+  "macro",
+  "match",
+  "mod",
+  "move",
+  "mut",
+  "override",
+  "priv",
+  "pub",
+  "ref",
+  "return",
+  "self",
+  "static",
+  "struct",
+  "super",
+  "trait",
+  "true",
+  "try",
+  "type",
+  "typeof",
+  "unsafe",
+  "unsized",
+  "use",
+  "virtual",
+  "where",
+  "while",
+  "yield",
 ]);
 const rustIdent = (s) => (RUST_KEYWORDS.has(s) ? `r#${s}` : s);
+
+// rustfmt's default `fn_call_width`: a call whose argument list is wider than
+// this is broken with one argument per line, regardless of the 100-column
+// max_width. Generated Rust is emitted pre-wrapped so `cargo fmt --all --check`
+// passes without a post-generation format step, which would otherwise make
+// codegen depend on an installed rustfmt.
+const RUST_FN_CALL_WIDTH = 60;
 
 // ---------------------------------------------------------------------------
 // Load and validate schemas
@@ -95,7 +150,9 @@ function validateFields(fields, where, refs) {
   }
 }
 
-const schemaFiles = readdirSync(schemaDir).filter((f) => f.endsWith(".schema.json")).sort();
+const schemaFiles = readdirSync(schemaDir)
+  .filter((f) => f.endsWith(".schema.json"))
+  .sort();
 if (schemaFiles.length === 0) fail("no schema files found under contracts/schema/");
 
 const domains = [];
@@ -281,11 +338,16 @@ const sortKeys = (value) => {
 function tsType(type) {
   if (typeof type === "string") {
     switch (type) {
-      case "string": return "string";
-      case "boolean": return "boolean";
-      case "number": return "number";
-      case "integer": return "number";
-      case "json": return "JsonValue";
+      case "string":
+        return "string";
+      case "boolean":
+        return "boolean";
+      case "number":
+        return "number";
+      case "integer":
+        return "number";
+      case "json":
+        return "JsonValue";
     }
   }
   if (type.array) return `${tsType(type.array)}[]`;
@@ -325,7 +387,9 @@ function emitTsDomain(schema) {
       case "enum": {
         const valuesName = `${toScreamingSnake(decl.name)}_VALUES`;
         lines.push(`/** ${decl.doc} */`);
-        lines.push(`export const ${valuesName} = [${decl.values.map((v) => `"${v}"`).join(", ")}] as const;`);
+        lines.push(
+          `export const ${valuesName} = [${decl.values.map((v) => `"${v}"`).join(", ")}] as const;`,
+        );
         lines.push(`export type ${decl.name} = (typeof ${valuesName})[number];`);
         lines.push("");
         break;
@@ -368,11 +432,16 @@ function emitTsDomain(schema) {
 function rustType(type) {
   if (typeof type === "string") {
     switch (type) {
-      case "string": return "String";
-      case "boolean": return "bool";
-      case "number": return "f64";
-      case "integer": return "i64";
-      case "json": return "JsonValue";
+      case "string":
+        return "String";
+      case "boolean":
+        return "bool";
+      case "number":
+        return "f64";
+      case "integer":
+        return "i64";
+      case "json":
+        return "JsonValue";
     }
   }
   if (type.array) return `Vec<${rustType(type.array)}>`;
@@ -398,20 +467,34 @@ function rustFields(fields, indent, pub) {
 function rustValue(type, value) {
   if (typeof type === "string") {
     switch (type) {
-      case "string": return `${JSON.stringify(value)}.to_string()`;
-      case "boolean": return value ? "true" : "false";
-      case "integer": return `${value}`;
-      case "number": return Number.isInteger(value) ? `${value}.0` : `${value}`;
-      case "json": return `serde_json::json!(${JSON.stringify(sortKeys(value))})`;
+      case "string":
+        return `${JSON.stringify(value)}.to_string()`;
+      case "boolean":
+        return value ? "true" : "false";
+      case "integer":
+        return `${value}`;
+      case "number":
+        return Number.isInteger(value) ? `${value}.0` : `${value}`;
+      case "json":
+        return `serde_json::json!(${JSON.stringify(sortKeys(value))})`;
     }
   }
   if (type.array) {
     return `vec![${value.map((v) => rustValue(type.array, v)).join(", ")}]`;
   }
   if (type.map) {
+    // rustfmt's max_width is 100 columns. A call that would exceed it is broken
+    // with one argument per line, so the emitter produces that form directly
+    // rather than leaving generated code that `cargo fmt --check` rejects.
     const inserts = Object.keys(value)
       .sort()
-      .map((k) => `map.insert(${JSON.stringify(k)}.to_string(), ${rustValue(type.map, value[k])});`);
+      .map((k) => {
+        const key = `${JSON.stringify(k)}.to_string()`;
+        const entry = rustValue(type.map, value[k]);
+        const args = `${key}, ${entry}`;
+        if (args.length <= RUST_FN_CALL_WIDTH) return `map.insert(${args});`;
+        return `map.insert(\n            ${key},\n            ${entry},\n        );`;
+      });
     return `{\n        let mut map = BTreeMap::new();\n        ${inserts.join("\n        ")}\n        map\n    }`;
   }
   const target = registry.get(type.ref);
@@ -422,17 +505,6 @@ function rustValue(type, value) {
     return rustValue(target.decl.of, value);
   }
   throw new Error(`unsupported constant value for ref ${type.ref}`);
-}
-
-function domainUsesJson(schema) {
-  const used = new Set();
-  for (const decl of schema.declarations) {
-    if (decl.kind === "struct") for (const f of decl.fields) collectRefs(f.type, used);
-    if (decl.kind === "alias") collectRefs(decl.of, used);
-    if (decl.kind === "constant") collectRefs(decl.type, used);
-    if (decl.kind === "union") for (const v of decl.variants) for (const f of v.fields) collectRefs(f.type, used);
-  }
-  return used.has("JsonValue");
 }
 
 function domainUsesMap(schema) {
@@ -446,20 +518,29 @@ function domainUsesMap(schema) {
     if (decl.kind === "struct" && decl.fields.some((f) => walk(f.type))) return true;
     if (decl.kind === "alias" && walk(decl.of)) return true;
     if (decl.kind === "constant" && walk(decl.type)) return true;
-    if (decl.kind === "union" && decl.variants.some((v) => v.fields.some((f) => walk(f.type)))) return true;
+    if (decl.kind === "union" && decl.variants.some((v) => v.fields.some((f) => walk(f.type))))
+      return true;
   }
   return false;
 }
 
 function emitRustDomain(schema) {
   const lines = [HEADER];
-  const hasSerdeItems = schema.declarations.some((d) => ["enum", "struct", "union"].includes(d.kind));
-  if (hasSerdeItems) lines.push("use serde::{Deserialize, Serialize};");
-  if (domainUsesMap(schema)) lines.push("use std::collections::BTreeMap;");
+  // Imports are emitted in rustfmt's canonical order so `cargo fmt --check`
+  // passes on generated output. rustfmt groups by leading segment and sorts
+  // those groups `self` < `super` < `crate` < external crates, so the
+  // `super::` imports precede `serde`/`std`. A single imported name is emitted
+  // without braces, which is the form rustfmt normalizes to.
   const imports = domainExternalRefs(schema);
   for (const [domain, names] of imports) {
-    lines.push(`use super::${domain}::{${names.join(", ")}};`);
+    const items = names.length === 1 ? names[0] : `{${names.join(", ")}}`;
+    lines.push(`use super::${domain}::${items};`);
   }
+  const hasSerdeItems = schema.declarations.some((d) =>
+    ["enum", "struct", "union"].includes(d.kind),
+  );
+  if (hasSerdeItems) lines.push("use serde::{Deserialize, Serialize};");
+  if (domainUsesMap(schema)) lines.push("use std::collections::BTreeMap;");
   lines.push("");
   for (const decl of schema.declarations) {
     switch (decl.kind) {
@@ -508,7 +589,9 @@ function emitRustDomain(schema) {
         break;
       case "constant": {
         lines.push(`/// ${decl.doc}`);
-        lines.push(`pub fn ${toSnake(decl.name.toLowerCase()) || decl.name.toLowerCase()}() -> ${rustType(decl.type)} {`);
+        lines.push(
+          `pub fn ${toSnake(decl.name.toLowerCase()) || decl.name.toLowerCase()}() -> ${rustType(decl.type)} {`,
+        );
         lines.push(`    ${rustValue(decl.type, decl.value)}`);
         lines.push("}");
         lines.push("");
@@ -523,12 +606,10 @@ function emitRustDomain(schema) {
 // Write outputs (only when changed)
 // ---------------------------------------------------------------------------
 
-let wrote = 0;
 function writeIfChanged(path, content) {
   mkdirSync(dirname(path), { recursive: true });
   if (!existsSync(path) || readFileSync(path, "utf8") !== content) {
     writeFileSync(path, content);
-    wrote += 1;
   }
 }
 

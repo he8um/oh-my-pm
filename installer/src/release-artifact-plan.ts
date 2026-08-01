@@ -134,7 +134,10 @@ export function createGuardedReleaseArtifactPlan(
   const reasons = collectGuardedReleaseArtifactPlanReasons(input, items);
   const summary = summarizeGuardedReleaseArtifactPlan(input, items);
   return {
-    ok: reasons.length === 0 && items.every((item) => item.planned) && summary.creationAllowed === false,
+    ok:
+      reasons.length === 0 &&
+      items.every((item) => item.planned) &&
+      summary.creationAllowed === false,
     version: input.version,
     items,
     reasons,
@@ -161,9 +164,7 @@ export function createGuardedReleaseArtifactPlanDryRun(
 }
 
 /** Render the plan as deterministic markdown with one trailing newline. */
-export function formatGuardedReleaseArtifactPlanMarkdown(
-  plan: GuardedReleaseArtifactPlan,
-): string {
+export function formatGuardedReleaseArtifactPlanMarkdown(plan: GuardedReleaseArtifactPlan): string {
   const lines = [
     "# OH MY PM Guarded Release Artifact Plan",
     "",

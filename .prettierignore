@@ -1,5 +1,48 @@
+# Dependencies and build output
 node_modules/
 dist/
+build/
+out/
 target/
+coverage/
+.nyc_output/
+
+# Generated code. Formatting is the generator's responsibility:
+# tools/gen-contracts.mjs emits rustfmt-canonical Rust and stable TypeScript,
+# and reformatting its output here would be reverted by the next codegen run.
 contracts/generated/
 kernel/binding/wasm/
+kernel/binding/generated-node/
+
+# Release bundles, archives, and checksum manifests. Byte-for-byte
+# reproducibility is asserted by release:archives:repro, so these must never be
+# rewritten by a formatter.
+.release/
+release-artifacts/
+*.tar.gz
+*.tgz
+*.zip
+oh-my-pm-v*-SHA256SUMS.txt
+checksums.txt
+validation-report.md
+
+# Lockfile: owned and formatted by pnpm. Reformatting it would be undone by the
+# next install and would create noise in every dependency change.
+pnpm-lock.yaml
+
+# Historical records, preserved as written.
+#
+# Published release notes, publishing runbooks, post-publication validation
+# records, and the closed per-version phase documents describe the repository at
+# a fixed point in time. They are evidence, not active documentation, so their
+# exact bytes are kept rather than restyled. Active documentation -- README,
+# ROADMAP, CHANGELOG, docs/architecture.md, docs/roadmap.md, the current
+# release-line README, and the guides under docs/providers -- is formatted
+# normally and is deliberately not listed here.
+docs/releases/
+docs/v0.3/
+docs/v0.4/
+docs/architecture/v0.2-stabilization-audit.md
+
+# Local-only development context (also gitignored)
+_dev/

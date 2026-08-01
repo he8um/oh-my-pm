@@ -14,10 +14,7 @@ const entry = (path: string, content = "content"): FilesystemEntry => ({
 
 describe("createMemoryFilesystem", () => {
   it("keeps the first entry when a path appears twice", () => {
-    const adapter = createMemoryFilesystem([
-      entry("/root/a", "first"),
-      entry("/root/a", "second"),
-    ]);
+    const adapter = createMemoryFilesystem([entry("/root/a", "first"), entry("/root/a", "second")]);
     expect(adapter.read("/root/a")?.content).toBe("first");
   });
 

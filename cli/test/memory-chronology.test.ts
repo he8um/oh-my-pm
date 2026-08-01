@@ -81,7 +81,12 @@ describe("memory history + changes use real capture order", () => {
   afterEach(() => rmSync(ws.root, { recursive: true, force: true }));
 
   it("history presents newest capture first with sequence and capturedAt", async () => {
-    const a = await captureApply(ws.project, ws.data, "# P\n## Next\n- A", "2026-01-01T00:00:00.000Z");
+    const a = await captureApply(
+      ws.project,
+      ws.data,
+      "# P\n## Next\n- A",
+      "2026-01-01T00:00:00.000Z",
+    );
     const b = await captureApply(
       ws.project,
       ws.data,
@@ -145,13 +150,7 @@ function plantV1Store(dataDir: string, projectId: string): void {
     "v1-b": "2026-01-09T00:00:00.000Z", // latest, in the middle of the sorted inventory
     "v1-c": "2026-01-01T00:00:00.000Z",
   };
-  const projectDir = join(
-    dataDir,
-    "project-brain",
-    "v1",
-    "projects",
-    projectKey,
-  );
+  const projectDir = join(dataDir, "project-brain", "v1", "projects", projectKey);
   mkdirSync(join(projectDir, "snapshots"), { recursive: true });
   for (const [id, capturedAt] of Object.entries(snapshots)) {
     const env = buildEnvelope("snapshot", projectId, id, {
@@ -240,7 +239,16 @@ describe("memory capture --migrate-store flow", () => {
 
   it("capture --apply --migrate-store migrates once and captures once", async () => {
     const result = await runLocalCliProcess(
-      ["memory", "capture", ws.project, "--data-dir", ws.data, "--apply", "--migrate-store", "--json"],
+      [
+        "memory",
+        "capture",
+        ws.project,
+        "--data-dir",
+        ws.data,
+        "--apply",
+        "--migrate-store",
+        "--json",
+      ],
       { now: NOW, processId: 4242 },
     );
     expect(result.exitCode).toBe(0);
@@ -270,12 +278,30 @@ describe("memory capture --migrate-store flow", () => {
 
   it("a second --apply --migrate-store does not re-migrate an already-v2 store", async () => {
     await runLocalCliProcess(
-      ["memory", "capture", ws.project, "--data-dir", ws.data, "--apply", "--migrate-store", "--json"],
+      [
+        "memory",
+        "capture",
+        ws.project,
+        "--data-dir",
+        ws.data,
+        "--apply",
+        "--migrate-store",
+        "--json",
+      ],
       { now: NOW, processId: 4242 },
     );
     // The store is v2 now; re-running with --migrate-store must not migrate again.
     const second = await runLocalCliProcess(
-      ["memory", "capture", ws.project, "--data-dir", ws.data, "--apply", "--migrate-store", "--json"],
+      [
+        "memory",
+        "capture",
+        ws.project,
+        "--data-dir",
+        ws.data,
+        "--apply",
+        "--migrate-store",
+        "--json",
+      ],
       { now: "2026-03-04T00:00:00.000Z", processId: 4242 },
     );
     expect(second.exitCode).toBe(0);
@@ -290,7 +316,10 @@ describe("--migrate-store parser scope", () => {
     expect(ok.ok).toBe(true);
     if (ok.ok) expect((ok.command as { migrateStore: boolean }).migrateStore).toBe(true);
     for (const sub of ["changes", "status", "history", "export", "delete"]) {
-      const args = sub === "export" ? [sub, ".", "--destination", "/x", "--migrate-store"] : [sub, ".", "--migrate-store"];
+      const args =
+        sub === "export"
+          ? [sub, ".", "--destination", "/x", "--migrate-store"]
+          : [sub, ".", "--migrate-store"];
       const res = parseMemoryCommand(args);
       expect(res.ok).toBe(false);
       if (!res.ok) expect(res.message).toContain("--migrate-store is only valid for capture");

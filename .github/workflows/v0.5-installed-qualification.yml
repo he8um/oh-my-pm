@@ -26,10 +26,20 @@ on:
 permissions:
   contents: read
 
+# Same rule as ci.yml: a superseded pull_request run may be cancelled, a push
+# run on main never is. This workflow creates no tag and no release, but a main
+# run is still the installed-artifact evidence a release qualifies against, so
+# it must be allowed to finish.
+concurrency:
+  group: installed-qualification-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   prepare-artifact:
     name: Prepare candidate artifact
     runs-on: ubuntu-latest
+    # Observed max 3.0 min; this job does the full Rust + wasm build.
+    timeout-minutes: 25
     permissions:
       contents: read
     steps:
@@ -98,6 +108,10 @@ jobs:
     name: Installed qualification (${{ matrix.os }})
     needs: prepare-artifact
     runs-on: ${{ matrix.os }}
+    # Observed max 1.8 min (Windows), under 1.1 min elsewhere. These jobs only
+    # install and exercise an already-built artifact, so 20 min is generous
+    # while still bounding a hung installed-CLI invocation.
+    timeout-minutes: 20
     permissions:
       contents: read
     strategy:

@@ -428,7 +428,9 @@ function formatPlanBrief(output: Record<string, unknown>): string {
 }
 
 function planMarkdownList(heading: string, titles: readonly string[]): string {
-  return ["# OH MY PM Plan", "", `## ${heading}`, "", ...titles.map((t) => `- ${t}`), ""].join("\n");
+  return ["# OH MY PM Plan", "", `## ${heading}`, "", ...titles.map((t) => `- ${t}`), ""].join(
+    "\n",
+  );
 }
 
 function formatPlanMarkdown(output: Record<string, unknown>): string {

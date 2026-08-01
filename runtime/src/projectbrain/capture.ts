@@ -18,10 +18,7 @@ import type {
   SourceDescriptor,
   StateItemKind,
 } from "@oh-my-pm/contracts";
-import type {
-  ProjectStateDerivationResult,
-  StateItemDraft,
-} from "@oh-my-pm/skills";
+import type { ProjectStateDerivationResult, StateItemDraft } from "@oh-my-pm/skills";
 import { providerItemsToTextItems } from "../plan-utils.js";
 import { assertNoForbiddenEvidenceFields } from "./privacy.js";
 import {
@@ -31,7 +28,7 @@ import {
   isProjectBrainRuntimeError,
   kernelFailed,
   persistenceCommitFailed,
-  ProjectBrainRuntimeError,
+  type ProjectBrainRuntimeError,
 } from "./errors.js";
 import { minimizeEvidence } from "./evidence.js";
 import type { MinimizedEvidence } from "./evidence.js";
@@ -108,8 +105,10 @@ function toCanonicalItem(
   const withStatus = draft.status !== undefined ? { ...item, status: draft.status } : item;
   const withSeverity =
     draft.severity !== undefined ? { ...withStatus, severity: draft.severity } : withStatus;
-  const withOwner = draft.owner !== undefined ? { ...withSeverity, owner: draft.owner } : withSeverity;
-  const withDue = draft.dueDate !== undefined ? { ...withOwner, dueDate: draft.dueDate } : withOwner;
+  const withOwner =
+    draft.owner !== undefined ? { ...withSeverity, owner: draft.owner } : withSeverity;
+  const withDue =
+    draft.dueDate !== undefined ? { ...withOwner, dueDate: draft.dueDate } : withOwner;
   const withPriority =
     draft.priority !== undefined ? { ...withDue, priority: draft.priority } : withDue;
   return draft.metadata !== undefined && Object.keys(draft.metadata).length > 0
@@ -202,11 +201,7 @@ export async function captureProject(
     // yields the same id. Reuse the already-committed record for such ids so the
     // record payload stays byte-identical and the commit is idempotent; a content
     // change yields a new id and a new record. Reads are lock-free.
-    const minimized = await reconcileEvidenceWithStore(
-      deps.memory,
-      identity.id,
-      freshlyMinimized,
-    );
+    const minimized = await reconcileEvidenceWithStore(deps.memory, identity.id, freshlyMinimized);
     trace.push({ step: "capture.minimize", status: "ok" });
 
     // Map drafts -> canonical items with final evidence ids.

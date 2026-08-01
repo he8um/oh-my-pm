@@ -11,10 +11,16 @@ function asProviderRequest(value: JsonValue): ProviderRequest | null {
     return null;
   }
   const { providerId, action, query, limit } = value;
-  if (typeof providerId !== "string" || !(PROVIDER_ID_VALUES as readonly string[]).includes(providerId)) {
+  if (
+    typeof providerId !== "string" ||
+    !(PROVIDER_ID_VALUES as readonly string[]).includes(providerId)
+  ) {
     return null;
   }
-  if (typeof action !== "string" || !(PROVIDER_ACTION_VALUES as readonly string[]).includes(action)) {
+  if (
+    typeof action !== "string" ||
+    !(PROVIDER_ACTION_VALUES as readonly string[]).includes(action)
+  ) {
     return null;
   }
   if (typeof query !== "string") {

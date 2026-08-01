@@ -72,7 +72,10 @@ describe("probeUtility classification", () => {
 
   it("classifies every transient code without reporting it missing", () => {
     for (const code of ["EAGAIN", "EMFILE", "ENFILE", "ENOMEM"]) {
-      const probe = probeUtility("gzip", { spawn: fakeSpawn({ gzip: [spawnError(code)] }), maxAttempts: 2 });
+      const probe = probeUtility("gzip", {
+        spawn: fakeSpawn({ gzip: [spawnError(code)] }),
+        maxAttempts: 2,
+      });
       expect(probe.kind).toBe("failed");
       expect(probe.code).toBe(code);
     }
@@ -115,7 +118,11 @@ describe("probeGnuTar discovery", () => {
 
 describe("archive plan prerequisite reasons", () => {
   const planWith = (spawnUtility) =>
-    resolveReleaseArchivePlan({ bundle: "/nonexistent-bundle", output: "/nonexistent-output", spawnUtility });
+    resolveReleaseArchivePlan({
+      bundle: "/nonexistent-bundle",
+      output: "/nonexistent-output",
+      spawnUtility,
+    });
 
   it("uses the missing reason for a genuinely absent utility", () => {
     const plan = planWith(
@@ -161,7 +168,14 @@ describe("archive plan prerequisite reasons", () => {
   });
 
   it("keeps reasons free of paths, environment values, and stack traces", () => {
-    const plan = planWith(fakeSpawn({ tar: [spawnError("EAGAIN")], gzip: [exited(0)], zip: [exited(0)], unzip: [exited(0)] }));
+    const plan = planWith(
+      fakeSpawn({
+        tar: [spawnError("EAGAIN")],
+        gzip: [exited(0)],
+        zip: [exited(0)],
+        unzip: [exited(0)],
+      }),
+    );
     for (const reason of plan.reasons) {
       expect(reason).not.toContain("/");
       expect(reason).not.toContain("\\");

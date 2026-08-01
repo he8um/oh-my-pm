@@ -163,10 +163,7 @@ const ACTIVE_DOCS = [
  * was corrected. They are exempt from the unbuilt-claim scan (they are about
  * those claims) but remain subject to every other check.
  */
-const QUOTES_STALE_CLAIMS = new Set([
-  "docs/v0.5/v0.5.1-scope.md",
-  "docs/releases/v0.5.1.md",
-]);
+const QUOTES_STALE_CLAIMS = new Set(["docs/v0.5/v0.5.1-scope.md", "docs/releases/v0.5.1.md"]);
 
 /** Active documentation that describes the MCP tool surface. */
 const MCP_SURFACE_DOCS = [
@@ -277,9 +274,7 @@ const MCP_SURFACE_DOCS = [
     }
     const numeric = text.match(/\b(\d+)[- ](?:read-only )?tools?\b/i);
     if (numeric !== null && Number(numeric[1]) !== MCP_TOOLS.length) {
-      err(
-        `${rel}: claims "${numeric[0]}", but ${MCP_TOOLS.length} tools are registered`,
-      );
+      err(`${rel}: claims "${numeric[0]}", but ${MCP_TOOLS.length} tools are registered`);
     }
   }
 
@@ -349,8 +344,14 @@ const MCP_SURFACE_DOCS = [
   // repository disproved several releases ago.
   const UNBUILT_CLAIMS = [
     { pattern: /\bis only a scaffold\b/i, why: "the system is implemented" },
-    { pattern: /\brepository scaffold and shared contracts foundation\b/i, why: "shipped in v0.1.0" },
-    { pattern: /\bThe (?:planned|intended) architecture\b/i, why: "the architecture is implemented" },
+    {
+      pattern: /\brepository scaffold and shared contracts foundation\b/i,
+      why: "shipped in v0.1.0",
+    },
+    {
+      pattern: /\bThe (?:planned|intended) architecture\b/i,
+      why: "the architecture is implemented",
+    },
     { pattern: /\bNothing invokes it yet\b/i, why: "it backs shipped CLI and MCP surfaces" },
     { pattern: /\bno CLI or MCP surface\s+invokes\b/i, why: "both surfaces invoke it" },
     { pattern: /\bdoes not write files, read files\b/i, why: "the installer performs real writes" },

@@ -46,11 +46,10 @@ const readJson = (rel) => JSON.parse(readFileSync(join(repoRoot, rel), "utf8"));
 
 describe("the repository validator agrees", () => {
   it("passes pnpm validate:commands", () => {
-    const result = spawnSync(
-      process.execPath,
-      [join(toolsDir, "validate-command-surface.mjs")],
-      { cwd: repoRoot, encoding: "utf8" },
-    );
+    const result = spawnSync(process.execPath, [join(toolsDir, "validate-command-surface.mjs")], {
+      cwd: repoRoot,
+      encoding: "utf8",
+    });
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("validate-command-surface: OK");
@@ -151,9 +150,8 @@ describe("the installed manifest separates canonical from legacy", () => {
 
 describe("generated MCP configuration matches the manifest", () => {
   it("invokes the canonical MCP command", async () => {
-    const { MCP_CONFIG_COMMAND_NAME, MCP_CONFIG_LEGACY_COMMAND_NAMES } = await import(
-      "../../cli/dist/index.js"
-    );
+    const { MCP_CONFIG_COMMAND_NAME, MCP_CONFIG_LEGACY_COMMAND_NAMES } =
+      await import("../../cli/dist/index.js");
     expect(MCP_CONFIG_COMMAND_NAME).toBe(CANONICAL_MCP);
     expect([...MCP_CONFIG_LEGACY_COMMAND_NAMES]).toEqual(LEGACY_MCP);
   });

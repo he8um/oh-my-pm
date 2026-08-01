@@ -196,7 +196,13 @@ describe("deriveProjectBrainState — registry isolation", () => {
       .map((d) => d.id)
       .sort();
     expect(ids).toEqual(
-      ["createHandoff", "deriveNextTasks", "extractRisks", "reviewChanges", "summarizeStatus"].sort(),
+      [
+        "createHandoff",
+        "deriveNextTasks",
+        "extractRisks",
+        "reviewChanges",
+        "summarizeStatus",
+      ].sort(),
     );
   });
 });

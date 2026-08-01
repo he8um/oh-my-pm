@@ -78,9 +78,7 @@ export type McpProjectTimelineFailure = {
   readonly message: string;
 };
 
-export type McpProjectTimelineExecution =
-  | McpProjectTimelineSuccess
-  | McpProjectTimelineFailure;
+export type McpProjectTimelineExecution = McpProjectTimelineSuccess | McpProjectTimelineFailure;
 
 /** The read-only executor the server calls to run one request. */
 export type McpProjectTimelineExecutor = (

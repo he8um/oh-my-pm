@@ -21,7 +21,11 @@
         { "name": "id", "type": "string", "doc": "Node identifier." },
         { "name": "kind", "type": { "ref": "TaskNodeKind" }, "doc": "Node kind." },
         { "name": "title", "type": "string", "doc": "Human-readable title." },
-        { "name": "dependsOn", "type": { "array": "string" }, "doc": "Identifiers of prerequisite nodes." },
+        {
+          "name": "dependsOn",
+          "type": { "array": "string" },
+          "doc": "Identifiers of prerequisite nodes."
+        },
         { "name": "payload", "type": "json", "doc": "Kind-specific payload." }
       ]
     },
@@ -39,7 +43,11 @@
       "doc": "Request for context the planner still needs.",
       "fields": [
         { "name": "reason", "type": "string", "doc": "Why the context is needed." },
-        { "name": "requestedContext", "type": { "array": "string" }, "doc": "Requested context keys." }
+        {
+          "name": "requestedContext",
+          "type": { "array": "string" },
+          "doc": "Requested context keys."
+        }
       ]
     },
     {
@@ -69,7 +77,11 @@
           "name": "PlannerResultMissingContext",
           "tagValue": "missingContext",
           "fields": [
-            { "name": "missingContext", "type": { "ref": "MissingContextRequest" }, "doc": "Missing context request." }
+            {
+              "name": "missingContext",
+              "type": { "ref": "MissingContextRequest" },
+              "doc": "Missing context request."
+            }
           ]
         }
       ]

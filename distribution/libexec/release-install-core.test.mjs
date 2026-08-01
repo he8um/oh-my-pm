@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -42,10 +50,9 @@ function writeFixtureBundle(root, version) {
   const bundleDir = join(root, bundleName);
   mkdirSync(join(bundleDir, "bin"), { recursive: true });
   mkdirSync(join(bundleDir, "libexec"), { recursive: true });
-  mkdirSync(
-    join(bundleDir, "node_modules", "@oh-my-pm", "kernel", "generated-node"),
-    { recursive: true },
-  );
+  mkdirSync(join(bundleDir, "node_modules", "@oh-my-pm", "kernel", "generated-node"), {
+    recursive: true,
+  });
   const files = {
     "bin/oh-my-pm.mjs": "// cli\n",
     "bin/oh-my-pm-mcp.mjs": "// mcp\n",
@@ -121,9 +128,15 @@ describe("parseReleaseInstallArgs", () => {
     expect(parseReleaseInstallArgs(["--prefix", "--apply"])).toMatchObject({ ok: false });
   });
   it("rejects duplicate options", () => {
-    expect(parseReleaseInstallArgs(["--prefix", "a", "--prefix", "b"])).toMatchObject({ ok: false });
-    expect(parseReleaseInstallArgs(["--prefix", "a", "--apply", "--apply"])).toMatchObject({ ok: false });
-    expect(parseReleaseInstallArgs(["--prefix", "a", "--json", "--json"])).toMatchObject({ ok: false });
+    expect(parseReleaseInstallArgs(["--prefix", "a", "--prefix", "b"])).toMatchObject({
+      ok: false,
+    });
+    expect(parseReleaseInstallArgs(["--prefix", "a", "--apply", "--apply"])).toMatchObject({
+      ok: false,
+    });
+    expect(parseReleaseInstallArgs(["--prefix", "a", "--json", "--json"])).toMatchObject({
+      ok: false,
+    });
   });
   it("rejects unknown options and positional arguments", () => {
     expect(parseReleaseInstallArgs(["--prefix", "a", "--nope"])).toMatchObject({ ok: false });
@@ -144,7 +157,9 @@ describe("parseReleaseInstallArgs", () => {
     });
   });
   it("rejects --bundle unless allowed", () => {
-    expect(parseReleaseInstallArgs(["--prefix", "a", "--bundle", "b"])).toMatchObject({ ok: false });
+    expect(parseReleaseInstallArgs(["--prefix", "a", "--bundle", "b"])).toMatchObject({
+      ok: false,
+    });
     expect(
       parseReleaseInstallArgs(["--prefix", "a", "--bundle", "b"], { allowBundle: true }),
     ).toMatchObject({ ok: true, bundle: "b" });
@@ -161,7 +176,9 @@ describe("createPosixShim", () => {
     const shim = createPosixShim(`../lib/oh-my-pm/versions/${CANONICAL_VERSION}/bin/oh-my-pm.mjs`);
     expect(shim.startsWith("#!/bin/sh")).toBe(true);
     expect(shim).toContain('dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)');
-    expect(shim).toContain(`exec node "$dir/../lib/oh-my-pm/versions/${CANONICAL_VERSION}/bin/oh-my-pm.mjs" "$@"`);
+    expect(shim).toContain(
+      `exec node "$dir/../lib/oh-my-pm/versions/${CANONICAL_VERSION}/bin/oh-my-pm.mjs" "$@"`,
+    );
     expect(shim).not.toMatch(/\/Users\/|\/home\/|[A-Z]:\\/);
     expect(shim.endsWith("\n")).toBe(true);
   });
@@ -172,9 +189,13 @@ describe("createPosixShim", () => {
 
 describe("createWindowsShim", () => {
   it("is a .cmd launcher with CRLF endings forwarding %*", () => {
-    const shim = createWindowsShim(`../lib/oh-my-pm/versions/${CANONICAL_VERSION}/bin/oh-my-pm.mjs`);
+    const shim = createWindowsShim(
+      `../lib/oh-my-pm/versions/${CANONICAL_VERSION}/bin/oh-my-pm.mjs`,
+    );
     expect(shim.startsWith("@echo off\r\n")).toBe(true);
-    expect(shim).toContain(`node "%~dp0..\\lib\\oh-my-pm\\versions\\${CANONICAL_VERSION}\\bin\\oh-my-pm.mjs" %*`);
+    expect(shim).toContain(
+      `node "%~dp0..\\lib\\oh-my-pm\\versions\\${CANONICAL_VERSION}\\bin\\oh-my-pm.mjs" %*`,
+    );
     expect(shim).toContain("\r\n");
     expect(shim).not.toMatch(/\/Users\/|\/home\/|[A-Z]:\\[a-z]/i);
   });
@@ -182,7 +203,10 @@ describe("createWindowsShim", () => {
 
 describe("createInstalledManifest", () => {
   it("is deterministic with no timestamps or environment fields", () => {
-    const manifest = createInstalledManifest({ version: CANONICAL_VERSION, bundleName: `oh-my-pm-v${CANONICAL_VERSION}` });
+    const manifest = createInstalledManifest({
+      version: CANONICAL_VERSION,
+      bundleName: `oh-my-pm-v${CANONICAL_VERSION}`,
+    });
     expect(manifest).toEqual({
       schemaVersion: RELEASE_INSTALL_MANIFEST_SCHEMA_VERSION,
       product: "oh-my-pm",
@@ -253,7 +277,9 @@ describe("validateReleaseBundleForInstall (shape checks)", () => {
     const release = JSON.parse(readFileSync(join(bundle, "RELEASE.json"), "utf8"));
     release.bundle = "wrong";
     writeFileSync(join(bundle, "RELEASE.json"), `${JSON.stringify(release, null, 2)}\n`);
-    expect(validateReleaseBundleForInstall(bundle).reasons).toContain("release_bundle_name_mismatch");
+    expect(validateReleaseBundleForInstall(bundle).reasons).toContain(
+      "release_bundle_name_mismatch",
+    );
   });
   it("rejects readOnly false and non-stdio transport", () => {
     const root = tempDir("omp-val-ro-");
@@ -272,7 +298,9 @@ describe("validateReleaseBundleForInstall (shape checks)", () => {
     const release = JSON.parse(readFileSync(join(bundle, "RELEASE.json"), "utf8"));
     delete release.installer;
     writeFileSync(join(bundle, "RELEASE.json"), `${JSON.stringify(release, null, 2)}\n`);
-    expect(validateReleaseBundleForInstall(bundle).reasons).toContain("release_installer_metadata_missing");
+    expect(validateReleaseBundleForInstall(bundle).reasons).toContain(
+      "release_installer_metadata_missing",
+    );
   });
   it("rejects a missing installer entrypoint file", () => {
     const root = tempDir("omp-val-entry-");
@@ -301,7 +329,16 @@ describe("validateReleaseBundleForInstall (shape checks)", () => {
   it("rejects a missing WASM binary", () => {
     const root = tempDir("omp-val-wasm-");
     const bundle = writeFixtureBundle(root, CANONICAL_VERSION);
-    rmSync(join(bundle, "node_modules", "@oh-my-pm", "kernel", "generated-node", "oh_my_pm_kernel_bg.wasm"));
+    rmSync(
+      join(
+        bundle,
+        "node_modules",
+        "@oh-my-pm",
+        "kernel",
+        "generated-node",
+        "oh_my_pm_kernel_bg.wasm",
+      ),
+    );
     expect(validateReleaseBundleForInstall(bundle).reasons).toContain(
       "required_file_missing:node_modules/@oh-my-pm/kernel/generated-node/oh_my_pm_kernel_bg.wasm",
     );
@@ -357,7 +394,12 @@ describe("resolveReleaseInstallPlan (source validation gates)", () => {
     const bundle = writeFixtureBundle(root, CANONICAL_VERSION);
     rmSync(join(bundle, "libexec", "release-install-core.mjs"));
     const prefix = tempDir("omp-plan-prefix-");
-    const plan = resolveReleaseInstallPlan({ bundleRoot: bundle, prefix, apply: false, force: false });
+    const plan = resolveReleaseInstallPlan({
+      bundleRoot: bundle,
+      prefix,
+      apply: false,
+      force: false,
+    });
     expect(plan.ok).toBe(false);
     expect(plan.action).toBe("blocked");
     expect(plan.reasons.some((r) => r.startsWith("source:"))).toBe(true);
@@ -369,7 +411,16 @@ describe("resolveReleaseInstallPlan (source validation gates)", () => {
 
 describe("formatReleaseInstallPlan", () => {
   it("emits exactly one trailing newline in JSON mode", () => {
-    const plan = { ok: true, version: "1.0.0", action: "create", prefix: "/p", bundleRoot: "/b", versionDirectory: "/p/v", targets: { shims: [] }, reasons: [] };
+    const plan = {
+      ok: true,
+      version: "1.0.0",
+      action: "create",
+      prefix: "/p",
+      bundleRoot: "/b",
+      versionDirectory: "/p/v",
+      targets: { shims: [] },
+      reasons: [],
+    };
     const out = formatReleaseInstallPlan(plan, "json");
     expect(out.endsWith("}\n")).toBe(true);
     expect(out.endsWith("}\n\n")).toBe(false);
@@ -394,7 +445,15 @@ describe("formatReleaseInstallPlan", () => {
     expect(out.endsWith("\n\n")).toBe(false);
   });
   it("renders an already-installed result", () => {
-    const plan = { ok: true, version: "1.0.0", action: "already-installed", prefix: "/p", bundleRoot: "/b", targets: { shims: [] }, reasons: [] };
+    const plan = {
+      ok: true,
+      version: "1.0.0",
+      action: "already-installed",
+      prefix: "/p",
+      bundleRoot: "/b",
+      targets: { shims: [] },
+      reasons: [],
+    };
     const out = formatReleaseInstallPlan(plan, "brief");
     expect(out).toContain("OH MY PM release installation: already installed");
     expect(out).toContain("apply required: no");

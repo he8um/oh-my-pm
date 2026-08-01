@@ -13,19 +13,19 @@ tooling.
 
 ## System facts
 
-| Fact | Value |
-| --- | --- |
-| Source version | see [`version.json`](../version.json) — the single source of truth |
-| Runtime requirement | Node.js 20+ (installed archives need nothing else) |
-| Canonical commands | `ohmypm`, `ohmypm-mcp`, `ohmypm-install` |
-| Deprecated aliases | `oh-my-pm`, `oh-my-pm-mcp`, `oh-my-pm-install` — no removal scheduled |
-| MCP tools | twelve read-only, zero write |
-| MCP transport | stdio only |
-| Memory subcommands | seven (`capture`, `changes`, `status`, `history`, `export`, `delete`, `timeline`) |
-| Project Brain schema | `1` |
-| Project Memory store format | `2` |
-| Packages | private pnpm workspace packages, never published to npm |
-| Network surface | the explicitly invoked read-only GitHub provider only |
+| Fact                        | Value                                                                             |
+| --------------------------- | --------------------------------------------------------------------------------- |
+| Source version              | see [`version.json`](../version.json) — the single source of truth                |
+| Runtime requirement         | Node.js 20+ (installed archives need nothing else)                                |
+| Canonical commands          | `ohmypm`, `ohmypm-mcp`, `ohmypm-install`                                          |
+| Deprecated aliases          | `oh-my-pm`, `oh-my-pm-mcp`, `oh-my-pm-install` — no removal scheduled             |
+| MCP tools                   | twelve read-only, zero write                                                      |
+| MCP transport               | stdio only                                                                        |
+| Memory subcommands          | seven (`capture`, `changes`, `status`, `history`, `export`, `delete`, `timeline`) |
+| Project Brain schema        | `1`                                                                               |
+| Project Memory store format | `2`                                                                               |
+| Packages                    | private pnpm workspace packages, never published to npm                           |
+| Network surface             | the explicitly invoked read-only GitHub provider only                             |
 
 Every workspace package is versioned from `version.json` and marked
 `"private": true`. There is no npm package and no registry publication step in
@@ -107,9 +107,9 @@ core surface Node-free and the tests offline.
 
 #### Two export surfaces
 
-| Surface | Contents |
-| --- | --- |
-| `@oh-my-pm/application` | Use-case contracts, dependency-injected orchestration, structured errors, shared result types, and the response projection. **Node-free** — it imports no `node:` builtin. |
+| Surface                      | Contents                                                                                                                                                                                                   |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@oh-my-pm/application`      | Use-case contracts, dependency-injected orchestration, structured errors, shared result types, and the response projection. **Node-free** — it imports no `node:` builtin.                                 |
 | `@oh-my-pm/application/node` | Read-only filesystem adapters, project config and document loading, provider config resolution, the GitHub token boundary, local Project Memory store construction, and the composed Node dependency sets. |
 
 Node filesystem objects never leak into domain-level results. Adapters return
@@ -193,14 +193,14 @@ minimized, immutable snapshot and evidence records — already finalized by the
 Kernel — in a local application-data location that is never inside the analyzed
 project.
 
-| Property | Guarantee |
-| --- | --- |
-| Dependencies | none; Node 20 built-ins only |
-| Writes | atomic temp-then-rename; the manifest rename is the commit point |
-| Integrity | domain-separated SHA-256 over canonicalized bodies for the manifest, each record, and export inventories |
-| Locking | single-writer exclusive lock; reads never lock; a lock is stale only when it is both old and owned by a dead process |
-| Minimization | payloads whose keys normalize to a secret- or raw-content-bearing name are refused before a byte is written |
-| Reads | no auto-repair, no orphan adoption; corruption produces a controlled error with a sanitized hint |
+| Property     | Guarantee                                                                                                            |
+| ------------ | -------------------------------------------------------------------------------------------------------------------- |
+| Dependencies | none; Node 20 built-ins only                                                                                         |
+| Writes       | atomic temp-then-rename; the manifest rename is the commit point                                                     |
+| Integrity    | domain-separated SHA-256 over canonicalized bodies for the manifest, each record, and export inventories             |
+| Locking      | single-writer exclusive lock; reads never lock; a lock is stale only when it is both old and owned by a dead process |
+| Minimization | payloads whose keys normalize to a secret- or raw-content-bearing name are refused before a byte is written          |
+| Reads        | no auto-repair, no orphan adoption; corruption produces a controlled error with a sanitized hint                     |
 
 Store format `2`, Project Brain schema `1`. Neither changed in v0.5.1 and no
 migration is required. `node-adapter.ts` is the only module that performs real
@@ -293,14 +293,14 @@ filesystem writes, no network.
 
 The release lifecycle is a chain of deterministic, locally verifiable steps:
 
-| Step | Tool | Produces |
-| --- | --- | --- |
-| Bundle | `pnpm release:bundle` | a versioned portable bundle with an internal `SHA256SUMS` |
-| Verify bundle | `pnpm release:check` | profile, entrypoint, and content qualification |
-| Archive | `pnpm release:archives` | byte-reproducible `.tar.gz` and `.zip` plus a `SHA256SUMS.txt` |
-| Verify archives | `pnpm release:archives:check`, `:repro` | archive integrity and reproducibility |
-| Install | `pnpm release:install` | a transactional prefix install from the local bundle |
-| Verify install | `pnpm release:install:check` | installed-state qualification, platform-aware |
+| Step            | Tool                                    | Produces                                                       |
+| --------------- | --------------------------------------- | -------------------------------------------------------------- |
+| Bundle          | `pnpm release:bundle`                   | a versioned portable bundle with an internal `SHA256SUMS`      |
+| Verify bundle   | `pnpm release:check`                    | profile, entrypoint, and content qualification                 |
+| Archive         | `pnpm release:archives`                 | byte-reproducible `.tar.gz` and `.zip` plus a `SHA256SUMS.txt` |
+| Verify archives | `pnpm release:archives:check`, `:repro` | archive integrity and reproducibility                          |
+| Install         | `pnpm release:install`                  | a transactional prefix install from the local bundle           |
+| Verify install  | `pnpm release:install:check`            | installed-state qualification, platform-aware                  |
 
 The current v0.5 bundle profile is `ohmypm-cli-namespace`, which always packages
 `@oh-my-pm/project-memory` — so an installed server always registers all twelve
@@ -317,16 +317,16 @@ distribution package must be `private` with no `publishConfig`.
 Validation is part of the architecture, not a CI afterthought. `pnpm validate`
 runs the full chain:
 
-| Check | Enforces |
-| --- | --- |
-| `validate:public` | no private or internal language in tracked public files |
-| `validate:structure` | the expected workspace layout |
-| `validate:boundaries` | every layer boundary described in this document |
-| `validate:contracts` | generated TypeScript and Rust match the JSON Schema declarations |
-| `version:check` | one version across `version.json` and every manifest |
-| `validate:commands` | the command surface matches `command-surface.json` |
-| `validate:references` | documented commands exist |
-| `validate:docs` | active documentation states the real current facts |
+| Check                 | Enforces                                                         |
+| --------------------- | ---------------------------------------------------------------- |
+| `validate:public`     | no private or internal language in tracked public files          |
+| `validate:structure`  | the expected workspace layout                                    |
+| `validate:boundaries` | every layer boundary described in this document                  |
+| `validate:contracts`  | generated TypeScript and Rust match the JSON Schema declarations |
+| `version:check`       | one version across `version.json` and every manifest             |
+| `validate:commands`   | the command surface matches `command-surface.json`               |
+| `validate:references` | documented commands exist                                        |
+| `validate:docs`       | active documentation states the real current facts               |
 
 `tools/validate-doc-truth.mjs` derives its expectations from canonical sources —
 `version.json`, `command-surface.json`, the MCP tool registration source, the
@@ -346,16 +346,16 @@ release-install checks launch the installed commands on each supported platform.
 
 Each layer owns exactly one kind of state, and no other layer may reach it.
 
-| Owner | State |
-| --- | --- |
-| Contracts | the shape of shared data |
-| Kernel | validation verdicts, transition decisions, Project Brain derivations |
-| Runtime | in-flight request state and the deterministic trace |
-| Providers | normalized read-only context items |
-| Project Memory | persisted Project Brain snapshot and evidence records |
-| Application | use-case composition and the typed result shape |
-| CLI / MCP | presentation state and the process/protocol boundary |
-| Installer | the installed prefix manifest |
+| Owner          | State                                                                |
+| -------------- | -------------------------------------------------------------------- |
+| Contracts      | the shape of shared data                                             |
+| Kernel         | validation verdicts, transition decisions, Project Brain derivations |
+| Runtime        | in-flight request state and the deterministic trace                  |
+| Providers      | normalized read-only context items                                   |
+| Project Memory | persisted Project Brain snapshot and evidence records                |
+| Application    | use-case composition and the typed result shape                      |
+| CLI / MCP      | presentation state and the process/protocol boundary                 |
+| Installer      | the installed prefix manifest                                        |
 
 ### Read-only project boundary
 
@@ -394,15 +394,15 @@ location is resolved internally.
 There is exactly one outbound network path in the entire system, and it is
 opt-in at the point of invocation.
 
-| Property | Value |
-| --- | --- |
-| Method | `GET` only — no `POST`/`PATCH`/`PUT`/`DELETE`, no GraphQL, no mutation |
-| Origin | a single fixed origin (`api.github.com`), pinned REST API version |
-| Trigger | only an explicitly invoked `github` command or GitHub MCP tool; never at startup, never during `tools/list` |
-| Diagnostics | offline by default; `providers doctor` reaches the network only with explicit `--confirm-network` / `confirmNetwork: true`, and then makes exactly one request |
-| Transport | one module, with a request timeout, a response-byte ceiling, bounded same-origin redirects only, and header filtering |
-| Token | optional, supplied only via `OH_MY_PM_GITHUB_TOKEN`, read only at the tool-call boundary, never a CLI argument, never an MCP input, never printed, never persisted |
-| Uploads | none — local project context is never sent anywhere |
+| Property    | Value                                                                                                                                                              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Method      | `GET` only — no `POST`/`PATCH`/`PUT`/`DELETE`, no GraphQL, no mutation                                                                                             |
+| Origin      | a single fixed origin (`api.github.com`), pinned REST API version                                                                                                  |
+| Trigger     | only an explicitly invoked `github` command or GitHub MCP tool; never at startup, never during `tools/list`                                                        |
+| Diagnostics | offline by default; `providers doctor` reaches the network only with explicit `--confirm-network` / `confirmNetwork: true`, and then makes exactly one request     |
+| Transport   | one module, with a request timeout, a response-byte ceiling, bounded same-origin redirects only, and header filtering                                              |
+| Token       | optional, supplied only via `OH_MY_PM_GITHUB_TOKEN`, read only at the tool-call boundary, never a CLI argument, never an MCP input, never printed, never persisted |
+| Uploads     | none — local project context is never sent anywhere                                                                                                                |
 
 Resolution order is a safety property: configuration, repository, and selection
 all resolve **before** a token is read or a transport is constructed, so every
@@ -447,14 +447,14 @@ adapter boundaries touch the platform.
 
 A presentation adapter owns its process or protocol and nothing else.
 
-| Concern | CLI | MCP | Application |
-| --- | --- | --- | --- |
-| Argument grammar and help | yes | — | never |
-| JSON-RPC, tool schemas, annotations | — | yes | never |
-| stdout / stderr, exit codes | yes | stderr + exit code only | never |
-| Terminal or Markdown rendering | yes | yes (shared projection) | projection only, never a stream |
-| Use-case orchestration | never | never | yes |
-| Filesystem, provider config, token boundary | never | never | `/node` surface only |
+| Concern                                     | CLI   | MCP                     | Application                     |
+| ------------------------------------------- | ----- | ----------------------- | ------------------------------- |
+| Argument grammar and help                   | yes   | —                       | never                           |
+| JSON-RPC, tool schemas, annotations         | —     | yes                     | never                           |
+| stdout / stderr, exit codes                 | yes   | stderr + exit code only | never                           |
+| Terminal or Markdown rendering              | yes   | yes (shared projection) | projection only, never a stream |
+| Use-case orchestration                      | never | never                   | yes                             |
+| Filesystem, provider config, token boundary | never | never                   | `/node` surface only            |
 
 Because both adapters call the same use cases, parity between the CLI and the
 MCP surface is structural rather than maintained by hand. A future Dashboard

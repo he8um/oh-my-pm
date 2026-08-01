@@ -49,9 +49,7 @@ describe("export", () => {
     const fs = new MemoryFileSystem();
     const store = await seed(fs);
     const projectDir = projectDirFor(layout, deriveProjectKey(PID));
-    const before = new Map(
-      [...fs.snapshot()].filter(([p]) => p.startsWith(projectDir)),
-    );
+    const before = new Map([...fs.snapshot()].filter(([p]) => p.startsWith(projectDir)));
     await store.exportProject(exportInput("/exports/copy"));
     const after = new Map([...fs.snapshot()].filter(([p]) => p.startsWith(projectDir)));
     expect(after).toEqual(before);

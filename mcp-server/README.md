@@ -62,20 +62,20 @@ The generator prints the configuration only — it never writes to or edits a cl
 All twelve tools, in exact registration order. MCP clients depend on both the
 names and the order, so this list is a compatibility contract:
 
-| # | Tool | What it does |
-| --- | --- | --- |
-| 1 | `project_brief` | deterministic project status brief from local Markdown |
-| 2 | `project_risks` | line-level risk signals from recognized Markdown headings and markers |
-| 3 | `project_next` | next tasks from Markdown checklists, action headings, and markers |
-| 4 | `project_handoff` | deterministic project handoff from local Markdown sections |
-| 5 | `github_project_brief` | GitHub repository status brief |
-| 6 | `github_project_risks` | GitHub repository risk signals |
-| 7 | `github_project_next` | GitHub repository next tasks |
-| 8 | `github_project_handoff` | GitHub repository handoff |
-| 9 | `provider_status` | offline resolved provider state (no network) |
-| 10 | `github_provider_diagnostics` | offline GitHub diagnostics, one confirmed GET when opted in |
-| 11 | `project_changes` | read-only comparison of already-captured Project Brain memory, in authoritative capture order |
-| 12 | `project_timeline` | read-only bounded timeline derived from adjacent committed snapshots, in authoritative capture order |
+| #   | Tool                          | What it does                                                                                         |
+| --- | ----------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 1   | `project_brief`               | deterministic project status brief from local Markdown                                               |
+| 2   | `project_risks`               | line-level risk signals from recognized Markdown headings and markers                                |
+| 3   | `project_next`                | next tasks from Markdown checklists, action headings, and markers                                    |
+| 4   | `project_handoff`             | deterministic project handoff from local Markdown sections                                           |
+| 5   | `github_project_brief`        | GitHub repository status brief                                                                       |
+| 6   | `github_project_risks`        | GitHub repository risk signals                                                                       |
+| 7   | `github_project_next`         | GitHub repository next tasks                                                                         |
+| 8   | `github_project_handoff`      | GitHub repository handoff                                                                            |
+| 9   | `provider_status`             | offline resolved provider state (no network)                                                         |
+| 10  | `github_provider_diagnostics` | offline GitHub diagnostics, one confirmed GET when opted in                                          |
+| 11  | `project_changes`             | read-only comparison of already-captured Project Brain memory, in authoritative capture order        |
+| 12  | `project_timeline`            | read-only bounded timeline derived from adjacent committed snapshots, in authoritative capture order |
 
 Tools 11 and 12 read already-captured local memory. Neither captures, migrates,
 exports, deletes, or repairs memory, and neither performs a network request.
@@ -97,12 +97,12 @@ historical `source-v0.2` profile, which excluded Project Memory: there the
 server starts with the exact ten and emits no warning. That fail-safe path is
 still live code, which is why the mechanism is documented rather than removed.
 
-| Profile | Project Memory bundled | Tools |
-| --- | --- | --- |
-| `ohmypm-cli-namespace` (current, v0.5) | yes | 12 |
-| `project-brain-timeline` (v0.4, historical) | yes | 12 |
-| `project-brain` (v0.3, historical) | yes | 11 |
-| `source-v0.2` (historical) | no | 10 |
+| Profile                                     | Project Memory bundled | Tools |
+| ------------------------------------------- | ---------------------- | ----- |
+| `ohmypm-cli-namespace` (current, v0.5)      | yes                    | 12    |
+| `project-brain-timeline` (v0.4, historical) | yes                    | 12    |
+| `project-brain` (v0.3, historical)          | yes                    | 11    |
+| `source-v0.2` (historical)                  | no                     | 10    |
 
 Only the current row describes a release you can install today; the rest are
 recorded so a verifier can resolve an older bundle fail-closed.

@@ -113,8 +113,6 @@ export function createInstallerWriteApprovalTokenDryRun(
     ok: false,
     token,
     validation,
-    warnings: validation.reasons.map((reason) =>
-      installerWarning(OMP_I_INVALID_PACKAGE, reason),
-    ),
+    warnings: validation.reasons.map((reason) => installerWarning(OMP_I_INVALID_PACKAGE, reason)),
   };
 }

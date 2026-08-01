@@ -99,30 +99,14 @@ const PROFILES = {
     hasTimeline: false,
   },
   "project-brain-timeline": {
-    memorySubcommands: [
-      "capture",
-      "changes",
-      "status",
-      "history",
-      "export",
-      "delete",
-      "timeline",
-    ],
+    memorySubcommands: ["capture", "changes", "status", "history", "export", "delete", "timeline"],
     mcpToolCount: 12,
     hasTimeline: true,
   },
   // v0.5 migrates the command names only: the memory subcommands, MCP tool
   // count, and derived-timeline behavior are identical to v0.4.
   "ohmypm-cli-namespace": {
-    memorySubcommands: [
-      "capture",
-      "changes",
-      "status",
-      "history",
-      "export",
-      "delete",
-      "timeline",
-    ],
+    memorySubcommands: ["capture", "changes", "status", "history", "export", "delete", "timeline"],
     mcpToolCount: 12,
     hasTimeline: true,
   },
@@ -249,8 +233,11 @@ function makeRunner(prefix, versionDir) {
       stderr = e.stderr ? e.stderr.toString() : "";
     }
     if (expectExit !== undefined) {
-      assert(code === expectExit, `exit code ${code} === ${expectExit} for: memory ${args.slice(0, 2).join(" ")}`,
-        `got exit ${code}`);
+      assert(
+        code === expectExit,
+        `exit code ${code} === ${expectExit} for: memory ${args.slice(0, 2).join(" ")}`,
+        `got exit ${code}`,
+      );
     }
     return { code, stdout, stderr };
   }
@@ -279,7 +266,8 @@ function isolatedDataEnv(root) {
 // project-memory/src/data-location.ts resolution order.
 function standardDataRootFor(root) {
   if (isWindows) return join(root, "localappdata", "oh-my-pm");
-  if (process.platform === "darwin") return join(root, "Library", "Application Support", "oh-my-pm");
+  if (process.platform === "darwin")
+    return join(root, "Library", "Application Support", "oh-my-pm");
   return join(root, "xdg", "oh-my-pm");
 }
 
@@ -345,7 +333,9 @@ if (parsed.json) {
     else s.fail += 1;
   }
   for (const [name, s] of bySection) {
-    process.stdout.write(`[${s.fail === 0 ? "PASS" : "FAIL"}] ${name}: ${s.pass} ok, ${s.fail} failed\n`);
+    process.stdout.write(
+      `[${s.fail === 0 ? "PASS" : "FAIL"}] ${name}: ${s.pass} ok, ${s.fail} failed\n`,
+    );
   }
   if (failures.length > 0) {
     process.stdout.write("\nFailures:\n");
@@ -397,7 +387,13 @@ async function main() {
     );
   }
   const profile = PROFILES[declaredProfile];
-  if (!assert(profile !== undefined, "installed RELEASE.json declares a known bundleProfile", `got ${declaredProfile}`)) {
+  if (
+    !assert(
+      profile !== undefined,
+      "installed RELEASE.json declares a known bundleProfile",
+      `got ${declaredProfile}`,
+    )
+  ) {
     return;
   }
   assert(
@@ -528,7 +524,19 @@ async function qualifyHelpAndMcpConfig(runCli, prefix, profile) {
     assert(!help.stdout.endsWith("\n\n"), `installed ${flag} ends with exactly one newline`);
     assert(!help.stdout.includes(tokenSentinel), `installed ${flag} leaks no token`);
     // The real current commands and namespaces are listed.
-    for (const name of ["status", "doctor", "plan", "brief", "risks", "next", "handoff", "memory", "providers", "github", "mcp-config"]) {
+    for (const name of [
+      "status",
+      "doctor",
+      "plan",
+      "brief",
+      "risks",
+      "next",
+      "handoff",
+      "memory",
+      "providers",
+      "github",
+      "mcp-config",
+    ]) {
       assert(help.stdout.includes(name), `installed ${flag} lists ${name}`);
     }
     assert(help.stdout.includes("Exit codes:"), `installed ${flag} documents exit codes`);
@@ -582,9 +590,15 @@ async function qualifyHelpAndMcpConfig(runCli, prefix, profile) {
   if (assert(parsedConfig !== null, "installed mcp-config emits valid JSON")) {
     const entry = parsedConfig.mcpServers?.["oh-my-pm"];
     assert(entry !== undefined, "installed mcp-config uses the default server key");
-    assert(entry?.command === expectedCommand, "installed mcp-config resolves the installed sibling executable");
+    assert(
+      entry?.command === expectedCommand,
+      "installed mcp-config resolves the installed sibling executable",
+    );
     assert(isAbsolute(entry?.command ?? ""), "installed mcp-config command path is absolute");
-    assert(Array.isArray(entry?.args) && entry.args.length === 0, "installed mcp-config emits empty args");
+    assert(
+      Array.isArray(entry?.args) && entry.args.length === 0,
+      "installed mcp-config emits empty args",
+    );
     assert(
       JSON.stringify(Object.keys(entry ?? {}).sort()) === JSON.stringify(["args", "command"]),
       "installed mcp-config emits exactly command and args",
@@ -624,7 +638,10 @@ async function qualifyHelpAndMcpConfig(runCli, prefix, profile) {
     ...(profile.hasTimeline ? ["project_timeline"] : []),
   ];
   for (const tool of configuredTools) {
-    assert(markdownConfig.stdout.includes(`\`${tool}\``), `installed mcp-config --markdown lists ${tool}`);
+    assert(
+      markdownConfig.stdout.includes(`\`${tool}\``),
+      `installed mcp-config --markdown lists ${tool}`,
+    );
   }
   if (!profile.hasTimeline) {
     assert(
@@ -633,21 +650,33 @@ async function qualifyHelpAndMcpConfig(runCli, prefix, profile) {
     );
   }
 
-  assert(newlineTerminated(markdownConfig.stdout), "installed mcp-config --markdown newline-terminated");
+  assert(
+    newlineTerminated(markdownConfig.stdout),
+    "installed mcp-config --markdown newline-terminated",
+  );
 
   // A custom valid name.
   const named = runCli(["mcp-config", "--name", "qual-project"], { env });
   assert(named.code === 0, "installed mcp-config accepts a valid --name");
-  assert(safeParse(named.stdout)?.mcpServers?.["qual-project"] !== undefined, "installed mcp-config uses the custom name");
+  assert(
+    safeParse(named.stdout)?.mcpServers?.["qual-project"] !== undefined,
+    "installed mcp-config uses the custom name",
+  );
 
   // Controlled exit 2 for invalid arguments.
   const invalidName = runCli(["mcp-config", "--name", "bad name"], { env });
   assert(invalidName.code === 2, "installed mcp-config rejects an invalid --name with exit 2");
   assert(invalidName.stdout === "", "installed mcp-config invalid name writes no stdout");
   const missingValue = runCli(["mcp-config", "--name"], { env });
-  assert(missingValue.code === 2, "installed mcp-config rejects a missing --name value with exit 2");
+  assert(
+    missingValue.code === 2,
+    "installed mcp-config rejects a missing --name value with exit 2",
+  );
   const unexpectedOption = runCli(["mcp-config", "--vendor-specific"], { env });
-  assert(unexpectedOption.code === 2, "installed mcp-config rejects an unexpected option with exit 2");
+  assert(
+    unexpectedOption.code === 2,
+    "installed mcp-config rejects an unexpected option with exit 2",
+  );
   // --prefix is not part of the installed public surface.
   const rejectedPrefix = runCli(["mcp-config", "--prefix", prefix], { env });
   assert(rejectedPrefix.code === 2, "installed mcp-config requires no --prefix and rejects it");
@@ -661,8 +690,7 @@ async function qualifyHelpAndMcpConfig(runCli, prefix, profile) {
   ]) {
     assert(!text.includes(tokenSentinel), `installed mcp-config ${label} leaks no token value`);
     assert(!text.includes(dataProbe), `installed mcp-config ${label} leaks no data directory`);
-    const configBlock =
-      label === "json" ? text : (text.split("```json")[1]?.split("```")[0] ?? "");
+    const configBlock = label === "json" ? text : (text.split("```json")[1]?.split("```")[0] ?? "");
     assert(configBlock.trim() !== "", `installed mcp-config ${label} emits a config block`);
     assert(
       !configBlock.includes("OH_MY_PM_GITHUB_TOKEN") &&
@@ -683,7 +711,10 @@ async function qualifyHelpAndMcpConfig(runCli, prefix, profile) {
   );
 
   // No client-file or project write, and no application-data directory.
-  assert(!existsSync(standardDataRootFor(dataProbe)), "installed mcp-config creates no app-data store");
+  assert(
+    !existsSync(standardDataRootFor(dataProbe)),
+    "installed mcp-config creates no app-data store",
+  );
 }
 
 // ----------------------------------------------------------------------------
@@ -717,14 +748,20 @@ async function qualifyProjectFixtureJourney(runCli, version) {
   // 4. capture preview -> zero writes.
   r = j(["memory", "capture", projectDir]);
   let cap = JSON.parse(r.stdout);
-  assert(r.code === 0 && cap.mode === "preview" && cap.data.wouldWrite === false, "capture preview wouldWrite:false");
+  assert(
+    r.code === 0 && cap.mode === "preview" && cap.data.wouldWrite === false,
+    "capture preview wouldWrite:false",
+  );
   assert(!existsSync(join(dataDir, "project-brain")), "capture preview created no store");
 
   // 5. capture --apply -> snapshot A (exactly one commit).
   r = j(["memory", "capture", projectDir, "--apply"]);
   cap = JSON.parse(r.stdout);
   const snapA = cap.data.snapshotId;
-  assert(r.code === 0 && cap.mode === "applied" && cap.data.written === true, "capture apply A written");
+  assert(
+    r.code === 0 && cap.mode === "applied" && cap.data.written === true,
+    "capture apply A written",
+  );
   assert(cap.data.snapshotCount === 1, "capture apply A snapshotCount 1");
 
   // The state fingerprint is deterministic for identical content: a re-preview of
@@ -732,7 +769,10 @@ async function qualifyProjectFixtureJourney(runCli, version) {
   // set is unchanged (each snapshot is timestamped, so it is not itself reused).
   r = j(["memory", "capture", projectDir]);
   const rePreview = JSON.parse(r.stdout);
-  assert(rePreview.data.stateFingerprint === cap.data.stateFingerprint, "unchanged content yields the same state fingerprint");
+  assert(
+    rePreview.data.stateFingerprint === cap.data.stateFingerprint,
+    "unchanged content yields the same state fingerprint",
+  );
 
   // 6. edit only the test-authored fixture, then capture --apply -> snapshot B.
   writeFileSync(
@@ -743,39 +783,58 @@ async function qualifyProjectFixtureJourney(runCli, version) {
   r = j(["memory", "capture", projectDir, "--apply"]);
   cap = JSON.parse(r.stdout);
   const snapB = cap.data.snapshotId;
-  assert(cap.data.snapshotCount === 2 && snapB !== snapA, "capture apply B is a new second snapshot");
+  assert(
+    cap.data.snapshotCount === 2 && snapB !== snapA,
+    "capture apply B is a new second snapshot",
+  );
 
   // 8. status -> healthy, two snapshots, store format 2 / schema 1.
   r = j(["memory", "status", projectDir]);
   data = JSON.parse(r.stdout).data;
   assert(data.status === "healthy" && data.snapshotCount === 2, "status healthy two snapshots");
-  assert(data.storeFormatVersion === 2 && data.projectBrainSchemaVersion === 1, "status reports format 2 schema 1");
+  assert(
+    data.storeFormatVersion === 2 && data.projectBrainSchemaVersion === 1,
+    "status reports format 2 schema 1",
+  );
 
   // 9. history -> newest capture first (Phase 4.1 chronology).
   r = j(["memory", "history", projectDir]);
   data = JSON.parse(r.stdout).data;
   assert(data.records.length === 2, "history has two records");
   assert(
-    data.records[0].snapshotId === snapB && data.records[0].sequence === 2 && data.records[0].isLatest === true,
+    data.records[0].snapshotId === snapB &&
+      data.records[0].sequence === 2 &&
+      data.records[0].isLatest === true,
     "history newest capture first",
   );
-  assert(data.records[1].sequence === 1 && data.records[1].isLatest === false, "history predecessor second");
+  assert(
+    data.records[1].sequence === 1 && data.records[1].isLatest === false,
+    "history predecessor second",
+  );
   assert(data.chronologyOrigin === "native", "history chronologyOrigin native");
 
   // 10. changes -> B compared with A (default pair).
   r = j(["memory", "changes", projectDir]);
   data = JSON.parse(r.stdout).data;
   assert(
-    data.status === "compared" && data.previousSnapshotId === snapA && data.currentSnapshotId === snapB,
+    data.status === "compared" &&
+      data.previousSnapshotId === snapA &&
+      data.currentSnapshotId === snapB,
     "changes default pair is B vs A",
   );
-  assert(Array.isArray(data.changeSet.changes) && data.changeSet.changes.length > 0, "changes produced a change set");
+  assert(
+    Array.isArray(data.changeSet.changes) && data.changeSet.changes.length > 0,
+    "changes produced a change set",
+  );
 
   // 11. changes with explicit pair -> exact pair, and no write.
   const beforeChanges = hashTree(join(dataDir, "project-brain"));
   r = j(["memory", "changes", projectDir, "--previous", snapA, "--current", snapB]);
   data = JSON.parse(r.stdout).data;
-  assert(data.previousSnapshotId === snapA && data.currentSnapshotId === snapB, "changes explicit pair honored");
+  assert(
+    data.previousSnapshotId === snapA && data.currentSnapshotId === snapB,
+    "changes explicit pair honored",
+  );
   const afterChanges = hashTree(join(dataDir, "project-brain"));
   assert(treesEqual(beforeChanges, afterChanges), "changes performed no write");
 
@@ -787,26 +846,47 @@ async function qualifyProjectFixtureJourney(runCli, version) {
   const exportDest = join(scratch("journey-export"), "out");
   r = j(["memory", "export", projectDir, "--destination", exportDest]);
   cap = JSON.parse(r.stdout);
-  assert(r.code === 0 && cap.mode === "preview" && cap.data.wouldExport === true, "export preview wouldExport:true");
+  assert(
+    r.code === 0 && cap.mode === "preview" && cap.data.wouldExport === true,
+    "export preview wouldExport:true",
+  );
   assert(!existsSync(exportDest), "export preview wrote no destination");
 
   // 13. export --apply -> verified export exists.
   r = j(["memory", "export", projectDir, "--destination", exportDest, "--apply"]);
   cap = JSON.parse(r.stdout);
-  assert(r.code === 0 && cap.mode === "applied" && cap.data.exported === true, "export apply exported:true");
+  assert(
+    r.code === 0 && cap.mode === "applied" && cap.data.exported === true,
+    "export apply exported:true",
+  );
   assert(existsSync(exportDest), "export apply produced a destination");
-  assert(existsSync(join(exportDest, "export-manifest.json")), "export contains an export manifest");
+  assert(
+    existsSync(join(exportDest, "export-manifest.json")),
+    "export contains an export manifest",
+  );
 
   // 14. delete preview -> mutates nothing.
   const beforeDelete = hashTree(join(dataDir, "project-brain"));
   r = j(["memory", "delete", projectDir]);
   cap = JSON.parse(r.stdout);
-  assert(r.code === 0 && cap.mode === "preview" && cap.data.wouldDelete === true, "delete preview wouldDelete:true");
+  assert(
+    r.code === 0 && cap.mode === "preview" && cap.data.wouldDelete === true,
+    "delete preview wouldDelete:true",
+  );
   const afterDeletePreview = hashTree(join(dataDir, "project-brain"));
   assert(treesEqual(beforeDelete, afterDeletePreview), "delete preview mutated nothing");
 
   // delete apply requires exact --confirm; a wrong confirmation is a usage error.
-  r = runCli(["memory", "delete", projectDir, ...base, "--apply", "--confirm", "wrong-id", "--json"]);
+  r = runCli([
+    "memory",
+    "delete",
+    projectDir,
+    ...base,
+    "--apply",
+    "--confirm",
+    "wrong-id",
+    "--json",
+  ]);
   assert(r.code === 2, "delete apply rejects a mismatched confirmation");
 
   // 15. delete --apply --confirm <project-id>.
@@ -816,7 +896,10 @@ async function qualifyProjectFixtureJourney(runCli, version) {
 
   // 16. status -> noPriorMemory again.
   r = j(["memory", "status", projectDir]);
-  assert(JSON.parse(r.stdout).data.status === "noPriorMemory", "status after delete -> noPriorMemory");
+  assert(
+    JSON.parse(r.stdout).data.status === "noPriorMemory",
+    "status after delete -> noPriorMemory",
+  );
 
   // Output modes: brief + markdown for structured commands, all newline-ended.
   section("cli-output-modes");
@@ -824,15 +907,30 @@ async function qualifyProjectFixtureJourney(runCli, version) {
   j(["memory", "capture", projectDir, "--apply"]);
   writeFileSync(readme, readFileSync(readme, "utf8") + "\n- [ ] TODO: another\n", "utf8");
   j(["memory", "capture", projectDir, "--apply"]);
-  for (const cmd of [["memory", "status", projectDir], ["memory", "history", projectDir], ["memory", "changes", projectDir]]) {
+  for (const cmd of [
+    ["memory", "status", projectDir],
+    ["memory", "history", projectDir],
+    ["memory", "changes", projectDir],
+  ]) {
     const briefR = brief(cmd);
-    assert(briefR.code === 0 && newlineTerminated(briefR.stdout), `brief ${cmd[1]} newline-terminated`);
+    assert(
+      briefR.code === 0 && newlineTerminated(briefR.stdout),
+      `brief ${cmd[1]} newline-terminated`,
+    );
+    // Matching the ESC control character is the point of the assertion.
+    // eslint-disable-next-line no-control-regex
     assert(!/\[/.test(briefR.stdout), `brief ${cmd[1]} has no ANSI escapes`);
     const jsonR = runCli([...cmd, ...base, "--json"]);
-    assert(jsonR.code === 0 && newlineTerminated(jsonR.stdout), `json ${cmd[1]} newline-terminated`);
+    assert(
+      jsonR.code === 0 && newlineTerminated(jsonR.stdout),
+      `json ${cmd[1]} newline-terminated`,
+    );
     JSON.parse(jsonR.stdout); // must parse
     const mdR = md(cmd);
-    assert(mdR.code === 0 && newlineTerminated(mdR.stdout) && mdR.stdout.includes("#"), `markdown ${cmd[1]} newline-terminated`);
+    assert(
+      mdR.code === 0 && newlineTerminated(mdR.stdout) && mdR.stdout.includes("#"),
+      `markdown ${cmd[1]} newline-terminated`,
+    );
   }
   // clean up the re-seeded store
   j(["memory", "delete", projectDir, "--apply", "--confirm", pid]);
@@ -844,11 +942,22 @@ async function qualifyProjectFixtureJourney(runCli, version) {
   const readmeRel = "README.md";
   const onlyReadmeDiffers =
     projectAfter.size === projectBefore.size &&
-    [...projectAfter.keys()].every((k) => k === readmeRel || projectAfter.get(k) === projectBefore.get(k));
-  assert(onlyReadmeDiffers, "project fixture unchanged except the deliberate test-authored README edits");
+    [...projectAfter.keys()].every(
+      (k) => k === readmeRel || projectAfter.get(k) === projectBefore.get(k),
+    );
+  assert(
+    onlyReadmeDiffers,
+    "project fixture unchanged except the deliberate test-authored README edits",
+  );
   // No app-data directory was ever created inside the project fixture.
-  assert(!existsSync(join(projectDir, "project-brain")), "no store written inside the project directory");
-  assert(!existsSync(join(projectDir, ".oh-my-pm")), "no hidden state written inside the project directory");
+  assert(
+    !existsSync(join(projectDir, "project-brain")),
+    "no store written inside the project directory",
+  );
+  assert(
+    !existsSync(join(projectDir, ".oh-my-pm")),
+    "no hidden state written inside the project directory",
+  );
   void version;
 }
 
@@ -867,7 +976,9 @@ async function qualifyMcp(prefix, versionDir, release, profile) {
   const command = isWindows ? process.execPath : mcpShim;
   const args = isWindows ? [mcpEntry] : [];
 
-  const mcpManifest = realpathSync(join(versionDir, "node_modules", "@oh-my-pm", "mcp-server", "package.json"));
+  const mcpManifest = realpathSync(
+    join(versionDir, "node_modules", "@oh-my-pm", "mcp-server", "package.json"),
+  );
   const requireFromBundle = createRequire(mcpManifest);
   let Client;
   let StdioClientTransport;
@@ -899,7 +1010,13 @@ async function qualifyMcp(prefix, versionDir, release, profile) {
 
   const connect = () =>
     (async () => {
-      const transport = new StdioClientTransport({ command, args, cwd: versionDir, env, stderr: "pipe" });
+      const transport = new StdioClientTransport({
+        command,
+        args,
+        cwd: versionDir,
+        env,
+        stderr: "pipe",
+      });
       const stderrChunks = [];
       if (transport.stderr) transport.stderr.on("data", (c) => stderrChunks.push(c.toString()));
       const client = new Client({ name: "omp-v03-qual", version: "0.0.0" });
@@ -920,7 +1037,10 @@ async function qualifyMcp(prefix, versionDir, release, profile) {
       `installed MCP lists exactly ${profile.mcpToolCount} tools`,
       `got ${names.length}`,
     );
-    assert(JSON.stringify(names) === JSON.stringify(expectedOrder), "installed MCP tool order is exact");
+    assert(
+      JSON.stringify(names) === JSON.stringify(expectedOrder),
+      "installed MCP tool order is exact",
+    );
     // ZERO write tools across the whole surface: no tool may declare a
     // destructive mutation or opt out of the read-only hint.
     let writeTools = 0;
@@ -934,21 +1054,43 @@ async function qualifyMcp(prefix, versionDir, release, profile) {
     const pc = tools.find((t) => t.name === "project_changes");
     assert(pc !== undefined, "project_changes is registered");
     assert(pc?.annotations?.readOnlyHint === true, "project_changes annotated readOnlyHint:true");
-    assert(pc?.annotations?.destructiveHint === false, "project_changes annotated destructiveHint:false");
+    assert(
+      pc?.annotations?.destructiveHint === false,
+      "project_changes annotated destructiveHint:false",
+    );
     if (profile.hasTimeline) {
       const pt = tools.find((t) => t.name === "project_timeline");
       assert(pt !== undefined, "project_timeline is registered");
-      assert(pt?.annotations?.readOnlyHint === true, "project_timeline annotated readOnlyHint:true");
-      assert(pt?.annotations?.destructiveHint === false, "project_timeline annotated destructiveHint:false");
+      assert(
+        pt?.annotations?.readOnlyHint === true,
+        "project_timeline annotated readOnlyHint:true",
+      );
+      assert(
+        pt?.annotations?.destructiveHint === false,
+        "project_timeline annotated destructiveHint:false",
+      );
       // The input schema exposes exactly the five documented fields and no path.
       const props = Object.keys(pt?.inputSchema?.properties ?? {}).sort();
       assert(
-        JSON.stringify(props) === JSON.stringify(["beforeSequence", "category", "kind", "limit", "projectId"]),
+        JSON.stringify(props) ===
+          JSON.stringify(["beforeSequence", "category", "kind", "limit", "projectId"]),
         "project_timeline input schema exposes exactly the five documented fields",
         `got ${props.join(",")}`,
       );
-      for (const forbidden of ["root", "path", "dataDir", "apply", "migrate", "confirm", "force", "token"]) {
-        assert(!props.includes(forbidden), `project_timeline input schema has no ${forbidden} field`);
+      for (const forbidden of [
+        "root",
+        "path",
+        "dataDir",
+        "apply",
+        "migrate",
+        "confirm",
+        "force",
+        "token",
+      ]) {
+        assert(
+          !props.includes(forbidden),
+          `project_timeline input schema has no ${forbidden} field`,
+        );
       }
     } else {
       assert(
@@ -958,12 +1100,18 @@ async function qualifyMcp(prefix, versionDir, release, profile) {
     }
 
     // 2. project_brief on the installed/public fixture.
-    const brief = await conn.client.callTool({ name: "project_brief", arguments: { root: fixtureRoot } });
+    const brief = await conn.client.callTool({
+      name: "project_brief",
+      arguments: { root: fixtureRoot },
+    });
     assert(!brief.isError, "project_brief succeeds on the installed fixture");
 
     // 3. provider_status -> offline success.
     const status = await conn.client.callTool({ name: "provider_status", arguments: {} });
-    assert(!status.isError && status.structuredContent?.schemaVersion === 1, "provider_status offline success");
+    assert(
+      !status.isError && status.structuredContent?.schemaVersion === 1,
+      "provider_status offline success",
+    );
 
     // 4. project_changes before capture -> noPriorMemory.
     const before = await conn.client.callTool({
@@ -1003,11 +1151,17 @@ async function qualifyMcp(prefix, versionDir, release, profile) {
   // projection with no leaks.
   conn = await connect();
   try {
-    const res = await conn.client.callTool({ name: "project_changes", arguments: { projectId: pid } });
+    const res = await conn.client.callTool({
+      name: "project_changes",
+      arguments: { projectId: pid },
+    });
     const sc = res.structuredContent ?? {};
     assert(!res.isError && sc.status === "compared", "project_changes after captures -> compared");
     assert(sc.chronology === "capture-order", "project_changes chronology is capture-order");
-    assert(typeof sc.summary?.totalChanges === "number", "project_changes summary has totalChanges");
+    assert(
+      typeof sc.summary?.totalChanges === "number",
+      "project_changes summary has totalChanges",
+    );
     assert(Array.isArray(sc.changes), "project_changes returns a changes array");
     // Strict sanitized projection: no evidence ids, raw values, refs, paths,
     // runtime trace, or manifest internals in the serialized output.
@@ -1041,9 +1195,11 @@ async function qualifyMcp(prefix, versionDir, release, profile) {
   // project_changes performed no write/lock/migration.
   const storeAfter = existsSync(standardStore) ? hashTree(standardStore) : new Map();
   assert(treesEqual(storeBefore, storeAfter), "project_changes performed no store write");
-  assert(!existsSync(join(standardDataRootFor(dataRoot), "project-brain", "v1", "locks")) ||
-    readdirSync(join(standardDataRootFor(dataRoot), "project-brain", "v1", "locks")).length === 0,
-    "project_changes left no lock");
+  assert(
+    !existsSync(join(standardDataRootFor(dataRoot), "project-brain", "v1", "locks")) ||
+      readdirSync(join(standardDataRootFor(dataRoot), "project-brain", "v1", "locks")).length === 0,
+    "project_changes left no lock",
+  );
 
   // 9. delete memory through the installed CLI.
   runCli(["memory", "delete", project, ...cliBase, "--apply", "--confirm", pid, "--json"], { env });
@@ -1051,8 +1207,14 @@ async function qualifyMcp(prefix, versionDir, release, profile) {
   // 10. project_changes -> noPriorMemory again.
   conn = await connect();
   try {
-    const res = await conn.client.callTool({ name: "project_changes", arguments: { projectId: pid } });
-    assert((res.structuredContent ?? {}).status === "noPriorMemory", "project_changes after delete -> noPriorMemory");
+    const res = await conn.client.callTool({
+      name: "project_changes",
+      arguments: { projectId: pid },
+    });
+    assert(
+      (res.structuredContent ?? {}).status === "noPriorMemory",
+      "project_changes after delete -> noPriorMemory",
+    );
   } finally {
     await safeClose(conn);
   }
@@ -1088,7 +1250,9 @@ async function qualifyDataLocations(runCli, version) {
   // the store landed at the platform-standard subpath and public output hides it.
   const dataRoot = scratch("dl-standard");
   const env = isolatedDataEnv(dataRoot);
-  const r = runCli(["memory", "capture", project, "--project-id", pid, "--apply", "--json"], { env });
+  const r = runCli(["memory", "capture", project, "--project-id", pid, "--apply", "--json"], {
+    env,
+  });
   assert(r.code === 0, "capture against standard app-data root succeeds");
   const standardStore = join(standardDataRootFor(dataRoot), "project-brain");
   assert(existsSync(standardStore), "store created at the platform-standard app-data path");
@@ -1100,8 +1264,21 @@ async function qualifyDataLocations(runCli, version) {
   // Explicit --data-dir also works and is isolated.
   const explicitDir = scratch("dl-explicit");
   rmSync(explicitDir, { recursive: true, force: true });
-  const r2 = runCli(["memory", "capture", project, "--project-id", pid, "--data-dir", explicitDir, "--apply", "--json"]);
-  assert(r2.code === 0 && existsSync(join(explicitDir, "project-brain")), "explicit --data-dir capture works");
+  const r2 = runCli([
+    "memory",
+    "capture",
+    project,
+    "--project-id",
+    pid,
+    "--data-dir",
+    explicitDir,
+    "--apply",
+    "--json",
+  ]);
+  assert(
+    r2.code === 0 && existsSync(join(explicitDir, "project-brain")),
+    "explicit --data-dir capture works",
+  );
   void version;
 }
 
@@ -1129,8 +1306,18 @@ async function qualifyMigration(runCli, pmDir) {
     "s-c": "2026-01-01T00:00:00.000Z",
   };
   for (const [id, capturedAt] of Object.entries(snapshots)) {
-    const env = pm.buildEnvelope("snapshot", pid, id, { snapshotId: id, projectId: pid, schemaVersion: 1, capturedAt });
-    const p = pathSafety.recordPathFor(layout, projectKey, pathSafety.SNAPSHOTS_DIRNAME, pm.deriveRecordKey("snapshot", id));
+    const env = pm.buildEnvelope("snapshot", pid, id, {
+      snapshotId: id,
+      projectId: pid,
+      schemaVersion: 1,
+      capturedAt,
+    });
+    const p = pathSafety.recordPathFor(
+      layout,
+      projectKey,
+      pathSafety.SNAPSHOTS_DIRNAME,
+      pm.deriveRecordKey("snapshot", id),
+    );
     mkdirSync(dirname(p), { recursive: true });
     writeFileSync(p, pm.serializeEnvelope(env), "utf8");
   }
@@ -1175,7 +1362,10 @@ async function qualifyMigration(runCli, pmDir) {
   // 4. capture --migrate-store preview -> wouldMigrateStore, zero write/lock.
   r = runCli(["memory", "capture", project, ...base, "--migrate-store", "--json"]);
   const preview = safeParse(r.stdout);
-  assert(r.code === 0 && preview?.data?.wouldMigrateStore === true, "capture --migrate-store preview wouldMigrateStore:true");
+  assert(
+    r.code === 0 && preview?.data?.wouldMigrateStore === true,
+    "capture --migrate-store preview wouldMigrateStore:true",
+  );
   assert(treesEqual(before, snapshot()), "migrate-store preview wrote nothing");
 
   // 5. capture --apply WITHOUT --migrate-store -> migrationRequired, exit 4, zero write.
@@ -1186,7 +1376,10 @@ async function qualifyMigration(runCli, pmDir) {
   // 6. capture --apply --migrate-store -> explicit migration + one capture.
   r = runCli(["memory", "capture", project, ...base, "--apply", "--migrate-store", "--json"]);
   const applied = safeParse(r.stdout);
-  assert(r.code === 0 && applied?.data?.storeMigrated === true, "explicit migration applied storeMigrated:true");
+  assert(
+    r.code === 0 && applied?.data?.storeMigrated === true,
+    "explicit migration applied storeMigrated:true",
+  );
   assert(applied?.data?.written === true, "capture committed after migration");
 
   // 7. backup retained.
@@ -1206,8 +1399,14 @@ async function qualifyMigration(runCli, pmDir) {
   // Newest first: [newlyCaptured, s-b, s-a, s-c].
   assert(hist.records.length === 4, "history has four snapshots after migration + capture");
   assert(ids[1] === "s-b", "recovered latest (s-b) pinned before the new capture");
-  assert(ids[2] === "s-a" && ids[3] === "s-c", "recovered older order is s-a(t3) then s-c(t1) newest-first");
-  assert(hist.records[0].isLatest === true && hist.records[0].sequence === 4, "new capture appended as latest sequence 4");
+  assert(
+    ids[2] === "s-a" && ids[3] === "s-c",
+    "recovered older order is s-a(t3) then s-c(t1) newest-first",
+  );
+  assert(
+    hist.records[0].isLatest === true && hist.records[0].sequence === 4,
+    "new capture appended as latest sequence 4",
+  );
 
   // 11. The immediate chronological predecessor of the new capture is the
   // recovered latest (s-b): history proves it directly (sequence 3, one below the
@@ -1223,7 +1422,10 @@ async function qualifyMigration(runCli, pmDir) {
 
   // Privacy scan of the migrated store: no secret/absolute path/private content.
   const migratedText = collectText(join(dataDir, "project-brain"));
-  assert(!/\/Users\/|\/home\//.test(migratedText), "migrated store contains no absolute POSIX path");
+  assert(
+    !/\/Users\/|\/home\//.test(migratedText),
+    "migrated store contains no absolute POSIX path",
+  );
 }
 
 // ----------------------------------------------------------------------------
@@ -1258,13 +1460,20 @@ async function qualifyCorruption(runCli, prefix, versionDir, pmDir) {
   assert(snapFiles.length > 0, "healthy store has snapshot files to corrupt");
   const victim = join(snapDir, snapFiles[0]);
   const original = readFileSync(victim, "utf8");
-  writeFileSync(victim, original.replace(/"schemaVersion":\s*1/, '"schemaVersion":1,"__tamper__":true'), "utf8");
+  writeFileSync(
+    victim,
+    original.replace(/"schemaVersion":\s*1/, '"schemaVersion":1,"__tamper__":true'),
+    "utf8",
+  );
 
   const storeTreeAfterCorruption = hashTree(storeDir);
 
   // 4. status -> corrupt/safe controlled failure (exit 4), no auto-rewrite.
   let r = runCli(["memory", "status", project, ...base, "--json"]);
-  assert(r.code === 4 || (JSON.parse(r.stdout || "{}").data?.status === "corrupt"), "corrupt status fails safely (exit 4/corrupt)");
+  assert(
+    r.code === 4 || JSON.parse(r.stdout || "{}").data?.status === "corrupt",
+    "corrupt status fails safely (exit 4/corrupt)",
+  );
 
   // 5. changes -> controlled failure.
   r = runCli(["memory", "changes", project, ...base, "--json"]);
@@ -1283,8 +1492,14 @@ async function qualifyCorruption(runCli, prefix, versionDir, pmDir) {
 
   // 9. status/history/changes healthy again + byte-identical to pre-corruption.
   r = runCli(["memory", "status", project, ...base, "--json"]);
-  assert(r.code === 0 && JSON.parse(r.stdout).data.status === "healthy", "status healthy after manual restore");
-  assert(treesEqual(healthyTree, hashTree(storeDir)), "restored store is byte-identical to the healthy backup");
+  assert(
+    r.code === 0 && JSON.parse(r.stdout).data.status === "healthy",
+    "status healthy after manual restore",
+  );
+  assert(
+    treesEqual(healthyTree, hashTree(storeDir)),
+    "restored store is byte-identical to the healthy backup",
+  );
   r = runCli(["memory", "history", project, ...base, "--json"]);
   assert(r.code === 0, "history healthy after restore");
   r = runCli(["memory", "changes", project, ...base, "--json"]);
@@ -1310,9 +1525,17 @@ async function qualifyCorruption(runCli, prefix, versionDir, pmDir) {
     // Detected as corrupt: either a non-zero exit or a status of "corrupt"
     // (status surfaces corruption as a reportable value with exit 0). Never
     // "healthy", and never a silent repair.
-    const detected = r.code !== 0 || (st?.data?.status !== undefined && st.data.status !== "healthy");
-    assert(detected, "manifest chronology corruption is detected (not reported healthy)", `code ${r.code}`);
-    assert(treesEqual(beforeChrono, hashTree(storeDir)), "manifest chronology corruption triggered no auto-repair");
+    const detected =
+      r.code !== 0 || (st?.data?.status !== undefined && st.data.status !== "healthy");
+    assert(
+      detected,
+      "manifest chronology corruption is detected (not reported healthy)",
+      `code ${r.code}`,
+    );
+    assert(
+      treesEqual(beforeChrono, hashTree(storeDir)),
+      "manifest chronology corruption triggered no auto-repair",
+    );
   }
 }
 
@@ -1331,18 +1554,30 @@ async function assertMcpCorruptError(prefix, versionDir, dataDir, pid) {
   const mcpEntry = join(versionDir, "bin", "ohmypm-mcp.mjs");
   const command = isWindows ? process.execPath : mcpShim;
   const args = isWindows ? [mcpEntry] : [];
-  const mcpManifest = realpathSync(join(versionDir, "node_modules", "@oh-my-pm", "mcp-server", "package.json"));
+  const mcpManifest = realpathSync(
+    join(versionDir, "node_modules", "@oh-my-pm", "mcp-server", "package.json"),
+  );
   const requireFromBundle = createRequire(mcpManifest);
   let Client;
   let StdioClientTransport;
   try {
-    ({ Client } = await import(pathToFileURL(requireFromBundle.resolve("@modelcontextprotocol/sdk/client/index.js")).href));
-    ({ StdioClientTransport } = await import(pathToFileURL(requireFromBundle.resolve("@modelcontextprotocol/sdk/client/stdio.js")).href));
+    ({ Client } = await import(
+      pathToFileURL(requireFromBundle.resolve("@modelcontextprotocol/sdk/client/index.js")).href
+    ));
+    ({ StdioClientTransport } = await import(
+      pathToFileURL(requireFromBundle.resolve("@modelcontextprotocol/sdk/client/stdio.js")).href
+    ));
   } catch {
     bad("mcp corrupt", "could not resolve MCP SDK");
     return;
   }
-  const transport = new StdioClientTransport({ command, args, cwd: versionDir, env, stderr: "pipe" });
+  const transport = new StdioClientTransport({
+    command,
+    args,
+    cwd: versionDir,
+    env,
+    stderr: "pipe",
+  });
   const client = new Client({ name: "omp-v03-corrupt", version: "0.0.0" });
   try {
     await client.connect(transport);
@@ -1351,7 +1586,10 @@ async function assertMcpCorruptError(prefix, versionDir, dataDir, pid) {
     // message — never a partial data payload, path, or trace.
     const text = JSON.stringify(res);
     assert(res.isError === true, "MCP project_changes on corrupt store returns a controlled error");
-    assert(!/\/Users\/|\/home\/|previousValue|evidence:sha256/.test(text), "MCP corrupt error is sanitized");
+    assert(
+      !/\/Users\/|\/home\/|previousValue|evidence:sha256/.test(text),
+      "MCP corrupt error is sanitized",
+    );
   } catch {
     // A protocol-level rejection is also an acceptable controlled failure.
     ok("MCP project_changes on corrupt store failed safely (protocol error)");
@@ -1380,7 +1618,17 @@ async function qualifyConcurrency(runCli, version) {
   writeFileSync(join(project, "README.md"), "# Conc\n\n- [ ] TODO: c\n", "utf8");
   const pid = "concurrency-project";
   // Seed one capture so a store exists.
-  runCli(["memory", "capture", project, "--data-dir", dataDir, "--project-id", pid, "--apply", "--json"]);
+  runCli([
+    "memory",
+    "capture",
+    project,
+    "--data-dir",
+    dataDir,
+    "--project-id",
+    pid,
+    "--apply",
+    "--json",
+  ]);
 
   // Launch two concurrent captures of the SAME project. Change the fixture so
   // each would create a distinct snapshot; the lock must serialize them and the
@@ -1433,9 +1681,30 @@ async function qualifyConcurrency(runCli, version) {
     assert(!/\n\s+at\s+\S+\s+\(/.test(combined), "the rejected capture emitted no raw stack trace");
   }
   // Manifest integrity: status must still be healthy with a well-formed history.
-  const st = runCli(["memory", "status", project, "--data-dir", dataDir, "--project-id", pid, "--json"]);
-  assert(st.code === 0 && JSON.parse(st.stdout).data.status === "healthy", "store healthy after concurrent captures");
-  const hist = runCli(["memory", "history", project, "--data-dir", dataDir, "--project-id", pid, "--json"]);
+  const st = runCli([
+    "memory",
+    "status",
+    project,
+    "--data-dir",
+    dataDir,
+    "--project-id",
+    pid,
+    "--json",
+  ]);
+  assert(
+    st.code === 0 && JSON.parse(st.stdout).data.status === "healthy",
+    "store healthy after concurrent captures",
+  );
+  const hist = runCli([
+    "memory",
+    "history",
+    project,
+    "--data-dir",
+    dataDir,
+    "--project-id",
+    pid,
+    "--json",
+  ]);
   const records = JSON.parse(hist.stdout).data.records;
   const sequences = records.map((r) => r.sequence).sort((x, y) => x - y);
   const contiguous = sequences.every((s, i) => s === i + 1);
@@ -1469,7 +1738,10 @@ async function qualifyConcurrency(runCli, version) {
       child.on("close", (code) => res({ code, out }));
     });
   const [rx, ry] = await Promise.all([launchOther(projX, pidX), launchOther(projY, pidY)]);
-  assert(rx.code === 0 && ry.code === 0, "different projects capture independently and concurrently");
+  assert(
+    rx.code === 0 && ry.code === 0,
+    "different projects capture independently and concurrently",
+  );
   void version;
 }
 
@@ -1524,7 +1796,11 @@ async function qualifyPrivacy(runCli, version, pmDir) {
 
   // Two captures so an export/compare has content.
   const cap1 = runCli(["memory", "capture", project, ...base, "--apply", "--json"], { env });
-  writeFileSync(join(project, "README.md"), readFileSync(join(project, "README.md"), "utf8") + "\n- [ ] TODO: more\n", "utf8");
+  writeFileSync(
+    join(project, "README.md"),
+    readFileSync(join(project, "README.md"), "utf8") + "\n- [ ] TODO: more\n",
+    "utf8",
+  );
   const cap2 = runCli(["memory", "capture", project, ...base, "--apply", "--json"], { env });
   const changes = runCli(["memory", "changes", project, ...base, "--json"], { env });
   const status = runCli(["memory", "status", project, ...base, "--json"], { env });
@@ -1532,11 +1808,15 @@ async function qualifyPrivacy(runCli, version, pmDir) {
 
   // Export, then scan the store + export + migration backup (if any).
   const exportDest = join(scratch("privacy-export"), "out");
-  runCli(["memory", "export", project, ...base, "--destination", exportDest, "--apply", "--json"], { env });
+  runCli(["memory", "export", project, ...base, "--destination", exportDest, "--apply", "--json"], {
+    env,
+  });
 
   const storeText = collectText(join(dataDir, "project-brain"));
   const exportText = existsSync(exportDest) ? collectText(exportDest) : "";
-  const cliOutput = [cap1, cap2, changes, status, history].map((r) => r.stdout + r.stderr).join("\n");
+  const cliOutput = [cap1, cap2, changes, status, history]
+    .map((r) => r.stdout + r.stderr)
+    .join("\n");
 
   // Requirements: token/authorization/absolute-project-path/raw-markdown-body/
   // fingerprint-input sentinels never appear in stored/exported bytes or output.
@@ -1555,7 +1835,10 @@ async function qualifyPrivacy(runCli, version, pmDir) {
   }
 
   // No telemetry/network markers in the memory path output.
-  assert(!/https?:\/\//.test(collectText(join(dataDir, "project-brain"))), "stored bytes contain no URL/network origin");
+  assert(
+    !/https?:\/\//.test(collectText(join(dataDir, "project-brain"))),
+    "stored bytes contain no URL/network origin",
+  );
 
   // The store must be dependency-free of any raw provider response / runtime
   // trace markers.
@@ -1581,12 +1864,15 @@ function qualifySourceIndependenceAndRelocation(prefix, versionDir) {
     const p = join(binDir, name);
     if (!isFile(p)) continue;
     const text = readFileSync(p, "utf8");
-    assert(!sourceMarkers.some((m) => text.includes(m)), `shim ${name} embeds no source-checkout path`);
+    assert(
+      !sourceMarkers.some((m) => text.includes(m)),
+      `shim ${name} embeds no source-checkout path`,
+    );
   }
   // The installed CLI runs from an unrelated working directory.
   const runCli = makeRunner(prefix, versionDir);
   const elsewhere = scratch("cwd-elsewhere");
-  const r = runCli(["status"], { env: { ...process.env }, });
+  const r = runCli(["status"], { env: { ...process.env } });
   assert(r.code === 0, "installed CLI runs regardless of caller cwd");
   void elsewhere;
 
@@ -1692,7 +1978,7 @@ function dirname(p) {
 // filtering, pagination, an empty history, corruption fail-safety, the privacy
 // allowlist, and that the read performs no write and creates no directory.
 // ----------------------------------------------------------------------------
-async function qualifyTimelineCli(runCli, version) {
+async function qualifyTimelineCli(runCli, _version) {
   section("timeline-cli");
   const root = scratch("timeline-cli");
   const projectDir = join(root, "project");
@@ -1707,8 +1993,7 @@ async function qualifyTimelineCli(runCli, version) {
   );
   const readme = join(projectDir, "README.md");
   const j = (args) => runCli([...args, "--data-dir", dataDir, "--json"], { env, cwd: root });
-  const timeline = (extra = []) =>
-    j(["memory", "timeline", "--project-id", PROJECT_ID, ...extra]);
+  const timeline = (extra = []) => j(["memory", "timeline", "--project-id", PROJECT_ID, ...extra]);
 
   // 1. An empty history: a valid EMPTY timeline, exit 0, and no directory made.
   rmSync(dataDir, { recursive: true, force: true });
@@ -1717,20 +2002,32 @@ async function qualifyTimelineCli(runCli, version) {
   let data = safeParse(r.stdout)?.data;
   assert(data?.eventCount === 0, "installed timeline on an empty history returns no events");
   assert(data?.hasMore === false, "installed timeline on an empty history reports hasMore false");
-  assert(data?.nextBeforeSequence === undefined, "installed timeline on an empty history emits no cursor");
+  assert(
+    data?.nextBeforeSequence === undefined,
+    "installed timeline on an empty history emits no cursor",
+  );
   assert(!existsSync(dataDir), "installed timeline created no application-data directory");
 
   // 2. Three captures build a two-comparison timeline.
   writeFileSync(readme, "# T\n\n- [ ] TODO: build the thing\n", "utf8");
-  assert(j(["memory", "capture", projectDir, "--apply"]).code === 0, "installed timeline fixture capture 1");
+  assert(
+    j(["memory", "capture", projectDir, "--apply"]).code === 0,
+    "installed timeline fixture capture 1",
+  );
   writeFileSync(readme, "# T\n\n- [x] DONE: build the thing\n- [ ] TODO: test the thing\n", "utf8");
-  assert(j(["memory", "capture", projectDir, "--apply"]).code === 0, "installed timeline fixture capture 2");
+  assert(
+    j(["memory", "capture", projectDir, "--apply"]).code === 0,
+    "installed timeline fixture capture 2",
+  );
   writeFileSync(
     readme,
     "# T\n\n- [x] DONE: build the thing\n- [x] DONE: test the thing\n- [ ] TODO: ship the thing\n",
     "utf8",
   );
-  assert(j(["memory", "capture", projectDir, "--apply"]).code === 0, "installed timeline fixture capture 3");
+  assert(
+    j(["memory", "capture", projectDir, "--apply"]).code === 0,
+    "installed timeline fixture capture 3",
+  );
 
   // 3. A populated timeline in authoritative capture order.
   r = timeline();
@@ -1742,7 +2039,10 @@ async function qualifyTimelineCli(runCli, version) {
   data = parsedTimeline?.data;
   const events = data?.events ?? [];
   assert(events.length > 0, "installed timeline returns events");
-  assert(data?.eventCount === events.length, "installed timeline eventCount matches the array length");
+  assert(
+    data?.eventCount === events.length,
+    "installed timeline eventCount matches the array length",
+  );
   let ordered = true;
   for (let i = 1; i < events.length; i += 1) {
     const prev = events[i - 1];
@@ -1784,8 +2084,18 @@ async function qualifyTimelineCli(runCli, version) {
       if (!ALLOWED.includes(key)) extraField = key;
     }
   }
-  assert(extraField === null, "installed timeline events expose only allow-listed fields", extraField ?? "");
-  for (const forbidden of ["evidenceRefs", "previousValue", "currentValue", "stateFingerprint", "contentFingerprint"]) {
+  assert(
+    extraField === null,
+    "installed timeline events expose only allow-listed fields",
+    extraField ?? "",
+  );
+  for (const forbidden of [
+    "evidenceRefs",
+    "previousValue",
+    "currentValue",
+    "stateFingerprint",
+    "contentFingerprint",
+  ]) {
     assert(!r.stdout.includes(forbidden), `installed timeline output carries no ${forbidden}`);
   }
   assert(!r.stdout.includes(dataDir), "installed timeline output carries no data-directory path");
@@ -1793,15 +2103,27 @@ async function qualifyTimelineCli(runCli, version) {
 
   // 5. Determinism and the other two output modes.
   assert(timeline().stdout === r.stdout, "installed timeline output is deterministic");
-  const brief = runCli(["memory", "timeline", "--project-id", PROJECT_ID, "--data-dir", dataDir], { env, cwd: root });
-  assert(brief.code === 0 && newlineTerminated(brief.stdout), "installed timeline brief mode exits 0, newline-terminated");
+  const brief = runCli(["memory", "timeline", "--project-id", PROJECT_ID, "--data-dir", dataDir], {
+    env,
+    cwd: root,
+  });
+  assert(
+    brief.code === 0 && newlineTerminated(brief.stdout),
+    "installed timeline brief mode exits 0, newline-terminated",
+  );
   const markdown = runCli(
     ["memory", "timeline", "--project-id", PROJECT_ID, "--data-dir", dataDir, "--markdown"],
     { env, cwd: root },
   );
   assert(markdown.code === 0, "installed timeline markdown mode exits 0");
-  assert(markdown.stdout.includes("# OH MY PM Memory Timeline"), "installed timeline markdown has its heading");
-  assert(markdown.stdout.includes("### Capture #3"), "installed timeline markdown groups by capture");
+  assert(
+    markdown.stdout.includes("# OH MY PM Memory Timeline"),
+    "installed timeline markdown has its heading",
+  );
+  assert(
+    markdown.stdout.includes("### Capture #3"),
+    "installed timeline markdown groups by capture",
+  );
   assert(newlineTerminated(markdown.stdout), "installed timeline markdown newline-terminated");
 
   // 6. Filters.
@@ -1832,7 +2154,11 @@ async function qualifyTimelineCli(runCli, version) {
   const seen = [];
   let before;
   for (let guard = 0; guard < 12; guard += 1) {
-    const page = timeline(["--limit", "1", ...(before !== undefined ? ["--before-sequence", String(before)] : [])]);
+    const page = timeline([
+      "--limit",
+      "1",
+      ...(before !== undefined ? ["--before-sequence", String(before)] : []),
+    ]);
     if (page.code !== 0) break;
     const pageData = safeParse(page.stdout)?.data;
     for (const e of pageData?.events ?? []) seen.push(e.eventId);
@@ -1843,7 +2169,10 @@ async function qualifyTimelineCli(runCli, version) {
     JSON.stringify(seen) === JSON.stringify(events.map((e) => e.eventId)),
     "installed timeline pagination visits every event exactly once, in order",
   );
-  assert(new Set(seen).size === seen.length, "installed timeline pagination never duplicates an event");
+  assert(
+    new Set(seen).size === seen.length,
+    "installed timeline pagination never duplicates an event",
+  );
   const bounded = timeline(["--before-sequence", "3"]);
   assert(
     (safeParse(bounded.stdout)?.data?.events ?? []).every((e) => e.captureSequence < 3),
@@ -1868,7 +2197,10 @@ async function qualifyTimelineCli(runCli, version) {
   // The limit bounds themselves are accepted.
   assert(timeline(["--limit", "1"]).code === 0, "installed timeline accepts --limit 1");
   assert(timeline(["--limit", "100"]).code === 0, "installed timeline accepts --limit 100");
-  assert(safeParse(timeline().stdout)?.data?.limit === 20, "installed timeline default limit is 20");
+  assert(
+    safeParse(timeline().stdout)?.data?.limit === 20,
+    "installed timeline default limit is 20",
+  );
 
   // 9. An unknown project is a valid empty timeline, not a failure.
   const unknown = runCli(
@@ -1876,7 +2208,10 @@ async function qualifyTimelineCli(runCli, version) {
     { env, cwd: root },
   );
   assert(unknown.code === 0, "installed timeline on an unknown project exits 0");
-  assert(safeParse(unknown.stdout)?.data?.eventCount === 0, "installed timeline on an unknown project returns no events");
+  assert(
+    safeParse(unknown.stdout)?.data?.eventCount === 0,
+    "installed timeline on an unknown project returns no events",
+  );
 
   // 10. No project root and no project config are required.
   const bare = scratch("timeline-bare");
@@ -1885,7 +2220,10 @@ async function qualifyTimelineCli(runCli, version) {
     { env, cwd: bare },
   );
   assert(bareRun.code === 0, "installed timeline needs no project root or config");
-  assert((safeParse(bareRun.stdout)?.data?.events ?? []).length > 0, "installed timeline works from a bare directory");
+  assert(
+    (safeParse(bareRun.stdout)?.data?.events ?? []).length > 0,
+    "installed timeline works from a bare directory",
+  );
 
   // 11. ZERO writes: the store is byte-identical after many reads.
   const beforeTree = hashTree(join(dataDir, "project-brain"));
@@ -1893,7 +2231,10 @@ async function qualifyTimelineCli(runCli, version) {
   timeline(["--limit", "1"]);
   timeline(["--category", firstCategory]);
   timeline(["--kind", "risk", "--before-sequence", "3"]);
-  runCli(["memory", "timeline", "--project-id", PROJECT_ID, "--data-dir", dataDir, "--markdown"], { env, cwd: root });
+  runCli(["memory", "timeline", "--project-id", PROJECT_ID, "--data-dir", dataDir, "--markdown"], {
+    env,
+    cwd: root,
+  });
   const afterTree = hashTree(join(dataDir, "project-brain"));
   assert(treesEqual(beforeTree, afterTree), "installed timeline performs zero writes");
   const storeFiles = [];
@@ -1907,9 +2248,15 @@ async function qualifyTimelineCli(runCli, version) {
   };
   walkStore(join(dataDir, "project-brain"));
   assert(!storeFiles.some((f) => f.endsWith(".lock")), "installed timeline acquires no lock");
-  assert(!storeFiles.some((f) => f.includes("staging")), "installed timeline leaves no staging directory");
+  assert(
+    !storeFiles.some((f) => f.includes("staging")),
+    "installed timeline leaves no staging directory",
+  );
   assert(!storeFiles.some((f) => f.includes("backups")), "installed timeline leaves no backup");
-  assert(!existsSync(join(projectDir, "project-brain")), "installed timeline writes nothing into the project");
+  assert(
+    !existsSync(join(projectDir, "project-brain")),
+    "installed timeline writes nothing into the project",
+  );
 
   // 12. Corruption fails CLOSED with no partial stdout.
   const corruptData = join(root, "corrupt-data");
@@ -1926,15 +2273,26 @@ async function qualifyTimelineCli(runCli, version) {
   };
   walkCorrupt(corruptData);
   const snapshotFile = corruptFiles.find((f) => f.includes("snapshots"));
-  if (assert(snapshotFile !== undefined, "installed timeline corruption fixture has a snapshot record")) {
+  if (
+    assert(
+      snapshotFile !== undefined,
+      "installed timeline corruption fixture has a snapshot record",
+    )
+  ) {
     writeFileSync(snapshotFile, "{ not valid json", "utf8");
     const corrupted = runCli(
       ["memory", "timeline", "--project-id", PROJECT_ID, "--data-dir", corruptData, "--json"],
       { env, cwd: root },
     );
     assert(corrupted.code !== 0, "installed timeline over a corrupt store exits nonzero");
-    assert(corrupted.stdout === "", "installed timeline over a corrupt store emits no partial stdout");
-    assert(corrupted.stderr !== "", "installed timeline over a corrupt store reports a controlled error");
+    assert(
+      corrupted.stdout === "",
+      "installed timeline over a corrupt store emits no partial stdout",
+    );
+    assert(
+      corrupted.stderr !== "",
+      "installed timeline over a corrupt store reports a controlled error",
+    );
     assert(
       !corrupted.stderr.includes(corruptData),
       "installed timeline corruption error leaks no data-directory path",
@@ -1950,7 +2308,10 @@ async function qualifyTimelineCli(runCli, version) {
   ]) {
     const legacy = j(["memory", sub, ...extra]);
     assert(legacy.code === 0, `installed memory ${sub} still exits 0 alongside the timeline`);
-    assert(safeParse(legacy.stdout)?.command === `memory.${sub}`, `installed memory ${sub} envelope unchanged`);
+    assert(
+      safeParse(legacy.stdout)?.command === `memory.${sub}`,
+      `installed memory ${sub} envelope unchanged`,
+    );
   }
 }
 
@@ -1976,11 +2337,20 @@ async function qualifyTimelineMcp(prefix, versionDir) {
   // that same standard location (no --data-dir) under the isolated HOME.
   const cli = (args) => runCli([...args, "--json"], { env, cwd: root });
   writeFileSync(readme, "# M\n\n- [ ] TODO: alpha\n", "utf8");
-  assert(cli(["memory", "capture", projectDir, "--apply"]).code === 0, "MCP timeline fixture capture 1");
+  assert(
+    cli(["memory", "capture", projectDir, "--apply"]).code === 0,
+    "MCP timeline fixture capture 1",
+  );
   writeFileSync(readme, "# M\n\n- [x] DONE: alpha\n- [ ] TODO: beta\n", "utf8");
-  assert(cli(["memory", "capture", projectDir, "--apply"]).code === 0, "MCP timeline fixture capture 2");
+  assert(
+    cli(["memory", "capture", projectDir, "--apply"]).code === 0,
+    "MCP timeline fixture capture 2",
+  );
   writeFileSync(readme, "# M\n\n- [x] DONE: alpha\n- [x] DONE: beta\n- [ ] TODO: gamma\n", "utf8");
-  assert(cli(["memory", "capture", projectDir, "--apply"]).code === 0, "MCP timeline fixture capture 3");
+  assert(
+    cli(["memory", "capture", projectDir, "--apply"]).code === 0,
+    "MCP timeline fixture capture 3",
+  );
 
   // Resolve the installed MCP command exactly as the other MCP sections do: the
   // POSIX shim, or Node plus the installed entry script on Windows (a .cmd shim
@@ -2008,7 +2378,13 @@ async function qualifyTimelineMcp(prefix, versionDir) {
     return;
   }
 
-  const transport = new StdioClientTransport({ command, args, cwd: versionDir, env, stderr: "pipe" });
+  const transport = new StdioClientTransport({
+    command,
+    args,
+    cwd: versionDir,
+    env,
+    stderr: "pipe",
+  });
   const stderrChunks = [];
   if (transport.stderr) transport.stderr.on("data", (c) => stderrChunks.push(c.toString()));
   const client = new Client({ name: "omp-timeline-qual", version: "0.0.0" });
@@ -2026,7 +2402,10 @@ async function qualifyTimelineMcp(prefix, versionDir) {
     assert(!populated.isError, "MCP project_timeline succeeds over a real store");
     const sc = populated.structuredContent ?? {};
     assert(sc.schemaVersion === 1, "MCP project_timeline reports schemaVersion 1");
-    assert(sc.chronology === "capture-order", "MCP project_timeline reports capture-order chronology");
+    assert(
+      sc.chronology === "capture-order",
+      "MCP project_timeline reports capture-order chronology",
+    );
     const mcpEvents = sc.events ?? [];
     assert(mcpEvents.length > 0, "MCP project_timeline returns events");
     assert(sc.eventCount === mcpEvents.length, "MCP project_timeline eventCount matches the array");
@@ -2058,11 +2437,17 @@ async function qualifyTimelineMcp(prefix, versionDir) {
       "Authorization",
       "Bearer ",
     ]) {
-      assert(!serialized.includes(forbidden), `MCP project_timeline output carries no ${forbidden}`);
+      assert(
+        !serialized.includes(forbidden),
+        `MCP project_timeline output carries no ${forbidden}`,
+      );
     }
     assert(!serialized.includes(home), "MCP project_timeline output leaks no data-root path");
     assert(!serialized.includes(projectDir), "MCP project_timeline output leaks no project path");
-    assert(!/\/Users\/|\/home\/|[A-Z]:\\/.test(serialized), "MCP project_timeline output leaks no absolute path");
+    assert(
+      !/\/Users\/|\/home\/|[A-Z]:\\/.test(serialized),
+      "MCP project_timeline output leaks no absolute path",
+    );
     const ALLOWED_MCP = [
       "eventId",
       "snapshotId",
@@ -2082,7 +2467,11 @@ async function qualifyTimelineMcp(prefix, versionDir) {
     for (const e of mcpEvents) {
       for (const key of Object.keys(e)) if (!ALLOWED_MCP.includes(key)) mcpExtra = key;
     }
-    assert(mcpExtra === null, "MCP project_timeline events expose only allow-listed fields", mcpExtra ?? "");
+    assert(
+      mcpExtra === null,
+      "MCP project_timeline events expose only allow-listed fields",
+      mcpExtra ?? "",
+    );
 
     // 3. Determinism.
     const again = await client.callTool({
@@ -2109,7 +2498,9 @@ async function qualifyTimelineMcp(prefix, versionDir) {
       arguments: { projectId: PROJECT_ID, category: mcpEvents[0].category },
     });
     assert(
-      (categoryFiltered.structuredContent?.events ?? []).every((e) => e.category === mcpEvents[0].category),
+      (categoryFiltered.structuredContent?.events ?? []).every(
+        (e) => e.category === mcpEvents[0].category,
+      ),
       "MCP project_timeline category filter is exact",
     );
 
@@ -2119,7 +2510,11 @@ async function qualifyTimelineMcp(prefix, versionDir) {
     for (let guard = 0; guard < 12; guard += 1) {
       const page = await client.callTool({
         name: "project_timeline",
-        arguments: { projectId: PROJECT_ID, limit: 1, ...(cursor !== undefined ? { beforeSequence: cursor } : {}) },
+        arguments: {
+          projectId: PROJECT_ID,
+          limit: 1,
+          ...(cursor !== undefined ? { beforeSequence: cursor } : {}),
+        },
       });
       if (page.isError) break;
       const pageSc = page.structuredContent ?? {};
@@ -2131,7 +2526,10 @@ async function qualifyTimelineMcp(prefix, versionDir) {
       JSON.stringify(pageSeen) === JSON.stringify(mcpEvents.map((e) => e.eventId)),
       "MCP project_timeline pagination visits every event exactly once",
     );
-    assert(new Set(pageSeen).size === pageSeen.length, "MCP project_timeline pagination never duplicates");
+    assert(
+      new Set(pageSeen).size === pageSeen.length,
+      "MCP project_timeline pagination never duplicates",
+    );
 
     // 6. An unknown project is a valid empty result.
     const unknown = await client.callTool({
@@ -2139,7 +2537,10 @@ async function qualifyTimelineMcp(prefix, versionDir) {
       arguments: { projectId: "no-such-project-at-all" },
     });
     assert(!unknown.isError, "MCP project_timeline on an unknown project is not an error");
-    assert(unknown.structuredContent?.eventCount === 0, "MCP project_timeline on an unknown project returns no events");
+    assert(
+      unknown.structuredContent?.eventCount === 0,
+      "MCP project_timeline on an unknown project returns no events",
+    );
 
     // 7. Bounded input: over the maximum limit is a controlled error.
     const overLimit = await client.callTool({
@@ -2154,10 +2555,16 @@ async function qualifyTimelineMcp(prefix, versionDir) {
     assert(badCategory.isError === true, "MCP project_timeline rejects an unknown category");
 
     // 8. ZERO writes across every call above.
-    assert(treesEqual(beforeTree, hashTree(storeRoot)), "MCP project_timeline performs zero writes");
+    assert(
+      treesEqual(beforeTree, hashTree(storeRoot)),
+      "MCP project_timeline performs zero writes",
+    );
     assert(stderrChunks.join("").trim() === "", "MCP project_timeline leaves stderr empty");
   } catch (e) {
-    bad("timeline-mcp", `MCP timeline qualification threw: ${e && e.message ? e.message : "unknown"}`);
+    bad(
+      "timeline-mcp",
+      `MCP timeline qualification threw: ${e && e.message ? e.message : "unknown"}`,
+    );
   } finally {
     await safeClose({ client, transport });
   }
@@ -2172,7 +2579,7 @@ async function qualifyTimelineMcp(prefix, versionDir) {
 // the store format and schema are unchanged between the two releases, which is
 // itself the invariant under test and is asserted from the store's own manifest.
 // ----------------------------------------------------------------------------
-async function qualifyV031StoreCompatibility(runCli, version) {
+async function qualifyV031StoreCompatibility(runCli, _version) {
   section("v0.3.1-compatibility");
   const root = scratch("v031-compat");
   const projectDir = join(root, "project");
@@ -2190,16 +2597,25 @@ async function qualifyV031StoreCompatibility(runCli, version) {
 
   // Build the store using only the six v0.3.1 subcommands.
   writeFileSync(readme, "# C\n\n- [ ] TODO: one\n", "utf8");
-  assert(j(["memory", "capture", projectDir, "--apply"]).code === 0, "v0.3.1-shaped capture 1 succeeds");
+  assert(
+    j(["memory", "capture", projectDir, "--apply"]).code === 0,
+    "v0.3.1-shaped capture 1 succeeds",
+  );
   writeFileSync(readme, "# C\n\n- [x] DONE: one\n- [ ] TODO: two\n", "utf8");
-  assert(j(["memory", "capture", projectDir, "--apply"]).code === 0, "v0.3.1-shaped capture 2 succeeds");
+  assert(
+    j(["memory", "capture", projectDir, "--apply"]).code === 0,
+    "v0.3.1-shaped capture 2 succeeds",
+  );
 
   // The store declares schema 1 / format 2 and needs no migration.
   const status = j(["memory", "status", "--project-id", PROJECT_ID]);
   const statusData = safeParse(status.stdout)?.data;
   assert(status.code === 0, "v0.3.1-shaped store status exits 0");
   assert(statusData?.status === "healthy", "v0.3.1-shaped store is healthy under v0.4");
-  assert(statusData?.projectBrainSchemaVersion === 1, "v0.3.1-shaped store reports Project Brain schema 1");
+  assert(
+    statusData?.projectBrainSchemaVersion === 1,
+    "v0.3.1-shaped store reports Project Brain schema 1",
+  );
   assert(statusData?.storeFormatVersion === 2, "v0.3.1-shaped store reports store format 2");
 
   // Record the store bytes, then exercise every read surface.
@@ -2216,15 +2632,23 @@ async function qualifyV031StoreCompatibility(runCli, version) {
   // The new timeline command reads the v0.3.1-shaped store and derives events.
   const timelineRun = j(["memory", "timeline", "--project-id", PROJECT_ID]);
   const timelineData = safeParse(timelineRun.stdout)?.data;
-  assert((timelineData?.events ?? []).length > 0, "v0.4 timeline derives events from a v0.3.1-shaped store");
+  assert(
+    (timelineData?.events ?? []).length > 0,
+    "v0.4 timeline derives events from a v0.3.1-shaped store",
+  );
   assert(
     (timelineData?.events ?? []).every((e) => e.captureSequence === 2),
     "v0.4 timeline attributes the single comparison to capture 2",
   );
 
   // NO migration was performed and nothing was written by any read.
-  assert(treesEqual(beforeTree, hashTree(join(dataDir, "project-brain"))), "no read migrated or wrote the store");
-  const migrationRecorded = collectText(join(dataDir, "project-brain")).includes("migrationHistory\":[{");
+  assert(
+    treesEqual(beforeTree, hashTree(join(dataDir, "project-brain"))),
+    "no read migrated or wrote the store",
+  );
+  const migrationRecorded = collectText(join(dataDir, "project-brain")).includes(
+    'migrationHistory":[{',
+  );
   assert(!migrationRecorded, "no migration was recorded in the store manifest");
   const backups = join(dataDir, "project-brain", "v1");
   let hasBackup = false;
@@ -2241,5 +2665,8 @@ async function qualifyV031StoreCompatibility(runCli, version) {
   walkBackups(backups);
   assert(!hasBackup, "no migration backup was created (no migration occurred)");
   // The status surface never reports a migration requirement.
-  assert(statusData?.status !== "migrationRequired", "the v0.3.1-shaped store never reports migrationRequired");
+  assert(
+    statusData?.status !== "migrationRequired",
+    "the v0.3.1-shaped store never reports migrationRequired",
+  );
 }

@@ -113,9 +113,7 @@ describe("collectInstallerDecisionReviewReasons", () => {
 
   it("flags rollback impact with no changes", () => {
     const base = input();
-    base.rollbackImpact.preview.operations = [
-      { kind: "unchanged", path: "bin/oh-my-pm" },
-    ];
+    base.rollbackImpact.preview.operations = [{ kind: "unchanged", path: "bin/oh-my-pm" }];
     const sections = createInstallerDecisionSections(base);
     expect(collectInstallerDecisionReviewReasons(base, sections)).toContain(
       "rollback_impact_no_changes",

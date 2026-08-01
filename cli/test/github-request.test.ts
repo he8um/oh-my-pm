@@ -7,7 +7,12 @@ function contextOf(request: ReturnType<typeof createGitHubRuntimeRequest>) {
     source: string;
     request: string;
     context: {
-      providerRequests: Array<{ providerId: string; action: string; query: string; limit?: number }>;
+      providerRequests: Array<{
+        providerId: string;
+        action: string;
+        query: string;
+        limit?: number;
+      }>;
     };
   };
   return payload;
@@ -44,7 +49,12 @@ describe("createGitHubRuntimeRequest", () => {
     const payload = contextOf(request);
     expect(payload.source).toBe("cli");
     expect(payload.context.providerRequests).toEqual([
-      { providerId: "github", action: "list", query: "owner/repo::source=overview&state=closed", limit: 25 },
+      {
+        providerId: "github",
+        action: "list",
+        query: "owner/repo::source=overview&state=closed",
+        limit: 25,
+      },
     ]);
   });
 
@@ -71,15 +81,31 @@ describe("createGitHubRuntimeRequest", () => {
     const request = createGitHubRuntimeRequest({
       operation: "risks",
       repository: "owner/repo",
-      selection: { mode: "search", query: "secret-launch-blocker", state: "open", kind: "all", limit: 5 },
+      selection: {
+        mode: "search",
+        query: "secret-launch-blocker",
+        state: "open",
+        kind: "all",
+        limit: 5,
+      },
       caller: "cli",
     });
     expect(contextOf(request).request).not.toContain("secret-launch-blocker");
   });
 
   it("uses a caller-specific id and never embeds a token or headers", () => {
-    const cli = createGitHubRuntimeRequest({ operation: "brief", repository: "owner/repo", selection: overview, caller: "cli" });
-    const mcp = createGitHubRuntimeRequest({ operation: "brief", repository: "owner/repo", selection: overview, caller: "mcp" });
+    const cli = createGitHubRuntimeRequest({
+      operation: "brief",
+      repository: "owner/repo",
+      selection: overview,
+      caller: "cli",
+    });
+    const mcp = createGitHubRuntimeRequest({
+      operation: "brief",
+      repository: "owner/repo",
+      selection: overview,
+      caller: "mcp",
+    });
     expect(cli.id).toBe("cli-github-brief");
     expect(mcp.id).toBe("mcp-github-brief");
     const serialized = JSON.stringify(cli);

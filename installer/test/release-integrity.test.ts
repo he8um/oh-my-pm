@@ -10,8 +10,7 @@ import {
   verifyReleaseMetadataAgainstArchive,
 } from "../src/index.js";
 
-const input = (): ReleaseIntegrityVerificationInput =>
-  exampleReleaseIntegrityVerificationInput();
+const input = (): ReleaseIntegrityVerificationInput => exampleReleaseIntegrityVerificationInput();
 
 describe("expectedPlaceholderSignatureValue", () => {
   it("is deterministic and matches the placeholder format", () => {

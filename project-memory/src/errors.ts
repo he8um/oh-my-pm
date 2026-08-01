@@ -61,7 +61,11 @@ export function corruption(message: string, recoveryHint?: string): ProjectMemor
 
 /** Construct an integrity-mismatch error (OMP-MEM-1005). */
 export function integrityMismatch(message: string, recoveryHint?: string): ProjectMemoryError {
-  return new ProjectMemoryError(PROJECT_MEMORY_ERROR_CODES.integrityMismatch, message, recoveryHint);
+  return new ProjectMemoryError(
+    PROJECT_MEMORY_ERROR_CODES.integrityMismatch,
+    message,
+    recoveryHint,
+  );
 }
 
 /** Construct an unsupported-store-version error (OMP-MEM-1006). */
@@ -78,7 +82,11 @@ export function unsupportedStoreVersion(
 
 /** Construct a migration-required error (OMP-MEM-1007). */
 export function migrationRequired(message: string, recoveryHint?: string): ProjectMemoryError {
-  return new ProjectMemoryError(PROJECT_MEMORY_ERROR_CODES.migrationRequired, message, recoveryHint);
+  return new ProjectMemoryError(
+    PROJECT_MEMORY_ERROR_CODES.migrationRequired,
+    message,
+    recoveryHint,
+  );
 }
 
 /** Construct a record-conflict error (OMP-MEM-1008). */

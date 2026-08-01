@@ -19,9 +19,7 @@ import type {
 } from "./types.js";
 
 /** Create a Project Brain Runtime from its dependency ports. */
-export function createProjectBrainRuntime(
-  deps: ProjectBrainRuntimeDeps,
-): ProjectBrainRuntime {
+export function createProjectBrainRuntime(deps: ProjectBrainRuntimeDeps): ProjectBrainRuntime {
   return {
     capture(input: CaptureProjectInput): Promise<CaptureProjectResult> {
       return captureProject(deps, input);

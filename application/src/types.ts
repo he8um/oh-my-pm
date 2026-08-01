@@ -17,11 +17,7 @@ export type ProjectWorkflowOperation = "brief" | "risks" | "next" | "handoff";
  * Commands dispatched directly to the Runtime. The four project workflows plus
  * the two runtime-identity commands and the free-form planning command.
  */
-export type RuntimeWorkflowCommand =
-  | "status"
-  | "doctor"
-  | "plan"
-  | ProjectWorkflowOperation;
+export type RuntimeWorkflowCommand = "status" | "doctor" | "plan" | ProjectWorkflowOperation;
 
 /** Bounded counters describing a completed local document load. */
 export type ProjectDocumentSummary = {

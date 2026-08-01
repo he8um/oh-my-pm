@@ -57,7 +57,7 @@ The four GitHub workflow tools (`github_project_brief`, `github_project_risks`,
   "source": "item",
   "number": 123,
   "includeComments": true,
-  "commentLimit": 20
+  "commentLimit": 20,
 }
 ```
 

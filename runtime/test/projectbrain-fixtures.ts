@@ -2,11 +2,7 @@
 // deterministic in-memory memory port, a scriptable observation port, the real
 // pure Skills deriver, and the real WASM Kernel binding. Test-only; never shipped.
 
-import type {
-  EvidenceRecord,
-  NormalizedProviderItem,
-  ProjectSnapshot,
-} from "@oh-my-pm/contracts";
+import type { EvidenceRecord, NormalizedProviderItem, ProjectSnapshot } from "@oh-my-pm/contracts";
 import { createNodeWasmProjectBrainKernelApi } from "@oh-my-pm/kernel";
 import { deriveProjectBrainState } from "@oh-my-pm/skills";
 import type {
@@ -42,8 +38,8 @@ export function inMemoryMemoryPort(): RecordingMemoryPort {
   const snapshotStore = new Map<string, ProjectSnapshot>();
   const evidenceStore = new Map<string, EvidenceRecord>();
   const commits: MemoryCommitInput[] = [];
-  let orderedSnapshotIds: string[] = [];
-  let evidenceIds: string[] = [];
+  const orderedSnapshotIds: string[] = [];
+  const evidenceIds: string[] = [];
   let latest: string | null = null;
   let failMessage: string | null = null;
 
@@ -132,9 +128,7 @@ export function scriptedObservationPort(
   const executionOrder: string[] = [];
   return {
     executionOrder,
-    async observe(
-      request: ProjectObservationRequest,
-    ): Promise<ProjectObservationResult> {
+    async observe(request: ProjectObservationRequest): Promise<ProjectObservationResult> {
       executionOrder.push(request.observationId);
       const scripted = script.get(request.observationId);
       if (scripted === undefined || !scripted.ok) {

@@ -1,11 +1,7 @@
 // Deterministic manifest validation helpers. Each reason appears at most
 // once, in a fixed documented order.
 
-import type {
-  InstallManifest,
-  PackageManifest,
-  RollbackManifest,
-} from "@oh-my-pm/contracts";
+import type { InstallManifest, PackageManifest, RollbackManifest } from "@oh-my-pm/contracts";
 import { validatePackageFileEntries } from "./package-manifest.js";
 
 /** Whether a string has non-whitespace content. */

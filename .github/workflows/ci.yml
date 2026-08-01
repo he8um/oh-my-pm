@@ -12,9 +12,29 @@ on:
 permissions:
   contents: read
 
+# Supersede in-flight validation of the SAME pull request when a new commit is
+# pushed to it. `cancel-in-progress` is deliberately an expression rather than a
+# literal `true`:
+#
+#   - pull_request runs group by PR number and MAY be cancelled, because a newer
+#     commit on that PR has already made the older run's result irrelevant;
+#   - push runs on main group by ref and are NEVER cancelled, because a main run
+#     is the evidence a release qualifies against. A merge landing while an
+#     earlier main run is still going must not silently void that run.
+#
+# Release and publication workflows set their own non-cancelable concurrency and
+# are unaffected by this group; nothing here can cancel a release job.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    # Observed 6.5-8.4 min across the last 10 runs; 25 min is roughly 3x the
+    # worst case, leaving room for a cold Rust/wasm-bindgen build without
+    # letting a hung job burn a full six-hour default.
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -40,8 +60,13 @@ jobs:
       - name: Install wasm-bindgen CLI
         run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
 
+      # --frozen-lockfile makes CI installation reproducible: it fails rather
+      # than silently resolving a new dependency graph when pnpm-lock.yaml does
+      # not match package.json. Without it, a lockfile that was never committed
+      # would still produce a green run here and a different tree at release
+      # time. This is the same flag the release workflow already uses.
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build contracts
         run: pnpm build:contracts
@@ -51,6 +76,15 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      # Static quality runs after the build (type-aware lint rules need the
+      # generated contracts to exist) and before the tests, so a policy
+      # violation is reported as itself rather than as a test failure.
+      - name: Lint
+        run: pnpm lint
+
+      - name: Formatting check
+        run: pnpm format:check
 
       # Split into attributable steps so a future failure names the subsystem
       # instead of surfacing as one opaque "Test" failure. Unit tests keep full
@@ -64,6 +98,15 @@ jobs:
 
       - name: Rust tests
         run: pnpm test:rust
+
+      # The Rust gates the release notes recorded as deferred: the generated
+      # contracts are emitted rustfmt-canonical and the hand-written sources
+      # were normalized, so the baseline is clean and these can fail the build.
+      - name: Rust formatting
+        run: pnpm rust:fmt:check
+
+      - name: Clippy
+        run: pnpm rust:clippy
 
       - name: Validate
         run: pnpm validate
@@ -283,6 +326,9 @@ jobs:
   windows-release-install:
     name: Windows release install smoke
     runs-on: windows-latest
+    # Observed max 6.5 min. Windows runners are the slowest and most variable
+    # of the three platforms, so this carries more headroom than the Linux job.
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -308,8 +354,10 @@ jobs:
       - name: Install wasm-bindgen CLI
         run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
 
+      # Reproducible installation, matching the Linux validate job: the Windows
+      # tree must be resolved from the same committed lockfile.
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build contracts
         run: pnpm build:contracts

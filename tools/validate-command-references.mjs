@@ -222,7 +222,7 @@ function invocationPatterns(name) {
   //    containing regex syntax (the generic flag shapes) are used verbatim;
   //    plain words are escaped.
   const subcommands = CLI_SUBCOMMANDS.map((entry) =>
-    /[\[\]\\]/.test(entry) ? entry : escapeRegExp(entry),
+    /[[\]\\]/.test(entry) ? entry : escapeRegExp(entry),
   ).join("|");
   patterns.push({
     re: new RegExp(`${boundary}${n}\\s+(?:${subcommands})(?![\\w-])`, "g"),

@@ -67,10 +67,7 @@ describe("validatePackageManifest", () => {
       ...validPackage,
       files: ["a", "a", "b", "b", " ", " "],
     });
-    expect(reasons).toEqual([
-      "package_file_path_must_not_be_empty",
-      "duplicate_package_file_path",
-    ]);
+    expect(reasons).toEqual(["package_file_path_must_not_be_empty", "duplicate_package_file_path"]);
   });
 
   it("accepts matching rich file entries", () => {

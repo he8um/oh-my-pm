@@ -74,7 +74,13 @@ function stubExecutor(over?: Partial<McpProjectChangesExecution>): McpProjectCha
           },
         },
         changes: [
-          { category: "added", itemKind: "task", itemId: "task-1", title: "Ship it", evidenceCount: 2 },
+          {
+            category: "added",
+            itemKind: "task",
+            itemId: "task-1",
+            title: "Ship it",
+            evidenceCount: 2,
+          },
         ],
       },
     }) as McpProjectChangesExecution;
@@ -89,9 +95,7 @@ describe("project_changes registration", () => {
   });
 
   it("appends project_changes as the eleventh tool when an executor is supplied", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectChanges: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectChanges: stubExecutor() }));
     const names = (await client.listTools()).tools.map((t) => t.name);
     expect(names).toEqual([...TEN_TOOLS, "project_changes"]);
     // The existing ten keep their exact order; project_changes is last.
@@ -100,9 +104,7 @@ describe("project_changes registration", () => {
   });
 
   it("declares read-only, non-destructive, idempotent, closed-world annotations", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectChanges: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectChanges: stubExecutor() }));
     const tool = (await client.listTools()).tools.find((t) => t.name === "project_changes");
     expect(tool).toBeDefined();
     const annotations = (tool as { annotations?: Record<string, unknown> }).annotations ?? {};
@@ -113,13 +115,19 @@ describe("project_changes registration", () => {
   });
 
   it("registers no second Project Brain tool", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectChanges: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectChanges: stubExecutor() }));
     const names = (await client.listTools()).tools.map((t) => t.name);
     const projectBrain = names.filter((n) => n === "project_changes");
     expect(projectBrain).toHaveLength(1);
-    for (const forbidden of ["project_capture", "project_compare", "project_delete", "project_export", "project_migrate", "project_status", "project_history"]) {
+    for (const forbidden of [
+      "project_capture",
+      "project_compare",
+      "project_delete",
+      "project_export",
+      "project_migrate",
+      "project_status",
+      "project_history",
+    ]) {
       expect(names).not.toContain(forbidden);
     }
   });
@@ -127,13 +135,15 @@ describe("project_changes registration", () => {
 
 describe("project_changes result", () => {
   it("returns sanitized Markdown + strict structured content for a compared result", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectChanges: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectChanges: stubExecutor() }));
     const result = (await client.callTool({
       name: "project_changes",
       arguments: { projectId: "p" },
-    })) as { isError?: boolean; content: Array<{ text?: string }>; structuredContent?: Record<string, unknown> };
+    })) as {
+      isError?: boolean;
+      content: Array<{ text?: string }>;
+      structuredContent?: Record<string, unknown>;
+    };
     expect(result.isError).toBeFalsy();
     expect(result.structuredContent?.schemaVersion).toBe(1);
     expect(result.structuredContent?.status).toBe("compared");
@@ -178,14 +188,29 @@ describe("project_changes result", () => {
           returnedChanges: 1,
           truncated: false,
           countsByCategory: {
-            added: 1, removed: 0, resolved: 0, reopened: 0, becameOverdue: 0,
-            noLongerOverdue: 0, severityIncreased: 0, severityDecreased: 0,
-            fresh: 0, stale: 0, evidenceChanged: 0, modified: 0,
+            added: 1,
+            removed: 0,
+            resolved: 0,
+            reopened: 0,
+            becameOverdue: 0,
+            noLongerOverdue: 0,
+            severityIncreased: 0,
+            severityDecreased: 0,
+            fresh: 0,
+            stale: 0,
+            evidenceChanged: 0,
+            modified: 0,
           },
         },
         changes: [
           // A title that (pathologically) contains a structural leak marker.
-          { category: "added", itemKind: "task", itemId: "t1", title: 'leak previousValue here', evidenceCount: 0 },
+          {
+            category: "added",
+            itemKind: "task",
+            itemId: "t1",
+            title: "leak previousValue here",
+            evidenceCount: 0,
+          },
         ],
       },
     });
@@ -223,9 +248,7 @@ describe("project_changes result", () => {
   });
 
   it("rejects an out-of-range limit at the schema boundary", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectChanges: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectChanges: stubExecutor() }));
     const bad = (await client.callTool({
       name: "project_changes",
       arguments: { projectId: "p", limit: 999 } as never,
@@ -235,15 +258,23 @@ describe("project_changes result", () => {
   });
 
   it("does not leak forbidden fields in a compared result", async () => {
-    const client = await connect(
-      createOhMyPmMcpServer({ executeProjectChanges: stubExecutor() }),
-    );
+    const client = await connect(createOhMyPmMcpServer({ executeProjectChanges: stubExecutor() }));
     const result = (await client.callTool({
       name: "project_changes",
       arguments: { projectId: "p" },
     })) as { structuredContent?: Record<string, unknown>; content: Array<{ text?: string }> };
     const serialized = `${JSON.stringify(result.structuredContent)}\n${result.content[0]?.text ?? ""}`;
-    for (const forbidden of ["previousValue", "currentValue", "evidenceRefs", "runtimeResponse", "providerResponses", '"trace"', "fingerprintInput", "projectRoot", "dataRoot"]) {
+    for (const forbidden of [
+      "previousValue",
+      "currentValue",
+      "evidenceRefs",
+      "runtimeResponse",
+      "providerResponses",
+      '"trace"',
+      "fingerprintInput",
+      "projectRoot",
+      "dataRoot",
+    ]) {
       expect(serialized).not.toContain(forbidden);
     }
   });

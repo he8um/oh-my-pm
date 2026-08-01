@@ -47,21 +47,21 @@ The project is local-first, validation-first, and designed to keep project execu
 
 The implemented architecture is organized around these parts:
 
-| Area | Responsibility |
-| --- | --- |
-| Contracts | Generated TypeScript and Rust types shared by every layer |
-| Kernel | Pure Rust/WASM control plane for validation, state, feature flags, and update safety |
-| Application | Shared use cases consumed by every presentation surface |
-| Runtime | Request orchestration and execution flow |
-| Planner | Task planning and dependency shaping |
-| Context Providers | Read-only project context integrations |
-| Skills | Deterministic project-management transformations |
-| Project Memory | Local application-state write boundary for Project Brain records |
-| CLI | Command-line presentation adapter |
-| MCP server | Read-only stdio Model Context Protocol adapter |
-| Installer | Local installation and update lifecycle |
-| Validation | Structure, boundary, documentation, fixture, and release checks |
-| Release Lifecycle | Controlled release state transitions |
+| Area              | Responsibility                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------ |
+| Contracts         | Generated TypeScript and Rust types shared by every layer                            |
+| Kernel            | Pure Rust/WASM control plane for validation, state, feature flags, and update safety |
+| Application       | Shared use cases consumed by every presentation surface                              |
+| Runtime           | Request orchestration and execution flow                                             |
+| Planner           | Task planning and dependency shaping                                                 |
+| Context Providers | Read-only project context integrations                                               |
+| Skills            | Deterministic project-management transformations                                     |
+| Project Memory    | Local application-state write boundary for Project Brain records                     |
+| CLI               | Command-line presentation adapter                                                    |
+| MCP server        | Read-only stdio Model Context Protocol adapter                                       |
+| Installer         | Local installation and update lifecycle                                              |
+| Validation        | Structure, boundary, documentation, fixture, and release checks                      |
+| Release Lifecycle | Controlled release state transitions                                                 |
 
 CLI and MCP are presentation adapters over the same application use cases:
 
@@ -257,14 +257,8 @@ The configuration controls which Markdown documents are analyzed and may lower t
 {
   "version": 1,
   "documents": {
-    "include": [
-      "README.md",
-      "docs/**/*.md"
-    ],
-    "exclude": [
-      "docs/archive/**",
-      "docs/drafts/**"
-    ],
+    "include": ["README.md", "docs/**/*.md"],
+    "exclude": ["docs/archive/**", "docs/drafts/**"],
     "maxFiles": 100,
     "maxBytesPerFile": 131072,
     "maxTotalBytes": 1048576
@@ -370,9 +364,7 @@ server directly instead:
   "mcpServers": {
     "oh-my-pm": {
       "command": "node",
-      "args": [
-        "/absolute/path/to/oh-my-pm/mcp-server/bin/ohmypm-mcp.mjs"
-      ]
+      "args": ["/absolute/path/to/oh-my-pm/mcp-server/bin/ohmypm-mcp.mjs"]
     }
   }
 }
@@ -384,21 +376,21 @@ server directly instead:
 
 Five release lines have shipped. What is built and released today:
 
-| Capability | State |
-| --- | --- |
-| Deterministic Rust/WASM Kernel | shipped |
-| Contracts generated to TypeScript and Rust | shipped |
-| Runtime, Planner, Skills | shipped |
-| Local Markdown project analysis (`brief`, `risks`, `next`, `handoff`) | shipped |
-| Read-only GitHub provider workflows | shipped |
-| Provider diagnostics (`providers status`, `providers doctor`) | shipped |
-| Project Brain and local Project Memory | shipped (schema 1, store format 2) |
-| Seven `memory` subcommands | shipped |
-| Twelve read-only MCP tools, zero write tools | shipped |
-| Local installation and release bundles | shipped |
-| Deterministic archives and cross-platform installed qualification | shipped |
-| Shared application boundary (`@oh-my-pm/application`) | v0.5.1, published |
-| Local Project Dashboard | planned for v0.6, not implemented |
+| Capability                                                            | State                              |
+| --------------------------------------------------------------------- | ---------------------------------- |
+| Deterministic Rust/WASM Kernel                                        | shipped                            |
+| Contracts generated to TypeScript and Rust                            | shipped                            |
+| Runtime, Planner, Skills                                              | shipped                            |
+| Local Markdown project analysis (`brief`, `risks`, `next`, `handoff`) | shipped                            |
+| Read-only GitHub provider workflows                                   | shipped                            |
+| Provider diagnostics (`providers status`, `providers doctor`)         | shipped                            |
+| Project Brain and local Project Memory                                | shipped (schema 1, store format 2) |
+| Seven `memory` subcommands                                            | shipped                            |
+| Twelve read-only MCP tools, zero write tools                          | shipped                            |
+| Local installation and release bundles                                | shipped                            |
+| Deterministic archives and cross-platform installed qualification     | shipped                            |
+| Shared application boundary (`@oh-my-pm/application`)                 | v0.5.1, published                  |
+| Local Project Dashboard                                               | planned for v0.6, not implemented  |
 
 Active maintenance scope is **v0.5.2**: the shared GitHub application boundary.
 See [`ROADMAP.md`](ROADMAP.md) and [`docs/roadmap.md`](docs/roadmap.md).

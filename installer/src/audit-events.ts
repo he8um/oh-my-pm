@@ -49,9 +49,7 @@ export function createInstallerAuditEvent(input: {
  * decision event, and a completion event. Sequences are contiguous from 1 and
  * the report is never mutated.
  */
-export function createInstallerAuditEvents(
-  input: InstallerAuditEventInput,
-): InstallerAuditEvent[] {
+export function createInstallerAuditEvents(input: InstallerAuditEventInput): InstallerAuditEvent[] {
   const { root, decision } = input;
   const events: InstallerAuditEvent[] = [];
   let sequence = 1;
@@ -73,9 +71,7 @@ export function createInstallerAuditEvents(
           sequence: sequence++,
           kind: "section_evaluated",
           level: section.ok ? "info" : "warning",
-          message: section.ok
-            ? "Section evaluated successfully"
-            : "Section evaluated with issues",
+          message: section.ok ? "Section evaluated successfully" : "Section evaluated with issues",
           root,
           subject: section.name,
         }),
@@ -141,9 +137,7 @@ export function validateInstallerAuditEvents(
     return { ok: false, reasons };
   }
 
-  const sequenceInvalid = events.some(
-    (event, index) => event.sequence !== index + 1,
-  );
+  const sequenceInvalid = events.some((event, index) => event.sequence !== index + 1);
   if (sequenceInvalid) {
     reasons.push("audit_event_sequence_invalid");
   }
@@ -193,24 +187,18 @@ export function createInstallerAuditEventDryRun(
     ok: false,
     events,
     validation,
-    warnings: validation.reasons.map((reason) =>
-      installerWarning(OMP_I_INVALID_PACKAGE, reason),
-    ),
+    warnings: validation.reasons.map((reason) => installerWarning(OMP_I_INVALID_PACKAGE, reason)),
   };
 }
 
 /** Render an event sequence as deterministic markdown with one trailing newline. */
-export function formatInstallerAuditEventsMarkdown(
-  events: readonly InstallerAuditEvent[],
-): string {
+export function formatInstallerAuditEventsMarkdown(events: readonly InstallerAuditEvent[]): string {
   const lines = ["# OH MY PM Installer Audit Events", ""];
   for (const event of events) {
     const body =
       event.subject === undefined ? event.message : `${event.subject} — ${event.message}`;
     const suffix = event.reason === undefined ? "" : ` reason: ${event.reason}`;
-    lines.push(
-      `- \`${event.sequence}\` \`${event.level}\` \`${event.kind}\` ${body}${suffix}`,
-    );
+    lines.push(`- \`${event.sequence}\` \`${event.level}\` \`${event.kind}\` ${body}${suffix}`);
   }
   return `${lines.join("\n")}\n`;
 }

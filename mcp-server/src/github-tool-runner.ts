@@ -26,8 +26,6 @@ export const MCP_GITHUB_RUNTIME_VERSION = OH_MY_PM_MCP_VERSION;
 /** Fixed timestamp for deterministic tests only; not a production default. */
 export const MCP_GITHUB_TEST_NOW = "2026-01-01T00:00:00.000Z";
 export const MCP_GITHUB_DEFAULT_LIMIT = 50;
-const MCP_GITHUB_MIN_LIMIT = 1;
-const MCP_GITHUB_MAX_LIMIT = 100;
 
 const OPERATION_TO_TOOL: Readonly<Record<McpGitHubOperation, McpGitHubToolName>> = {
   brief: "github_project_brief",
@@ -392,7 +390,8 @@ export async function executeMcpGitHubTool(
   const markdown = formatRuntimeResponse(response, "markdown");
   // Bound the public source list by the selection's effective limit (item and
   // repository selections are single-item; overview/issues/PR/search use limit).
-  const sourceCap = selection.mode === "item" || selection.mode === "repository" ? 1 : selection.limit;
+  const sourceCap =
+    selection.mode === "item" || selection.mode === "repository" ? 1 : selection.limit;
 
   return {
     ok: true,
@@ -425,7 +424,8 @@ export function publicSelection(selection: GitHubSourceSelection): McpGitHubSele
       };
       if (selection.includeComments) summary.commentLimit = selection.commentLimit;
       if (selection.includeReviews) summary.reviewLimit = selection.reviewLimit;
-      if (selection.includeReviewComments) summary.reviewCommentLimit = selection.reviewCommentLimit;
+      if (selection.includeReviewComments)
+        summary.reviewCommentLimit = selection.reviewCommentLimit;
       return summary;
     }
     case "search":

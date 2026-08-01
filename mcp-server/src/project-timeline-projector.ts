@@ -212,7 +212,10 @@ export function safeProjectId(value: unknown): string | null {
 
 /** Escape a cell so a Markdown table row/column never breaks or injects. */
 function escapeCell(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\|/g, "\\|")
+    .replace(/[\r\n]+/g, " ");
 }
 
 /**
@@ -250,9 +253,7 @@ export function renderProjectTimelineMarkdown(result: McpProjectTimelineResult):
       );
     }
     const title = event.title !== undefined ? escapeCell(event.title) : "";
-    lines.push(
-      `| ${event.category} | ${event.kind} | ${escapeCell(event.subjectId)} | ${title} |`,
-    );
+    lines.push(`| ${event.category} | ${event.kind} | ${escapeCell(event.subjectId)} | ${title} |`);
   }
   lines.push("");
   return `${lines.join("\n")}\n`;

@@ -108,8 +108,6 @@ export function createInstallerAuditTrailExportDryRun(
     ok: false,
     plan,
     validation,
-    warnings: validation.reasons.map((reason) =>
-      installerWarning(OMP_I_INVALID_PACKAGE, reason),
-    ),
+    warnings: validation.reasons.map((reason) => installerWarning(OMP_I_INVALID_PACKAGE, reason)),
   };
 }

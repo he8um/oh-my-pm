@@ -91,8 +91,18 @@ describe("single-writer lock", () => {
   it("different projects do not contend", async () => {
     const fs = new MemoryFileSystem();
     await fs.mkdirp(layout.locksDir);
-    const a = await acquireLock(fs, lockPathFor(layout, deriveProjectKey("a")), deriveProjectKey("a"), "op-a");
-    const b = await acquireLock(fs, lockPathFor(layout, deriveProjectKey("b")), deriveProjectKey("b"), "op-b");
+    const a = await acquireLock(
+      fs,
+      lockPathFor(layout, deriveProjectKey("a")),
+      deriveProjectKey("a"),
+      "op-a",
+    );
+    const b = await acquireLock(
+      fs,
+      lockPathFor(layout, deriveProjectKey("b")),
+      deriveProjectKey("b"),
+      "op-b",
+    );
     expect(a.path).not.toBe(b.path);
     await a.release();
     await b.release();

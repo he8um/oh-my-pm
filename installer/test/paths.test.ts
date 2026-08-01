@@ -52,12 +52,8 @@ describe("isSafeRelativePath", () => {
 
 describe("joinInstallerPath", () => {
   it("joins a root and relative path without double slashes", () => {
-    expect(joinInstallerPath("/opt/oh-my-pm", "bin/oh-my-pm")).toBe(
-      "/opt/oh-my-pm/bin/oh-my-pm",
-    );
-    expect(joinInstallerPath("/opt/oh-my-pm/", "/bin/oh-my-pm")).toBe(
-      "/opt/oh-my-pm/bin/oh-my-pm",
-    );
+    expect(joinInstallerPath("/opt/oh-my-pm", "bin/oh-my-pm")).toBe("/opt/oh-my-pm/bin/oh-my-pm");
+    expect(joinInstallerPath("/opt/oh-my-pm/", "/bin/oh-my-pm")).toBe("/opt/oh-my-pm/bin/oh-my-pm");
   });
 
   it("joins under the filesystem root", () => {

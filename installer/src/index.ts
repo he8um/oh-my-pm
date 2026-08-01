@@ -254,10 +254,7 @@ export {
   validateReleaseMetadata,
 } from "./release-metadata.js";
 export { createMemoryWriteFilesystem } from "./memory-write-filesystem.js";
-export {
-  createNodeFilesystemAdapter,
-  describeNodeFilesystemAdapter,
-} from "./node-filesystem.js";
+export { createNodeFilesystemAdapter, describeNodeFilesystemAdapter } from "./node-filesystem.js";
 export { createNodeWriteFilesystemAdapter } from "./node-write-filesystem.js";
 export {
   isSafeRelativePath,

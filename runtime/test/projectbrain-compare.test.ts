@@ -75,7 +75,11 @@ describe("compare — no history", () => {
 describe("compare — selection and diff", () => {
   it("compares the latest two snapshots deterministically and writes nothing", async () => {
     const memory = inMemoryMemoryPort();
-    await captureDoc(memory, "# P\n## Next\n- Wire the API\n## Risks\n- Timeline tight", "2026-01-11T00:00:00Z");
+    await captureDoc(
+      memory,
+      "# P\n## Next\n- Wire the API\n## Risks\n- Timeline tight",
+      "2026-01-11T00:00:00Z",
+    );
     await captureDoc(
       memory,
       "# P\n## Next\n- Wire the API\n- Add tests\n## Risks\n- Timeline tight\n## Blockers\n- Auth down",
@@ -161,7 +165,11 @@ describe("compare — corruption", () => {
   it("fails safely when a referenced evidence record is missing", async () => {
     const memory = inMemoryMemoryPort();
     await captureDoc(memory, "# P\n## Risks\n- Timeline tight", "2026-01-11T00:00:00Z");
-    await captureDoc(memory, "# P\n## Risks\n- Timeline tight\n- Budget cut", "2026-01-12T00:00:00Z");
+    await captureDoc(
+      memory,
+      "# P\n## Risks\n- Timeline tight\n- Budget cut",
+      "2026-01-12T00:00:00Z",
+    );
     // Corrupt the store by deleting one evidence record.
     const evidenceId = [...memory.evidenceStore.keys()][0]!;
     memory.evidenceStore.delete(evidenceId);

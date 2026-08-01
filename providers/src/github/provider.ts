@@ -56,9 +56,7 @@ import type {
 
 const RATE_LIMIT_WARN_THRESHOLD = 10;
 
-type GetResult =
-  | { ok: true; response: GitHubHttpResponse }
-  | { ok: false; result: ProviderResult };
+type GetResult = { ok: true; response: GitHubHttpResponse } | { ok: false; result: ProviderResult };
 
 function resolveLimit(limit: number | undefined): number | null {
   if (limit === undefined) return GITHUB_DEFAULT_LIMIT;
@@ -109,7 +107,10 @@ function rateLimitedFailure(headers: Readonly<Record<string, string>>): Provider
 }
 
 /** Map an error HTTP status to the stable provider failure taxonomy. */
-function failureForStatus(status: number, headers: Readonly<Record<string, string>>): ProviderResult {
+function failureForStatus(
+  status: number,
+  headers: Readonly<Record<string, string>>,
+): ProviderResult {
   if (status === 401) {
     return providerFailure("github", OMP_P_AUTHENTICATION_FAILED);
   }
@@ -176,10 +177,7 @@ export function createGitHubProvider(options: {
     return [];
   }
 
-  function success(
-    items: NormalizedProviderItem[],
-    warnings: KernelWarning[],
-  ): ProviderResult {
+  function success(items: NormalizedProviderItem[], warnings: KernelWarning[]): ProviderResult {
     const response: NormalizedProviderResponse = { providerId: "github", items };
     if (warnings.length > 0) {
       response.warnings = warnings;
@@ -363,7 +361,9 @@ export function createGitHubProvider(options: {
     | { ok: true; items: NormalizedProviderItem[]; warnings: KernelWarning[] }
     | { ok: false; result: ProviderResult }
   > {
-    const url = new URL(`${GITHUB_API_ORIGIN}/repos/${parent.slug}/issues/${parent.number}/comments`);
+    const url = new URL(
+      `${GITHUB_API_ORIGIN}/repos/${parent.slug}/issues/${parent.number}/comments`,
+    );
     url.searchParams.set("per_page", String(limit));
     url.searchParams.set("page", "1");
     const result = await get(url.toString());
@@ -423,7 +423,9 @@ export function createGitHubProvider(options: {
     | { ok: true; items: NormalizedProviderItem[]; warnings: KernelWarning[] }
     | { ok: false; result: ProviderResult }
   > {
-    const url = new URL(`${GITHUB_API_ORIGIN}/repos/${parent.slug}/pulls/${parent.number}/comments`);
+    const url = new URL(
+      `${GITHUB_API_ORIGIN}/repos/${parent.slug}/pulls/${parent.number}/comments`,
+    );
     url.searchParams.set("per_page", String(limit));
     url.searchParams.set("page", "1");
     const result = await get(url.toString());
@@ -576,7 +578,11 @@ export function createGitHubProvider(options: {
       }
       const limit = resolveLimit(request.limit);
       if (limit === null) {
-        return providerFailure("github", OMP_P_INVALID_REQUEST, "limit must be an integer in 1..100");
+        return providerFailure(
+          "github",
+          OMP_P_INVALID_REQUEST,
+          "limit must be an integer in 1..100",
+        );
       }
       switch (request.action) {
         case "list":

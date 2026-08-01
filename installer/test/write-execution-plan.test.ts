@@ -41,29 +41,70 @@ const installOperations: PlannedFileOperation[] = [
 
 const updateOperations: UpdateImpactOperation[] = [
   { kind: "create", path: "new.txt", afterChecksum: "sha256:new" },
-  { kind: "replace", path: "bin/oh-my-pm", beforeChecksum: "sha256:old", afterChecksum: "sha256:next" },
+  {
+    kind: "replace",
+    path: "bin/oh-my-pm",
+    beforeChecksum: "sha256:old",
+    afterChecksum: "sha256:next",
+  },
   { kind: "remove", path: "gone.txt", beforeChecksum: "sha256:gone" },
-  { kind: "unchanged", path: "README.md", beforeChecksum: "sha256:same", afterChecksum: "sha256:same" },
+  {
+    kind: "unchanged",
+    path: "README.md",
+    beforeChecksum: "sha256:same",
+    afterChecksum: "sha256:same",
+  },
 ];
 
 const rollbackOperations: RollbackImpactOperation[] = [
-  { kind: "restore", path: "bin/oh-my-pm", beforeChecksum: "sha256:cur", afterChecksum: "sha256:bak" },
+  {
+    kind: "restore",
+    path: "bin/oh-my-pm",
+    beforeChecksum: "sha256:cur",
+    afterChecksum: "sha256:bak",
+  },
   { kind: "remove", path: "extra.txt", beforeChecksum: "sha256:extra" },
   { kind: "missing", path: "gone.txt" },
   { kind: "unchanged", path: "README.md", beforeChecksum: "sha256:same" },
 ];
 
-function input(overrides: Partial<InstallerWriteExecutionPlanInput> = {}): InstallerWriteExecutionPlanInput {
+function input(
+  overrides: Partial<InstallerWriteExecutionPlanInput> = {},
+): InstallerWriteExecutionPlanInput {
   return {
     intent: "install",
     capability: allowedCapability,
     installOperations,
-    updateImpact: { ok: true, root: "/tmp/oh-my-pm", operations: updateOperations, summary: {
-      creates: 1, replaces: 1, removes: 1, unchanged: 1, beforeSizeBytes: 0, afterSizeBytes: 0,
-    }, policyDecision: "allowed", reasons: [] },
-    rollbackImpact: { ok: true, root: "/tmp/oh-my-pm", rollbackId: "rb-1", operations: rollbackOperations, summary: {
-      restores: 1, removes: 1, missing: 1, unchanged: 1, beforeSizeBytes: 0, afterSizeBytes: 0,
-    }, reasons: [] },
+    updateImpact: {
+      ok: true,
+      root: "/tmp/oh-my-pm",
+      operations: updateOperations,
+      summary: {
+        creates: 1,
+        replaces: 1,
+        removes: 1,
+        unchanged: 1,
+        beforeSizeBytes: 0,
+        afterSizeBytes: 0,
+      },
+      policyDecision: "allowed",
+      reasons: [],
+    },
+    rollbackImpact: {
+      ok: true,
+      root: "/tmp/oh-my-pm",
+      rollbackId: "rb-1",
+      operations: rollbackOperations,
+      summary: {
+        restores: 1,
+        removes: 1,
+        missing: 1,
+        unchanged: 1,
+        beforeSizeBytes: 0,
+        afterSizeBytes: 0,
+      },
+      reasons: [],
+    },
     ...overrides,
   };
 }
@@ -231,7 +272,9 @@ describe("createInstallerWriteExecutionPlanDryRun", () => {
     expect(dryRun.warnings).toBeDefined();
     expect(dryRun.warnings?.every((warning) => warning.code === "OMP-I-6001")).toBe(true);
     expect(
-      dryRun.warnings?.some((warning) => warning.message === "write_execution_capability_not_allowed"),
+      dryRun.warnings?.some(
+        (warning) => warning.message === "write_execution_capability_not_allowed",
+      ),
     ).toBe(true);
   });
 });

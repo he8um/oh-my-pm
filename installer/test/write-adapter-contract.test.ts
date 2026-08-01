@@ -84,7 +84,10 @@ describe("validateInstallerWriteAdapterContract", () => {
     expect(
       validateInstallerWriteAdapterContract({
         ...valid,
-        capabilities: ["write-file", "boom" as InstallerWriteAdapterContract["capabilities"][number]],
+        capabilities: [
+          "write-file",
+          "boom" as InstallerWriteAdapterContract["capabilities"][number],
+        ],
       }),
     ).toContain("write_adapter_contract_capability_invalid");
   });
@@ -230,16 +233,22 @@ describe("evaluateInstallerWriteAdapterContract", () => {
   });
 
   it("is ok for the valid fixture", () => {
-    const report = evaluateInstallerWriteAdapterContract(exampleInstallerWriteAdapterContractInput());
+    const report = evaluateInstallerWriteAdapterContract(
+      exampleInstallerWriteAdapterContractInput(),
+    );
     expect(report.ok).toBe(true);
     expect(report.reasons).toEqual([]);
     expect(report.name).toBe("memory-write-adapter");
   });
 
   it("carries no adapter object, function, content, command, or execution-result fields", () => {
-    const report = evaluateInstallerWriteAdapterContract(exampleInstallerWriteAdapterContractInput());
+    const report = evaluateInstallerWriteAdapterContract(
+      exampleInstallerWriteAdapterContractInput(),
+    );
     for (const key of Object.keys(report)) {
-      expect(key).not.toMatch(/adapter$|object|fn|func|method|content|command|dest|result|remote|url/i);
+      expect(key).not.toMatch(
+        /adapter$|object|fn|func|method|content|command|dest|result|remote|url/i,
+      );
     }
     const serialized = JSON.stringify(report);
     expect(serialized).not.toContain("writeFile");
@@ -267,7 +276,9 @@ describe("createInstallerWriteAdapterContractDryRun", () => {
     expect(dryRun.warnings).toBeDefined();
     expect(dryRun.warnings?.every((warning) => warning.code === "OMP-I-6001")).toBe(true);
     expect(
-      dryRun.warnings?.some((warning) => warning.message === "write_adapter_confirmation_not_ready"),
+      dryRun.warnings?.some(
+        (warning) => warning.message === "write_adapter_confirmation_not_ready",
+      ),
     ).toBe(true);
   });
 });
