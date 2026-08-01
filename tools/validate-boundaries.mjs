@@ -1384,9 +1384,12 @@ const RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.2-rc.yml";
 const STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.2.yml";
 const V03_RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.3-rc.yml";
 const V03_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.3.yml";
-// The ACTIVE stable release workflow. The v0.3 stable workflow above is
+// The v0.4 stable workflow, now historical: v0.5 supersedes it as the active
+// line. It stays tracked and unmodified so published history remains accurate.
+const V04_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.4.yml";
+// The ACTIVE stable release workflow. Every earlier stable workflow above is
 // historical and immutable; the active-line policy below applies to this file.
-const ACTIVE_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.4.yml";
+const ACTIVE_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.5.yml";
 
 /** Shared manual-gate policy applied to every dedicated release workflow. */
 function checkReleaseWorkflowCommon(path, confirmation) {
@@ -1620,8 +1623,11 @@ if (v03Wf !== null) {
 // place; the immutable base stable lineage stays pinned. The ACTIVE stable line
 // is v0.4, whose base stable tag is the published v0.3.1.
 const V03_PATCH_VERSION = JSON.parse(readFileSync("version.json", "utf8")).version;
-const V03_BASE_STABLE_TAG = "v0.3.1";
-const V03_BASE_STABLE_SHA = "81d869ed4cf690de0da46ab25d1abe65f85df155";
+// The base stable release the ACTIVE line builds on. v0.5 follows v0.4.0, so the
+// active workflow must verify that published release still exists unchanged
+// before it publishes on top of it.
+const V03_BASE_STABLE_TAG = "v0.4.0";
+const V03_BASE_STABLE_SHA = "0540a78576222227f276c627c518095ef43f2b50";
 const v03StableWf = checkReleaseWorkflowCommon(
   ACTIVE_STABLE_RELEASE_WORKFLOW,
   `RELEASE v${V03_PATCH_VERSION}`,
@@ -1635,7 +1641,7 @@ if (v03StableWf !== null) {
     err(`${ACTIVE_STABLE_RELEASE_WORKFLOW} must not target a prerelease version`);
   }
   // It must never accept a prerelease confirmation string.
-  if (v03StableWf.includes("RELEASE v0.3.0-rc.1")) {
+  if (v03StableWf.includes("RELEASE v0.4.0") || v03StableWf.includes("RELEASE v0.3.0-rc.1")) {
     err(
       `${ACTIVE_STABLE_RELEASE_WORKFLOW} must use only the stable confirmation string RELEASE v${V03_PATCH_VERSION}`,
     );
@@ -1726,12 +1732,17 @@ const RELEASE_PUBLISH_ALLOWED = new Set([
   STABLE_RELEASE_WORKFLOW,
   V03_RC_RELEASE_WORKFLOW,
   V03_STABLE_RELEASE_WORKFLOW,
+  V04_STABLE_RELEASE_WORKFLOW,
   ACTIVE_STABLE_RELEASE_WORKFLOW,
   "docs/releases/publishing-v0.1.0.md",
   "docs/releases/publishing-v0.2.0-rc.1.md",
   "docs/releases/publishing-v0.2.0.md",
   "docs/releases/publishing-v0.3.0-rc.1.md",
   "docs/releases/publishing-v0.3.0.md",
+  "docs/releases/publishing-v0.4.0.md",
+  // v0.5 publishing runbook and release notes.
+  "docs/releases/publishing-v0.5.0.md",
+  "docs/releases/v0.5.0.md",
   "docs/releases/v0.1.0.md",
   "docs/releases/v0.2.0.md",
   "docs/releases/v0.3.0-rc.1.md",

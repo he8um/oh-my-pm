@@ -375,8 +375,11 @@ export function validateReleaseBundleForInstall(bundleRoot) {
   let expectedMcpTools;
   if (bundleProfile === "project-brain") {
     expectedMcpTools = [...TEN_MCP_TOOLS, "project_changes"];
-  } else if (bundleProfile === "project-brain-timeline") {
-    // v0.4: project_timeline is appended after project_changes, for twelve.
+  } else if (bundleProfile === "project-brain-timeline" || bundleProfile === "ohmypm-cli-namespace") {
+    // v0.4 ("project-brain-timeline") appends project_timeline after
+    // project_changes, for twelve. v0.5 ("ohmypm-cli-namespace") migrates the
+    // command names only and keeps that exact twelve-tool surface, so the two
+    // profiles share one expectation rather than duplicating the list.
     expectedMcpTools = [...TEN_MCP_TOOLS, "project_changes", "project_timeline"];
   } else if (bundleProfile === "source-v0.2") {
     expectedMcpTools = [...TEN_MCP_TOOLS];

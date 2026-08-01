@@ -28,7 +28,7 @@ const isWindows = process.platform === "win32";
 
 // The historical ten installed MCP tools (four local + four GitHub + two
 // provider diagnostics), compared sorted. The "project-brain" (v0.3) and
-// "project-brain-timeline" (v0.4) profiles add
+// "project-brain-timeline" (v0.4), and "ohmypm-cli-namespace" (v0.5) profiles add
 // exactly one read-only tool, project_changes; the profile is read from the
 // installed RELEASE.json and the expected surface is resolved fail-closed below.
 // This verifier calls only offline tools (project_brief, provider_status, and —
@@ -261,14 +261,18 @@ async function run(prefix, expectedVersion) {
 
   // Resolve the installed MCP surface from the bundle's own declared profile and
   // fail closed on any unknown profile. The project-brain (v0.3) profile expects
-  // eleven tools; the project-brain-timeline (v0.4) profile expects twelve; both
+  // eleven tools; the project-brain-timeline (v0.4) and ohmypm-cli-namespace
+  // (v0.5) profiles expect twelve; both
   // require the bundled Project Memory package. The legacy profile (absent or
   // "source-v0.2") expects the historical ten.
   const installedProfile = release.bundleProfile ?? "source-v0.2";
   let expectedMcpToolsSorted;
   if (installedProfile === "project-brain") {
     expectedMcpToolsSorted = ELEVEN_MCP_TOOLS_SORTED;
-  } else if (installedProfile === "project-brain-timeline") {
+  } else if (
+    installedProfile === "project-brain-timeline" ||
+    installedProfile === "ohmypm-cli-namespace"
+  ) {
     expectedMcpToolsSorted = TWELVE_MCP_TOOLS_SORTED;
   } else if (installedProfile === "source-v0.2") {
     expectedMcpToolsSorted = TEN_MCP_TOOLS_SORTED;
@@ -276,7 +280,9 @@ async function run(prefix, expectedVersion) {
     return fail(`installed RELEASE.json bundleProfile is unknown: ${installedProfile}`);
   }
   const installedHasProjectBrain =
-    installedProfile === "project-brain" || installedProfile === "project-brain-timeline";
+    installedProfile === "project-brain" ||
+    installedProfile === "project-brain-timeline" ||
+    installedProfile === "ohmypm-cli-namespace";
   if (installedHasProjectBrain) {
     const pmEntry = join(
       versionDir,

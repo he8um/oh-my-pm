@@ -907,8 +907,12 @@ const ALLOWED_RELEASE_WORKFLOWS = new Set([
   // validate-boundaries.mjs). It legitimately uses gh release / tags.
   "release-v0.3-rc.yml",
   // v0.4 STABLE release workflow (manually gated stable, validated in detail by
-  // validate-boundaries.mjs). It is the ACTIVE stable release workflow.
+  // validate-boundaries.mjs). Superseded as the active workflow by v0.5 and kept
+  // historically accurate.
   "release-v0.4.yml",
+  // v0.5 STABLE release workflow (manually gated stable, validated in detail by
+  // validate-boundaries.mjs). It is the ACTIVE stable release workflow.
+  "release-v0.5.yml",
   // v0.3 STABLE release workflow (manually gated stable, validated in detail by
   // validate-boundaries.mjs). It legitimately uses gh release / tags.
   "release-v0.3.yml",
@@ -1164,6 +1168,10 @@ const V05_COMMAND_SURFACE_REQUIRED = [
   "tools/command-surface.mjs",
   "tools/validate-command-surface.mjs",
   "tools/test/command-surface.test.mjs",
+  // The v0.5 release line gets its own workflow and qualification test; the
+  // published v0.1-v0.4 workflows are never rewritten.
+  ".github/workflows/release-v0.5.yml",
+  "tools/test/v0.5-release-qualification.test.mjs",
 ];
 for (const file of V05_COMMAND_SURFACE_REQUIRED) {
   if (!existsSync(file)) err(`v0.5 command-surface file missing: ${file}`);

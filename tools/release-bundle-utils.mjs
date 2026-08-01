@@ -22,6 +22,11 @@ import {
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// The canonical installed command pair comes from the shipped install core -- the
+// same module the installer and the installed-state verifier use -- so the bundle
+// metadata can never advertise a command set the installer does not create.
+import { RELEASE_INSTALL_CANONICAL_COMMANDS } from "../distribution/libexec/release-install-core.mjs";
+
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Canonical version, read once from version.json (single source of truth). */
@@ -462,18 +467,25 @@ export function formatReleaseBundlePlan(plan, mode) {
 // exact canonical origin string.
 const GITHUB_ORIGIN = `${"https"}://api.github.com`;
 
-// Explicit v0.4 release profile. The historical v0.2 bundle shipped ten MCP
-// tools and no Project Memory package, and the historical v0.3 bundle shipped
-// eleven; both published artifacts are immutable and are never rewritten. The
-// current source prepares the "project-brain-timeline" profile: TWELVE read-only
-// MCP tools (the ten historical tools plus project_changes and the new
-// project_timeline), the bundled @oh-my-pm/project-memory package, SEVEN
-// installed memory subcommands, Project Brain schema 1 (unchanged), and Project
-// Memory store format 2 (unchanged, so no migration is required). Verifiers read
-// these fields from the bundle's own RELEASE.json and fail closed on an unknown
-// profile — they never branch on the version string.
-const RELEASE_LINE = "v0.4";
-const BUNDLE_PROFILE = "project-brain-timeline";
+// Explicit v0.5 release profile. Every previously published bundle is immutable
+// and is never rewritten: v0.2 shipped ten MCP tools and no Project Memory
+// package, v0.3 shipped eleven, and v0.4 shipped twelve under the
+// "project-brain-timeline" profile.
+//
+// The current source prepares the "ohmypm-cli-namespace" profile. Its *runtime*
+// surface is deliberately identical to v0.4 -- the same TWELVE read-only MCP
+// tools, the same bundled @oh-my-pm/project-memory package, the same SEVEN
+// installed memory subcommands, Project Brain schema 1 and Project Memory store
+// format 2 both unchanged, so no data migration is required. What changes is the
+// command surface: `ohmypm`, `ohmypm-mcp`, and `ohmypm-install` are canonical,
+// and the former names are retained as deprecated compatibility aliases.
+//
+// A new profile (rather than reusing v0.4's) is what lets a verifier distinguish
+// a bundle that ships both command families from one that ships only the old
+// names. Verifiers read these fields from the bundle's own RELEASE.json and fail
+// closed on an unknown profile -- they never branch on the version string.
+const RELEASE_LINE = "v0.5";
+const BUNDLE_PROFILE = "ohmypm-cli-namespace";
 const MEMORY_SUBCOMMANDS = [
   "capture",
   "changes",
@@ -508,7 +520,23 @@ const RELEASE_METADATA = {
   releaseLine: RELEASE_LINE,
   bundleProfile: BUNDLE_PROFILE,
   expectedMcpToolCount: V03_MCP_TOOLS.length,
-  commands: ["oh-my-pm", "oh-my-pm-mcp"],
+  // v0.5: canonical commands and deprecated compatibility aliases are declared as
+  // distinct fields. A single flat list would present the aliases as equals.
+  // `commands` keeps its historical name and now holds the canonical pair, so an
+  // existing reader of that field sees the primary commands.
+  commands: [...RELEASE_INSTALL_CANONICAL_COMMANDS],
+  canonicalCommands: {
+    cli: "ohmypm",
+    mcp: "ohmypm-mcp",
+    installer: "ohmypm-install",
+  },
+  legacyAliases: {
+    cli: ["oh-my-pm"],
+    mcp: ["oh-my-pm-mcp"],
+    installer: ["oh-my-pm-install"],
+  },
+  commandsDeprecatedSince: "0.5.0",
+  commandRemovalScheduled: false,
   cliWorkflows: ["brief", "risks", "next", "handoff"],
   githubWorkflows: ["brief", "risks", "next", "handoff"],
   mcpTools: V03_MCP_TOOLS,
@@ -726,7 +754,13 @@ function inspectBundleSafety(bundleRoot) {
   // checkout. It ships dist-only (its "files" field is ["dist"]); raw src/test
   // are rejected by the first-party leak check above. Fail closed here if the
   // package or its compiled entrypoint is absent.
-  if (BUNDLE_PROFILE === "project-brain" || BUNDLE_PROFILE === "project-brain-timeline") {
+  // The v0.5 "ohmypm-cli-namespace" profile keeps the v0.4 runtime surface, so it
+  // requires the bundled Project Memory package just as v0.3/v0.4 do.
+  if (
+    BUNDLE_PROFILE === "project-brain" ||
+    BUNDLE_PROFILE === "project-brain-timeline" ||
+    BUNDLE_PROFILE === "ohmypm-cli-namespace"
+  ) {
     const pmDir = join(bundleRoot, "node_modules", "@oh-my-pm", "project-memory");
     const pmManifest = join(pmDir, "package.json");
     const pmEntry = join(pmDir, "dist", "index.js");

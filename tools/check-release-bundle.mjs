@@ -130,7 +130,9 @@ async function run(bundle) {
   // GitHub tools are opt-in network. The "project-brain" (v0.3) profile appends
   // exactly one read-only tool, project_changes, for eleven total. The
   // "project-brain-timeline" (v0.4) profile appends project_timeline after it,
-  // for twelve total. The legacy profile (absent or "source-v0.2") ships the
+  // for twelve total. The "ohmypm-cli-namespace" (v0.5) profile migrates the
+  // command names only and keeps that same twelve-tool surface. The legacy
+  // profile (absent or "source-v0.2") ships the
   // ten-tool surface. Any other profile fails closed: the verifier never guesses
   // a surface.
   const TEN_TOOLS = [
@@ -153,7 +155,7 @@ async function run(bundle) {
     expectedTools = [...TEN_TOOLS, "project_changes"];
     expectedReadTools = 1;
     expectedMemorySubcommands = ["capture", "changes", "status", "history", "export", "delete"];
-  } else if (bundleProfile === "project-brain-timeline") {
+  } else if (bundleProfile === "project-brain-timeline" || bundleProfile === "ohmypm-cli-namespace") {
     expectedTools = [...TEN_TOOLS, "project_changes", "project_timeline"];
     expectedReadTools = 2;
     expectedMemorySubcommands = [
@@ -172,7 +174,9 @@ async function run(bundle) {
   }
   /** Whether this profile ships the bundled Project Brain memory capability. */
   const hasProjectBrain =
-    bundleProfile === "project-brain" || bundleProfile === "project-brain-timeline";
+    bundleProfile === "project-brain" ||
+    bundleProfile === "project-brain-timeline" ||
+    bundleProfile === "ohmypm-cli-namespace";
   if (JSON.stringify(release.mcpTools) !== JSON.stringify(expectedTools)) {
     return fail("RELEASE.json mcpTools list is unexpected");
   }
@@ -197,9 +201,10 @@ async function run(bundle) {
     if (pb.mcpWriteTools !== 0) return fail("RELEASE.json projectBrain.mcpWriteTools must be 0");
     if (pb.automaticMigration !== false) return fail("RELEASE.json projectBrain.automaticMigration must be false");
     if (pb.projectWrites !== false) return fail("RELEASE.json projectBrain.projectWrites must be false");
-    // v0.4 profile only: the timeline is derived, so the profile must declare
-    // that no timeline is persisted and that no store migration is required.
-    if (bundleProfile === "project-brain-timeline") {
+    // v0.4 and v0.5: the timeline is derived, so the profile must declare that no
+    // timeline is persisted and that no store migration is required. v0.5 changes
+    // command names only, so this stays true and is asserted for it too.
+    if (bundleProfile === "project-brain-timeline" || bundleProfile === "ohmypm-cli-namespace") {
       if (pb.timelinePersistence !== false) {
         return fail("RELEASE.json projectBrain.timelinePersistence must be false");
       }

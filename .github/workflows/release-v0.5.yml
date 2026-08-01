@@ -1,0 +1,539 @@
+name: Release v0.5 Stable
+
+# Manually gated STABLE release workflow for the v0.5 line. It builds and verifies
+# the exact 0.5.0 self-contained "ohmypm-cli-namespace" portable artifact.
+#
+# v0.5 is a CLI command namespace migration, not a product rename. The artifact's
+# runtime surface is identical to v0.4 — TWELVE read-only MCP tools, zero write
+# tools, the bundled @oh-my-pm/project-memory package, SEVEN memory subcommands,
+# Project Brain schema 1 and store format 2 unchanged, so no data migration is
+# required. What changes is the command surface: `ohmypm`, `ohmypm-mcp`, and
+# `ohmypm-install` are canonical, and the former `oh-my-pm` family is retained as
+# deprecated compatibility aliases with no removal scheduled.
+#
+# Product identity is deliberately unchanged: the archives remain
+# oh-my-pm-v0.5.0.{tar.gz,zip}, the installation directory remains
+# lib/oh-my-pm/versions/<version>/, the package scope remains @oh-my-pm/*, the
+# environment prefix remains OH_MY_PM_*, and the MCP server key remains
+# oh-my-pm.
+#
+# It runs the cross-platform installed qualification, and — only on an explicitly
+# confirmed, environment-approved publish run — creates an immutable,
+# non-prerelease GitHub Release marked "latest" targeting the exact workflow
+# commit SHA. It publishes to no registry, and it never modifies the immutable
+# v0.1.0 / v0.2.0-rc.1 / v0.2.0 / v0.3.0-rc.1 / v0.3.0 / v0.3.1 / v0.4.0 releases
+# or the historical workflows.
+#
+# Manually triggered only. There is no push, pull_request, release, schedule, or
+# tag trigger. The prepare and qualification jobs cannot write repository
+# contents; only the gated publish job receives contents: write, and only when
+# publish == true with the exact confirmation and the protected github-release
+# environment approval.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Canonical version without v prefix
+        required: true
+        default: "0.5.0"
+        type: string
+      publish:
+        # publish=false is the DRY RUN: prepare, deterministic assets, and the
+        # cross-platform installed qualification all run; the publish job is
+        # skipped, so no tag and no release are created and releases/latest is
+        # untouched.
+        description: Create the Git tag and stable GitHub Release after validation
+        required: true
+        default: false
+        type: boolean
+      confirmation:
+        description: Type RELEASE v0.5.0 when publish is enabled
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oh-my-pm-release-v0.5-stable-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare stable release assets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Enforce main branch
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Release v0.5 Stable must run from refs/heads/main (got $GITHUB_REF)" >&2
+            exit 1
+          fi
+
+      - name: Enforce version and confirmation gates
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$INPUT_VERSION" != "0.5.0" ]; then
+            echo "Only version 0.5.0 is accepted by this workflow (got $INPUT_VERSION)" >&2
+            exit 1
+          fi
+          if [ "$INPUT_PUBLISH" = "true" ] && [ "$INPUT_CONFIRMATION" != "RELEASE v0.5.0" ]; then
+            echo "publish requires confirmation exactly equal to: RELEASE v0.5.0" >&2
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Enforce version.json equals the input version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          FILE_VERSION="$(node -p "require('./version.json').version")"
+          if [ "$FILE_VERSION" != "$INPUT_VERSION" ]; then
+            echo "version.json ($FILE_VERSION) does not equal input version ($INPUT_VERSION)" >&2
+            exit 1
+          fi
+
+      - name: Verify base stable lineage
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BASE_TAG=v0.4.0
+          BASE_SHA=0540a78576222227f276c627c518095ef43f2b50
+          # The base stable tag must still exist on origin.
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$BASE_TAG" >/dev/null 2>&1; then
+            echo "Required base stable tag $BASE_TAG does not exist on origin" >&2
+            exit 1
+          fi
+          # It must resolve to the exact published stable commit.
+          BASE_RESOLVED="$(git ls-remote --tags origin "refs/tags/$BASE_TAG" | awk '{print $1}')"
+          if [ "$BASE_RESOLVED" != "$BASE_SHA" ]; then
+            echo "Base stable tag $BASE_TAG resolves to $BASE_RESOLVED, expected $BASE_SHA" >&2
+            exit 1
+          fi
+          # The base stable release must remain a non-draft, non-prerelease.
+          BASE_META="$(gh release view "$BASE_TAG" --json isPrerelease,isDraft)"
+          echo "$BASE_META"
+          echo "$BASE_META" | node -e '
+            const meta = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+            if (meta.isPrerelease !== false) { console.error("base stable must remain non-prerelease"); process.exit(1); }
+            if (meta.isDraft !== false) { console.error("base stable must remain non-draft"); process.exit(1); }
+          '
+          # The v0.5.0 release notes must exist.
+          test -f docs/releases/v0.5.0.md
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.4.0
+        with:
+          version: 9.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy, rustfmt
+
+      - name: Install wasm-bindgen CLI
+        run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build contracts
+        run: pnpm build:contracts
+
+      - name: Build kernel
+        run: pnpm build:kernel
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Validate
+        run: pnpm validate
+
+      # v0.5 gates: the command names in every manifest, installer, release
+      # metadata, and generated configuration must agree with
+      # command-surface.json, and no active documentation or help surface may
+      # present a deprecated alias as the primary command.
+      - name: Validate command surface
+        run: pnpm validate:commands
+
+      - name: Validate command references
+        run: pnpm validate:references
+
+      - name: Version consistency
+        run: pnpm version:check
+
+      - name: MCP smoke
+        run: pnpm mcp:smoke
+
+      - name: Build and verify portable bundle (ohmypm-cli-namespace profile)
+        run: |
+          VERSION="${{ inputs.version }}"
+          BUNDLE_OUT="$RUNNER_TEMP/bundle"
+
+          node tools/build-release-bundle.mjs --output "$BUNDLE_OUT" --apply
+          node tools/check-release-bundle.mjs --bundle "$BUNDLE_OUT/oh-my-pm-v$VERSION"
+
+          # The stable bundle must declare the twelve-tool
+          # ohmypm-cli-namespace profile, keep schema 1 / store format 2 with no
+          # migration, expose zero write tools, persist no timeline, and ship the
+          # bundled Project Memory package.
+          node -e '
+            const fs = require("node:fs");
+            const dir = process.argv[1];
+            const r = JSON.parse(fs.readFileSync(dir + "/RELEASE.json", "utf8"));
+            if (r.releaseLine !== "v0.5") { console.error("releaseLine must be v0.5"); process.exit(1); }
+            if (r.bundleProfile !== "ohmypm-cli-namespace") { console.error("bundleProfile must be ohmypm-cli-namespace"); process.exit(1); }
+            if (r.expectedMcpToolCount !== 12) { console.error("expectedMcpToolCount must be 12"); process.exit(1); }
+            if (r.mcpTools.length !== 12) { console.error("mcpTools must list 12 tools"); process.exit(1); }
+            if (r.mcpTools[r.mcpTools.length - 1] !== "project_timeline") { console.error("project_timeline must be last"); process.exit(1); }
+            if (r.mcpTools[r.mcpTools.length - 2] !== "project_changes") { console.error("project_changes must be eleventh"); process.exit(1); }
+            const pb = r.projectBrain || {};
+            if (pb.schemaVersion !== 1) { console.error("Project Brain schema must remain 1"); process.exit(1); }
+            if (pb.storeFormatVersion !== 2) { console.error("store format must remain 2"); process.exit(1); }
+            if (pb.storeMigrationRequired !== false) { console.error("no store migration may be required"); process.exit(1); }
+            if (pb.mcpWriteTools !== 0) { console.error("MCP write tools must be 0"); process.exit(1); }
+            if (pb.timelinePersistence !== false) { console.error("no timeline may be persisted"); process.exit(1); }
+            if (pb.automaticMigration !== false) { console.error("no automatic migration"); process.exit(1); }
+            if (pb.projectWrites !== false) { console.error("no project writes"); process.exit(1); }
+            if ((pb.memorySubcommands || []).length !== 7) { console.error("memorySubcommands must be 7"); process.exit(1); }
+            if (r.transport !== "stdio") { console.error("transport must be stdio"); process.exit(1); }
+            if (!fs.existsSync(dir + "/node_modules/@oh-my-pm/project-memory/dist/index.js")) { console.error("project-memory must be bundled"); process.exit(1); }
+
+            // v0.5 command surface: canonical commands and deprecated aliases are
+            // declared as distinct fields, never one flat list.
+            const cc = r.canonicalCommands || {};
+            if (cc.cli !== "ohmypm") { console.error("canonicalCommands.cli must be ohmypm"); process.exit(1); }
+            if (cc.mcp !== "ohmypm-mcp") { console.error("canonicalCommands.mcp must be ohmypm-mcp"); process.exit(1); }
+            if (cc.installer !== "ohmypm-install") { console.error("canonicalCommands.installer must be ohmypm-install"); process.exit(1); }
+            const la = r.legacyAliases || {};
+            if (JSON.stringify(la.cli) !== JSON.stringify(["oh-my-pm"])) { console.error("legacyAliases.cli must be [oh-my-pm]"); process.exit(1); }
+            if (JSON.stringify(la.mcp) !== JSON.stringify(["oh-my-pm-mcp"])) { console.error("legacyAliases.mcp must be [oh-my-pm-mcp]"); process.exit(1); }
+            if (JSON.stringify(la.installer) !== JSON.stringify(["oh-my-pm-install"])) { console.error("legacyAliases.installer must be [oh-my-pm-install]"); process.exit(1); }
+            if (JSON.stringify(r.commands) !== JSON.stringify(["ohmypm", "ohmypm-mcp"])) { console.error("commands must be the canonical installed pair"); process.exit(1); }
+            if (r.commandRemovalScheduled !== false) { console.error("no alias removal may be scheduled"); process.exit(1); }
+            if (r.installer.entrypoint !== "bin/ohmypm-install.mjs") { console.error("installer entrypoint must be bin/ohmypm-install.mjs"); process.exit(1); }
+
+            // The bundle must ship both command families as real entrypoints.
+            for (const bin of ["ohmypm.mjs", "ohmypm-mcp.mjs", "ohmypm-install.mjs", "oh-my-pm.mjs", "oh-my-pm-mcp.mjs", "oh-my-pm-install.mjs"]) {
+              if (!fs.existsSync(dir + "/bin/" + bin)) { console.error("missing bundled entrypoint: " + bin); process.exit(1); }
+            }
+
+            // Product identity must NOT be renamed by this migration.
+            if (r.bundle !== "oh-my-pm-v" + r.version) { console.error("bundle name must stay product-based"); process.exit(1); }
+          ' "$BUNDLE_OUT/oh-my-pm-v$VERSION"
+
+      - name: Build and verify deterministic archives
+        run: |
+          VERSION="${{ inputs.version }}"
+          BUNDLE_DIR="$RUNNER_TEMP/bundle/oh-my-pm-v$VERSION"
+          ASSETS_DIR="$RUNNER_TEMP/release-assets"
+
+          node tools/build-release-archives.mjs --bundle "$BUNDLE_DIR" --output "$ASSETS_DIR" --apply
+          node tools/check-release-archives.mjs --assets "$ASSETS_DIR"
+          node tools/check-release-archive-reproducibility.mjs --bundle "$BUNDLE_DIR"
+
+      - name: Print archive checksums to summary
+        run: |
+          VERSION="${{ inputs.version }}"
+          {
+            echo "### OH MY PM v$VERSION release archive checksums"
+            echo ""
+            echo '```'
+            cat "$RUNNER_TEMP/release-assets/oh-my-pm-v$VERSION-SHA256SUMS.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload release assets artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: oh-my-pm-v0.5.0-release-assets
+          path: |
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.5.0.tar.gz
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.5.0.zip
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.5.0-SHA256SUMS.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  installed-qualification:
+    name: Installed command-surface qualification (${{ matrix.os }})
+    needs: prepare
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          # The matrix jobs run only Node against the prepared artifact; no
+          # package manager is installed, so disable the package-manager cache.
+          package-manager-cache: false
+
+      - name: Download prepared release assets
+        uses: actions/download-artifact@v7
+        with:
+          name: oh-my-pm-v0.5.0-release-assets
+          path: release-assets
+
+      - name: Verify checksum then qualify the installed artifact (POSIX)
+        if: runner.os != 'Windows'
+        run: |
+          VERSION="${{ inputs.version }}"
+          cd release-assets
+          shasum -a 256 -c "oh-my-pm-v$VERSION-SHA256SUMS.txt"
+          cd ..
+          node tools/check-v0.3-installed-project-brain.mjs \
+            --archive "release-assets/oh-my-pm-v$VERSION.tar.gz" \
+            --work "$RUNNER_TEMP/qual-work" \
+            --profile ohmypm-cli-namespace
+
+      # v0.5: install the artifact into a scratch prefix and exercise BOTH command
+      # families explicitly. The canonical commands must be silent on stderr; each
+      # deprecated alias must still work, must warn on stderr, and must keep that
+      # warning out of stdout so piped JSON stays parseable.
+      - name: Canonical and compatibility-alias installed smoke (POSIX)
+        if: runner.os != 'Windows'
+        run: |
+          VERSION="${{ inputs.version }}"
+          WORK="$RUNNER_TEMP/alias-smoke"
+          mkdir -p "$WORK"
+          tar -xzf "release-assets/oh-my-pm-v$VERSION.tar.gz" -C "$WORK"
+          BUNDLE="$WORK/oh-my-pm-v$VERSION"
+          PREFIX="$WORK/prefix"
+          node "$BUNDLE/bin/ohmypm-install.mjs" --prefix "$PREFIX" --apply
+
+          # All eight shims must exist: two canonical commands and two aliases,
+          # each with a POSIX and a .cmd launcher.
+          for name in ohmypm ohmypm-mcp oh-my-pm oh-my-pm-mcp; do
+            test -f "$PREFIX/bin/$name" || { echo "missing shim: $name" >&2; exit 1; }
+            test -x "$PREFIX/bin/$name" || { echo "shim not executable: $name" >&2; exit 1; }
+            test -f "$PREFIX/bin/$name.cmd" || { echo "missing .cmd shim: $name" >&2; exit 1; }
+          done
+
+          # Canonical: clean stdout, empty stderr.
+          "$PREFIX/bin/ohmypm" status > "$WORK/canonical.out" 2> "$WORK/canonical.err"
+          grep -q "OH MY PM status: healthy" "$WORK/canonical.out"
+          test ! -s "$WORK/canonical.err" || { echo "canonical command wrote to stderr" >&2; exit 1; }
+
+          # Deprecated alias: identical stdout, warning only on stderr.
+          "$PREFIX/bin/oh-my-pm" status > "$WORK/alias.out" 2> "$WORK/alias.err"
+          diff "$WORK/canonical.out" "$WORK/alias.out"
+          grep -q "deprecated compatibility alias" "$WORK/alias.err"
+          grep -q "ohmypm" "$WORK/alias.err"
+          if grep -q "deprecated" "$WORK/alias.out"; then
+            echo "alias wrote its deprecation warning to stdout" >&2
+            exit 1
+          fi
+
+          # JSON through the alias must remain a parseable document on stdout.
+          "$PREFIX/bin/oh-my-pm" status --json > "$WORK/alias.json" 2>/dev/null
+          node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' "$WORK/alias.json"
+
+          # The installed manifest must separate canonical from legacy commands.
+          node -e '
+            const m = require(process.argv[1]);
+            if (JSON.stringify(Object.keys(m.commands)) !== JSON.stringify(["ohmypm", "ohmypm-mcp"])) { console.error("commands must be canonical"); process.exit(1); }
+            if (JSON.stringify(Object.keys(m.legacyCommands)) !== JSON.stringify(["oh-my-pm", "oh-my-pm-mcp"])) { console.error("legacyCommands must be the aliases"); process.exit(1); }
+          ' "$PREFIX/lib/oh-my-pm/install.json"
+
+      - name: Verify checksum then qualify the installed artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.version }}"
+          Push-Location release-assets
+          $sums = Get-Content "oh-my-pm-v$version-SHA256SUMS.txt"
+          foreach ($line in $sums) {
+            if ($line.Trim() -eq "") { continue }
+            $parts = $line -split "\s+", 2
+            $expected = $parts[0]
+            $file = $parts[1].Trim()
+            $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLower()
+            if ($actual -ne $expected) { throw "checksum mismatch for $file" }
+          }
+          Pop-Location
+          node tools/check-v0.3-installed-project-brain.mjs `
+            --archive "release-assets/oh-my-pm-v$version.zip" `
+            --work "$env:RUNNER_TEMP/qual-work" `
+            --profile ohmypm-cli-namespace
+          if ($LASTEXITCODE -ne 0) { throw "installed qualification failed" }
+
+  publish:
+    name: Publish stable GitHub Release
+    needs: [prepare, installed-qualification]
+    if: ${{ inputs.publish == true }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-release
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Re-enforce version and confirmation gates
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$INPUT_VERSION" != "0.5.0" ]; then
+            echo "Only version 0.5.0 is accepted by this workflow (got $INPUT_VERSION)" >&2
+            exit 1
+          fi
+          if [ "$INPUT_CONFIRMATION" != "RELEASE v0.5.0" ]; then
+            echo "publish requires confirmation exactly equal to: RELEASE v0.5.0" >&2
+            exit 1
+          fi
+
+      - name: Enforce version.json equals the input version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          FILE_VERSION="$(node -p "require('./version.json').version")"
+          if [ "$FILE_VERSION" != "$INPUT_VERSION" ]; then
+            echo "version.json ($FILE_VERSION) does not equal input version ($INPUT_VERSION)" >&2
+            exit 1
+          fi
+
+      - name: Download release assets
+        uses: actions/download-artifact@v7
+        with:
+          name: oh-my-pm-v0.5.0-release-assets
+          path: release-assets
+
+      - name: Re-verify archive checksums
+        run: |
+          cd release-assets
+          sha256sum -c oh-my-pm-v0.5.0-SHA256SUMS.txt
+
+      - name: Ensure release notes exist
+        run: test -f docs/releases/v0.5.0.md
+
+      - name: Ensure tag and release do not already exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=v0.5.0
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists on origin; refusing to overwrite" >&2
+            exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "GitHub Release $TAG already exists; refusing to overwrite" >&2
+            exit 1
+          fi
+
+      - name: Ensure the base stable release still exists and is unchanged
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BASE_TAG=v0.4.0
+          BASE_SHA=0540a78576222227f276c627c518095ef43f2b50
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$BASE_TAG" >/dev/null 2>&1; then
+            echo "Base stable tag $BASE_TAG no longer exists; refusing to publish v0.5.0" >&2
+            exit 1
+          fi
+          BASE_RESOLVED="$(git ls-remote --tags origin "refs/tags/$BASE_TAG" | awk '{print $1}')"
+          if [ "$BASE_RESOLVED" != "$BASE_SHA" ]; then
+            echo "Base stable tag $BASE_TAG changed (resolves to $BASE_RESOLVED, expected $BASE_SHA)" >&2
+            exit 1
+          fi
+          BASE_META="$(gh release view "$BASE_TAG" --json isPrerelease,isDraft)"
+          echo "$BASE_META" | node -e '
+            const meta = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+            if (meta.isPrerelease !== false) { console.error("base stable must remain non-prerelease"); process.exit(1); }
+            if (meta.isDraft !== false) { console.error("base stable must remain non-draft"); process.exit(1); }
+          '
+
+      - name: Create stable GitHub Release at the exact workflow commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v0.5.0" \
+            "release-assets/oh-my-pm-v0.5.0.tar.gz" \
+            "release-assets/oh-my-pm-v0.5.0.zip" \
+            "release-assets/oh-my-pm-v0.5.0-SHA256SUMS.txt" \
+            --target "$GITHUB_SHA" \
+            --title "OH MY PM v0.5.0" \
+            --notes-file "docs/releases/v0.5.0.md" \
+            --latest
+
+      - name: Verify published stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          META="$(gh release view v0.5.0 --json tagName,isDraft,isPrerelease,assets)"
+          echo "$META"
+          echo "$META" | node -e '
+            const meta = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+            const expected = [
+              "oh-my-pm-v0.5.0-SHA256SUMS.txt",
+              "oh-my-pm-v0.5.0.tar.gz",
+              "oh-my-pm-v0.5.0.zip",
+            ].sort();
+            const names = (meta.assets || []).map((a) => a.name).sort();
+            if (meta.tagName !== "v0.5.0") { console.error("bad tag"); process.exit(1); }
+            if (meta.isDraft !== false) { console.error("draft must be false"); process.exit(1); }
+            if (meta.isPrerelease !== false) { console.error("prerelease must be false"); process.exit(1); }
+            if (JSON.stringify(names) !== JSON.stringify(expected)) { console.error("asset mismatch"); process.exit(1); }
+          '
+
+      - name: Verify latest release resolves to the stable tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LATEST="$(gh api repos/${GITHUB_REPOSITORY}/releases/latest --jq .tag_name)"
+          echo "latest release: $LATEST"
+          if [ "$LATEST" != "v0.5.0" ]; then
+            echo "releases/latest is $LATEST, expected v0.5.0" >&2
+            exit 1
+          fi
+
+      - name: Revalidate published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DL="$RUNNER_TEMP/published"
+          mkdir -p "$DL"
+          gh release download v0.5.0 --dir "$DL"
+          cd "$DL"
+          sha256sum -c oh-my-pm-v0.5.0-SHA256SUMS.txt
+
+      - name: Print release URL to summary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          URL="$(gh release view v0.5.0 --json url --jq .url)"
+          echo "Published stable release: $URL" >> "$GITHUB_STEP_SUMMARY"

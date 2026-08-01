@@ -239,10 +239,13 @@ describe("v0.3 installed-qualification workflow (non-publishing)", () => {
 });
 
 describe("release profile is self-describing and fail-closed", () => {
-  it("release-bundle-utils declares the v0.4 project-brain-timeline profile", () => {
+  it("release-bundle-utils declares the v0.5 ohmypm-cli-namespace profile", () => {
+    // v0.5 adds a NEW profile rather than reusing v0.4's, so a verifier can tell
+    // a bundle that ships both command families from one that ships only the old
+    // names. The runtime surface (twelve tools) is unchanged.
     const utils = read(join(REPO_ROOT, "tools", "release-bundle-utils.mjs"));
-    expect(utils.includes('BUNDLE_PROFILE = "project-brain-timeline"')).toBe(true);
-    expect(utils.includes('RELEASE_LINE = "v0.4"')).toBe(true);
+    expect(utils.includes('BUNDLE_PROFILE = "ohmypm-cli-namespace"')).toBe(true);
+    expect(utils.includes('RELEASE_LINE = "v0.5"')).toBe(true);
     expect(utils.includes('"project_changes"')).toBe(true);
     expect(utils.includes('"project_timeline"')).toBe(true);
   });
@@ -254,6 +257,8 @@ describe("release profile is self-describing and fail-closed", () => {
     expect(verifier.includes("bundleProfile is unknown")).toBe(true);
     expect(verifier.includes('bundleProfile === "project-brain"')).toBe(true);
     expect(verifier.includes('bundleProfile === "project-brain-timeline"')).toBe(true);
+    // Previously published profiles keep working alongside the new one.
+    expect(verifier.includes('bundleProfile === "ohmypm-cli-namespace"')).toBe(true);
   });
 
   it("the install core resolves the surface from the declared profile, fail-closed", () => {
@@ -304,9 +309,10 @@ describe("self-contained v0.3 bundle includes project-memory (dist-only)", () =>
     walk(pmDir);
   });
 
-  it("declares the v0.4 project-brain-timeline profile in the bundle RELEASE.json", () => {
+  it("declares the v0.5 ohmypm-cli-namespace profile in the bundle RELEASE.json", () => {
     const release = JSON.parse(read(join(bundleDir, "RELEASE.json")));
-    expect(release.bundleProfile).toBe("project-brain-timeline");
+    expect(release.bundleProfile).toBe("ohmypm-cli-namespace");
+    expect(release.releaseLine).toBe("v0.5");
     expect(release.expectedMcpToolCount).toBe(12);
     expect(release.mcpTools[release.mcpTools.length - 1]).toBe("project_timeline");
     expect(release.mcpTools[release.mcpTools.length - 2]).toBe("project_changes");
@@ -356,7 +362,7 @@ describe("release profile resolution (v0.2 upgrade compatibility)", () => {
     expect(source.includes("release_bundle_profile_unknown")).toBe(true);
   });
 
-  it("appends project_timeline for the project-brain-timeline profile", () => {
+  it("appends project_timeline for the timeline and v0.5 command-namespace profiles", () => {
     expect(
       /\[\s*\.\.\.\s*TEN_MCP_TOOLS\s*,\s*"project_changes"\s*,\s*"project_timeline"\s*\]/.test(source),
     ).toBe(true);
@@ -368,6 +374,7 @@ describe("release profile resolution (v0.2 upgrade compatibility)", () => {
     expect(verifier.includes('release.bundleProfile ?? "source-v0.2"')).toBe(true);
     expect(verifier.includes('bundleProfile === "project-brain"')).toBe(true);
     expect(verifier.includes('bundleProfile === "project-brain-timeline"')).toBe(true);
+    expect(verifier.includes('bundleProfile === "ohmypm-cli-namespace"')).toBe(true);
     expect(verifier.includes("bundleProfile is unknown")).toBe(true);
   });
 });
