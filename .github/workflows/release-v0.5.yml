@@ -71,6 +71,9 @@ jobs:
   prepare:
     name: Prepare stable release assets
     runs-on: ubuntu-latest
+    # Observed max 7.8 min. This job runs the full build, the complete test
+    # suite, every validator, and deterministic archive construction.
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -287,6 +290,8 @@ jobs:
     name: Installed command-surface qualification (${{ matrix.os }})
     needs: prepare
     runs-on: ${{ matrix.os }}
+    # Observed max 1.6 min; qualifies an already-prepared artifact.
+    timeout-minutes: 20
     permissions:
       contents: read
     strategy:
@@ -401,6 +406,14 @@ jobs:
     needs: [prepare, installed-qualification]
     if: ${{ inputs.publish == true }}
     runs-on: ubuntu-latest
+    # timeout-minutes bounds EXECUTION only; it starts when the job begins
+    # running, which for an environment-protected job is after the reviewer
+    # approves. Waiting for that approval is therefore not on this clock and
+    # cannot be cut short by it. Observed execution: 0.3 min (create the
+    # release, verify tag/assets/latest, re-download and re-verify checksums).
+    # 20 min leaves ample room for a slow asset upload without leaving a job
+    # holding contents: write open indefinitely.
+    timeout-minutes: 20
     environment:
       name: github-release
     permissions:
