@@ -162,7 +162,25 @@ export function resolveReleaseArchivePlan(options) {
     { id: "release_json", ok: isRegularFile(join(bundleDirectory, "RELEASE.json")) },
     { id: "internal_sha256sums", ok: isRegularFile(join(bundleDirectory, "SHA256SUMS")) },
     { id: "cli_entrypoint", ok: isRegularFile(join(bundleDirectory, "bin", "ohmypm.mjs")) },
-    { id: "mcp_entrypoint", ok: isRegularFile(join(bundleDirectory, "bin", "oh-my-pm-mcp.mjs")) },
+    { id: "mcp_entrypoint", ok: isRegularFile(join(bundleDirectory, "bin", "ohmypm-mcp.mjs")) },
+    {
+      id: "installer_entrypoint",
+      ok: isRegularFile(join(bundleDirectory, "bin", "ohmypm-install.mjs")),
+    },
+    // v0.5: the deprecated compatibility aliases are shipped intentionally, so a
+    // missing alias entrypoint blocks archiving just like a missing canonical one.
+    {
+      id: "legacy_cli_entrypoint",
+      ok: isRegularFile(join(bundleDirectory, "bin", "oh-my-pm.mjs")),
+    },
+    {
+      id: "legacy_mcp_entrypoint",
+      ok: isRegularFile(join(bundleDirectory, "bin", "oh-my-pm-mcp.mjs")),
+    },
+    {
+      id: "legacy_installer_entrypoint",
+      ok: isRegularFile(join(bundleDirectory, "bin", "oh-my-pm-install.mjs")),
+    },
     {
       id: "bundled_wasm",
       ok: isRegularFile(
