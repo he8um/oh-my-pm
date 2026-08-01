@@ -4,7 +4,8 @@
 
 ## [0.5.2]
 
-Maintenance release, **prepared but not yet published**. It fixes one internal
+Maintenance release, **published as the latest stable release** on
+2026-08-01 (tag `v0.5.2`, targeting `6c915e0…`). It fixes one internal
 architecture problem and adds **no user-facing capability**: the GitHub-backed
 project workflow was duplicated across presentation adapters, because the MCP
 server reimplemented the shared pipeline and the CLI assembled its own Runtime

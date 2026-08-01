@@ -11,8 +11,8 @@ Every entry below carries one of five explicit states:
 | **Out of scope**             | deliberately excluded                                       |
 
 The latest **published** stable release is
-[`v0.5.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.1). The active
-maintenance scope is **v0.5.2**, prepared but not yet published.
+[`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2), which is also
+the current source version. The next line, **v0.6**, is planned and not started.
 
 Phases 0 through 6 below are the historical implementation log for the v0.1
 through v0.4 lines. Everything in them is **Shipped** unless a later section
@@ -418,7 +418,7 @@ in place (see Phase 5B).
 - See [the v0.5.1 scope](v0.5/v0.5.1-scope.md) and
   [the application boundary](v0.5/application-boundary.md).
 
-## v0.5.2 — The shared GitHub application boundary (Active maintenance)
+## v0.5.2 — The shared GitHub application boundary (Shipped)
 
 - **Patch release. No public behavior change.** No new command, no changed CLI
   syntax or JSON output, no changed MCP tool, schema, annotation, or tool order,
@@ -440,16 +440,18 @@ in place (see Phase 5B).
   from `OH_MY_PM_MCP_VERSION`.
 - **Release line `v0.5`, bundle profile `ohmypm-cli-namespace`** — retained
   unchanged, because the user-facing runtime surface is unchanged.
-- **Prepared but not yet published.** `v0.5.1` remains the latest published
-  stable and the immutable base lineage.
+- **Published.** `v0.5.2` is the latest published stable release, targeting
+  `6c915e0…`. `v0.5.1` remains published and immutable as the base lineage it
+  was released from.
 - **Explicitly not in v0.5.2:** any Dashboard, web UI, HTTP server, or API; any
   new command, MCP tool, provider, or schema change; any GitHub mutation
   capability; and any registry publication.
-- **Remaining v0.5.2 scope tracked separately:** documentation and governance
-  truth (#30), CI and quality policy (#32), and CODEOWNERS and hosted
-  protections (#33).
-- See [the v0.5.2 release notes](releases/v0.5.2.md) and
-  [the publishing runbook](releases/publishing-v0.5.2.md).
+- **v0.5.2 maintenance scope complete:** documentation and governance truth
+  (#30), CI and quality policy (#32), and CODEOWNERS and hosted protections
+  (#33) are all closed.
+- See [the v0.5.2 release notes](releases/v0.5.2.md),
+  [the publishing runbook](releases/publishing-v0.5.2.md), and
+  [the post-publication validation record](releases/v0.5.2-post-publication-validation.md).
 
 ## Phase 6 — Release lifecycle
 
