@@ -59,7 +59,11 @@ export type LocalCliProcessOptions = {
    * commands never call it.
    */
   clock?: () => string;
-  /** Injected GitHub token; when omitted the adapter reads it from the env. */
+  /**
+   * Injected GitHub token, forwarded to the application Node boundary. When
+   * omitted, that boundary reads the environment lazily inside its transport
+   * factory; this adapter never reads it.
+   */
   githubToken?: string;
   /** Injected GitHub transport; when set it takes precedence (offline tests). */
   githubTransport?: GitHubHttpTransport;
@@ -101,7 +105,7 @@ export type LocalCliProcessOptions = {
 // Default local runtime identity. Deterministic: no real clock, no randomness.
 // The fixed clock is used for every local/offline workflow so byte-identical
 // output is guaranteed regardless of when the command runs.
-const DEFAULT_VERSION = "0.5.1";
+const DEFAULT_VERSION = "0.5.2";
 const LOCAL_FIXED_NOW = "2026-01-01T00:00:00.000Z";
 
 // Seed items for the commands that do not read project documents
