@@ -10,13 +10,15 @@
 </p>
 It is designed for teams that want clearer delivery context, safer execution boundaries, and repeatable validation around project work.
 
-> **Latest stable release:** [`v0.3.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.1)
+> **Latest stable release:** [`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0)
 > **Latest prerelease:** [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1)
-> **Source version:** `0.4.0` (prepared, not yet published)
+> **Source version:** `0.5.0` (prepared, not yet published)
 >
-> The source is prepared for **`v0.4.0`**, which adds one capability — **Project Timeline**: a local, bounded, deterministic history of project changes derived read-only from already-captured Project Brain snapshots, exposed through `ohmypm memory timeline` and the `project_timeline` MCP tool. It adds no schema change, no store-format change, no migration, no write path, and no registry publication. See the [v0.4.0 release notes](docs/releases/v0.4.0.md) and the [v0.4 architecture](docs/v0.4/README.md).
+> The source is prepared for **`v0.5.0`**, a **CLI command namespace migration**: the canonical command family becomes `ohmypm`, `ohmypm-mcp` and `ohmypm-install`. The former `oh-my-pm` family keeps working as deprecated compatibility aliases, with no removal scheduled. This is **not** a product rename — the package scope, environment variables, installation paths, data directories, release archive names and MCP server key are all unchanged, and **no data migration is required**. It adds no feature, no schema change, no store-format change, no write path, and no registry publication. See the [v0.5.0 release notes](docs/releases/v0.5.0.md) and the [v0.5 migration guide](docs/v0.5/README.md).
 >
-> [`v0.3.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.1) is the latest **stable** release — a non-draft, non-prerelease GitHub Release marked latest, carrying exactly three assets. It is a CLI usability patch over `v0.3.0` (conventional `--help`, installed `mcp-config`) with no schema, store-format, or MCP capability change. [`v0.3.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0) remains a preserved immutable stable release targeting `0d6f9b1…`. [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) is a published **prerelease** (the v0.3 Project Brain line; not marked latest), targeting `1db4057…`. [`v0.2.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0), [`v0.2.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0-rc.1) and [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) remain preserved historical releases. Node.js 20+ is the only runtime requirement for installed archives. Packages remain private; there is no npm package.
+> [`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0) is the latest **stable** release, adding **Project Timeline**: a local, bounded, deterministic history of project changes derived read-only from already-captured Project Brain snapshots, exposed through `ohmypm memory timeline` and the `project_timeline` MCP tool. See the [v0.4.0 release notes](docs/releases/v0.4.0.md) and the [v0.4 architecture](docs/v0.4/README.md).
+>
+> [`v0.3.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.1) is a preserved stable release — a CLI usability patch over `v0.3.0` (conventional `--help`, installed `mcp-config`) with no schema, store-format, or MCP capability change. [`v0.3.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0) remains a preserved immutable stable release targeting `0d6f9b1…`. [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) is a published **prerelease** (the v0.3 Project Brain line; not marked latest), targeting `1db4057…`. [`v0.2.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0), [`v0.2.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0-rc.1) and [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) remain preserved historical releases. Node.js 20+ is the only runtime requirement for installed archives. Packages remain private; there is no npm package.
 
 ---
 
@@ -134,7 +136,7 @@ The current next-task workflow extracts explicit unchecked Markdown checklist it
 
 ## Getting started locally
 
-The packages are private and repository-based (there is no registry package), and the latest stable release is [`v0.3.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.1). To build from a checkout, see [the getting-started guide](docs/getting-started.md) for the full walkthrough. The short path is:
+The packages are private and repository-based (there is no registry package), and the latest stable release is [`v0.4.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.4.0). To build from a checkout, see [the getting-started guide](docs/getting-started.md) for the full walkthrough. The short path is:
 
 ```bash
 rustup target add wasm32-unknown-unknown

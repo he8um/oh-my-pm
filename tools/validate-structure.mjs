@@ -1178,6 +1178,10 @@ const V05_COMMAND_SURFACE_REQUIRED = [
   // published v0.1-v0.4 workflows are never rewritten.
   ".github/workflows/release-v0.5.yml",
   "tools/test/v0.5-release-qualification.test.mjs",
+  // v0.5 migration guide, release notes, and publishing runbook.
+  "docs/v0.5/README.md",
+  "docs/releases/v0.5.0.md",
+  "docs/releases/publishing-v0.5.0.md",
 ];
 for (const file of V05_COMMAND_SURFACE_REQUIRED) {
   if (!existsSync(file)) err(`v0.5 command-surface file missing: ${file}`);
