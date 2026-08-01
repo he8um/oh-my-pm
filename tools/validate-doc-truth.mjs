@@ -228,7 +228,11 @@ const MCP_SURFACE_DOCS = [
   for (const rel of ACTIVE_DOCS) {
     const text = read(rel);
     if (text === null) continue;
-    for (const block of text.matchAll(/```(?:bash|sh|console)\n([\s\S]*?)```/g)) {
+    for (const block of text.matchAll(/^```(?:bash|sh|console)\n([\s\S]*?)^```/gm)) {
+      // A block that shows the deprecation warning is DOCUMENTING the alias
+      // behavior, not recommending the alias. That is the one legitimate reason
+      // to type a deprecated name in an example.
+      if (/deprecated compatibility alias/i.test(block[1])) continue;
       if (aliasExample.test(block[1])) {
         err(
           `${rel}: a shell example invokes a deprecated alias; use "${CANONICAL_CLI}" ` +
@@ -253,7 +257,10 @@ const MCP_SURFACE_DOCS = [
     .filter((w) => w !== toolWord)
     .map((w) => ({
       word: w,
-      pattern: new RegExp(`\\b${w}\\b[- ](?:read-only )?tools?\\b`, "i"),
+      // "the first ten tools" / "the exact ten" describe the conditional
+      // registration fallback, which is real. Only an unqualified count claim
+      // about the surface is drift.
+      pattern: new RegExp(`(?<!first )(?<!exact )\\b${w}\\b[- ](?:read-only )?tools?\\b`, "i"),
     }));
 
   for (const rel of MCP_SURFACE_DOCS) {

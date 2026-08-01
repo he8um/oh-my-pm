@@ -6,10 +6,11 @@
 // that each class of stale claim is caught.
 
 import { spawnSync } from "node:child_process";
-import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const validator = join(repoRoot, "tools", "validate-doc-truth.mjs");
@@ -21,6 +22,14 @@ function runValidator() {
   });
 }
 
+// Backups live OUTSIDE the repository. Writing them alongside the original
+// would leave an untracked stray file in the working tree if a run is
+// interrupted, which validate-structure would then reject.
+const backupDir = mkdtempSync(join(tmpdir(), "omp-doc-truth-"));
+afterAll(() => {
+  rmSync(backupDir, { recursive: true, force: true });
+});
+
 /** Restore any file this suite temporarily edits, even when a test fails. */
 const restores = [];
 afterEach(() => {
@@ -29,9 +38,10 @@ afterEach(() => {
   }
 });
 
+let backupSeq = 0;
 function withTemporaryEdit(relPath, edit) {
   const path = join(repoRoot, relPath);
-  const backup = `${path}.doctruth-backup`;
+  const backup = join(backupDir, `${backupSeq++}-${basename(relPath)}`);
   copyFileSync(path, backup);
   restores.push({ path, backup });
   writeFileSync(path, edit(readFileSync(path, "utf8")));
@@ -83,7 +93,7 @@ describe("validate-doc-truth passes on the current tree", () => {
 describe("validate-doc-truth fails on real drift", () => {
   it("catches a stale MCP tool count", () => {
     withTemporaryEdit("mcp-server/README.md", (text) =>
-      text.replace(/twelve read-only tools/i, "eleven read-only tools"),
+      text.replace(/All twelve tools/, "All eleven tools"),
     );
     const result = runValidator();
     expect(result.status).toBe(1);

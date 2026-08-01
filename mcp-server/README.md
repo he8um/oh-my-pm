@@ -1,14 +1,27 @@
 # @oh-my-pm/mcp-server
 
-Private Model Context Protocol (MCP) server for OH MY PM. It exposes read-only
-tools to MCP clients over stdio: four local Markdown project workflows
-(filesystem-only), four GitHub workflows (read-only outbound API requests, only
-when called), and two provider diagnostics tools (offline, with one explicitly
-confirmed GitHub request). In the source/workspace build, when the local Project
-Memory capability is available, it also exposes the v0.3 Phase 5 read-only
-`project_changes` tool (eleven tools total); the legacy/current v0.2 bundle,
-which excludes Project Memory, exposes the existing ten. It is private and is not
-published; it has **zero** write tools.
+Private Model Context Protocol (MCP) server for OH MY PM.
+
+The installed surface is exactly:
+
+```text
+12 read-only tools
+0 write tools
+stdio transport only
+```
+
+Four local Markdown project workflows (filesystem-only), four GitHub workflows
+(read-only outbound API requests, only when called), two provider diagnostics
+tools (offline, with one explicitly confirmed GitHub request), and two read-only
+Project Brain memory tools. The package is private and is not published to npm.
+
+The current v0.5 release bundle (profile `ohmypm-cli-namespace`) always packages
+`@oh-my-pm/project-memory`, so an installed server always registers all twelve
+tools. See [Conditional registration](#conditional-registration) for the
+mechanism and the historical profiles where it mattered.
+
+The server depends on [`@oh-my-pm/application`](../application/README.md) for
+shared use cases. As of v0.5.1 it does **not** depend on `@oh-my-pm/cli`.
 
 ## Build requirement
 
@@ -46,21 +59,53 @@ The generator prints the configuration only — it never writes to or edits a cl
 
 ## Tools
 
-The ten historical tools are registered in this order — four local, four GitHub, then two provider diagnostics — and, in the source/workspace capability build, the read-only `project_changes` tool is appended as the eleventh:
+All twelve tools, in exact registration order. MCP clients depend on both the
+names and the order, so this list is a compatibility contract:
 
-- `project_brief` — deterministic project status brief
-- `project_risks` — line-level risk signals from recognized Markdown headings/markers
-- `project_next` — next tasks from Markdown checklists, action headings, and markers
-- `project_handoff` — deterministic project handoff
-- `github_project_brief` — GitHub repository status brief
-- `github_project_risks` — GitHub repository risk signals
-- `github_project_next` — GitHub repository next tasks
-- `github_project_handoff` — GitHub repository handoff
-- `provider_status` — offline resolved provider state (no network)
-- `github_provider_diagnostics` — offline GitHub diagnostics, one confirmed GET when opted in
-- `project_changes` — **(source/workspace capability only)** read-only comparison of already-captured local Project Brain memory in authoritative capture order
+| # | Tool | What it does |
+| --- | --- | --- |
+| 1 | `project_brief` | deterministic project status brief from local Markdown |
+| 2 | `project_risks` | line-level risk signals from recognized Markdown headings and markers |
+| 3 | `project_next` | next tasks from Markdown checklists, action headings, and markers |
+| 4 | `project_handoff` | deterministic project handoff from local Markdown sections |
+| 5 | `github_project_brief` | GitHub repository status brief |
+| 6 | `github_project_risks` | GitHub repository risk signals |
+| 7 | `github_project_next` | GitHub repository next tasks |
+| 8 | `github_project_handoff` | GitHub repository handoff |
+| 9 | `provider_status` | offline resolved provider state (no network) |
+| 10 | `github_provider_diagnostics` | offline GitHub diagnostics, one confirmed GET when opted in |
+| 11 | `project_changes` | read-only comparison of already-captured Project Brain memory, in authoritative capture order |
+| 12 | `project_timeline` | read-only bounded timeline derived from adjacent committed snapshots, in authoritative capture order |
 
-The first ten always register and keep their exact order. `project_changes` is registered only when the local Project Memory capability resolves at stdio startup (a lazy, optional dynamic import); when it is absent — the intended case for the legacy/current v0.2 bundle, which excludes `@oh-my-pm/project-memory` — the server starts with the exact ten and emits no warning.
+Tools 11 and 12 read already-captured local memory. Neither captures, migrates,
+exports, deletes, or repairs memory, and neither performs a network request.
+
+Every tool is annotated `readOnlyHint: true` and `destructiveHint: false`. There
+are **zero** write tools: no tool creates, modifies, or deletes a project file,
+mutates a GitHub resource, or writes Project Brain memory.
+
+### Conditional registration
+
+The first ten tools always register and always keep their exact order.
+`project_changes` and `project_timeline` register only when the local Project
+Memory capability resolves at stdio startup, through a lazy optional dynamic
+import.
+
+The current v0.5 bundle always ships `@oh-my-pm/project-memory`, so in every
+installed v0.5 server all twelve register. The fallback exists for the
+historical `source-v0.2` profile, which excluded Project Memory: there the
+server starts with the exact ten and emits no warning. That fail-safe path is
+still live code, which is why the mechanism is documented rather than removed.
+
+| Profile | Project Memory bundled | Tools |
+| --- | --- | --- |
+| `ohmypm-cli-namespace` (current, v0.5) | yes | 12 |
+| `project-brain-timeline` (v0.4, historical) | yes | 12 |
+| `project-brain` (v0.3, historical) | yes | 11 |
+| `source-v0.2` (historical) | no | 10 |
+
+Only the current row describes a release you can install today; the rest are
+recorded so a verifier can resolve an older bundle fail-closed.
 
 The four local tools accept a project root:
 
@@ -155,4 +200,4 @@ After building the workspace, run the stdio smoke check:
 pnpm mcp:smoke
 ```
 
-It spawns the source/workspace server against an isolated standard data root, asserts the exact eleven-tool list, calls the offline local `project_brief` on the public fixture, the offline `provider_status` tool, and the read-only `project_changes` tool over an empty store (asserting a `noPriorMemory` status, that no data directory/file/lock was created, and that no forbidden sentinel leaked), asserts safe results, and prints one success line. The smoke never calls a GitHub workflow tool and never runs a network diagnostic, so it makes no network request and needs no token.
+It spawns the source/workspace server against an isolated standard data root, asserts the exact twelve-tool list and registration order, asserts zero write tools, calls the offline local `project_brief` on the public fixture, the offline `provider_status` tool, and the read-only `project_changes` and `project_timeline` tools over an empty store (asserting a `noPriorMemory` status, an empty timeline, that no data directory/file/lock was created, and that no forbidden sentinel leaked), asserts safe results, and prints one success line. The smoke never calls a GitHub workflow tool and never runs a network diagnostic, so it makes no network request and needs no token.

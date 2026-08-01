@@ -4,7 +4,7 @@
 // tool on. It is used exclusively by stdio startup, never by createOhMyPmMcpServer
 // (which stays synchronous and registers project_changes only when an executor
 // is passed). When @oh-my-pm/project-memory cannot be resolved — the intended
-// case for the legacy/current v0.2 bundle, which excludes the package — the
+// case for the historical v0.2 bundle, which excludes the package — the
 // loader returns undefined and the server preserves its exact ten-tool surface.
 // No stderr warning is emitted: the ten-tool fallback is intentional
 // compatibility behavior, not an error.

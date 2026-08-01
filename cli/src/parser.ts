@@ -493,7 +493,7 @@ export function parseCliArgs(args: readonly string[]): CliParseResult {
   if (args.length > 0 && args[0] === "providers") {
     return parseProvidersCommand(args.slice(1));
   }
-  // The memory command has its own nested grammar (six subcommands + identity/
+  // The memory command has its own nested grammar (seven subcommands + identity/
   // data-dir/output/mutation options). It is handled at the process boundary;
   // runCli fails closed on it. Adapt the nested result to the flat union.
   if (args.length > 0 && args[0] === "memory") {

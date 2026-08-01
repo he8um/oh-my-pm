@@ -2,33 +2,48 @@
 
 Private installer package for OH MY PM.
 
-This package currently provides a deterministic installer foundation. It validates package manifests, creates install reports, checks update plans through the Kernel boundary, and produces rollback reports.
+This package provides the deterministic installer. It validates package
+manifests, creates install reports, checks update plans through the Kernel
+boundary, produces rollback reports, and installs a release bundle into an
+explicit prefix.
 
-The current implementation is side-effect-free and in-memory only. It does not write files, read files, or install real release artifacts yet.
+Real installation shipped as the `ohmypm-install` command (deprecated alias:
+`oh-my-pm-install`). Installing is **transactional**: it copies the versioned
+bundle, verifies its content and checksums, stages the command shims and the
+manifest, then atomically renames each managed target into place.
+
+The installer never downloads an artifact. It installs from a bundle that is
+already present on disk, so installation performs no network request.
 
 ## Filesystem planning
 
-The installer exposes filesystem planning through explicit adapters.
+Every filesystem effect goes through an explicit adapter, so the installer core
+itself stays pure and deterministic. Planning is always separate from execution:
+a plan is computed and can be inspected before anything is written.
 
-The current package includes an in-memory filesystem adapter for deterministic tests and examples. The installer core does not read or write the real filesystem.
-
-Real filesystem installation will be added behind the same adapter boundary in a later phase.
+The package includes an in-memory adapter for deterministic tests and examples,
+and Node adapters for real use.
 
 ## Node filesystem adapter
 
-The package includes a read-only Node filesystem adapter for planning and inspection.
+The read-only Node adapter is used for planning and inspection. It lists and
+reads files under an explicit root and produces SHA-256 checksums. It refuses
+paths outside the configured root and ignores symlinks.
 
-The adapter can list and read files under an explicit root and produces SHA-256 checksums. It refuses paths outside the configured root and ignores symlinks.
-
-The adapter does not write, delete, rename, or mutate files. Real installation execution remains out of scope.
+The read-only adapter never writes, deletes, renames, or mutates files; writes
+go exclusively through the separate write adapter below.
 
 ## Controlled execution
 
-The installer can execute planned operations only through explicit write adapters.
+Planned operations execute only through an explicit write adapter.
 
-The in-memory write adapter is intended for deterministic tests and examples. The Node write adapter is root-confined and refuses unsafe paths and symlinks.
+The in-memory write adapter is for deterministic tests and examples. The Node
+write adapter performs the real prefix install: it is root-confined and refuses
+unsafe paths and symlinks.
 
-This package still does not package releases, download artifacts, or expose a production install command.
+Preview remains the default. `--apply` is required to write, `--force` is
+required to replace existing managed targets, and the managed target set is
+exactly the version directory, the command shims, and `install.json`.
 
 ## Release package manifest design
 

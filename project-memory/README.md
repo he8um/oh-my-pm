@@ -1,18 +1,37 @@
 # @oh-my-pm/project-memory
 
-Private local persistence adapter for the OH MY PM Project Brain (v0.3 Phase 2).
+Private local persistence adapter for the OH MY PM Project Brain.
 
 This package is the explicit **application-state write boundary**. It stores
 minimized, immutable Project Brain snapshot and evidence records — already
-finalized by the Phase 1 Kernel — in a local application-data location that is
-**never** inside the analyzed project. It does not analyze, normalize,
-fingerprint semantically, or diff those records; it only persists, verifies,
-reads, exports, and deletes them.
+finalized by the Kernel — in a local application-data location that is **never**
+inside the analyzed project. It does not analyze, normalize, fingerprint
+semantically, or diff those records; it only persists, verifies, reads, exports,
+and deletes them.
 
-It is **not** wired into any public CLI command, MCP tool, Runtime path, or the
-v0.2 release bundle. Nothing invokes it yet. It exists as a standalone,
-dependency-free package precisely because persistence is a new I/O boundary that
-must not be hidden inside the pure Kernel, Runtime, Skills, or Providers.
+It is a standalone, dependency-free package precisely because persistence is an
+I/O boundary that must not be hidden inside the pure Kernel, Runtime, Skills, or
+Providers.
+
+## Who invokes it
+
+Shipped since v0.3.0, and packaged in the current release bundle. It is reached
+**only** through the application layer's memory orchestrator
+([`@oh-my-pm/application`](../application/README.md)), which loads it via a lazy
+dynamic import so a profile without Project Memory still starts:
+
+| Surface | Entry points |
+| --- | --- |
+| CLI | the seven `ohmypm memory` subcommands: `capture`, `changes`, `status`, `history`, `export`, `delete`, `timeline` |
+| MCP | the read-only `project_changes` and `project_timeline` tools |
+| Runtime | the Project Brain Runtime API (`createProjectBrainRuntime`) via the structural port |
+
+No package takes a production dependency on it except the application layer,
+CLI, and MCP server; the Runtime reaches it only through a structural port, and
+`tools/validate-boundaries.mjs` enforces both rules.
+
+**Store format 2. Project Brain schema 1.** Neither changed in v0.5.1, and no
+migration is required.
 
 ## Guarantees
 
