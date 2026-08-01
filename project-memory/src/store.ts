@@ -772,7 +772,12 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
       projectBrainSchemaVersion: SUPPORTED_PROJECT_BRAIN_SCHEMA_VERSION,
       projectId,
       projectKey,
-      createdAt: String(migrated["createdAt"] ?? occurredAt),
+      // A migration step returns an untyped JsonObject, so createdAt is
+      // `unknown` here. Only a string is a usable timestamp: String() on an
+      // object would persist the literal "[object Object]" into the manifest,
+      // so anything non-string falls back to the operation time instead.
+      createdAt:
+        typeof migrated["createdAt"] === "string" ? migrated["createdAt"] : occurredAt,
       updatedAt: occurredAt,
       latestSnapshotId: migrated["latestSnapshotId"] as string | null,
       snapshotIds: (migrated["snapshotIds"] as string[]) ?? [],

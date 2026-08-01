@@ -50,15 +50,6 @@ export const RELEASE_INSTALL_COMMANDS = [
 /** The canonical installer entrypoint, as a bundle-relative POSIX path. */
 export const RELEASE_INSTALLER_ENTRYPOINT = "bin/ohmypm-install.mjs";
 
-/**
- * Which canonical command each deprecated alias forwards to. Used only to build
- * a shim that points at the same versioned target, never to warn (the warning
- * lives in the bundle's own alias entrypoint).
- */
-const LEGACY_COMMAND_TARGETS = {
-  "oh-my-pm": "ohmypm",
-  "oh-my-pm-mcp": "ohmypm-mcp",
-};
 const EXPECTED_CLI_WORKFLOWS = ["brief", "risks", "next", "handoff"];
 const EXPECTED_GITHUB_WORKFLOWS = ["brief", "risks", "next", "handoff"];
 // The ten historical MCP tools. The v0.3 "project-brain" profile appends one

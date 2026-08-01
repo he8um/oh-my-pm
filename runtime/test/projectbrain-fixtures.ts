@@ -42,8 +42,8 @@ export function inMemoryMemoryPort(): RecordingMemoryPort {
   const snapshotStore = new Map<string, ProjectSnapshot>();
   const evidenceStore = new Map<string, EvidenceRecord>();
   const commits: MemoryCommitInput[] = [];
-  let orderedSnapshotIds: string[] = [];
-  let evidenceIds: string[] = [];
+  const orderedSnapshotIds: string[] = [];
+  const evidenceIds: string[] = [];
   let latest: string | null = null;
   let failMessage: string | null = null;
 

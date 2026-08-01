@@ -27,7 +27,6 @@ import {
   deriveRecordKey,
   serializeEnvelope,
   serializeManifest,
-  resolveStoreLayout,
 } from "@oh-my-pm/project-memory";
 import { afterEach, describe, expect, it } from "vitest";
 import { runProjectChanges } from "../src/project-changes-runner.js";
@@ -346,7 +345,6 @@ describe("project_changes runner — version / corruption", () => {
     // Plant a real store-format-1 store; the runner must stop at migrationRequired
     // and never read a snapshot, migrate, or write.
     const dataRoot = tempDataRoot();
-    const layout = resolveStoreLayout(dataRoot);
     const projectKey = deriveProjectKey("v1-proj");
     const projectDir = join(dataRoot, "project-brain", "v1", "projects", projectKey);
     const store = createNodeProjectMemoryStore({ dataRootOverride: dataRoot }) as unknown as ProjectChangesStore;

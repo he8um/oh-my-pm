@@ -171,7 +171,7 @@ function run(assetsDir) {
   const expected = new Map();
   const filenameOrder = [];
   for (const line of sumLines.slice(0, 2)) {
-    const match = /^([0-9a-f]{64})  (.+)$/.exec(line);
+    const match = /^([0-9a-f]{64}) {2}(.+)$/.exec(line);
     if (!match) return fail(`malformed checksum line: ${line}`);
     expected.set(match[2], match[1]);
     filenameOrder.push(match[2]);

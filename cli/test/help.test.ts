@@ -211,7 +211,9 @@ describe("help text", () => {
   it("adds no shell completion, prompt, manpage, color, or paging surface", () => {
     for (const topic of HELP_TOPICS) {
       const text = formatHelp(topic).toLowerCase();
-      // An ANSI escape sequence would indicate color output.
+      // An ANSI escape sequence would indicate color output. Matching the
+      // control character is the entire point of the assertion.
+      // eslint-disable-next-line no-control-regex
       expect(text).not.toMatch(/\u001b/);
       for (const marker of ["completion", "man page", "manpage", "pager", "prompt", "localization"]) {
         expect(text, `${topic} must not mention "${marker}"`).not.toContain(marker);

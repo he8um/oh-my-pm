@@ -7,10 +7,10 @@ import {
   readFileSync,
   readdirSync,
   renameSync,
+  chmodSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

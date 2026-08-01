@@ -31,7 +31,7 @@ import {
   isProjectBrainRuntimeError,
   kernelFailed,
   persistenceCommitFailed,
-  ProjectBrainRuntimeError,
+  type ProjectBrainRuntimeError,
 } from "./errors.js";
 import { minimizeEvidence } from "./evidence.js";
 import type { MinimizedEvidence } from "./evidence.js";

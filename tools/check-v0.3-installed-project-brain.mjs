@@ -827,6 +827,8 @@ async function qualifyProjectFixtureJourney(runCli, version) {
   for (const cmd of [["memory", "status", projectDir], ["memory", "history", projectDir], ["memory", "changes", projectDir]]) {
     const briefR = brief(cmd);
     assert(briefR.code === 0 && newlineTerminated(briefR.stdout), `brief ${cmd[1]} newline-terminated`);
+    // Matching the ESC control character is the point of the assertion.
+    // eslint-disable-next-line no-control-regex
     assert(!/\[/.test(briefR.stdout), `brief ${cmd[1]} has no ANSI escapes`);
     const jsonR = runCli([...cmd, ...base, "--json"]);
     assert(jsonR.code === 0 && newlineTerminated(jsonR.stdout), `json ${cmd[1]} newline-terminated`);
@@ -1692,7 +1694,7 @@ function dirname(p) {
 // filtering, pagination, an empty history, corruption fail-safety, the privacy
 // allowlist, and that the read performs no write and creates no directory.
 // ----------------------------------------------------------------------------
-async function qualifyTimelineCli(runCli, version) {
+async function qualifyTimelineCli(runCli, _version) {
   section("timeline-cli");
   const root = scratch("timeline-cli");
   const projectDir = join(root, "project");
@@ -2172,7 +2174,7 @@ async function qualifyTimelineMcp(prefix, versionDir) {
 // the store format and schema are unchanged between the two releases, which is
 // itself the invariant under test and is asserted from the store's own manifest.
 // ----------------------------------------------------------------------------
-async function qualifyV031StoreCompatibility(runCli, version) {
+async function qualifyV031StoreCompatibility(runCli, _version) {
   section("v0.3.1-compatibility");
   const root = scratch("v031-compat");
   const projectDir = join(root, "project");

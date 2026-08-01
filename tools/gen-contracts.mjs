@@ -440,17 +440,6 @@ function rustValue(type, value) {
   throw new Error(`unsupported constant value for ref ${type.ref}`);
 }
 
-function domainUsesJson(schema) {
-  const used = new Set();
-  for (const decl of schema.declarations) {
-    if (decl.kind === "struct") for (const f of decl.fields) collectRefs(f.type, used);
-    if (decl.kind === "alias") collectRefs(decl.of, used);
-    if (decl.kind === "constant") collectRefs(decl.type, used);
-    if (decl.kind === "union") for (const v of decl.variants) for (const f of v.fields) collectRefs(f.type, used);
-  }
-  return used.has("JsonValue");
-}
-
 function domainUsesMap(schema) {
   const walk = (type) => {
     if (typeof type === "string") return false;
@@ -545,12 +534,10 @@ function emitRustDomain(schema) {
 // Write outputs (only when changed)
 // ---------------------------------------------------------------------------
 
-let wrote = 0;
 function writeIfChanged(path, content) {
   mkdirSync(dirname(path), { recursive: true });
   if (!existsSync(path) || readFileSync(path, "utf8") !== content) {
     writeFileSync(path, content);
-    wrote += 1;
   }
 }
 

@@ -248,13 +248,22 @@ export async function withSafeTempWorkspace(callback, options = {}) {
     try {
       cleanupSafeTempWorkspace(workspace);
     } catch (cleanupError) {
+      // no-unsafe-finally guards against a `finally` throw discarding the
+      // in-flight error. That is precisely what the AggregateError below
+      // prevents: the callback failure is carried out first, never masked. A
+      // cleanup failure must not pass silently either -- these workspaces are
+      // real temporary directories, and a leak has to be visible. The rule
+      // cannot express "rethrow that preserves the original", so it is
+      // disabled here with that guarantee stated.
       if (callbackError !== undefined) {
         // Preserve both, callback failure first, without masking it.
+        // eslint-disable-next-line no-unsafe-finally
         throw new AggregateError(
           [callbackError, cleanupError],
           "callback and cleanup both failed",
         );
       }
+      // eslint-disable-next-line no-unsafe-finally
       throw cleanupError;
     }
   }

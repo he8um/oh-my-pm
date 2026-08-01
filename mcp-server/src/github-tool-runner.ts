@@ -26,8 +26,6 @@ export const MCP_GITHUB_RUNTIME_VERSION = OH_MY_PM_MCP_VERSION;
 /** Fixed timestamp for deterministic tests only; not a production default. */
 export const MCP_GITHUB_TEST_NOW = "2026-01-01T00:00:00.000Z";
 export const MCP_GITHUB_DEFAULT_LIMIT = 50;
-const MCP_GITHUB_MIN_LIMIT = 1;
-const MCP_GITHUB_MAX_LIMIT = 100;
 
 const OPERATION_TO_TOOL: Readonly<Record<McpGitHubOperation, McpGitHubToolName>> = {
   brief: "github_project_brief",

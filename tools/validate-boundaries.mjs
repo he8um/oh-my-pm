@@ -574,8 +574,8 @@ const MCP_SOURCE_FILES = trackedFiles.filter(
 // The GitHub MCP tool runner is the approved GitHub MCP boundary: it may read
 // the OH_MY_PM_GITHUB_TOKEN at the tool-call boundary and construct the GitHub
 // transport. It still must not itself fetch, log, or write; those markers are
-// enforced below with the token-env allowance carved out.
-const MCP_GITHUB_BOUNDARY = "mcp-server/src/github-tool-runner.ts";
+// enforced below with the token-env allowance carved out, keyed on the file
+// path where each scan runs.
 const MCP_FORBIDDEN = [
   "writeFile",
   "appendFile",

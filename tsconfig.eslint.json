@@ -1,0 +1,29 @@
+{
+  // Lint-only TypeScript project.
+  //
+  // Each package tsconfig sets "rootDir": "src" and includes only
+  // "src/**/*.ts", so tests and root-level TypeScript belong to no compiled
+  // project. Type-aware lint rules need every linted file to resolve to some
+  // program, so this project provides one.
+  //
+  // It is never built: "noEmit" is set and no build script references it.
+  // Widening a package tsconfig instead would pull tests into that package's
+  // declaration output and rootDir, which is exactly what the narrow per-package
+  // includes are there to prevent.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "types": ["node"]
+  },
+  "include": ["**/test/**/*.ts", "**/tests/**/*.ts", "tests/**/*.ts", "*.ts"],
+  "exclude": [
+    "node_modules",
+    "**/node_modules/**",
+    "**/dist/**",
+    "target",
+    ".release",
+    "contracts/generated/**",
+    "kernel/binding/generated-node/**"
+  ]
+}

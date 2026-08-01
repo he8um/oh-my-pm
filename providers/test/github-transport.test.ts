@@ -15,6 +15,9 @@ function fakeFetch(
 ): { fetchImpl: typeof fetch; calls: Recorded[] } {
   const calls: Recorded[] = [];
   const fetchImpl = (async (url: string | URL | Request, init?: RequestInit) => {
+    // `url` is the fetch signature's string | URL | Request. URL and Request
+    // both stringify to their href, so this records the real request URL.
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     calls.push({ url: String(url), init: init ?? {} });
     return new Response(typeof body === "string" ? body : JSON.stringify(body), {
       status,
@@ -188,7 +191,7 @@ describe("createNodeGitHubHttpTransport", () => {
 
   it("follows a bounded same-origin redirect", async () => {
     let call = 0;
-    const fetchImpl = (async (url: string | URL | Request) => {
+    const fetchImpl = (async (_url: string | URL | Request) => {
       call += 1;
       if (call === 1) {
         return new Response(null, {

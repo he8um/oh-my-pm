@@ -21,7 +21,6 @@ import {
 import { defaultMigrationRegistry } from "../src/migrations.js";
 import {
   BACKUPS_DIRNAME,
-  EVIDENCE_DIRNAME,
   manifestPathFor,
   projectDirFor,
   recordPathFor,

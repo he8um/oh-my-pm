@@ -12,7 +12,7 @@ import {
   invalidInput,
   isProjectBrainRuntimeError,
   kernelFailed,
-  ProjectBrainRuntimeError,
+  type ProjectBrainRuntimeError,
   storedRecordReadFailed,
 } from "./errors.js";
 import type {

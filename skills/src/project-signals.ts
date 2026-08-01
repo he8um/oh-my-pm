@@ -5,7 +5,7 @@
 // into line/item-level risk and next-task candidates.
 
 import type { NormalizedItemType } from "@oh-my-pm/contracts";
-import { isBlockedItem, isDoneItem, normalizeText } from "./helpers.js";
+import { isBlockedItem, isDoneItem } from "./helpers.js";
 import {
   matchActionMarker,
   matchRiskMarker,

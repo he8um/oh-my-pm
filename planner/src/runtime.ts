@@ -1,4 +1,4 @@
-import type { PlannerInput, RuntimeRequest } from "@oh-my-pm/contracts";
+import type { RuntimeRequest } from "@oh-my-pm/contracts";
 import { isRecord } from "./context.js";
 import type { RuntimePlannerInputResult } from "./types.js";
 

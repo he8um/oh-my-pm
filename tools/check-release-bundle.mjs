@@ -399,7 +399,7 @@ async function run(bundle) {
   const listed = new Map();
   for (const line of readFileSync(sumsPath, "utf8").split("\n")) {
     if (line.trim() === "") continue;
-    const match = /^([0-9a-f]{64})  (.+)$/.exec(line);
+    const match = /^([0-9a-f]{64}) {2}(.+)$/.exec(line);
     if (!match) return fail(`malformed SHA256SUMS line: ${line}`);
     listed.set(match[2], match[1]);
   }

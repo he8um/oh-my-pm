@@ -55,6 +55,9 @@ const ALLOWED_TOP_FILES = [
   "command-surface.json",
   "CODE_OF_CONDUCT.md",
   "CONTRIBUTING.md",
+  // v0.5.2: the active ESLint policy (flat config) and the lint-only
+  // TypeScript project that gives tests a program for type-aware rules.
+  "eslint.config.mjs",
   "LICENSE",
   "README.md",
   "ROADMAP.md",
@@ -65,6 +68,7 @@ const ALLOWED_TOP_FILES = [
   "pnpm-workspace.yaml",
   "rust-toolchain.toml",
   "tsconfig.base.json",
+  "tsconfig.eslint.json",
   "version.json",
   // v0.5.2: test topology. Separates the parallel unit project from the
   // serialized release/archive/install project so those suites cannot race
