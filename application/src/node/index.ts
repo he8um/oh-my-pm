@@ -63,4 +63,4 @@ export {
   nodeVersion,
   resolveNodeProviderConfig,
 } from "./deps.js";
-export type { NodeDepsOptions } from "./deps.js";
+export type { NodeDepsOptions, NodeGitHubProjectDepsOptions } from "./deps.js";
