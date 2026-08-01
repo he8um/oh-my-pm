@@ -95,7 +95,7 @@ describe("check-release-install behavior", () => {
 describe("createInstalledCommandInvocation", () => {
   const nodeExecutable = "/usr/bin/node";
   const cliShim = "/opt/app/bin/oh-my-pm.cmd";
-  const cliEntry = "/opt/app/lib/oh-my-pm/versions/1.2.3/bin/oh-my-pm.mjs";
+  const cliEntry = "/opt/app/lib/oh-my-pm/versions/1.2.3/bin/ohmypm.mjs";
   const mcpShim = "/opt/app/bin/oh-my-pm-mcp.cmd";
   const mcpEntry = "/opt/app/lib/oh-my-pm/versions/1.2.3/bin/oh-my-pm-mcp.mjs";
 
@@ -169,7 +169,10 @@ describe("check-release-install launches without a shell", () => {
     }
   });
   it("launches the installed CLI .mjs entrypoint from the version directory", () => {
+    expect(source).toContain('join(versionDir, "bin", "ohmypm.mjs")');
+    expect(source).toContain('join(versionDir, "bin", "ohmypm-mcp.mjs")');
+    // v0.5: the deprecated CLI alias entrypoint is also launched from the version
+    // directory, so its stderr-only warning can be verified in an installed tree.
     expect(source).toContain('join(versionDir, "bin", "oh-my-pm.mjs")');
-    expect(source).toContain('join(versionDir, "bin", "oh-my-pm-mcp.mjs")');
   });
 });

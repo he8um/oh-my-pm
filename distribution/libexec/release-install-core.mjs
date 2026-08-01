@@ -26,7 +26,39 @@ import {
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 export const RELEASE_INSTALL_MANIFEST_SCHEMA_VERSION = 1;
-export const RELEASE_INSTALL_COMMANDS = ["oh-my-pm", "oh-my-pm-mcp"];
+
+// The v0.5 command surface. This core is deliberately repository-independent --
+// it must run from inside an extracted bundle with nothing else available -- so
+// the names are restated here rather than imported from command-surface.json.
+// tools/validate-command-surface.mjs compares these arrays against the manifest
+// on every validation run, so the two cannot silently diverge.
+//
+// Canonical commands come first everywhere they are used, so the ordering itself
+// records which names are primary.
+export const RELEASE_INSTALL_CANONICAL_COMMANDS = ["ohmypm", "ohmypm-mcp"];
+export const RELEASE_INSTALL_LEGACY_COMMANDS = ["oh-my-pm", "oh-my-pm-mcp"];
+
+/**
+ * Every installed command, canonical first then the deprecated compatibility
+ * aliases. Install creates all of these; uninstall/cleanup removes all of these.
+ */
+export const RELEASE_INSTALL_COMMANDS = [
+  ...RELEASE_INSTALL_CANONICAL_COMMANDS,
+  ...RELEASE_INSTALL_LEGACY_COMMANDS,
+];
+
+/** The canonical installer entrypoint, as a bundle-relative POSIX path. */
+export const RELEASE_INSTALLER_ENTRYPOINT = "bin/ohmypm-install.mjs";
+
+/**
+ * Which canonical command each deprecated alias forwards to. Used only to build
+ * a shim that points at the same versioned target, never to warn (the warning
+ * lives in the bundle's own alias entrypoint).
+ */
+const LEGACY_COMMAND_TARGETS = {
+  "oh-my-pm": "ohmypm",
+  "oh-my-pm-mcp": "ohmypm-mcp",
+};
 const EXPECTED_CLI_WORKFLOWS = ["brief", "risks", "next", "handoff"];
 const EXPECTED_GITHUB_WORKFLOWS = ["brief", "risks", "next", "handoff"];
 // The ten historical MCP tools. The v0.3 "project-brain" profile appends one
@@ -54,6 +86,11 @@ const EXPECTED_GITHUB_ORIGIN = `${"https"}://api.github.com`;
 const REQUIRED_BUNDLE_FILES = [
   "RELEASE.json",
   "SHA256SUMS",
+  "bin/ohmypm.mjs",
+  "bin/ohmypm-mcp.mjs",
+  "bin/ohmypm-install.mjs",
+  // v0.5: the bundle intentionally also ships the deprecated compatibility
+  // aliases, so an installed prefix offers both families.
   "bin/oh-my-pm.mjs",
   "bin/oh-my-pm-mcp.mjs",
   "bin/oh-my-pm-install.mjs",
@@ -206,10 +243,15 @@ export function createInstalledManifest(plan) {
     bundle: plan.bundleName,
     activeVersion: plan.version,
     versionRoot: `lib/oh-my-pm/versions/${plan.version}`,
-    commands: {
-      "oh-my-pm": "bin/oh-my-pm",
-      "oh-my-pm-mcp": "bin/oh-my-pm-mcp",
-    },
+    // Canonical and legacy commands are recorded as distinct fields so a reader
+    // can never mistake a deprecated alias for a primary command. `commands`
+    // keeps its historical name and now holds the canonical pair.
+    commands: Object.fromEntries(
+      RELEASE_INSTALL_CANONICAL_COMMANDS.map((name) => [name, `bin/${name}`]),
+    ),
+    legacyCommands: Object.fromEntries(
+      RELEASE_INSTALL_LEGACY_COMMANDS.map((name) => [name, `bin/${name}`]),
+    ),
     source: {
       kind: "release-bundle",
       verified: true,
@@ -403,7 +445,7 @@ export function validateReleaseBundleForInstall(bundleRoot) {
   if (installer === undefined || installer === null || typeof installer !== "object") {
     add("release_installer_metadata_missing");
   } else {
-    if (installer.entrypoint !== "bin/oh-my-pm-install.mjs") add("release_installer_entrypoint_unexpected");
+    if (installer.entrypoint !== RELEASE_INSTALLER_ENTRYPOINT) add("release_installer_entrypoint_unexpected");
     if (installer.previewFirst !== true) add("release_installer_preview_first_not_true");
     if (installer.prefixRequired !== true) add("release_installer_prefix_required_not_true");
     if (installer.applyFlag !== "--apply") add("release_installer_apply_flag_unexpected");
@@ -536,18 +578,40 @@ export function validateReleaseBundleForInstall(bundleRoot) {
 }
 
 /**
- * Compute the four shim targets (bin-relative POSIX paths) for a version.
- * Pure string construction.
+ * The bundle-relative entry script a command's shim launches.
+ *
+ * A canonical command points at its own entrypoint. A deprecated alias points at
+ * the bundle's *alias* entrypoint (not the canonical one), because that is the
+ * file that prints the stderr deprecation warning before delegating. Pointing an
+ * alias shim straight at the canonical entrypoint would silently drop the
+ * warning.
+ */
+function entryScriptForCommand(command) {
+  return `${command}.mjs`;
+}
+
+/**
+ * Compute every shim's content, keyed by its filename in `<prefix>/bin`. Each
+ * command gets a POSIX extensionless launcher and a Windows `.cmd` launcher, so a
+ * single installed prefix serves both platform families. Pure string
+ * construction.
+ *
+ * v0.5 plans twelve shims: two canonical commands plus two deprecated aliases,
+ * each in POSIX and .cmd form.
  */
 function shimTargetsForVersion(version) {
-  const cliTarget = `../lib/oh-my-pm/versions/${version}/bin/oh-my-pm.mjs`;
-  const mcpTarget = `../lib/oh-my-pm/versions/${version}/bin/oh-my-pm-mcp.mjs`;
-  return {
-    "oh-my-pm": createPosixShim(cliTarget),
-    "oh-my-pm.cmd": createWindowsShim(cliTarget),
-    "oh-my-pm-mcp": createPosixShim(mcpTarget),
-    "oh-my-pm-mcp.cmd": createWindowsShim(mcpTarget),
-  };
+  const shims = {};
+  for (const command of RELEASE_INSTALL_COMMANDS) {
+    const target = `../lib/oh-my-pm/versions/${version}/bin/${entryScriptForCommand(command)}`;
+    shims[command] = createPosixShim(target);
+    shims[`${command}.cmd`] = createWindowsShim(target);
+  }
+  return shims;
+}
+
+/** Every managed shim filename in `<prefix>/bin`, canonical first. Pure. */
+export function releaseInstallShimFileNames() {
+  return RELEASE_INSTALL_COMMANDS.flatMap((command) => [command, `${command}.cmd`]);
 }
 
 /**
@@ -603,12 +667,7 @@ export function resolveReleaseInstallPlan(options) {
   const bundleName = sourceValidation.bundleName;
   const versionDirectory = version ? join(versionsDirectory, version) : join(versionsDirectory, "unknown");
 
-  const commandShims = [
-    join(binDirectory, "oh-my-pm"),
-    join(binDirectory, "oh-my-pm.cmd"),
-    join(binDirectory, "oh-my-pm-mcp"),
-    join(binDirectory, "oh-my-pm-mcp.cmd"),
-  ];
+  const commandShims = releaseInstallShimFileNames().map((name) => join(binDirectory, name));
 
   const targets = {
     versionDirectory,
@@ -644,12 +703,12 @@ export function resolveReleaseInstallPlan(options) {
   }
 
   const expectedShims = shimTargetsForVersion(version);
-  const shimEntries = [
-    { path: join(binDirectory, "oh-my-pm"), name: "oh-my-pm", posix: true },
-    { path: join(binDirectory, "oh-my-pm.cmd"), name: "oh-my-pm.cmd", posix: false },
-    { path: join(binDirectory, "oh-my-pm-mcp"), name: "oh-my-pm-mcp", posix: true },
-    { path: join(binDirectory, "oh-my-pm-mcp.cmd"), name: "oh-my-pm-mcp.cmd", posix: false },
-  ];
+  // The POSIX launcher carries the executable bit; the .cmd launcher does not.
+  const shimEntries = releaseInstallShimFileNames().map((name) => ({
+    path: join(binDirectory, name),
+    name,
+    posix: !name.endsWith(".cmd"),
+  }));
 
   // Detect presence and type of each managed target.
   const versionDirExists = existsSync(versionDirectory);
@@ -978,12 +1037,11 @@ export function applyReleaseInstallPlan(plan) {
   const backupDir = join(txDir, "backup");
 
   const expectedShims = shimTargetsForVersion(version);
-  const shimPlan = [
-    { name: "oh-my-pm", target: join(binDirectory, "oh-my-pm"), executable: true },
-    { name: "oh-my-pm.cmd", target: join(binDirectory, "oh-my-pm.cmd"), executable: false },
-    { name: "oh-my-pm-mcp", target: join(binDirectory, "oh-my-pm-mcp"), executable: true },
-    { name: "oh-my-pm-mcp.cmd", target: join(binDirectory, "oh-my-pm-mcp.cmd"), executable: false },
-  ];
+  const shimPlan = releaseInstallShimFileNames().map((name) => ({
+    name,
+    target: join(binDirectory, name),
+    executable: !name.endsWith(".cmd"),
+  }));
 
   const backups = [];
   const movedIntoPlace = { versionDir: false, shims: [], manifest: false };
@@ -1149,4 +1207,65 @@ export function applyReleaseInstallPlan(plan) {
   }
 
   return { ok: true, code: fresh.action === "replace" ? "replaced" : "created", reasons: [] };
+}
+
+
+// -----------------------------------------------------------------------------
+// Shared installer entrypoint behavior.
+// -----------------------------------------------------------------------------
+
+/**
+ * Run the whole installer command: parse args, resolve the plan, and either print
+ * the preview or apply it. This is the single implementation shared by the
+ * canonical `ohmypm-install` entrypoint and the deprecated `oh-my-pm-install`
+ * compatibility alias, so the alias duplicates no installer logic.
+ *
+ * The caller supplies `bundleRoot` (each entrypoint infers its own) and the two
+ * stream writers, so this function itself performs no direct process access and
+ * stays testable. It returns the exit code rather than setting it.
+ *
+ * Preview-first: installs only with --apply, replaces exact managed targets only
+ * with --force. No network access, no publishing, no PATH edits, no shell-profile
+ * edits, and no MCP client-config edits.
+ */
+export function runReleaseInstallCli(options) {
+  const { bundleRoot, argv, writeStdout, writeStderr } = options;
+
+  const parsed = parseReleaseInstallArgs(argv, { allowBundle: false });
+  if (!parsed.ok) {
+    writeStderr(`release install error: ${parsed.message}\n`);
+    return 2;
+  }
+
+  const plan = resolveReleaseInstallPlan({
+    bundleRoot,
+    prefix: parsed.prefix,
+    apply: parsed.apply,
+    force: parsed.force,
+  });
+
+  if (!parsed.apply) {
+    writeStdout(formatReleaseInstallPlan(plan, parsed.outputMode));
+    return plan.ok ? 0 : 2;
+  }
+  if (!plan.ok) {
+    writeStdout(formatReleaseInstallPlan(plan, parsed.outputMode));
+    return 2;
+  }
+
+  const result = applyReleaseInstallPlan(plan);
+  if (result.ok) {
+    const applied =
+      result.code === "already-installed"
+        ? { ...plan, action: "already-installed" }
+        : { ...plan, apply: true };
+    writeStdout(formatReleaseInstallPlan(applied, parsed.outputMode));
+    return 0;
+  }
+  if (result.code === "plan_not_applicable" || result.code === "force_required") {
+    writeStderr(`release install blocked: ${result.reasons.join(", ")}\n`);
+    return 2;
+  }
+  writeStderr(`release install failed: ${result.code}\n`);
+  return 1;
 }

@@ -15,7 +15,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
-  ALL_INSTALLED_COMMANDS,
   CANONICAL_CLI,
   CANONICAL_INSTALLED_COMMANDS,
   CANONICAL_INSTALLER,
@@ -323,10 +322,25 @@ for (const rel of REQUIRED_ENTRYPOINTS) {
   if (source === null) {
     err(`${rel}: missing`);
   } else {
-    for (const name of ALL_INSTALLED_COMMANDS) {
-      if (!source.includes(name)) {
-        err(`${rel}: installed-state verifier does not mention command ${name}`);
+    // The verifier must derive the command set from the shipped install core
+    // rather than restating it, so it can never check a stale list. It then
+    // additionally exercises the deprecated CLI alias by name.
+    if (!/from\s+"\.\.\/distribution\/libexec\/release-install-core\.mjs"/.test(source)) {
+      err(`${rel}: must import the command set from the shipped release-install core`);
+    }
+    for (const constant of [
+      "RELEASE_INSTALL_CANONICAL_COMMANDS",
+      "RELEASE_INSTALL_LEGACY_COMMANDS",
+      "RELEASE_INSTALL_COMMANDS",
+    ]) {
+      if (!source.includes(constant)) {
+        err(`${rel}: installed-state verifier does not use ${constant}`);
       }
+    }
+    // The deprecated CLI alias is checked explicitly, because its stderr-only
+    // warning is behavior no loop over the command list would catch.
+    if (!source.includes("deprecated CLI alias wrote its warning to stdout")) {
+      err(`${rel}: must verify the deprecated CLI alias keeps its warning off stdout`);
     }
   }
 }

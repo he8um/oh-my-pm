@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // Read-only verifier for an installed release prefix produced by the portable
-// installer. It validates the install manifest, the versioned bundle, the four
-// command shims, then runs the installed CLI (status + four workflows) and the
-// installed MCP server over stdio (four tools + project_brief). It performs no
-// writes, no network access, no environment configuration, and no project
+// installer. It validates the install manifest, the versioned bundle, and every
+// command shim -- a POSIX and a .cmd launcher for each canonical command and each
+// deprecated compatibility alias -- then runs the installed canonical CLI (status
+// + four workflows), checks the deprecated CLI alias warns on stderr only, and
+// exercises the installed MCP server over stdio (four tools + project_brief). It
+// performs no writes, no network access, no environment configuration, and no project
 // mutation. It may spawn the explicitly installed commands and the installed
 // bundle's own verifier.
 
@@ -13,6 +15,14 @@ import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+
+// The installed command set comes from the shipped install core, the same module
+// the installer itself uses, so this verifier can never check a stale list.
+import {
+  RELEASE_INSTALL_CANONICAL_COMMANDS,
+  RELEASE_INSTALL_COMMANDS,
+  RELEASE_INSTALL_LEGACY_COMMANDS,
+} from "../distribution/libexec/release-install-core.mjs";
 
 const isWindows = process.platform === "win32";
 
@@ -188,9 +198,20 @@ async function run(prefix, expectedVersion) {
   if (manifest.versionRoot !== `lib/oh-my-pm/versions/${version}`) {
     return fail("install.json versionRoot is unexpected");
   }
-  const expectedCommands = { "oh-my-pm": "bin/oh-my-pm", "oh-my-pm-mcp": "bin/oh-my-pm-mcp" };
+  // v0.5: `commands` holds the canonical pair and `legacyCommands` the deprecated
+  // compatibility aliases, as separate fields, so a reader can never mistake an
+  // alias for a primary command.
+  const expectedCommands = Object.fromEntries(
+    RELEASE_INSTALL_CANONICAL_COMMANDS.map((name) => [name, `bin/${name}`]),
+  );
+  const expectedLegacyCommands = Object.fromEntries(
+    RELEASE_INSTALL_LEGACY_COMMANDS.map((name) => [name, `bin/${name}`]),
+  );
   if (JSON.stringify(manifest.commands) !== JSON.stringify(expectedCommands)) {
     return fail("install.json commands are unexpected");
+  }
+  if (JSON.stringify(manifest.legacyCommands) !== JSON.stringify(expectedLegacyCommands)) {
+    return fail("install.json legacyCommands are unexpected");
   }
   if (
     manifest.source === null ||
@@ -204,8 +225,8 @@ async function run(prefix, expectedVersion) {
   // Manifest paths are relative and prefix-confined.
   const relativePathValues = [
     manifest.versionRoot,
-    manifest.commands["oh-my-pm"],
-    manifest.commands["oh-my-pm-mcp"],
+    ...RELEASE_INSTALL_CANONICAL_COMMANDS.map((name) => manifest.commands[name]),
+    ...RELEASE_INSTALL_LEGACY_COMMANDS.map((name) => manifest.legacyCommands[name]),
   ];
   for (const value of relativePathValues) {
     if (isAbsolute(value) || value.includes("..") || value.includes("\\")) {
@@ -287,29 +308,31 @@ async function run(prefix, expectedVersion) {
     }
   }
 
-  // The four exact shims exist and match expected content for this version.
+  // Every exact shim exists and matches expected content for this version: a
+  // POSIX and a .cmd launcher for each canonical command and each deprecated
+  // compatibility alias. Each alias shim launches the alias entrypoint, so the
+  // deprecation warning is preserved rather than bypassed.
   const binDir = join(prefix, "bin");
-  const cliTarget = `../lib/oh-my-pm/versions/${version}/bin/oh-my-pm.mjs`;
-  const mcpTarget = `../lib/oh-my-pm/versions/${version}/bin/oh-my-pm-mcp.mjs`;
-  const expectedShims = {
-    "oh-my-pm": posixShimContent(cliTarget),
-    "oh-my-pm.cmd": windowsShimContent(cliTarget),
-    "oh-my-pm-mcp": posixShimContent(mcpTarget),
-    "oh-my-pm-mcp.cmd": windowsShimContent(mcpTarget),
-  };
+  const expectedShims = {};
+  for (const name of RELEASE_INSTALL_COMMANDS) {
+    const target = `../lib/oh-my-pm/versions/${version}/bin/${name}.mjs`;
+    expectedShims[name] = posixShimContent(target);
+    expectedShims[`${name}.cmd`] = windowsShimContent(target);
+  }
   for (const [name, expected] of Object.entries(expectedShims)) {
     const shimPath = join(binDir, name);
     if (!isRegularFile(shimPath)) return fail(`shim is missing: ${shimPath}`);
     if (readFileSync(shimPath, "utf8") !== expected) return fail(`shim content mismatch: ${shimPath}`);
   }
   if (!isWindows) {
-    for (const name of ["oh-my-pm", "oh-my-pm-mcp"]) {
+    for (const name of RELEASE_INSTALL_COMMANDS) {
       if (!isExecutable(join(binDir, name))) return fail(`shim is not executable: ${join(binDir, name)}`);
     }
   }
 
-  const cliShim = join(binDir, isWindows ? "oh-my-pm.cmd" : "oh-my-pm");
-  const mcpShim = join(binDir, isWindows ? "oh-my-pm-mcp.cmd" : "oh-my-pm-mcp");
+  // The functional checks below drive the canonical commands.
+  const cliShim = join(binDir, isWindows ? "ohmypm.cmd" : "ohmypm");
+  const mcpShim = join(binDir, isWindows ? "ohmypm-mcp.cmd" : "ohmypm-mcp");
   const fixtureRoot = join(versionDir, "examples", "markdown-project");
 
   // The installed JavaScript entrypoints under the versioned prefix. On Windows
@@ -317,8 +340,8 @@ async function run(prefix, expectedVersion) {
   // without a shell); on POSIX the executable shim is launched instead. All
   // executed code comes from the installed version directory — never the source
   // repository and never a package-manager bin directory.
-  const cliEntrypoint = join(versionDir, "bin", "oh-my-pm.mjs");
-  const mcpEntrypoint = join(versionDir, "bin", "oh-my-pm-mcp.mjs");
+  const cliEntrypoint = join(versionDir, "bin", "ohmypm.mjs");
+  const mcpEntrypoint = join(versionDir, "bin", "ohmypm-mcp.mjs");
   if (!isRegularFile(cliEntrypoint)) return fail(`installed CLI entrypoint missing: ${cliEntrypoint}`);
   if (!isRegularFile(mcpEntrypoint)) return fail(`installed MCP entrypoint missing: ${mcpEntrypoint}`);
 
@@ -345,6 +368,37 @@ async function run(prefix, expectedVersion) {
   if (!statusOut.includes("OH MY PM status: healthy")) return fail("installed CLI status was not healthy");
   if (!statusOut.includes(`version: ${version}`)) return fail("installed CLI status version mismatch");
   if (!statusOut.includes(`kernel: ${version}`)) return fail("installed CLI kernel version mismatch");
+  // The canonical command must never print a deprecation warning.
+  if (statusOut.includes("deprecated")) return fail("canonical CLI emitted a deprecation warning");
+
+  // v0.5: the deprecated CLI alias still works, and its warning stays on stderr.
+  // stdout must remain byte-identical to the canonical command's, which is what
+  // keeps a piped `--json` invocation parseable through the alias.
+  const legacyCliEntrypoint = join(versionDir, "bin", "oh-my-pm.mjs");
+  if (!isRegularFile(legacyCliEntrypoint)) {
+    return fail(`installed legacy CLI entrypoint missing: ${legacyCliEntrypoint}`);
+  }
+  {
+    const invocation = createInstalledCommandInvocation({
+      platform: process.platform,
+      nodeExecutable: process.execPath,
+      shimPath: join(binDir, isWindows ? "oh-my-pm.cmd" : "oh-my-pm"),
+      entrypoint: legacyCliEntrypoint,
+      args: ["status"],
+    });
+    const legacy = spawnSync(invocation.command, invocation.args, { encoding: "utf8" });
+    if (legacy.status !== 0) return fail("deprecated CLI alias status did not exit cleanly");
+    if (legacy.stdout !== statusOut) return fail("deprecated CLI alias stdout differs from canonical");
+    if (legacy.stdout.includes("deprecated")) {
+      return fail("deprecated CLI alias wrote its warning to stdout");
+    }
+    if (!legacy.stderr.includes("deprecated compatibility alias")) {
+      return fail("deprecated CLI alias did not warn on stderr");
+    }
+    if (!legacy.stderr.includes("ohmypm")) {
+      return fail("deprecated CLI alias warning does not name the canonical command");
+    }
+  }
 
   // All four project workflows run against the installed fixture.
   for (const workflow of ["brief", "risks", "next", "handoff"]) {

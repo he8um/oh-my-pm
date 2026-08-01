@@ -307,7 +307,7 @@ async function run(bundle) {
   if (installer === null || typeof installer !== "object") {
     return fail("RELEASE.json installer metadata is missing");
   }
-  if (installer.entrypoint !== "bin/oh-my-pm-install.mjs") {
+  if (installer.entrypoint !== "bin/ohmypm-install.mjs") {
     return fail("RELEASE.json installer.entrypoint is unexpected");
   }
   if (installer.previewFirst !== true) return fail("RELEASE.json installer.previewFirst must be true");
@@ -410,20 +410,29 @@ async function run(bundle) {
   }
 
   // Entrypoints
-  const cliBin = join(bundle, "bin", "oh-my-pm.mjs");
-  const mcpBin = join(bundle, "bin", "oh-my-pm-mcp.mjs");
+  const cliBin = join(bundle, "bin", "ohmypm.mjs");
+  const mcpBin = join(bundle, "bin", "ohmypm-mcp.mjs");
   if (!isRegularFile(cliBin)) return fail("CLI entrypoint missing");
   if (!isRegularFile(mcpBin)) return fail("MCP entrypoint missing");
 
   // Installer surfaces: entrypoint, core, and the shipped bundle verifier.
-  const installBin = join(bundle, "bin", "oh-my-pm-install.mjs");
+  const installBin = join(bundle, "bin", "ohmypm-install.mjs");
   const installCore = join(bundle, "libexec", "release-install-core.mjs");
   const shippedVerifier = join(bundle, "libexec", "check-release-bundle.mjs");
   if (!isRegularFile(installBin)) return fail("installer entrypoint missing");
   if (!isRegularFile(installCore)) return fail("release install core missing");
   if (!isRegularFile(shippedVerifier)) return fail("shipped bundle verifier missing");
+  // v0.5: every shipped entrypoint must be executable -- the canonical commands
+  // and the deprecated compatibility aliases alike. An alias that lost its
+  // executable bit would install a shim pointing at an unrunnable target.
+  const legacyBins = ["oh-my-pm.mjs", "oh-my-pm-mcp.mjs", "oh-my-pm-install.mjs"].map((name) =>
+    join(bundle, "bin", name),
+  );
+  for (const bin of legacyBins) {
+    if (!isRegularFile(bin)) return fail(`compatibility alias entrypoint missing: ${bin}`);
+  }
   if (!isWindows) {
-    for (const bin of [cliBin, mcpBin]) {
+    for (const bin of [cliBin, mcpBin, installBin, ...legacyBins]) {
       if ((lstatSync(bin).mode & 0o111) === 0) return fail(`entrypoint not executable: ${bin}`);
     }
   }

@@ -50,9 +50,23 @@ export const KERNEL_GENERATED_NODE_ASSETS = [
 /** Deterministic list of prerequisite files the bundle assembly requires. */
 function prerequisiteDefinitions() {
   return [
-    { id: "distribution_cli_bin", path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm.mjs") },
-    { id: "distribution_mcp_bin", path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm-mcp.mjs") },
-    { id: "distribution_install_bin", path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm-install.mjs") },
+    { id: "distribution_cli_bin", path: join(REPO_ROOT, "distribution", "bin", "ohmypm.mjs") },
+    { id: "distribution_mcp_bin", path: join(REPO_ROOT, "distribution", "bin", "ohmypm-mcp.mjs") },
+    { id: "distribution_install_bin", path: join(REPO_ROOT, "distribution", "bin", "ohmypm-install.mjs") },
+    // v0.5: the deprecated compatibility aliases are shipped intentionally, so a
+    // missing alias entrypoint blocks the bundle just like a missing canonical one.
+    {
+      id: "distribution_legacy_cli_bin",
+      path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm.mjs"),
+    },
+    {
+      id: "distribution_legacy_mcp_bin",
+      path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm-mcp.mjs"),
+    },
+    {
+      id: "distribution_legacy_install_bin",
+      path: join(REPO_ROOT, "distribution", "bin", "oh-my-pm-install.mjs"),
+    },
     { id: "release_install_core", path: join(REPO_ROOT, "distribution", "libexec", "release-install-core.mjs") },
     { id: "release_bundle_verifier", path: join(REPO_ROOT, "tools", "check-release-bundle.mjs") },
     { id: "cli_dist", path: join(REPO_ROOT, "cli", "dist", "index.js") },
@@ -590,7 +604,7 @@ const RELEASE_METADATA = {
     tokenValuesReported: false,
   },
   installer: {
-    entrypoint: "bin/oh-my-pm-install.mjs",
+    entrypoint: "bin/ohmypm-install.mjs",
     previewFirst: true,
     prefixRequired: true,
     applyFlag: "--apply",
@@ -777,7 +791,7 @@ function inspectBundleSafety(bundleRoot) {
     "claude_desktop" + "_config",
     "mcp" + dot + "json",
   ];
-  for (const rel of ["bin/oh-my-pm-install.mjs", "libexec/release-install-core.mjs", "libexec/check-release-bundle.mjs"]) {
+  for (const rel of ["bin/ohmypm-install.mjs", "libexec/release-install-core.mjs", "libexec/check-release-bundle.mjs"]) {
     const abs = join(bundleRoot, ...rel.split("/"));
     if (!isRegularFile(abs)) {
       errors.push(`installer surface missing from bundle: ${rel}`);
@@ -873,7 +887,7 @@ export function applyReleaseBundlePlan(plan) {
     // the three approved generated assets are staged explicitly below. An
     // entirely missing Kernel package is a genuine deploy failure and is not
     // repairable.
-    const deployedBin = join(tempDir, "bin", "oh-my-pm.mjs");
+    const deployedBin = join(tempDir, "bin", "ohmypm.mjs");
     const deployedKernelPackage = join(tempDir, "node_modules", "@oh-my-pm", "kernel");
     const deployedKernelManifest = join(deployedKernelPackage, "package.json");
     if (!isRegularFile(deployedBin) || !isRegularFile(deployedKernelManifest)) {
@@ -964,7 +978,7 @@ export function applyReleaseBundlePlan(plan) {
 
     // Fail fast if the installer surfaces did not make it into the bundle.
     for (const rel of [
-      join("bin", "oh-my-pm-install.mjs"),
+      join("bin", "ohmypm-install.mjs"),
       join("libexec", "release-install-core.mjs"),
       join("libexec", "check-release-bundle.mjs"),
     ]) {
@@ -976,7 +990,14 @@ export function applyReleaseBundlePlan(plan) {
 
     // Ensure the bin entrypoints are executable on POSIX.
     if (process.platform !== "win32") {
-      for (const bin of ["oh-my-pm.mjs", "oh-my-pm-mcp.mjs", "oh-my-pm-install.mjs"]) {
+      for (const bin of [
+        "ohmypm.mjs",
+        "ohmypm-mcp.mjs",
+        "ohmypm-install.mjs",
+        "oh-my-pm.mjs",
+        "oh-my-pm-mcp.mjs",
+        "oh-my-pm-install.mjs",
+      ]) {
         const binPath = join(tempDir, "bin", bin);
         if (isRegularFile(binPath)) chmodSync(binPath, 0o755);
       }

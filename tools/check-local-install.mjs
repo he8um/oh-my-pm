@@ -11,6 +11,10 @@ import { lstatSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+// The installed command set comes from the one place that defines it, so this
+// verifier can never check a stale list.
+import { LOCAL_COMMAND_NAMES } from "./local-install-utils.mjs";
+
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const fixtureRoot = join(repoRoot, "examples", "fixtures", "markdown-project");
 const isWindows = process.platform === "win32";
@@ -73,26 +77,48 @@ if (!parsed.ok) {
 
 async function run(prefix) {
   const binDir = join(prefix, "bin");
-  const cliCommand = join(binDir, isWindows ? "oh-my-pm.cmd" : "oh-my-pm");
-  const mcpCommand = join(binDir, isWindows ? "oh-my-pm-mcp.cmd" : "oh-my-pm-mcp");
+  // The functional checks below run the *canonical* commands. The deprecated
+  // aliases are verified to exist and to be launchable, but the canonical pair is
+  // what the check treats as the product surface.
+  const platformCommand = (name) => join(binDir, isWindows ? `${name}.cmd` : name);
+  const cliCommand = platformCommand("ohmypm");
+  const mcpCommand = platformCommand("ohmypm-mcp");
 
-  const shimPaths = [
-    join(binDir, "oh-my-pm"),
-    join(binDir, "oh-my-pm.cmd"),
-    join(binDir, "oh-my-pm-mcp"),
-    join(binDir, "oh-my-pm-mcp.cmd"),
-  ];
+  // v0.5: every canonical command and every deprecated compatibility alias is
+  // installed in both POSIX and .cmd form.
+  const shimPaths = LOCAL_COMMAND_NAMES.flatMap((name) => [
+    join(binDir, name),
+    join(binDir, `${name}.cmd`),
+  ]);
   for (const shim of shimPaths) {
     if (!isRegularFile(shim)) {
       return fail(`missing shim: ${shim}`);
     }
   }
   if (!isWindows) {
-    for (const shim of [join(binDir, "oh-my-pm"), join(binDir, "oh-my-pm-mcp")]) {
+    // The POSIX launcher must carry the executable bit; the .cmd launcher need
+    // not, and is not checked for it on POSIX.
+    for (const name of LOCAL_COMMAND_NAMES) {
+      const shim = join(binDir, name);
       if (!isExecutable(shim)) {
         return fail(`shim is not executable: ${shim}`);
       }
     }
+  }
+
+  // The deprecated CLI alias must run and must warn on stderr only, never
+  // polluting stdout.
+  const legacyCli = platformCommand("oh-my-pm");
+  try {
+    const legacyOut = execFileSync(legacyCli, ["status"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    if (!legacyOut.includes("OH MY PM status: healthy")) {
+      return fail("deprecated CLI alias status was not healthy");
+    }
+    if (legacyOut.includes("deprecated")) {
+      return fail("deprecated CLI alias wrote its warning to stdout");
+    }
+  } catch {
+    return fail("deprecated CLI alias did not exit cleanly");
   }
 
   // Installed CLI: status

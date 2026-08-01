@@ -423,6 +423,9 @@ const RELEASE_BUNDLE_SOURCES = [
   "CHANGELOG.md",
   "distribution/package.json",
   "distribution/README.md",
+  "distribution/bin/ohmypm.mjs",
+  "distribution/bin/ohmypm-mcp.mjs",
+  // v0.5: retained deprecated compatibility aliases.
   "distribution/bin/oh-my-pm.mjs",
   "distribution/bin/oh-my-pm-mcp.mjs",
   "cli/src/local-process.ts",
@@ -481,6 +484,8 @@ for (const file of GITHUB_FEATURE_SOURCES) {
 // 7g7. Portable release-bundle installer surfaces, repository wrapper,
 // read-only installed-state verifier, and their tests.
 const RELEASE_INSTALL_SOURCES = [
+  "distribution/bin/ohmypm-install.mjs",
+  // v0.5: retained deprecated compatibility alias.
   "distribution/bin/oh-my-pm-install.mjs",
   "distribution/libexec/release-install-core.mjs",
   "distribution/libexec/release-install-core.test.mjs",

@@ -98,7 +98,7 @@ describe("portable release bundle e2e", () => {
     }
     const release = JSON.parse(readFileSync(join(movedBundle, "RELEASE.json"), "utf8"));
     expect(release.installer).toEqual({
-      entrypoint: "bin/oh-my-pm-install.mjs",
+      entrypoint: "bin/ohmypm-install.mjs",
       previewFirst: true,
       prefixRequired: true,
       applyFlag: "--apply",
@@ -215,7 +215,7 @@ describe("portable release bundle e2e", () => {
   });
 
   it("runs providers status and offline doctor from the moved bundle (no network, no providers.json)", () => {
-    const cliBin = join(movedBundle, "bin", "oh-my-pm.mjs");
+    const cliBin = join(movedBundle, "bin", "ohmypm.mjs");
     const status = spawnSync(process.execPath, [cliBin, "providers", "status", "--json"], {
       encoding: "utf8",
     });
@@ -231,7 +231,7 @@ describe("portable release bundle e2e", () => {
   });
 
   it("runs every CLI workflow from the moved bundle", () => {
-    const cliBin = join(movedBundle, "bin", "oh-my-pm.mjs");
+    const cliBin = join(movedBundle, "bin", "ohmypm.mjs");
     const fixture = join(movedBundle, "examples", "markdown-project");
     const status = spawnSync(process.execPath, [cliBin, "status"], { encoding: "utf8" });
     expect(status.stdout).toContain(`version: ${CANONICAL_VERSION}`);

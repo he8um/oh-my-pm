@@ -8,6 +8,9 @@
     "node": ">=20"
   },
   "bin": {
+    "ohmypm": "./bin/ohmypm.mjs",
+    "ohmypm-mcp": "./bin/ohmypm-mcp.mjs",
+    "ohmypm-install": "./bin/ohmypm-install.mjs",
     "oh-my-pm": "./bin/oh-my-pm.mjs",
     "oh-my-pm-mcp": "./bin/oh-my-pm-mcp.mjs",
     "oh-my-pm-install": "./bin/oh-my-pm-install.mjs"

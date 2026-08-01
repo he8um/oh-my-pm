@@ -832,7 +832,11 @@ for (const file of RELEASE_TOOLS) {
 
 // The distribution bin entrypoints are thin adapters: no repo path, no build
 // logic, no filesystem writes, no network.
+// v0.5 ships canonical entrypoints plus deprecated compatibility aliases; all of
+// them are held to the identical thin-adapter rule.
 const DISTRIBUTION_BINS = [
+  "distribution/bin/ohmypm.mjs",
+  "distribution/bin/ohmypm-mcp.mjs",
   "distribution/bin/oh-my-pm.mjs",
   "distribution/bin/oh-my-pm-mcp.mjs",
 ];
@@ -1046,7 +1050,7 @@ if (trackedFiles.includes(RELEASE_INSTALL_VERIFIER)) {
   }
   // The installed .mjs entrypoints (not node_modules/.bin, not source repo)
   // must be the Windows launch target.
-  if (!verifier.includes('join(versionDir, "bin", "oh-my-pm.mjs")')) {
+  if (!verifier.includes('join(versionDir, "bin", "ohmypm.mjs")')) {
     err(`${RELEASE_INSTALL_VERIFIER} must launch the installed CLI .mjs entrypoint from the version directory`);
   }
   if (verifier.includes("node_modules/.bin")) {
