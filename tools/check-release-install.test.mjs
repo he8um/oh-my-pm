@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describeSubprocessResult } from "./test-subprocess-diagnostics.mjs";
 import { createInstalledCommandInvocation } from "./check-release-install.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -22,17 +23,27 @@ function tempDir(prefix) {
 }
 function run(script, args) {
   const r = spawnSync(process.execPath, [script, ...args], { encoding: "utf8" });
-  return { status: r.status, stdout: r.stdout, stderr: r.stderr };
+  return {
+    status: r.status,
+    stdout: r.stdout,
+    stderr: r.stderr,
+    diagnostics: describeSubprocessResult(script, args, r),
+  };
+}
+
+/** Assert a fixture subprocess succeeded, surfacing its full diagnostics. */
+function expectFixtureSuccess(result) {
+  expect(result.status, result.diagnostics).toBe(0);
 }
 
 let prefix;
 
 beforeAll(() => {
   const out = tempDir("omp-chk-build-");
-  expect(run(buildBundle, ["--output", out, "--apply"]).status).toBe(0);
+  expectFixtureSuccess(run(buildBundle, ["--output", out, "--apply"]));
   const bundle = join(out, BUNDLE_NAME);
   prefix = join(tempDir("omp-chk-prefix-"), "prefix");
-  expect(run(wrapper, ["--bundle", bundle, "--prefix", prefix, "--apply"]).status).toBe(0);
+  expectFixtureSuccess(run(wrapper, ["--bundle", bundle, "--prefix", prefix, "--apply"]));
 }, 240_000);
 
 afterAll(() => {
