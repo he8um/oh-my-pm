@@ -3125,6 +3125,166 @@ if (trackedFiles.includes("mcp-server/src/server.ts")) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// 10. v0.5.1 application boundary.
+//
+// CLI, MCP, and any future presentation surface are adapters over the same
+// application use cases. These guards fail closed if that direction inverts, if
+// the application layer grows a process/server capability, or if shared
+// orchestration is reintroduced into a presentation package.
+// ---------------------------------------------------------------------------
+
+const APPLICATION_SRC = trackedFiles.filter(
+  (f) => f.startsWith("application/src/") && f.endsWith(".ts"),
+);
+const CLI_SRC = trackedFiles.filter((f) => f.startsWith("cli/src/") && f.endsWith(".ts"));
+const MCP_SRC = trackedFiles.filter((f) => f.startsWith("mcp-server/src/") && f.endsWith(".ts"));
+
+/** Source with line and block comments removed, so prose never trips a check. */
+function codeOf(file) {
+  return readFileSync(file, "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^[ \t]*\/\/.*$/gm, "");
+}
+
+// 10a. Application must not import a presentation, installer, or distribution
+// package. A third surface must be able to consume it without inheriting a CLI.
+for (const file of APPLICATION_SRC) {
+  const code = codeOf(file);
+  for (const forbidden of [
+    "@oh-my-pm/cli",
+    "@oh-my-pm/mcp-server",
+    "@oh-my-pm/installer",
+    "@oh-my-pm/distribution",
+  ]) {
+    if (code.includes(`"${forbidden}"`)) {
+      err(`${file} must not import ${forbidden} (application is below every presentation surface)`);
+    }
+  }
+}
+
+// 10b. MCP must not import CLI, and the two adapters must not import each other.
+for (const file of MCP_SRC.concat(
+  trackedFiles.filter((f) => f.startsWith("mcp-server/bin/") && f.endsWith(".mjs")),
+)) {
+  if (codeOf(file).includes('"@oh-my-pm/cli"')) {
+    err(`${file} must not import @oh-my-pm/cli (use @oh-my-pm/application)`);
+  }
+}
+for (const file of CLI_SRC.concat(
+  trackedFiles.filter((f) => f.startsWith("cli/bin/") && f.endsWith(".mjs")),
+)) {
+  if (codeOf(file).includes('"@oh-my-pm/mcp-server"')) {
+    err(`${file} must not import @oh-my-pm/mcp-server`);
+  }
+}
+for (const manifest of ["mcp-server/package.json", "cli/package.json"]) {
+  if (!trackedFiles.includes(manifest)) continue;
+  const pkg = JSON.parse(readFileSync(manifest, "utf8"));
+  const other = manifest.startsWith("mcp-server") ? "@oh-my-pm/cli" : "@oh-my-pm/mcp-server";
+  for (const field of ["dependencies", "peerDependencies", "optionalDependencies"]) {
+    if (pkg[field] && Object.hasOwn(pkg[field], other)) {
+      err(`${manifest} ${field} must not contain ${other}`);
+    }
+  }
+  if (!pkg.dependencies || !Object.hasOwn(pkg.dependencies, "@oh-my-pm/application")) {
+    err(`${manifest} must depend on @oh-my-pm/application`);
+  }
+}
+
+// 10c. Application owns no process boundary: no argv, no stdout/stderr writes,
+// no exit code. Those belong to whichever surface invokes it.
+for (const file of APPLICATION_SRC) {
+  const code = codeOf(file);
+  for (const marker of [
+    "process.argv",
+    "process.stdout",
+    "process.stderr",
+    "process.exit",
+    "console.log",
+    "console.error",
+    "console.warn",
+  ]) {
+    if (code.includes(marker)) {
+      err(`${file} must not use ${marker} (the application layer owns no process boundary)`);
+    }
+  }
+}
+
+// 10d. Application contains no HTTP server and no rendered UI. v0.5.1 prepares
+// for a future Dashboard; it does not implement one.
+for (const file of APPLICATION_SRC) {
+  const code = codeOf(file);
+  for (const marker of [
+    "node:http",
+    "node:https",
+    "createServer",
+    ".listen(",
+    "<!DOCTYPE",
+    "<html",
+    "React",
+    "createRoot",
+  ]) {
+    if (code.includes(marker)) {
+      err(`${file} must not contain ${marker} (no HTTP server or UI in the application layer)`);
+    }
+  }
+}
+
+// 10e. No Dashboard/web/UI package exists yet. v0.6 will add one behind the
+// application boundary; until then a top-level UI package is out of scope.
+{
+  const uiFolders = new Set(
+    trackedFiles.filter((f) => f.includes("/")).map((f) => f.split("/")[0]),
+  );
+  for (const folder of ["dashboard", "web", "ui", "frontend", "desktop", "app"]) {
+    if (uiFolders.has(folder)) {
+      err(`unexpected presentation package "${folder}/": v0.5.1 implements no Dashboard`);
+    }
+  }
+  for (const manifest of trackedFiles.filter((f) => /(^|\/)package\.json$/.test(f))) {
+    if (manifest.startsWith("node_modules/")) continue;
+    const pkg = JSON.parse(readFileSync(manifest, "utf8"));
+    for (const field of ["dependencies", "peerDependencies"]) {
+      for (const dep of Object.keys(pkg[field] ?? {})) {
+        if (/^(react|react-dom|vite|@tauri-apps\/|electron|next|svelte|vue)/.test(dep)) {
+          err(`${manifest} ${field} must not add the UI dependency "${dep}" in v0.5.1`);
+        }
+      }
+    }
+  }
+}
+
+// 10f. Shared project loading is not duplicated between CLI and MCP. Both must
+// reach it through the application package; neither may re-implement the
+// Node document loader or restate the shared classification messages.
+for (const file of CLI_SRC.concat(MCP_SRC)) {
+  // Colocated test files may read their own fixtures; this rule is about
+  // production source re-implementing the shared loader.
+  if (file.endsWith(".test.ts")) continue;
+  // The mcp-config existence probe is the CLI's one remaining read-only stat
+  // boundary; it reads no file content.
+  if (file.endsWith("mcp-config-resolve.ts")) continue;
+  if (/from\s+["']node:fs["']/.test(codeOf(file))) {
+    err(`${file} must not read the filesystem directly (use @oh-my-pm/application/node)`);
+  }
+}
+
+// 10g. The CLI is not the owner of Project Memory orchestration. It may parse
+// the grammar and render the outcome; the orchestrator lives in application.
+for (const file of CLI_SRC) {
+  const code = codeOf(file);
+  if (code.includes('import("@oh-my-pm/project-memory")')) {
+    err(`${file} must not load the Project Memory adapter (application owns that orchestration)`);
+  }
+}
+if (trackedFiles.includes("application/src/memory-process.ts")) {
+  const orchestrator = codeOf("application/src/memory-process.ts");
+  if (!orchestrator.includes('import("@oh-my-pm/project-memory")')) {
+    err("application/src/memory-process.ts must own the lazy Project Memory import");
+  }
+}
+
 if (fail) {
   console.error("validate-boundaries: FAILED");
   process.exit(1);

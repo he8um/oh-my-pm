@@ -170,10 +170,23 @@ describe("application contains no presentation or server capability", () => {
     }
   });
 
-  it("knows no executable name and no MCP protocol", () => {
-    const markers = ["ohmypm-mcp", "ohmypm-install", "jsonrpc", "JSON-RPC", "tools/call", "StdioServerTransport"];
+  it("knows no MCP protocol", () => {
+    const markers = ["jsonrpc", "JSON-RPC", "tools/call", "StdioServerTransport", "registerTool"];
     for (const { path, text } of files) {
       for (const marker of markers) {
+        expect(text.includes(marker), `${path} must not reference ${marker}`).toBe(false);
+      }
+    }
+  });
+
+  it("confines executable names to the command-surface module", () => {
+    // command-surface.ts exists to name the public executables -- it is the
+    // single source of truth the MCP alias wrapper and the CLI both read. No
+    // OTHER application module may hard-code a command name, because a use case
+    // must not know how it was invoked.
+    for (const { path, text } of files) {
+      if (path === "command-surface.ts") continue;
+      for (const marker of ["ohmypm-mcp", "ohmypm-install", '"ohmypm"']) {
         expect(text.includes(marker), `${path} must not reference ${marker}`).toBe(false);
       }
     }

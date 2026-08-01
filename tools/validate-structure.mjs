@@ -274,6 +274,8 @@ const APPLICATION_SOURCES = [
   "application/test/provider-diagnostics.test.ts",
   "application/test/github-token.test.ts",
   "application/README.md",
+  "tools/validate-doc-truth.mjs",
+  "tools/test/doc-truth.test.mjs",
 ];
 for (const file of APPLICATION_SOURCES) {
   if (!existsSync(file)) err(`application boundary file missing: ${file}`);

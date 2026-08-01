@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   CANONICAL_CLI_COMMAND,
   LEGACY_CLI_COMMANDS,
-} from "../src/command-surface.js";
+} from "@oh-my-pm/application";
 import {
   HELP_TOPICS,
   formatHelp,
