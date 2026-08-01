@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type {
   ProviderDoctorReport,
   ProviderStatusReport,
-} from "../src/provider-diagnostics.js";
+} from "@oh-my-pm/application";
 import {
   formatProviderDoctorReport,
   formatProviderStatusReport,

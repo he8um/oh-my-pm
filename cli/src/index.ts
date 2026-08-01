@@ -1,28 +1,42 @@
-export {
-  OMP_C_RUNTIME_FAILED,
-  runCli,
-} from "./cli.js";
+// @oh-my-pm/cli — the command-line presentation adapter.
+//
+// The CLI owns argument parsing, help, command selection, terminal output
+// modes, CLI-specific formatting, exit-code mapping, the stdout/stderr process
+// boundary, and command-name compatibility behavior. Shared application
+// orchestration lives in @oh-my-pm/application; this package adapts its typed
+// results to a terminal.
+
+// --- CLI execution and grammar ---------------------------------------------
+export { OMP_C_RUNTIME_FAILED, runCli } from "./cli.js";
 export {
   GITHUB_CLI_DEFAULT_LIMIT,
   OMP_C_INVALID_COMMAND,
   OMP_C_INVALID_OPTION,
   parseCliArgs,
 } from "./parser.js";
-export {
-  GITHUB_TOKEN_ENV,
-  readGitHubTokenFromEnvironment,
-} from "./github-token.js";
-export {
-  formatCliError,
-  formatRuntimeResponse,
-} from "./format.js";
-export {
-  HELP_TOPICS,
-  formatHelp,
-  isHelpFlag,
-  resolveHelpRequest,
-} from "./help.js";
+export { runLocalCliProcess } from "./local-process.js";
+export type { LocalCliProcessOptions, LocalCliProcessResult } from "./local-process.js";
+export type {
+  CliCommand,
+  CliDeps,
+  CliExecutionResult,
+  CliParseResult,
+  GitHubCliOperation,
+  RuntimeCliCommand,
+  RuntimeRequestFactory,
+} from "./types.js";
+
+// --- terminal rendering ----------------------------------------------------
+export { formatCliError, formatRuntimeResponse } from "./format.js";
+export { formatProviderDoctorReport, formatProviderStatusReport } from "./provider-format.js";
+export { HELP_TOPICS, formatHelp, isHelpFlag, resolveHelpRequest } from "./help.js";
 export type { HelpTopic } from "./help.js";
+
+// --- memory grammar and rendering ------------------------------------------
+export { parseMemoryCommand } from "./memory-parser.js";
+export { formatMemoryOutcome, memoryOutcomeExitCode } from "./memory-format.js";
+
+// --- installed MCP client configuration ------------------------------------
 export {
   MCP_CONFIG_COMMAND_NAME,
   MCP_CONFIG_DEFAULT_SERVER_NAME,
@@ -48,6 +62,8 @@ export type {
   McpConfigOutputMode,
   McpConfigParseResult,
 } from "./mcp-config.js";
+
+// --- command-name compatibility --------------------------------------------
 // v0.5: the canonical command names and the deprecation-warning helper shared by
 // every compatibility wrapper.
 export {
@@ -61,95 +77,28 @@ export {
   canonicalCommandForAlias,
   commandDeprecationWarning,
 } from "./command-surface.js";
-export {
-  formatInstallerPreview,
-  runInstallerPreview,
-} from "./install-preview.js";
-export type {
-  InstallerPreviewResult,
-} from "./install-preview.js";
-export {
-  DEFAULT_PROJECT_DOCUMENT_MAX_BYTES_PER_FILE,
-  DEFAULT_PROJECT_DOCUMENT_MAX_FILES,
-  DEFAULT_PROJECT_DOCUMENT_MAX_TOTAL_BYTES,
-  loadMarkdownProjectDocuments,
-} from "./node-project-documents.js";
-export type {
-  ProjectDocumentLoadOptions,
-  ProjectDocumentLoadResult,
-  ProjectDocumentLoadWarning,
-  ProjectDocumentLoadWarningCode,
-} from "./node-project-documents.js";
+
+// --- installer preview -----------------------------------------------------
+export { formatInstallerPreview, runInstallerPreview } from "./install-preview.js";
+export type { InstallerPreviewResult } from "./install-preview.js";
+
+// --- application pass-throughs ---------------------------------------------
+// Re-exports ONLY. These symbols are implemented in @oh-my-pm/application and
+// are surfaced here so existing workspace consumers and the examples package
+// keep a stable import site. This block contains no implementation, and no new
+// consumer should reach shared logic through the CLI: import it from
+// @oh-my-pm/application (or /node) directly. The boundary tests fail the build
+// if the MCP server imports this package.
 export {
   DEFAULT_PROJECT_DOCUMENT_EXCLUDE,
   DEFAULT_PROJECT_DOCUMENT_INCLUDE,
-  matchesLocalProjectDocumentPattern,
-  matchesLocalProjectDocumentRules,
-  validateLocalProjectConfig,
-  validateLocalProjectDocumentPattern,
-} from "./project-document-rules.js";
-export type {
-  LocalProjectConfig,
-  LocalProjectConfigErrorCode,
-  LocalProjectDocumentConfig,
-  ResolvedLocalProjectDocumentConfig,
-} from "./project-document-rules.js";
-export {
-  OH_MY_PM_PROJECT_CONFIG_FILENAME,
-  OH_MY_PM_PROJECT_CONFIG_VERSION,
-  loadConfiguredMarkdownProjectDocuments,
-  loadLocalProjectConfig,
-} from "./project-config.js";
-export type {
-  ConfiguredProjectDocumentLoadResult,
-  LocalProjectConfigLoadResult,
-} from "./project-config.js";
-export {
-  formatProviderDoctorReport,
-  formatProviderStatusReport,
-} from "./provider-format.js";
-export {
+  DEFAULT_PROJECT_DOCUMENT_MAX_BYTES_PER_FILE,
+  DEFAULT_PROJECT_DOCUMENT_MAX_FILES,
+  DEFAULT_PROJECT_DOCUMENT_MAX_TOTAL_BYTES,
   GITHUB_FIXED_API_VERSION,
   GITHUB_FIXED_METHOD,
   GITHUB_FIXED_ORIGIN,
-  buildOfflineDoctorReport,
-  buildProviderStatusReport,
-  resolveGitHubDiagnosticSettings,
-  runGitHubProviderNetworkDiagnostic,
-  tokenPresence,
-} from "./provider-diagnostics.js";
-export type {
-  GitHubProviderNetworkDiagnosticResult,
-  OfflineDoctorInput,
-  ProviderDiagnosticCheck,
-  ProviderDiagnosticStatus,
-  ProviderDoctorReport,
-  ProviderStatusInput,
-  ProviderStatusReport,
-  ProviderTokenState,
-} from "./provider-diagnostics.js";
-export {
-  MAX_PROVIDER_CONFIG_BYTES,
-  OH_MY_PM_PROVIDER_CONFIG_ENV,
-  OH_MY_PM_PROVIDER_CONFIG_FILENAME,
-  loadProviderConfig,
-  resolveProviderConfigLocation,
-} from "./provider-config.js";
-export type {
-  ProviderConfigLoadErrorCode,
-  ProviderConfigLoadResult,
-  ProviderConfigLocation,
-  ProviderConfigResolutionInput,
-  ProviderConfigSource,
-} from "./provider-config.js";
-export {
-  runLocalCliProcess,
-} from "./local-process.js";
-export type {
-  LocalCliProcessOptions,
-  LocalCliProcessResult,
-} from "./local-process.js";
-export {
+  MAX_PROJECT_ID_BYTES,
   MEMORY_DEFAULT_HISTORY_LIMIT,
   MEMORY_DEFAULT_LOCALE,
   MEMORY_DEFAULT_STALE_AFTER_SECONDS,
@@ -159,42 +108,71 @@ export {
   MEMORY_MIN_HISTORY_LIMIT,
   MEMORY_MIN_STALE_AFTER_SECONDS,
   MEMORY_SUBCOMMANDS,
-} from "./memory-types.js";
+  buildOfflineDoctorReport,
+  buildProviderStatusReport,
+  createGitHubRuntimeRequest,
+  createPreviewMemoryPort,
+  createRuntimeRequest,
+  loadMemoryProjectDocuments,
+  localMarkdownObservationRequest,
+  matchesLocalProjectDocumentPattern,
+  matchesLocalProjectDocumentRules,
+  resolveExplicitProjectId,
+  resolveGitHubDiagnosticSettings,
+  runGitHubProviderNetworkDiagnostic,
+  runMemoryProcess,
+  tokenPresence,
+  validateLocalProjectConfig,
+  validateLocalProjectDocumentPattern,
+  validateProjectId,
+} from "@oh-my-pm/application";
 export type {
+  GitHubProviderNetworkDiagnosticResult,
+  LocalProjectConfig,
+  LocalProjectConfigErrorCode,
+  LocalProjectDocumentConfig,
   MemoryCliCommand,
   MemoryCliParseResult,
   MemoryCommandOutcome,
+  MemoryProcessOptions,
+  MemoryStore,
   MemoryStoreStatus,
   MemorySubcommand,
-} from "./memory-types.js";
-export { parseMemoryCommand } from "./memory-parser.js";
-export { formatMemoryOutcome, memoryOutcomeExitCode } from "./memory-format.js";
-export { runMemoryProcess } from "./memory-process.js";
-export type { MemoryProcessOptions, MemoryStore } from "./memory-process.js";
-export { createPreviewMemoryPort } from "./memory-preview.js";
-export type {
+  OfflineDoctorInput,
   PreviewCommitProjection,
   PreviewMemoryStoreReads,
-} from "./memory-preview.js";
+  ProviderDiagnosticCheck,
+  ProviderDiagnosticStatus,
+  ProviderDoctorReport,
+  ProviderStatusInput,
+  ProviderStatusReport,
+  ProviderTokenState,
+  ResolvedLocalProjectDocumentConfig,
+} from "@oh-my-pm/application";
 export {
-  loadMemoryProjectDocuments,
-  localMarkdownObservationRequest,
-  resolveExplicitProjectId,
-} from "./memory-project.js";
-export {
-  MAX_PROJECT_ID_BYTES,
-  validateProjectId,
-} from "./project-document-rules.js";
-export {
-  createGitHubRuntimeRequest,
-  createRuntimeRequest,
-} from "./request.js";
+  GITHUB_TOKEN_ENV,
+  MAX_PROVIDER_CONFIG_BYTES,
+  OH_MY_PM_PROJECT_CONFIG_FILENAME,
+  OH_MY_PM_PROJECT_CONFIG_VERSION,
+  OH_MY_PM_PROVIDER_CONFIG_ENV,
+  OH_MY_PM_PROVIDER_CONFIG_FILENAME,
+  loadConfiguredMarkdownProjectDocuments,
+  loadLocalProjectConfig,
+  loadMarkdownProjectDocuments,
+  loadProviderConfig,
+  readGitHubTokenFromEnvironment,
+  resolveProviderConfigLocation,
+} from "@oh-my-pm/application/node";
 export type {
-  CliCommand,
-  CliDeps,
-  CliExecutionResult,
-  CliParseResult,
-  GitHubCliOperation,
-  RuntimeCliCommand,
-  RuntimeRequestFactory,
-} from "./types.js";
+  ConfiguredProjectDocumentLoadResult,
+  LocalProjectConfigLoadResult,
+  ProjectDocumentLoadOptions,
+  ProjectDocumentLoadResult,
+  ProjectDocumentLoadWarning,
+  ProjectDocumentLoadWarningCode,
+  ProviderConfigLoadErrorCode,
+  ProviderConfigLoadResult,
+  ProviderConfigLocation,
+  ProviderConfigResolutionInput,
+  ProviderConfigSource,
+} from "@oh-my-pm/application/node";

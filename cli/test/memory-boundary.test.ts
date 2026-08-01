@@ -1,6 +1,10 @@
-// v0.3 Phase 4 — memory boundary invariants: runCli fails closed on memory, the
-// Project Memory package is imported only lazily on the memory path, and legacy
-// commands never statically resolve it.
+// v0.3 Phase 4 — memory boundary invariants: runCli fails closed on memory.
+//
+// v0.5.1: the memory orchestration and its lazy Project Memory import moved to
+// @oh-my-pm/application, which asserts the lazy-import invariant in its own
+// suite (application/test/memory-boundary.test.ts). What remains here is the
+// CLI-side invariant: the pure runCli path never handles a memory command, and
+// no CLI source statically resolves Project Memory.
 
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -30,19 +34,11 @@ describe("runCli fails closed on the memory command", () => {
   });
 });
 
-describe("Project Memory is imported only lazily on the memory path", () => {
-  const memoryProcessSource = readFileSync(join(srcDir, "memory-process.ts"), "utf8");
-
-  it("uses a dynamic import of @oh-my-pm/project-memory", () => {
-    expect(memoryProcessSource).toContain('import("@oh-my-pm/project-memory")');
-  });
-
+describe("the CLI never statically resolves Project Memory", () => {
   it("does not statically import @oh-my-pm/project-memory anywhere", () => {
     const files = readdirSync(srcDir).filter((f) => f.endsWith(".ts"));
     for (const file of files) {
       const contents = readFileSync(join(srcDir, file), "utf8");
-      // A static import specifier is `from "@oh-my-pm/project-memory"`. The
-      // dynamic `import("@oh-my-pm/project-memory")` form is the only allowed use.
       expect(contents, `${file} must not statically import project-memory`).not.toContain(
         'from "@oh-my-pm/project-memory"',
       );
@@ -50,12 +46,11 @@ describe("Project Memory is imported only lazily on the memory path", () => {
   });
 
   it("takes project-memory as a runtime dependency reached only via lazy import", () => {
-    // As of the v0.3 project-brain release profile, the CLI takes
-    // @oh-my-pm/project-memory as a RUNTIME dependency so the self-contained
-    // bundle ships it and the installed memory commands resolve without a
-    // workspace checkout. It is still reached ONLY through the dynamic import
-    // asserted above (never a static startup import), so a genuine absence falls
-    // back safely. It must not remain a dev-only dependency.
+    // The CLI takes @oh-my-pm/project-memory as a RUNTIME dependency so the
+    // self-contained bundle ships it and the installed memory commands resolve
+    // without a workspace checkout. It is still reached ONLY through the
+    // application layer's dynamic import, never a static startup import, so a
+    // genuine absence falls back safely. It must not be a dev-only dependency.
     const pkg = JSON.parse(readFileSync(join(srcDir, "..", "package.json"), "utf8"));
     expect(pkg.dependencies?.["@oh-my-pm/project-memory"]).toBe("workspace:*");
     expect(pkg.devDependencies?.["@oh-my-pm/project-memory"]).toBeUndefined();

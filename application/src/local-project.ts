@@ -18,6 +18,7 @@ import { createDefaultSkillRegistry } from "@oh-my-pm/skills";
 import { createRuntimeRequest } from "./request.js";
 import type {
   ProjectDocumentSummary,
+  ProjectWorkflowErrorCode,
   ProjectWorkflowOperation,
   ProjectWorkflowResult,
 } from "./types.js";
@@ -116,59 +117,13 @@ export async function runLocalProjectWorkflow(
     };
   }
 
-  const configured = deps.loadDocuments(root);
-  if (!configured.ok) {
-    return {
-      ok: false,
-      operation,
-      root,
-      code: "project_config_invalid",
-      message: `invalid project config: ${configured.configDisplayPath} (${configured.code})`,
-    };
-  }
-
-  const documents = configured.documents;
-  if (!documents.ok) {
-    const rootCode = documents.warnings[0]?.code;
-    if (rootCode === "project_root_not_directory") {
-      return {
-        ok: false,
-        operation,
-        root,
-        code: "project_root_not_directory",
-        message: `project root is not a directory: ${root}`,
-      };
-    }
-    if (rootCode === "project_root_not_found") {
-      return {
-        ok: false,
-        operation,
-        root,
-        code: "project_root_not_found",
-        message: `project root was not found: ${root}`,
-      };
-    }
-    return {
-      ok: false,
-      operation,
-      root,
-      code: "project_documents_empty",
-      message: `no markdown project documents matched under: ${root}`,
-    };
-  }
-
-  if (documents.filesLoaded === 0) {
-    return {
-      ok: false,
-      operation,
-      root,
-      code: "project_documents_empty",
-      message: `no markdown project documents matched under: ${root}`,
-    };
+  const loaded = loadLocalProjectDocuments(root, deps.loadDocuments);
+  if (!loaded.ok) {
+    return { ok: false, operation, root, code: loaded.code, message: loaded.message };
   }
 
   const runtime =
-    deps.createRuntime?.(documents.items) ?? defaultLocalRuntime(documents.items, deps.version);
+    deps.createRuntime?.(loaded.items) ?? defaultLocalRuntime(loaded.items, deps.version);
 
   // The request text and provider request mapping come from the shared factory,
   // keeping every surface's intent routing aligned. The root never enters the
@@ -198,16 +153,60 @@ export async function runLocalProjectWorkflow(
     };
   }
 
-  const summary: ProjectDocumentSummary = {
-    filesScanned: documents.filesScanned,
-    filesMatched: documents.filesMatched,
-    filesExcluded: documents.filesExcluded,
-    filesLoaded: documents.filesLoaded,
-    totalBytes: documents.totalBytes,
-    configExists: configured.configExists,
-  };
+  return { ok: true, operation, root, documents: loaded.documents, output, response };
+}
 
-  return { ok: true, operation, root, documents: summary, output, response };
+/**
+ * Load the configured local Markdown documents for a project root, classifying
+ * every failure once. Shared by callers that need the loaded items rather than
+ * a full workflow result, so document-load error classification is never
+ * duplicated across presentation surfaces.
+ *
+ * The messages are the exact strings the CLI has always emitted; they are part
+ * of the observable stderr contract.
+ */
+export function loadLocalProjectDocuments(
+  root: string,
+  load: ProjectDocumentLoader,
+):
+  | { ok: true; items: LocalProviderItemInput[]; documents: ProjectDocumentSummary }
+  | { ok: false; code: ProjectWorkflowErrorCode; message: string } {
+  const configured = load(root);
+  if (!configured.ok) {
+    return {
+      ok: false,
+      code: "project_config_invalid",
+      message: `invalid project config: ${configured.configDisplayPath} (${configured.code})`,
+    };
+  }
+  const documents = configured.documents;
+  if (!documents.ok) {
+    const notDirectory = documents.warnings[0]?.code === "project_root_not_directory";
+    return {
+      ok: false,
+      code: notDirectory ? "project_root_not_directory" : "project_root_not_found",
+      message: `${notDirectory ? "project root is not a directory" : "project root was not found"}: ${root}`,
+    };
+  }
+  if (documents.filesLoaded === 0) {
+    return {
+      ok: false,
+      code: "project_documents_empty",
+      message: `no markdown project documents matched under: ${root}`,
+    };
+  }
+  return {
+    ok: true,
+    items: documents.items,
+    documents: {
+      filesScanned: documents.filesScanned,
+      filesMatched: documents.filesMatched,
+      filesExcluded: documents.filesExcluded,
+      filesLoaded: documents.filesLoaded,
+      totalBytes: documents.totalBytes,
+      configExists: configured.configExists,
+    },
+  };
 }
 
 /** Read-only status brief for a local project. */

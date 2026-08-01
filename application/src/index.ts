@@ -58,6 +58,7 @@ export {
   getLocalProjectHandoff,
   getLocalProjectNextActions,
   getLocalProjectRisks,
+  loadLocalProjectDocuments,
   runLocalProjectWorkflow,
 } from "./local-project.js";
 export type {

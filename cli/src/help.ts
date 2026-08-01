@@ -7,7 +7,7 @@
 // command, option, or behavior of its own.
 
 import { CANONICAL_CLI_COMMAND } from "./command-surface.js";
-import { MEMORY_SUBCOMMANDS } from "./memory-types.js";
+import { MEMORY_SUBCOMMANDS } from "@oh-my-pm/application";
 
 // The canonical CLI command, bound once so every usage line, example, and
 // namespace pointer in this file renders the same name. Help never presents a

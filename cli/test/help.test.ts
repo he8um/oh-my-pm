@@ -14,7 +14,7 @@ import {
   resolveHelpRequest,
 } from "../src/help.js";
 import { runLocalCliProcess } from "../src/local-process.js";
-import { MEMORY_SUBCOMMANDS } from "../src/memory-types.js";
+import { MEMORY_SUBCOMMANDS } from "@oh-my-pm/application";
 
 /**
  * Options that make any environment/clock/filesystem read observable: a throwing

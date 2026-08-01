@@ -25,6 +25,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@oh-my-pm/application": "workspace:*",
     "@oh-my-pm/contracts": "workspace:*",
     "@oh-my-pm/installer": "workspace:*",
     "@oh-my-pm/kernel": "workspace:*",

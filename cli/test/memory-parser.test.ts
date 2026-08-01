@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { parseCliArgs } from "../src/parser.js";
 import { parseMemoryCommand } from "../src/memory-parser.js";
-import { MEMORY_SUBCOMMANDS } from "../src/memory-types.js";
+import { MEMORY_SUBCOMMANDS } from "@oh-my-pm/application";
 
 /** Parse via the top-level entry (memory delegates to the nested parser). */
 function parseTop(args: string[]) {

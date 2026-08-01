@@ -1,7 +1,20 @@
-import { createNodeWasmKernelApi, describeKernelBinding } from "@oh-my-pm/kernel";
+import {
+  executeProjectMemoryCommand,
+  getProviderStatus,
+  loadLocalProjectDocuments,
+  runProviderDoctor,
+} from "@oh-my-pm/application";
+import type { MemoryProcessOptions, ProviderDiagnosticsDeps } from "@oh-my-pm/application";
+import {
+  createNodeProviderDiagnosticsDeps,
+  loadConfiguredMarkdownProjectDocuments,
+  loadProviderConfig,
+  readGitHubTokenFromEnvironment,
+} from "@oh-my-pm/application/node";
+import type { ProviderConfigLoadResult } from "@oh-my-pm/application/node";
+import { createNodeWasmKernelApi } from "@oh-my-pm/kernel";
 import {
   createGitHubProvider,
-  createGitHubProviderRequest,
   createLocalProvider,
   createNodeGitHubHttpTransport,
   createProviderRegistry,
@@ -19,22 +32,11 @@ import type {
 import { createRuntime } from "@oh-my-pm/runtime";
 import { createDefaultSkillRegistry } from "@oh-my-pm/skills";
 import { runCli } from "./cli.js";
-import { readGitHubTokenFromEnvironment } from "./github-token.js";
 import { formatHelp, resolveHelpRequest } from "./help.js";
 import { runMcpConfigCommand } from "./mcp-config.js";
 import { installedCommandExists } from "./mcp-config-resolve.js";
 import { formatMemoryOutcome, memoryOutcomeExitCode } from "./memory-format.js";
-import { runMemoryProcess } from "./memory-process.js";
-import type { MemoryProcessOptions } from "./memory-process.js";
-import { loadConfiguredMarkdownProjectDocuments } from "./project-config.js";
 import { parseCliArgs } from "./parser.js";
-import { loadProviderConfig } from "./provider-config.js";
-import type { ProviderConfigLoadResult } from "./provider-config.js";
-import {
-  buildOfflineDoctorReport,
-  buildProviderStatusReport,
-  runGitHubProviderNetworkDiagnostic,
-} from "./provider-diagnostics.js";
 import {
   formatProviderDoctorReport,
   formatProviderStatusReport,
@@ -191,152 +193,66 @@ function defaultConfigForFailure(): ResolvedProviderConfig {
 type ParsedProviders = Extract<ReturnType<typeof parseCliArgs>, { command: "providers" }>;
 
 /**
- * Node version accessor read only inside this process adapter. Deterministic
- * across a run; used only for the runtime.node-version diagnostic.
+ * Node dependencies for the provider diagnostics use cases, assembled from this
+ * adapter's injectable options. The CLI supplies the boundary values; the
+ * application layer owns the sequencing and the fail-closed rules.
  */
-function nodeVersion(): string {
-  const proc = (globalThis as { process?: { versions?: { node?: string } } }).process;
-  return proc?.versions?.node ?? "unknown";
+function providerDiagnosticsDeps(
+  parsed: ParsedProviders,
+  options: LocalCliProcessOptions | undefined,
+  version: string,
+): ProviderDiagnosticsDeps {
+  return createNodeProviderDiagnosticsDeps({
+    version,
+    ...(parsed.providerConfigPath !== undefined
+      ? { providerConfigPath: parsed.providerConfigPath }
+      : {}),
+    ...(options?.providerConfig !== undefined ? { providerConfig: options.providerConfig } : {}),
+    ...(options?.env !== undefined ? { env: options.env } : {}),
+    ...(options?.platform !== undefined ? { platform: options.platform } : {}),
+    ...(options?.cwd !== undefined ? { cwd: options.cwd } : {}),
+    ...(options?.githubToken !== undefined ? { githubToken: options.githubToken } : {}),
+    ...(options?.githubTransport !== undefined
+      ? { githubTransport: options.githubTransport }
+      : {}),
+  });
 }
 
 /**
- * Handle `providers status` and `providers doctor`. Offline by default; the one
- * optional network request happens only for `providers doctor github` with
- * --confirm-network. Never writes partial stdout before completion.
+ * Render `providers status` and `providers doctor`. The diagnostics themselves
+ * come from the shared application use cases; this function only maps the typed
+ * result to a terminal rendering and an exit code, and never writes partial
+ * stdout before completion.
  */
 async function runProvidersCommand(
   parsed: ParsedProviders,
   options: LocalCliProcessOptions | undefined,
   version: string,
 ): Promise<LocalCliProcessResult> {
-  const { config, load } = resolveProviderConfig(parsed.providerConfigPath, options);
-  const configValid = load === null || load.ok;
-  const configLoaded = configValid;
-
-  // An unreadable/invalid explicit or environment configuration is a controlled
-  // failure with exit 2. OS-standard absence is not a failure (load.ok).
-  if (load !== null && !load.ok) {
-    if (parsed.subcommand === "status") {
-      const report = buildProviderStatusReport({
-        config,
-        configSource: load.source,
-        configExists: load.exists,
-        configValid: false,
-        token: providerToken(options),
-      });
-      report.config.displayPath = load.displayPath;
-      return {
-        exitCode: 2,
-        stdout: formatProviderStatusReport(report, parsed.outputMode),
-        stderr: "",
-      };
-    }
-    const report = buildOfflineDoctorReport({
-      configLoaded,
-      configValid: false,
-      configErrorMessage: load.message,
-      config,
-      token: providerToken(options),
-      nodeVersion: nodeVersion(),
-      kernelConfigured: kernelConfigured(),
-    });
-    return { exitCode: 2, stdout: formatProviderDoctorReport(report, parsed.outputMode), stderr: "" };
-  }
-
-  const displayPath = load?.displayPath ?? "defaults";
-  const configExists = load?.exists ?? false;
-  const configSource = load?.source ?? "defaults";
+  const deps = providerDiagnosticsDeps(parsed, options, version);
 
   if (parsed.subcommand === "status") {
-    const report = buildProviderStatusReport({
-      config,
-      configSource,
-      configExists,
-      configValid: true,
-      token: providerToken(options),
-    });
-    report.config.displayPath = displayPath;
-    return { exitCode: 0, stdout: formatProviderStatusReport(report, parsed.outputMode), stderr: "" };
+    const { ok, report } = getProviderStatus(deps);
+    return {
+      exitCode: ok ? 0 : 2,
+      stdout: formatProviderStatusReport(report, parsed.outputMode),
+      stderr: "",
+    };
   }
 
-  // providers doctor: run the offline checks first, always.
-  const report = buildOfflineDoctorReport({
-    configLoaded: true,
-    configValid: true,
-    config,
-    token: providerToken(options),
-    nodeVersion: nodeVersion(),
-    kernelConfigured: kernelConfigured(),
-  });
-
-  const isNetworkDoctor = parsed.provider === "github" && parsed.confirmNetwork;
-  if (!isNetworkDoctor) {
-    const exitCode = report.ok ? 0 : 2;
-    return { exitCode, stdout: formatProviderDoctorReport(report, parsed.outputMode), stderr: "" };
-  }
-
-  // Network doctor: resolve the effective repository (explicit or configured),
-  // require GitHub enabled, then perform exactly one read-only request.
-  const settings = resolveGitHubProviderSettings({
-    config,
-    overrides: parsed.repository !== undefined ? { repository: parsed.repository } : {},
-  });
-  if (!settings.ok) {
-    report.checks.push({
-      id: "provider.github.network",
-      status: "fail",
-      message: settings.message,
-    });
-    report.ok = false;
-    if (report.github !== undefined) report.github.access = "failed";
-    return { exitCode: 2, stdout: formatProviderDoctorReport(report, parsed.outputMode), stderr: "" };
-  }
-
-  const token = providerToken(options);
-  let transport = options?.githubTransport;
-  if (transport === undefined) {
-    transport = createNodeGitHubHttpTransport({ token, productVersion: version });
-  }
-  const diagnostic = await runGitHubProviderNetworkDiagnostic({
-    repository: settings.repository,
-    ...(token !== undefined ? { token } : {}),
-    transport,
-    productVersion: version,
-  });
-
-  report.networkAttempted = true;
-  report.github = {
-    repository: settings.repository,
-    limit: settings.limit,
-    authentication: diagnostic.authentication,
-    access: diagnostic.ok ? "ok" : "failed",
+  const { ok, report } = await runProviderDoctor(
+    {
+      confirmNetwork: parsed.confirmNetwork,
+      ...(parsed.provider !== undefined ? { provider: parsed.provider } : {}),
+      ...(parsed.repository !== undefined ? { repository: parsed.repository } : {}),
+    },
+    deps,
+  );
+  return {
+    exitCode: ok ? 0 : 2,
+    stdout: formatProviderDoctorReport(report, parsed.outputMode),
+    stderr: "",
   };
-  if (diagnostic.ok) {
-    report.checks.push({
-      id: "provider.github.access",
-      status: "ok",
-      message: "repository metadata access succeeded",
-    });
-    return { exitCode: 0, stdout: formatProviderDoctorReport(report, parsed.outputMode), stderr: "" };
-  }
-  report.github.providerCode = diagnostic.providerCode;
-  report.ok = false;
-  report.checks.push({
-    id: "provider.github.access",
-    status: "fail",
-    message: `${diagnostic.providerCode}: ${diagnostic.message}`,
-  });
-  return { exitCode: 2, stdout: formatProviderDoctorReport(report, parsed.outputMode), stderr: "" };
-}
-
-/** Optional token presence used only for diagnostics reporting (never value). */
-function providerToken(options: LocalCliProcessOptions | undefined): string | undefined {
-  return options?.githubToken ?? readGitHubTokenFromEnvironment(options?.env ?? ambientEnv());
-}
-
-/** Whether the WASM Kernel binding is configured (for the runtime.kernel check). */
-function kernelConfigured(): boolean {
-  return describeKernelBinding(createNodeWasmKernelApi()).status === "configured";
 }
 
 /**
@@ -396,7 +312,7 @@ export async function runLocalCliProcess(
         ? { storeFactory: options.memoryStoreFactory }
         : {}),
     };
-    const outcome = await runMemoryProcess(parsed.memory, memoryOptions);
+    const outcome = await executeProjectMemoryCommand(parsed.memory, memoryOptions);
     const exitCode = memoryOutcomeExitCode(outcome);
     const rendered = formatMemoryOutcome(outcome, parsed.outputMode);
     // No partial stdout before a failed mutating operation: a failure renders to
@@ -481,32 +397,16 @@ export async function runLocalCliProcess(
     }
     providers.push(createGitHubProvider({ transport, productVersion: version }));
   } else if (parsed.ok && PROJECT_COMMANDS.has(parsed.command)) {
-    // Errors report the root exactly as the user typed it, never a resolved
-    // internal absolute path, and never any document content or config text.
+    // The document load and its failure classification are the shared
+    // application behavior; this adapter only renders the outcome. Errors report
+    // the root exactly as the user typed it, never a resolved internal absolute
+    // path, and never any document content or config text.
     const root = "input" in parsed ? (parsed.input ?? ".") : ".";
-    const configured = loadConfiguredMarkdownProjectDocuments(root);
-    if (!configured.ok) {
-      return {
-        exitCode: 2,
-        stdout: "",
-        stderr: `invalid project config: ${configured.configDisplayPath} (${configured.code})\n`,
-      };
+    const loaded = loadLocalProjectDocuments(root, loadConfiguredMarkdownProjectDocuments);
+    if (!loaded.ok) {
+      return { exitCode: 2, stdout: "", stderr: `${loaded.message}\n` };
     }
-    if (!configured.documents.ok) {
-      const reason =
-        configured.documents.warnings[0]?.code === "project_root_not_directory"
-          ? "project root is not a directory"
-          : "project root was not found";
-      return { exitCode: 2, stdout: "", stderr: `${reason}: ${root}\n` };
-    }
-    if (configured.documents.filesLoaded === 0) {
-      return {
-        exitCode: 2,
-        stdout: "",
-        stderr: `no markdown project documents matched under: ${root}\n`,
-      };
-    }
-    providerItems = configured.documents.items;
+    providerItems = loaded.items;
   }
 
   if (providers.length === 0) {

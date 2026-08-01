@@ -12,8 +12,8 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runLocalCliProcess } from "../src/index.js";
 import type { LocalCliProcessOptions } from "../src/index.js";
-import { runMemoryProcess } from "../src/memory-process.js";
-import type { MemoryStore } from "../src/memory-process.js";
+import { runMemoryProcess } from "@oh-my-pm/application";
+import type { MemoryStore } from "@oh-my-pm/application";
 
 const FIXED_NOW = "2026-03-03T00:00:00.000Z";
 

@@ -508,9 +508,12 @@ for (const file of trackedFiles) {
 // but they must never gain a filesystem write path, network access,
 // child-process execution, or telemetry/logging of document content.
 const NODE_CLI_BOUNDARY_FILES = [
-  "cli/src/node-project-documents.ts",
-  "cli/src/project-config.ts",
-  "cli/src/provider-config.ts",
+  // v0.5.1: the read-only project/provider config and document loaders moved to
+  // the application package's explicit Node boundary. They are held to exactly
+  // the same rules there.
+  "application/src/node/project-documents.ts",
+  "application/src/node/project-config.ts",
+  "application/src/node/provider-config.ts",
   "cli/src/mcp-config-resolve.ts",
   "cli/bin/ohmypm.mjs",
   // v0.5: the deprecated compatibility alias is held to the same boundary rules
@@ -1074,7 +1077,12 @@ const GITHUB_NETWORK_BOUNDARY = new Set([
 // boundary (CLI adapter, CLI token helper, MCP runner, manual smoke).
 const GITHUB_TOKEN_ENV_ALLOWED = new Set([
   "cli/src/local-process.ts",
-  "cli/src/github-token.ts",
+  // v0.5.1: the token boundary moved to the application Node surface; the CLI
+  // index re-exports its public constant.
+  "application/src/node/github-token.ts",
+  "application/src/node/index.ts",
+  "application/src/node/deps.ts",
+  "cli/src/index.ts",
   "mcp-server/src/github-tool-runner.ts",
   "tools/check-github-provider-live.mjs",
   "tools/validate-boundaries.mjs",
@@ -1098,8 +1106,10 @@ const GITHUB_TOKEN_ENV_ALLOWED = new Set([
 // prose, and this validator. It is never read for local-only commands.
 const PROVIDER_CONFIG_ENV_NAME = "OH_MY_PM_PROVIDER_CONFIG";
 const PROVIDER_CONFIG_ENV_ALLOWED = new Set([
-  "cli/src/provider-config.ts",
-  // Barrel re-export of the loader's public constant.
+  // v0.5.1: the read-only loader lives on the application Node surface.
+  "application/src/node/provider-config.ts",
+  // Barrel re-exports of the loader's public constant.
+  "application/src/node/index.ts",
   "cli/src/index.ts",
   "tools/validate-boundaries.mjs",
   "tools/release-bundle-utils.mjs",
@@ -2540,6 +2550,10 @@ if (trackedFiles.includes("project-memory/package.json")) {
 // genuinely absent (the historical v0.2 bundle), the lazy load falls back to the
 // exact ten-tool surface.
 const PROJECT_MEMORY_RUNTIME_DEP_ALLOWED = new Set([
+  // v0.5.1: the application package owns the memory orchestration and reaches
+  // the adapter through the same lazy dynamic import. CLI and MCP keep the
+  // runtime dependency so the self-contained bundle still ships it.
+  "application/package.json",
   "cli/package.json",
   "mcp-server/package.json",
 ]);
@@ -2585,7 +2599,10 @@ for (const file of trackedFiles) {
 // which excludes the package, still starts with the exact ten tools). Any other
 // production reference, or a static import in a lazy boundary, is a leak.
 const PROJECT_MEMORY_LAZY_BOUNDARIES = new Set([
-  "cli/src/memory-process.ts",
+  // v0.5.1: the memory orchestrator moved to the application package and keeps
+  // the identical lazy-load rule, so a bundle profile without Project Memory
+  // still starts and falls back safely.
+  "application/src/memory-process.ts",
   "mcp-server/src/project-changes-loader.ts",
   "mcp-server/src/project-changes-runner.ts",
   // v0.4: the project_timeline capability follows the identical lazy-load rule.
