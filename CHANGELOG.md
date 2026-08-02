@@ -2,6 +2,82 @@
 
 ## [Unreleased]
 
+## [0.5.3]
+
+Documentation and architecture truth release, **prepared but not yet published**.
+It changes **no product code** and adds **no user-facing capability**.
+
+Documentation authority was real but implicit: two arrays inside
+`tools/validate-doc-truth.mjs` decided which documents were checked for
+present-tense claims and which were exempt as point-in-time records. Nothing
+could enumerate that classification, a newly added document silently defaulted to
+unclassified and therefore unchecked, and a replaced document could still be
+linked from an active index as current guidance.
+
+**No public behavior changes.** No new command, no changed CLI syntax or output,
+no changed MCP tool, schema, annotation, or tool order, no Project Brain schema
+change, no Project Memory format change, no storage path change, and **no
+migration is required**. It includes no Dashboard and does not begin the `omp`
+command migration.
+
+### Added
+
+- `docs/manifest.json` — the authoritative documentation classification. Every
+  tracked Markdown document describing the product is listed exactly once with
+  `status` (`active`, `historical`, `superseded`, `release-record`), `authority`
+  (`normative`, `informative`), `appliesTo`, `replacement`, and the `concern` it
+  is authoritative about.
+- `tools/docs-manifest.mjs` — the single loader over that contract, so the
+  validator and the inventory tool agree by construction. It structurally
+  validates the manifest: unknown status/authority values, a `superseded` entry
+  without a `replacement`, an unresolvable `replacement`, a classified file that
+  no longer exists, a path classified twice, an `active` entry declaring a
+  replacement, and duplicate authoritative documents for one concern.
+- `tools/docs-inventory.mjs` plus `pnpm docs:inventory`,
+  `pnpm docs:inventory:check` — a deterministic, offline, read-only report of
+  active normative, active informative, historical, superseded, release records,
+  broken replacements, classified-but-missing files, and unclassified documents.
+  `pnpm docs:inventory:check` is wired into `pnpm validate`.
+- `tools/docs-manifest.test.mjs` — seventeen mutation tests. Each introduces one
+  contradiction into a disposable git fixture, asserts the validator rejects it
+  with that guard's specific message, and asserts the unmutated fixture passes.
+- Four documentation drift guards in `tools/validate-doc-truth.mjs`: an active
+  document naming a nonexistent `@oh-my-pm/*` package; a real workspace package
+  omitted from the authoritative package map (`docs/architecture.md`); a
+  `superseded` document still Markdown-linked from an active normative document;
+  and full classification coverage, so every tracked document must be classified
+  or explicitly excluded. Both package expectations derive from
+  `pnpm-workspace.yaml`.
+
+### Changed
+
+- `tools/validate-doc-truth.mjs` derives its active and historical document sets
+  from `docs/manifest.json` instead of restating them in two hard-coded arrays.
+- `README.md` no longer claims the repository is "the new v2 line". It ships a
+  `v0.x` line (`v0.1.0` through `v0.5.2`) and has no `v2.x` target; the rebuild
+  that produced this architecture is history, not a pending migration.
+- `docs/architecture.md` documents `@oh-my-pm/examples`, the real workspace
+  package it had omitted: a development-only composition harness, the one
+  workspace package outside the release dependency surface, whose
+  `fixtures/markdown-project/` tree is copied into the bundle as the sample
+  project the installed qualification analyzes.
+- `ROADMAP.md` and `docs/roadmap.md` state the v0.5.3 and v0.5.4 scopes, and no
+  longer present the Dashboard as the v0.6 plan — v0.6 is core and public-surface
+  work, and the Dashboard is planned beyond it.
+- `CHANGELOG.md` is classified as a `release-record` rather than an active
+  document, which is what preserves its accurate past claims. Its v0.2.0 entry
+  about validating "the four shims" was true before v0.5 introduced the canonical
+  `ohmypm` family and made the installed count eight; treating the changelog as
+  active would have made the shim-count guard demand that entry be rewritten,
+  destroying the release evidence it exists to preserve.
+
+### Preserved
+
+- No file under `docs/releases/**`, `docs/v0.3/**`, `docs/v0.4/**`, or
+  `docs/architecture/**` is modified. Historical claims that were true at
+  publication time remain unchanged; the fix for a stale-looking historical
+  statement is classification, not editing.
+
 ## [0.5.2]
 
 Maintenance release, **published as the latest stable release** on

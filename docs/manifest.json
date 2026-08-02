@@ -1,0 +1,766 @@
+{
+  "schemaVersion": 1,
+  "$comment": [
+    "The authoritative documentation classification for the repository.",
+    "",
+    "Before this manifest, document authority was implicit in validator constants:",
+    "tools/validate-doc-truth.mjs carried an ACTIVE_DOCS array and a",
+    "HISTORICAL_PREFIXES array, so 'which documents may make present-tense claims'",
+    "was a fact only the validator source knew. Nothing else could enumerate it, a",
+    "new document defaulted to unclassified-and-unchecked, and a superseded",
+    "document could still be linked as if it were current.",
+    "",
+    "This file makes that classification machine-readable and exhaustive. Every",
+    "tracked Markdown document that describes the product is listed exactly once.",
+    "tools/validate-doc-truth.mjs derives its active/historical sets from here",
+    "instead of restating them, and tools/docs-inventory.mjs reports over it.",
+    "",
+    "Fields, per entry:",
+    "",
+    "  status      active        describes the system as it is now",
+    "              historical    a point-in-time record; true when written, frozen",
+    "              superseded    replaced by another document; kept as evidence",
+    "              release-record a published release's notes or validation record",
+    "",
+    "  authority   normative     may be cited as current truth; drift is a defect",
+    "              informative   explanatory or contextual; not a truth source",
+    "",
+    "  appliesTo   the version or release line the document speaks for. Active",
+    "              documents use \"current\"; the rest name their own line, so a",
+    "              reader never has to infer which release a claim belonged to.",
+    "",
+    "  replacement the path that supersedes this document, or null. Required to be",
+    "              non-null exactly when status is \"superseded\", and required to",
+    "              resolve to a file that exists.",
+    "",
+    "Test fixtures under examples/fixtures/** are deliberately absent: they are",
+    "input data for the extraction tests, not documentation about the product.",
+    "The unclassified-file report in tools/docs-inventory.mjs excludes them for",
+    "the same reason."
+  ],
+  "excludedPrefixes": ["examples/fixtures/", ".github/ISSUE_TEMPLATE/", "_dev/"],
+  "excludedPaths": [".github/PULL_REQUEST_TEMPLATE.md", "CODE_OF_CONDUCT.md"],
+  "documents": [
+    {
+      "path": "README.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "product-overview"
+    },
+    {
+      "path": "ROADMAP.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "roadmap-summary"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "contribution-policy"
+    },
+    {
+      "path": "SECURITY.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "security-policy"
+    },
+    {
+      "path": "SUPPORT.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "support-policy"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "$comment": [
+        "Append-only release history, so it is a RELEASE RECORD rather than an",
+        "active document. Its entries were true for the release they describe:",
+        "the v0.2.0 entry about validating 'the four shims' was accurate before",
+        "v0.5 added the canonical ohmypm family and made the installed count",
+        "eight. Treating the changelog as active would make the present-tense",
+        "guards demand that such entries be rewritten to today's numbers, which",
+        "would destroy exactly the release evidence they exist to preserve."
+      ],
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "all-releases",
+      "replacement": null,
+      "concern": "change-log"
+    },
+    {
+      "path": "docs/architecture.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "architecture"
+    },
+    {
+      "path": "docs/roadmap.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "roadmap-detail"
+    },
+    {
+      "path": "docs/getting-started.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "getting-started"
+    },
+    {
+      "path": "docs/security-model.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "security-model"
+    },
+    {
+      "path": "docs/deterministic-extraction.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "extraction-model"
+    },
+    {
+      "path": "docs/governance/repository-controls.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "governance"
+    },
+    {
+      "path": "docs/providers/github.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "provider-github"
+    },
+    {
+      "path": "docs/providers/configuration.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "provider-configuration"
+    },
+    {
+      "path": "docs/providers/diagnostics.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "provider-diagnostics"
+    },
+    {
+      "path": "docs/providers/github-source-selection.md",
+      "status": "active",
+      "authority": "informative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "provider-github-sources"
+    },
+    {
+      "path": "docs/providers/github-item-comments.md",
+      "status": "active",
+      "authority": "informative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "provider-github-comments"
+    },
+    {
+      "path": "docs/providers/github-pr-reviews.md",
+      "status": "active",
+      "authority": "informative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "provider-github-reviews"
+    },
+    {
+      "path": "docs/v0.5/README.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "v0.5-migration-guide"
+    },
+    {
+      "path": "docs/v0.5/application-boundary.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "application-boundary"
+    },
+    {
+      "path": "docs/v0.5/v0.5.1-scope.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.5.1",
+      "replacement": null,
+      "concern": "v0.5.1-scope"
+    },
+    {
+      "path": "application/README.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "package-application"
+    },
+    {
+      "path": "cli/README.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "package-cli"
+    },
+    {
+      "path": "mcp-server/README.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "package-mcp-server"
+    },
+    {
+      "path": "runtime/README.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "package-runtime"
+    },
+    {
+      "path": "planner/README.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "package-planner"
+    },
+    {
+      "path": "providers/README.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "package-providers"
+    },
+    {
+      "path": "skills/README.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "package-skills"
+    },
+    {
+      "path": "contracts/README.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "package-contracts"
+    },
+    {
+      "path": "contracts/schema/README.md",
+      "status": "active",
+      "authority": "informative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "contracts-schema"
+    },
+    {
+      "path": "contracts/src/HELPERS.md",
+      "status": "active",
+      "authority": "informative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "contracts-helpers"
+    },
+    {
+      "path": "kernel/binding/README.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "package-kernel"
+    },
+    {
+      "path": "project-memory/README.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "package-project-memory"
+    },
+    {
+      "path": "installer/README.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "package-installer"
+    },
+    {
+      "path": "distribution/README.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "package-distribution"
+    },
+    {
+      "path": "examples/README.md",
+      "status": "active",
+      "authority": "informative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "package-examples"
+    },
+    {
+      "path": "docs/architecture/v0.2-stabilization-audit.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.2",
+      "replacement": null,
+      "concern": "v0.2-stabilization-audit"
+    },
+    {
+      "path": "docs/v0.3/README.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-index"
+    },
+    {
+      "path": "docs/v0.3/architecture.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": "docs/architecture.md",
+      "concern": "v0.3-architecture"
+    },
+    {
+      "path": "docs/v0.3/acceptance-gates.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-acceptance-gates"
+    },
+    {
+      "path": "docs/v0.3/current-gap-analysis.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-gap-analysis"
+    },
+    {
+      "path": "docs/v0.3/data-model.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-data-model"
+    },
+    {
+      "path": "docs/v0.3/getting-started-installed.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-getting-started-installed"
+    },
+    {
+      "path": "docs/v0.3/getting-started-installed-rc.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3.0-rc.1",
+      "replacement": "docs/v0.3/getting-started-installed.md",
+      "concern": "v0.3-getting-started-installed-rc"
+    },
+    {
+      "path": "docs/v0.3/getting-started-memory.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-getting-started-memory"
+    },
+    {
+      "path": "docs/v0.3/implementation-plan.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-implementation-plan"
+    },
+    {
+      "path": "docs/v0.3/option-evaluation.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-option-evaluation"
+    },
+    {
+      "path": "docs/v0.3/product-brief.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-product-brief"
+    },
+    {
+      "path": "docs/v0.3/scope-decision.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-scope-decision"
+    },
+    {
+      "path": "docs/v0.3/security-privacy.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": "docs/security-model.md",
+      "concern": "v0.3-security-privacy"
+    },
+    {
+      "path": "docs/v0.3/phase-0-contracts.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-phase-0"
+    },
+    {
+      "path": "docs/v0.3/phase-1-kernel.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-phase-1"
+    },
+    {
+      "path": "docs/v0.3/phase-2-persistence.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-phase-2"
+    },
+    {
+      "path": "docs/v0.3/phase-3-runtime.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-phase-3"
+    },
+    {
+      "path": "docs/v0.3/phase-4-cli.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-phase-4"
+    },
+    {
+      "path": "docs/v0.3/phase-4-1-snapshot-chronology.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-phase-4-1"
+    },
+    {
+      "path": "docs/v0.3/phase-5-mcp.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-phase-5"
+    },
+    {
+      "path": "docs/v0.3/phase-6-release-qualification.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-phase-6"
+    },
+    {
+      "path": "docs/v0.3/phase-7-stable-qualification.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.3",
+      "replacement": null,
+      "concern": "v0.3-phase-7"
+    },
+    {
+      "path": "docs/v0.4/README.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.4",
+      "replacement": null,
+      "concern": "v0.4-index"
+    },
+    {
+      "path": "docs/v0.4/getting-started-timeline.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.4",
+      "replacement": null,
+      "concern": "v0.4-getting-started-timeline"
+    },
+    {
+      "path": "docs/releases/v0.1.0.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.1.0",
+      "replacement": null,
+      "concern": "release-notes-v0.1.0"
+    },
+    {
+      "path": "docs/releases/v0.2.0-rc.1.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.2.0-rc.1",
+      "replacement": null,
+      "concern": "release-notes-v0.2.0-rc.1"
+    },
+    {
+      "path": "docs/releases/v0.2.0.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.2.0",
+      "replacement": null,
+      "concern": "release-notes-v0.2.0"
+    },
+    {
+      "path": "docs/releases/v0.3.0-rc.1.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.3.0-rc.1",
+      "replacement": null,
+      "concern": "release-notes-v0.3.0-rc.1"
+    },
+    {
+      "path": "docs/releases/v0.3.0.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.3.0",
+      "replacement": null,
+      "concern": "release-notes-v0.3.0"
+    },
+    {
+      "path": "docs/releases/v0.3.1.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.3.1",
+      "replacement": null,
+      "concern": "release-notes-v0.3.1"
+    },
+    {
+      "path": "docs/releases/v0.4.0.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.4.0",
+      "replacement": null,
+      "concern": "release-notes-v0.4.0"
+    },
+    {
+      "path": "docs/releases/v0.5.0.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.5.0",
+      "replacement": null,
+      "concern": "release-notes-v0.5.0"
+    },
+    {
+      "path": "docs/releases/v0.5.1.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.5.1",
+      "replacement": null,
+      "concern": "release-notes-v0.5.1"
+    },
+    {
+      "path": "docs/releases/v0.5.2.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.5.2",
+      "replacement": null,
+      "concern": "release-notes-v0.5.2"
+    },
+    {
+      "path": "docs/releases/v0.5.3.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.5.3",
+      "replacement": null,
+      "concern": "release-notes-v0.5.3"
+    },
+    {
+      "path": "docs/releases/v0.5.2-post-publication-validation.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.5.2",
+      "replacement": null,
+      "concern": "post-publication-v0.5.2"
+    },
+    {
+      "path": "docs/releases/v0.2.0-rc.1-post-publication-validation.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.2.0-rc.1",
+      "replacement": null,
+      "concern": "post-publication-v0.2.0-rc.1"
+    },
+    {
+      "path": "docs/releases/v0.3.0-rc.1-post-publication-validation.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.3.0-rc.1",
+      "replacement": null,
+      "concern": "post-publication-v0.3.0-rc.1"
+    },
+    {
+      "path": "docs/releases/v0.2.0-post-stable-closure.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.2.0",
+      "replacement": null,
+      "concern": "closure-v0.2.0"
+    },
+    {
+      "path": "docs/releases/v0.3.0-post-stable-closure.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.3.0",
+      "replacement": null,
+      "concern": "closure-v0.3.0"
+    },
+    {
+      "path": "docs/releases/v0.2.x-maintenance-policy.md",
+      "status": "historical",
+      "authority": "informative",
+      "appliesTo": "v0.2",
+      "replacement": null,
+      "concern": "v0.2-maintenance-policy"
+    },
+    {
+      "path": "docs/releases/v0.2-live-github-smoke.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.2",
+      "replacement": null,
+      "concern": "smoke-v0.2-live-github"
+    },
+    {
+      "path": "docs/releases/v0.4-real-project-smoke.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.4",
+      "replacement": null,
+      "concern": "smoke-v0.4-real-project"
+    },
+    {
+      "path": "docs/releases/publishing-v0.1.0.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.1.0",
+      "replacement": null,
+      "concern": "publishing-v0.1.0"
+    },
+    {
+      "path": "docs/releases/publishing-v0.2.0-rc.1.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.2.0-rc.1",
+      "replacement": null,
+      "concern": "publishing-v0.2.0-rc.1"
+    },
+    {
+      "path": "docs/releases/publishing-v0.2.0.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.2.0",
+      "replacement": null,
+      "concern": "publishing-v0.2.0"
+    },
+    {
+      "path": "docs/releases/publishing-v0.3.0-rc.1.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.3.0-rc.1",
+      "replacement": null,
+      "concern": "publishing-v0.3.0-rc.1"
+    },
+    {
+      "path": "docs/releases/publishing-v0.3.0.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.3.0",
+      "replacement": null,
+      "concern": "publishing-v0.3.0"
+    },
+    {
+      "path": "docs/releases/publishing-v0.4.0.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.4.0",
+      "replacement": null,
+      "concern": "publishing-v0.4.0"
+    },
+    {
+      "path": "docs/releases/publishing-v0.5.0.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.5.0",
+      "replacement": null,
+      "concern": "publishing-v0.5.0"
+    },
+    {
+      "path": "docs/releases/publishing-v0.5.1.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.5.1",
+      "replacement": null,
+      "concern": "publishing-v0.5.1"
+    },
+    {
+      "path": "docs/releases/publishing-v0.5.2.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.5.2",
+      "replacement": null,
+      "concern": "publishing-v0.5.2"
+    }
+  ]
+}

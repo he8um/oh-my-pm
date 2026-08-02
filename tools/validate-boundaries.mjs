@@ -2411,7 +2411,10 @@ if (trackedFiles.includes("kernel/crate/Cargo.toml")) {
 // maintenance release promotes it to 0.5.2, prepared but not yet published. The
 // value must be exactly this prepared version (all package manifests and the
 // runtime version constants are checked against it by check-version-consistency).
-const EXPECTED_SOURCE_VERSION = "0.5.2";
+//
+// v0.5.3 (documentation and architecture truth) promotes the source to 0.5.3 on
+// top of the published v0.5.2 stable.
+const EXPECTED_SOURCE_VERSION = "0.5.3";
 if (trackedFiles.includes("version.json")) {
   const version = JSON.parse(readFileSync("version.json", "utf8")).version;
   if (version !== EXPECTED_SOURCE_VERSION) {

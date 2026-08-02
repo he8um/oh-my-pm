@@ -1,6 +1,6 @@
 {
   "name": "oh-my-pm",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "private": true,
   "description": "Local project intelligence system for structured project and product delivery.",
   "license": "MIT",
@@ -33,7 +33,9 @@
     "validate:commands": "node tools/validate-command-surface.mjs",
     "validate:references": "node tools/validate-command-references.mjs",
     "validate:docs": "node tools/validate-doc-truth.mjs",
-    "validate": "pnpm validate:public && pnpm validate:structure && pnpm validate:boundaries && pnpm validate:contracts && pnpm version:check && pnpm validate:commands && pnpm validate:references && pnpm validate:docs",
+    "docs:inventory": "node tools/docs-inventory.mjs",
+    "docs:inventory:check": "node tools/docs-inventory.mjs --strict",
+    "validate": "pnpm validate:public && pnpm validate:structure && pnpm validate:boundaries && pnpm validate:contracts && pnpm version:check && pnpm validate:commands && pnpm validate:references && pnpm validate:docs && pnpm docs:inventory:check",
     "mcp:smoke": "node tools/check-mcp-server.mjs",
     "local:install": "node tools/install-local.mjs",
     "local:check": "node tools/check-local-install.mjs",

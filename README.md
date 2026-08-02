@@ -11,7 +11,9 @@
 It is designed for teams that want clearer delivery context, safer execution boundaries, and repeatable validation around project work.
 
 > **Latest stable release:** [`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2)
-> **Source version:** `0.5.2` (published)
+> **Source version:** `0.5.3` (prepared; not yet published)
+>
+> **`v0.5.3` is prepared and not yet published.** It is a **documentation and architecture truth** patch with no product code change and no public behavior change: `docs/manifest.json` becomes the authoritative machine-readable record of documentation authority, `pnpm validate:docs` derives its active and historical document sets from that manifest and gains guards for nonexistent-package claims, packages omitted from the authoritative package map, superseded documents linked as normative, and duplicate authoritative documents, and `pnpm docs:inventory` reports the classification offline. It corrects two real errors: this README's former claim to be a "new v2 line", and the omission of `@oh-my-pm/examples` from the architecture package map. See the [v0.5.3 release notes](docs/releases/v0.5.3.md).
 >
 > [`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2) is the current stable release, a **maintenance release** whose scope is centralizing the GitHub-backed project workflow in `@oh-my-pm/application`, so the CLI and MCP surfaces consume the same application use case instead of each rebuilding the Runtime pipeline. It changes **no** public behavior: no new command, no changed CLI syntax or JSON output, no changed MCP tool, schema, annotation or tool order, no Project Brain schema change, no Project Memory format change, and **no migration** from v0.5.1. It includes no Dashboard. See the [v0.5.2 release notes](docs/releases/v0.5.2.md) and the [post-publication validation record](docs/releases/v0.5.2-post-publication-validation.md).
 >
@@ -27,9 +29,9 @@ It is designed for teams that want clearer delivery context, safer execution bou
 
 ## What this repository is
 
-This repository contains the new v2 line of OH MY PM.
+This repository is the current implementation of OH MY PM. Its release line is `v0.x`: the published stable releases run from [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) through [`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2), and the source version is recorded in [`version.json`](version.json).
 
-The previous v1 line is maintained separately as a legacy reference. This repository is a clean rebuild with a new architecture and release line.
+It began as a clean rebuild with a new architecture, replacing an earlier prototype line that is no longer developed here. That rebuild is history, not a pending migration: there is no `v2.x` target, and the versions above are the only release line this repository ships. See [the roadmap](ROADMAP.md) for what is planned next.
 
 ---
 
@@ -376,24 +378,25 @@ server directly instead:
 
 Five release lines have shipped. What is built and released today:
 
-| Capability                                                            | State                              |
-| --------------------------------------------------------------------- | ---------------------------------- |
-| Deterministic Rust/WASM Kernel                                        | shipped                            |
-| Contracts generated to TypeScript and Rust                            | shipped                            |
-| Runtime, Planner, Skills                                              | shipped                            |
-| Local Markdown project analysis (`brief`, `risks`, `next`, `handoff`) | shipped                            |
-| Read-only GitHub provider workflows                                   | shipped                            |
-| Provider diagnostics (`providers status`, `providers doctor`)         | shipped                            |
-| Project Brain and local Project Memory                                | shipped (schema 1, store format 2) |
-| Seven `memory` subcommands                                            | shipped                            |
-| Twelve read-only MCP tools, zero write tools                          | shipped                            |
-| Local installation and release bundles                                | shipped                            |
-| Deterministic archives and cross-platform installed qualification     | shipped                            |
-| Shared application boundary (`@oh-my-pm/application`)                 | v0.5.1, published                  |
-| Local Project Dashboard                                               | planned for v0.6, not implemented  |
+| Capability                                                            | State                                |
+| --------------------------------------------------------------------- | ------------------------------------ |
+| Deterministic Rust/WASM Kernel                                        | shipped                              |
+| Contracts generated to TypeScript and Rust                            | shipped                              |
+| Runtime, Planner, Skills                                              | shipped                              |
+| Local Markdown project analysis (`brief`, `risks`, `next`, `handoff`) | shipped                              |
+| Read-only GitHub provider workflows                                   | shipped                              |
+| Provider diagnostics (`providers status`, `providers doctor`)         | shipped                              |
+| Project Brain and local Project Memory                                | shipped (schema 1, store format 2)   |
+| Seven `memory` subcommands                                            | shipped                              |
+| Twelve read-only MCP tools, zero write tools                          | shipped                              |
+| Local installation and release bundles                                | shipped                              |
+| Deterministic archives and cross-platform installed qualification     | shipped                              |
+| Shared application boundary (`@oh-my-pm/application`)                 | v0.5.1, published                    |
+| Local Project Dashboard                                               | planned beyond v0.6, not implemented |
 
-Active maintenance scope is **v0.5.2**: the shared GitHub application boundary.
-See [`ROADMAP.md`](ROADMAP.md) and [`docs/roadmap.md`](docs/roadmap.md).
+Active maintenance scope is **v0.5.3**: documentation and architecture truth,
+followed by **v0.5.4**, contract and repository consistency. See
+[`ROADMAP.md`](ROADMAP.md) and [`docs/roadmap.md`](docs/roadmap.md).
 
 ---
 

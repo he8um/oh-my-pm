@@ -5,6 +5,29 @@ The detailed public roadmap is maintained in [`docs/roadmap.md`](docs/roadmap.md
 Work is labelled with one of five states: **Shipped**, **Prepared but
 unpublished**, **Active maintenance**, **Planned**, or **Out of scope**.
 
+## Prepared but unpublished — v0.5.3
+
+**Documentation and architecture truth.** A patch release with no product code
+change and no public behavior change.
+
+`docs/manifest.json` becomes the authoritative, machine-readable record of
+documentation authority — `status`, `authority`, `appliesTo`, `replacement`, and
+the `concern` each document is authoritative about. `pnpm validate:docs` derives
+its active and historical sets from that manifest instead of restating them, and
+gains guards for active claims about nonexistent packages, real packages omitted
+from the authoritative package map, superseded documents still linked as
+normative, and duplicate authoritative documents for one concern. Every tracked
+document must now be classified or explicitly excluded, so a new document cannot
+default to unchecked. `pnpm docs:inventory` reports the classification
+deterministically and offline.
+
+Two genuine active-documentation errors are corrected: the README described the
+repository as a "new v2 line" (it ships `v0.x`, with no `v2.x` target), and the
+architecture package map omitted the real `@oh-my-pm/examples` package. Historical
+and release records are preserved unedited — the changelog is classified as a
+release record precisely so its accurate past claims are not rewritten. See
+[`docs/releases/v0.5.3.md`](docs/releases/v0.5.3.md).
+
 ## Shipped — v0.5.2
 
 **The shared GitHub application boundary.** A patch release with no public
@@ -67,11 +90,29 @@ the v0.5 line. See [`docs/v0.5/README.md`](docs/v0.5/README.md).
 The latest **published** stable release is
 [`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2).
 
+## Planned — v0.5.4
+
+**Contract and repository consistency.** An authoritative package catalog, a
+verified cycle-free dependency model, a shared `ApplicationResult<T>` envelope at
+the application boundary, normalized source descriptors and provenance, a unified
+diagnostic model and error taxonomy, explicit CLI exit-code and MCP error
+mapping, and semantic parity tests proving CLI and MCP consume the same
+application result.
+
 ## Planned — v0.6
 
+**Core and public-surface work.** The candidate scope is the canonical command
+migration (making `omp` canonical while keeping compatibility aliases) and
+whatever public-surface consolidation the v0.5.4 contracts enable. Nothing here
+is committed or implemented, and v0.5.3 and v0.5.4 deliberately do **not** begin
+it: `ohmypm` remains the canonical command.
+
+## Future — beyond v0.6
+
 **Local Project Dashboard.** A local read-only view over the same application
-use cases. Nothing about it is designed or implemented yet; the v0.5 patches only
-establish the boundary it would consume.
+use cases. Nothing about it is designed or implemented, and no release in the
+v0.5 line contains any part of it; the v0.5 patches only establish the boundary
+it would consume.
 
 ## Out of scope
 

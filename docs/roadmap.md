@@ -11,8 +11,11 @@ Every entry below carries one of five explicit states:
 | **Out of scope**             | deliberately excluded                                       |
 
 The latest **published** stable release is
-[`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2), which is also
-the current source version. The next line, **v0.6**, is planned and not started.
+[`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2). The current
+source version is `0.5.3` — the documentation and architecture truth patch, which
+is prepared but **not yet published**. The active maintenance scope is the v0.5
+line: `v0.5.3` followed by `v0.5.4` (contract and repository consistency). The
+next line, **v0.6**, is planned and not started.
 
 Phases 0 through 6 below are the historical implementation log for the v0.1
 through v0.4 lines. Everything in them is **Shipped** unless a later section
@@ -460,12 +463,80 @@ in place (see Phase 5B).
 - Rollback model
 - Release gates
 
-## v0.6 — Local Project Dashboard (Planned)
+## v0.5.3 — Documentation and architecture truth (Active maintenance)
+
+The source version is `0.5.3`, prepared and **not yet published**. No product code
+changes; no public behavior changes.
+
+- **Documentation authority is machine-readable.** `docs/manifest.json` classifies
+  every tracked document exactly once with `status` (`active`, `historical`,
+  `superseded`, `release-record`), `authority` (`normative`, `informative`),
+  `appliesTo`, `replacement`, and the `concern` it is authoritative about.
+  `tools/docs-manifest.mjs` is the single loader, so the validator and the
+  inventory tool cannot disagree.
+- **The validator derives rather than restates.** `pnpm validate:docs` reads its
+  active and historical sets from the manifest, replacing the two hard-coded
+  arrays that previously encoded them.
+- **Four new drift guards:** an active document naming a nonexistent
+  `@oh-my-pm/*` package; a real workspace package omitted from the authoritative
+  package map; a `superseded` document still Markdown-linked from an active
+  normative document; and two active normative documents claiming one `concern`.
+  Both package expectations derive from `pnpm-workspace.yaml`.
+- **Full classification coverage.** Every tracked Markdown document must be
+  classified or explicitly excluded, closing the gap where a new document
+  defaulted to unclassified and therefore unchecked.
+- **Deterministic inventory tooling.** `pnpm docs:inventory` reports active,
+  historical, superseded, release records, broken replacements, and unclassified
+  documents; `pnpm docs:inventory:check` fails CI on any defect.
+- **Two real corrections.** The README no longer describes the repository as a
+  "new v2 line" — it ships `v0.x` and has no `v2.x` target — and
+  `docs/architecture.md` now documents `@oh-my-pm/examples`, the development-only
+  composition harness it had omitted.
+- **Historical evidence preserved.** No file under `docs/releases/**`,
+  `docs/v0.3/**`, `docs/v0.4/**`, or `docs/architecture/**` is edited.
+  `CHANGELOG.md` is classified as a release record so its accurate past claims
+  are not rewritten to today's numbers.
+- **Explicitly not in v0.5.3:** any Dashboard, web UI, or HTTP server; the `omp`
+  command migration; new providers; cloud sync; telemetry; or GitHub mutation.
+- See [the v0.5.3 release notes](releases/v0.5.3.md).
+
+## v0.5.4 — Contract and repository consistency (Planned)
+
+The next patch in the v0.5 line. It makes repository boundaries and shared
+contracts explicit and mechanically enforced:
+
+- an authoritative package catalog giving every workspace a role,
+  responsibilities, allowed and forbidden dependencies, and release-bundle
+  status;
+- a verified, cycle-free dependency graph with strengthened boundary validation;
+- a shared `ApplicationResult<T>` envelope at the application boundary consumed
+  by both CLI and MCP;
+- normalized source descriptors and provenance contracts carrying no secrets;
+- a unified `Diagnostic` model and a repository-wide error taxonomy,
+  consolidating today's per-use-case structures in `application/src/errors.ts`
+  and `application/src/provider-diagnostics.ts`;
+- explicit, tested CLI exit-code and MCP error mapping;
+- semantic parity tests proving CLI and MCP consume the same application result
+  for the same fixture.
+
+It preserves current public CLI output, MCP tool schemas and order, compatibility
+aliases, and Project Memory formats.
+
+## v0.6 — Core and public surface (Planned)
+
+The candidate scope is the canonical command migration — making `omp` canonical
+while retaining compatibility aliases — together with whatever public-surface
+consolidation the v0.5.4 contracts enable. Nothing here is committed, designed,
+or implemented. The v0.5 patches deliberately do not begin it: `ohmypm` remains
+the canonical command in v0.5.3 and v0.5.4.
+
+## Beyond v0.6 — Local Project Dashboard (Planned)
 
 A local read-only Dashboard over the same application use cases the CLI and MCP
-server consume. The v0.5 patches establish the `@oh-my-pm/application` boundary it would
-depend on; nothing about the Dashboard itself is designed or implemented, and
-v0.5.2 contains no Dashboard, web UI, HTTP server, or UI dependency.
+server consume. The v0.5 patches establish the `@oh-my-pm/application` boundary it
+would depend on; nothing about the Dashboard itself is designed or implemented,
+and no release in the v0.5 line — v0.5.3 and v0.5.4 included — contains any
+Dashboard, web UI, HTTP server, or UI dependency.
 
 ## Out of scope
 

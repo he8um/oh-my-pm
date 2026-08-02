@@ -283,6 +283,24 @@ environment-derived prefix or approval, run a package manager, edit `PATH`, edit
 a shell profile, edit an MCP client configuration file, or write outside the
 explicit prefix.
 
+### Examples
+
+`@oh-my-pm/examples` is a development-only composition harness. It wires the real
+packages together — CLI with an injected Runtime, the Planner over a local
+Provider and deterministic Skills, the exported read-only MCP runner without
+spawning a stdio process, and the Installer through in-memory and explicit write
+adapters — so that each documented composition is exercised by a test rather than
+only described. It publishes no package and defines no binary.
+
+It is the one workspace package that is **not** part of the release dependency
+surface: `@oh-my-pm/distribution` does not depend on it, and the release bundler
+deploys none of its code. Its `fixtures/markdown-project/` tree is the exception
+— those fixture documents are copied into the bundle as the sample project the
+installed qualification analyzes.
+
+**Must not:** be imported by a shipped package, contribute to the release
+dependency graph, or become the only place a behavior is verified.
+
 ### Distribution and release lifecycle
 
 `@oh-my-pm/distribution` defines the production dependency surface the release
