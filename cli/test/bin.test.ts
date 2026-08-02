@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 
 const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const pkgJson = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8"));
-const binSource = readFileSync(join(pkgDir, "bin", "ohmypm.mjs"), "utf8");
+const binSource = readFileSync(join(pkgDir, "bin", "omp.mjs"), "utf8");
 const legacyBinSource = readFileSync(join(pkgDir, "bin", "oh-my-pm.mjs"), "utf8");
 const localProcessSource = readFileSync(join(pkgDir, "src", "local-process.ts"), "utf8");
 const readme = readFileSync(join(pkgDir, "README.md"), "utf8");
@@ -16,14 +16,14 @@ const readme = readFileSync(join(pkgDir, "README.md"), "utf8");
 describe("cli package bin metadata", () => {
   it("stays private with a canonical bin entry and no publish config", () => {
     expect(pkgJson.private).toBe(true);
-    expect(pkgJson.bin["ohmypm"]).toBe("./bin/ohmypm.mjs");
+    expect(pkgJson.bin["omp"]).toBe("./bin/omp.mjs");
     expect(pkgJson.publishConfig).toBeUndefined();
   });
 
   it("exposes only the canonical command, not the compatibility alias", () => {
     // The deprecated names are a *distribution* concern: a workspace consumer of
     // @oh-my-pm/cli must not silently gain a deprecated executable.
-    expect(Object.keys(pkgJson.bin)).toEqual(["ohmypm"]);
+    expect(Object.keys(pkgJson.bin)).toEqual(["omp"]);
   });
 });
 
@@ -40,14 +40,14 @@ describe("legacy cli wrapper source", () => {
     // only ever through process.stderr. A `--json` command's stdout must stay
     // parseable, so a warning on stdout would corrupt a machine-readable
     // contract.
-    expect(legacyBinSource).toContain("process.stderr.write(`${commandDeprecationWarning(");
+    expect(legacyBinSource).toContain("process.stderr.write(`${commandAliasWarning(");
     const stdoutWrites = legacyBinSource.match(/process\.stdout\.write\(([^)]*)\)/g) ?? [];
     expect(stdoutWrites).toEqual(["process.stdout.write(result.stdout)"]);
     expect(legacyBinSource).not.toContain("process.stdout.write(`");
   });
 
   it("derives the warning from the shared helper rather than restating the text", () => {
-    expect(legacyBinSource).toContain("commandDeprecationWarning");
+    expect(legacyBinSource).toContain("commandAliasWarning");
     expect(legacyBinSource).not.toContain("is a deprecated compatibility alias.");
   });
 

@@ -15,19 +15,29 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
+  BUNDLE_EXECUTABLE_NAMES,
   CANONICAL_CLI,
   CANONICAL_INSTALLED_COMMANDS,
   CANONICAL_INSTALLER,
   CANONICAL_MCP,
-  COMMAND_SURFACE,
+  COMPAT_CLI,
+  COMPAT_INSTALLED_COMMANDS,
+  COMPAT_INSTALLER,
+  COMPAT_MCP,
   COMMAND_SURFACE_PATH,
-  LEGACY_CLI,
-  LEGACY_INSTALLED_COMMANDS,
-  LEGACY_INSTALLER,
-  LEGACY_MCP,
+  DEPRECATED_CLI,
+  DEPRECATED_INSTALLED_COMMANDS,
+  DEPRECATED_INSTALLER,
+  DEPRECATED_MCP,
+  MCP_SERVER_KEY,
+  PRODUCT,
   REPO_ROOT,
   validateCommandSurface,
 } from "./command-surface.mjs";
+
+const PRODUCT_SLUG = PRODUCT.slug;
+const PACKAGE_SCOPE = PRODUCT.packageScope;
+const ARCHIVE_PREFIX = PRODUCT.archivePrefix;
 
 const errors = [];
 const err = (message) => errors.push(message);
@@ -133,17 +143,16 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     err("distribution/package.json: missing");
   } else {
     const expected = {};
-    for (const name of [CANONICAL_CLI, CANONICAL_MCP, CANONICAL_INSTALLER]) {
-      expected[name] = `./bin/${name}.mjs`;
-    }
-    for (const name of [...LEGACY_CLI, ...LEGACY_MCP, ...LEGACY_INSTALLER]) {
+    for (const name of BUNDLE_EXECUTABLE_NAMES) {
       expected[name] = `./bin/${name}.mjs`;
     }
     if (!same(pkg.bin, expected)) {
       err(`distribution/package.json: bin must be ${JSON.stringify(expected)}`);
     }
     if (!same(Object.keys(pkg.bin ?? {}), Object.keys(expected))) {
-      err("distribution/package.json: bin must list canonical commands before legacy aliases");
+      err(
+        "distribution/package.json: bin must list canonical commands, then compatibility aliases, then deprecated aliases",
+      );
     }
   }
 }
@@ -154,15 +163,12 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 const REQUIRED_ENTRYPOINTS = [
   `cli/bin/${CANONICAL_CLI}.mjs`,
-  ...LEGACY_CLI.map((n) => `cli/bin/${n}.mjs`),
+  ...COMPAT_CLI.map((n) => `cli/bin/${n}.mjs`),
+  ...DEPRECATED_CLI.map((n) => `cli/bin/${n}.mjs`),
   `mcp-server/bin/${CANONICAL_MCP}.mjs`,
-  ...LEGACY_MCP.map((n) => `mcp-server/bin/${n}.mjs`),
-  `distribution/bin/${CANONICAL_CLI}.mjs`,
-  `distribution/bin/${CANONICAL_MCP}.mjs`,
-  `distribution/bin/${CANONICAL_INSTALLER}.mjs`,
-  ...LEGACY_CLI.map((n) => `distribution/bin/${n}.mjs`),
-  ...LEGACY_MCP.map((n) => `distribution/bin/${n}.mjs`),
-  ...LEGACY_INSTALLER.map((n) => `distribution/bin/${n}.mjs`),
+  ...COMPAT_MCP.map((n) => `mcp-server/bin/${n}.mjs`),
+  ...DEPRECATED_MCP.map((n) => `mcp-server/bin/${n}.mjs`),
+  ...BUNDLE_EXECUTABLE_NAMES.map((n) => `distribution/bin/${n}.mjs`),
 ];
 for (const rel of REQUIRED_ENTRYPOINTS) {
   if (!existsSync(join(REPO_ROOT, rel))) err(`entrypoint missing: ${rel}`);
@@ -192,19 +198,22 @@ for (const rel of REQUIRED_ENTRYPOINTS) {
       if (actual === null) err(`${rel}: constant ${name} not found`);
       else if (actual !== expected) err(`${rel}: ${name} "${actual}" != "${expected}"`);
     }
-    const legacyCli = extractStringArray(source, "LEGACY_CLI_COMMANDS");
-    if (legacyCli === null) err(`${rel}: LEGACY_CLI_COMMANDS not found`);
-    else if (!same(legacyCli, LEGACY_CLI)) {
-      err(
-        `${rel}: LEGACY_CLI_COMMANDS ${JSON.stringify(legacyCli)} != ${JSON.stringify(LEGACY_CLI)}`,
-      );
-    }
-    const legacyMcp = extractStringArray(source, "LEGACY_MCP_COMMANDS");
-    if (legacyMcp === null) err(`${rel}: LEGACY_MCP_COMMANDS not found`);
-    else if (!same(legacyMcp, LEGACY_MCP)) {
-      err(
-        `${rel}: LEGACY_MCP_COMMANDS ${JSON.stringify(legacyMcp)} != ${JSON.stringify(LEGACY_MCP)}`,
-      );
+    // Both alias classes are pinned per role. A class collapsed into the other
+    // would silently change the promise a name carries.
+    const aliasArrays = [
+      ["COMPATIBILITY_CLI_COMMANDS", COMPAT_CLI],
+      ["COMPATIBILITY_MCP_COMMANDS", COMPAT_MCP],
+      ["COMPATIBILITY_INSTALLER_COMMANDS", COMPAT_INSTALLER],
+      ["DEPRECATED_CLI_COMMANDS", DEPRECATED_CLI],
+      ["DEPRECATED_MCP_COMMANDS", DEPRECATED_MCP],
+      ["DEPRECATED_INSTALLER_COMMANDS", DEPRECATED_INSTALLER],
+    ];
+    for (const [name, expected] of aliasArrays) {
+      const actual = extractStringArray(source, name);
+      if (actual === null) err(`${rel}: ${name} not found`);
+      else if (!same(actual, expected)) {
+        err(`${rel}: ${name} ${JSON.stringify(actual)} != ${JSON.stringify(expected)}`);
+      }
     }
   }
 }
@@ -222,8 +231,8 @@ for (const rel of REQUIRED_ENTRYPOINTS) {
     // The default server *key* is a product identity and deliberately stays
     // "oh-my-pm"; only the invoked command migrates.
     const key = extractStringConstant(source, "MCP_CONFIG_DEFAULT_SERVER_NAME");
-    if (key !== COMMAND_SURFACE.product) {
-      err(`${rel}: MCP_CONFIG_DEFAULT_SERVER_NAME must remain "${COMMAND_SURFACE.product}"`);
+    if (key !== MCP_SERVER_KEY) {
+      err(`${rel}: MCP_CONFIG_DEFAULT_SERVER_NAME must remain "${MCP_SERVER_KEY}"`);
     }
     // The command name must come from the shared command-surface module rather
     // than a second literal, so there is exactly one place to change. Checking
@@ -234,14 +243,17 @@ for (const rel of REQUIRED_ENTRYPOINTS) {
     if (!/MCP_CONFIG_COMMAND_NAME\s*=\s*CANONICAL_MCP_COMMAND/.test(source)) {
       err(`${rel}: MCP_CONFIG_COMMAND_NAME must be CANONICAL_MCP_COMMAND`);
     }
-    if (!/MCP_CONFIG_LEGACY_COMMAND_NAMES[^=]*=\s*LEGACY_MCP_COMMANDS/.test(source)) {
-      err(`${rel}: MCP_CONFIG_LEGACY_COMMAND_NAMES must be LEGACY_MCP_COMMANDS`);
+    if (!/MCP_CONFIG_COMPATIBILITY_COMMAND_NAMES[^=]*=\s*COMPATIBILITY_MCP_COMMANDS/.test(source)) {
+      err(`${rel}: MCP_CONFIG_COMPATIBILITY_COMMAND_NAMES must be COMPATIBILITY_MCP_COMMANDS`);
     }
-    // A generated configuration must never hard-code a deprecated executable.
-    for (const legacyName of LEGACY_MCP) {
-      const literal = new RegExp(`=\\s*"${legacyName}"`);
+    if (!/MCP_CONFIG_DEPRECATED_COMMAND_NAMES[^=]*=\s*DEPRECATED_MCP_COMMANDS/.test(source)) {
+      err(`${rel}: MCP_CONFIG_DEPRECATED_COMMAND_NAMES must be DEPRECATED_MCP_COMMANDS`);
+    }
+    // A generated configuration must never hard-code a non-canonical executable.
+    for (const aliasName of [...COMPAT_MCP, ...DEPRECATED_MCP]) {
+      const literal = new RegExp(`=\\s*"${aliasName}"`);
       if (literal.test(source)) {
-        err(`${rel}: must not assign the deprecated command name "${legacyName}" as a literal`);
+        err(`${rel}: must not assign the alias command name "${aliasName}" as a literal`);
       }
     }
   }
@@ -264,10 +276,16 @@ for (const rel of REQUIRED_ENTRYPOINTS) {
         `${rel}: LOCAL_CANONICAL_COMMAND_NAMES != ${JSON.stringify(CANONICAL_INSTALLED_COMMANDS)}`,
       );
     }
-    const legacy = extractStringArray(source, "LOCAL_LEGACY_COMMAND_NAMES");
-    if (legacy === null) err(`${rel}: LOCAL_LEGACY_COMMAND_NAMES not found`);
-    else if (!same(legacy, LEGACY_INSTALLED_COMMANDS)) {
-      err(`${rel}: LOCAL_LEGACY_COMMAND_NAMES != ${JSON.stringify(LEGACY_INSTALLED_COMMANDS)}`);
+    const localAliasArrays = [
+      ["LOCAL_COMPATIBILITY_COMMAND_NAMES", COMPAT_INSTALLED_COMMANDS],
+      ["LOCAL_DEPRECATED_COMMAND_NAMES", DEPRECATED_INSTALLED_COMMANDS],
+    ];
+    for (const [name, expected] of localAliasArrays) {
+      const actual = extractStringArray(source, name);
+      if (actual === null) err(`${rel}: ${name} not found`);
+      else if (!same(actual, expected)) {
+        err(`${rel}: ${name} ${JSON.stringify(actual)} != ${JSON.stringify(expected)}`);
+      }
     }
   }
 }
@@ -289,16 +307,33 @@ for (const rel of REQUIRED_ENTRYPOINTS) {
         `${rel}: RELEASE_INSTALL_CANONICAL_COMMANDS != ${JSON.stringify(CANONICAL_INSTALLED_COMMANDS)}`,
       );
     }
-    const legacy = extractStringArray(source, "RELEASE_INSTALL_LEGACY_COMMANDS");
-    if (legacy === null) err(`${rel}: RELEASE_INSTALL_LEGACY_COMMANDS not found`);
-    else if (!same(legacy, LEGACY_INSTALLED_COMMANDS)) {
-      err(
-        `${rel}: RELEASE_INSTALL_LEGACY_COMMANDS != ${JSON.stringify(LEGACY_INSTALLED_COMMANDS)}`,
-      );
+    const coreAliasArrays = [
+      ["RELEASE_INSTALL_COMPATIBILITY_COMMANDS", COMPAT_INSTALLED_COMMANDS],
+      ["RELEASE_INSTALL_DEPRECATED_COMMANDS", DEPRECATED_INSTALLED_COMMANDS],
+      ["RELEASE_INSTALLER_COMPATIBILITY_COMMANDS", COMPAT_INSTALLER],
+      ["RELEASE_INSTALLER_DEPRECATED_COMMANDS", DEPRECATED_INSTALLER],
+    ];
+    for (const [name, expected] of coreAliasArrays) {
+      const actual = extractStringArray(source, name);
+      if (actual === null) err(`${rel}: ${name} not found`);
+      else if (!same(actual, expected)) {
+        err(`${rel}: ${name} ${JSON.stringify(actual)} != ${JSON.stringify(expected)}`);
+      }
     }
     const installerEntry = extractStringConstant(source, "RELEASE_INSTALLER_ENTRYPOINT");
     if (installerEntry !== `bin/${CANONICAL_INSTALLER}.mjs`) {
       err(`${rel}: RELEASE_INSTALLER_ENTRYPOINT must be "bin/${CANONICAL_INSTALLER}.mjs"`);
+    }
+    const installerCommand = extractStringConstant(source, "RELEASE_INSTALLER_CANONICAL_COMMAND");
+    if (installerCommand !== CANONICAL_INSTALLER) {
+      err(`${rel}: RELEASE_INSTALLER_CANONICAL_COMMAND must be "${CANONICAL_INSTALLER}"`);
+    }
+    // Every bundle executable must be listed as a required bundle file, so a
+    // shipped alias can never be dropped from the install-time gate.
+    for (const name of BUNDLE_EXECUTABLE_NAMES) {
+      if (!source.includes(`"bin/${name}.mjs"`)) {
+        err(`${rel}: REQUIRED_BUNDLE_FILES must include bin/${name}.mjs`);
+      }
     }
   }
 }
@@ -353,11 +388,62 @@ for (const rel of REQUIRED_ENTRYPOINTS) {
         err(`${rel}: installed-state verifier does not use ${constant}`);
       }
     }
-    // The deprecated CLI alias is checked explicitly, because its stderr-only
-    // warning is behavior no loop over the command list would catch.
-    if (!source.includes("deprecated CLI alias wrote its warning to stdout")) {
-      err(`${rel}: must verify the deprecated CLI alias keeps its warning off stdout`);
+    // Every CLI alias is checked explicitly, because the stderr-only notice and
+    // the byte-identical stdout are behavior no loop over the command list would
+    // catch on its own. The verifier must assert all four properties.
+    const aliasChecks = [
+      ["wrote its warning to stdout", "keeps every alias warning off stdout"],
+      ["stdout differs from canonical", "compares alias stdout against canonical"],
+      ["did not warn on stderr with its class wording", "asserts the per-class warning wording"],
+      ["warnings, expected exactly 1", "asserts exactly one warning per alias invocation"],
+    ];
+    for (const [needle, description] of aliasChecks) {
+      if (!source.includes(needle)) {
+        err(`${rel}: must verify the alias ${description}`);
+      }
     }
+    // A compatibility alias must never be reported as deprecated.
+    if (!source.includes("was reported as deprecated")) {
+      err(`${rel}: must verify a compatibility alias is not reported as deprecated`);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 10. Product identity invariants.
+//
+// v0.6 migrates command names only. These four identities are what a reader
+// would most plausibly assume also changed, so each is pinned against the place
+// that actually defines it rather than merely asserted in the release notes.
+// ---------------------------------------------------------------------------
+
+{
+  const rootPkg = readJson("package.json");
+  if (rootPkg !== null && rootPkg.name !== PRODUCT_SLUG) {
+    err(`package.json: name must remain "${PRODUCT_SLUG}"`);
+  }
+
+  // Package scope: every workspace package stays under @oh-my-pm/*.
+  for (const rel of [
+    "cli/package.json",
+    "mcp-server/package.json",
+    "distribution/package.json",
+    "application/package.json",
+  ]) {
+    const pkg = readJson(rel);
+    if (pkg === null) continue;
+    if (typeof pkg.name !== "string" || !pkg.name.startsWith(`${PACKAGE_SCOPE}/`)) {
+      err(`${rel}: name must stay under the ${PACKAGE_SCOPE}/ scope`);
+    }
+    if (pkg.private !== true) {
+      err(`${rel}: must remain private (this release publishes no registry package)`);
+    }
+  }
+
+  // Archive prefix: the release bundle name stays product-based.
+  const bundleUtils = readText("tools/release-bundle-utils.mjs");
+  if (bundleUtils !== null && !bundleUtils.includes(`${ARCHIVE_PREFIX}-v\${`)) {
+    err(`tools/release-bundle-utils.mjs: archive prefix must remain "${ARCHIVE_PREFIX}-v"`);
   }
 }
 

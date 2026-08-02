@@ -11,9 +11,9 @@ Every entry below carries one of five explicit states:
 | **Out of scope**             | deliberately excluded                                       |
 
 The latest **published** stable release is
-[`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4), which is also
-the current source version. The v0.5 line is complete. The next line, **v0.6**,
-is planned and not started.
+[`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4). The v0.5 line
+is complete. The current source version is **v0.6.0**, which is the **active
+maintenance** scope: prepared but not yet published.
 
 Phases 0 through 6 below are the historical implementation log for the v0.1
 through v0.4 lines. Everything in them is **Shipped** unless a later section
@@ -392,8 +392,8 @@ in place (see Phase 5B).
 - **Never published.** The v0.5.0 work merged to `main`, but no `v0.5.0` tag or
   GitHub release exists. It is superseded by v0.5.1, which became the first
   published stable of the v0.5 line.
-- See [the v0.5 command namespace guide](v0.5/README.md) for the migration
-  behavior, upgrade path, and deprecation policy.
+- See [the v0.6 command namespace guide](v0.6/README.md) for the current
+  migration behavior, upgrade path, and deprecation policy.
 
 ## v0.5.1 — Documentation truth and the application boundary (Shipped)
 
@@ -537,21 +537,63 @@ unchanged, because they are returned directly as MCP tool results.
   [the contract model](v0.5/contracts.md), and
   [the post-publication validation record](releases/v0.5.4-post-publication-validation.md).
 
-## v0.6 — Core and public surface (Planned)
+## v0.6.0 — Canonical `omp` command migration (Active maintenance)
 
-The candidate scope is the canonical command migration — making `omp` canonical
-while retaining compatibility aliases — together with whatever public-surface
-consolidation the v0.5.4 contracts enable. Nothing here is committed, designed,
-or implemented. The v0.5 patches deliberately do not begin it: `ohmypm` remains
-the canonical command in v0.5.3 and v0.5.4.
+Prepared but unpublished: the source version is `0.6.0`; the latest published
+stable remains `v0.5.4`.
+
+`omp`, `omp-mcp`, and `omp-install` are the canonical executables. Two alias
+classes are retained, and the distinction is deliberate:
+
+| Family      | Class         | Notice on stderr                         |
+| ----------- | ------------- | ---------------------------------------- |
+| `omp*`      | canonical     | none                                     |
+| `ohmypm*`   | compatibility | ``is a compatibility alias; use `omp` `` |
+| `oh-my-pm*` | deprecated    | ``is deprecated; use `omp` ``            |
+
+`ohmypm*` is a _compatibility_ alias, not a deprecated one, because it was
+canonical in v0.5 — one minor version earlier. **No removal is scheduled for
+either alias family.**
+
+Every alias forwards to the same implementation: stdout stays byte-identical to
+the canonical command's, the notice is written to stderr exactly once, exit codes
+match, and the MCP stdio stream stays protocol-clean because the notice is
+written before the transport connects.
+
+`command-surface.json` moves to schema version 2. It now carries a pinned product
+identity block alongside the three command classes, and every derived surface —
+package `bin` maps, installer shim plans (twelve shims), release bundle
+executables (nine), generated MCP configuration, help output, and the
+documentation validators — computes its names from that one authority.
+
+**Unchanged**: product name, package scope `@oh-my-pm/*`, environment prefix
+`OH_MY_PM_*`, `.oh-my-pm/` and `~/.oh-my-pm/` data directories, the
+`lib/oh-my-pm/versions/<version>/` install layout, `oh-my-pm-v<version>` archive
+names, and the `oh-my-pm` MCP server key — all now enforced as manifest
+invariants. Project Memory schema 1 and store format 2 are unchanged, so **no
+data migration** is required. The twelve read-only MCP tools keep their order,
+schemas, and annotations. No command, JSON schema, Markdown structure, or exit
+code changed. No Dashboard.
+
+See [`docs/v0.6/README.md`](v0.6/README.md) and
+[`docs/releases/v0.6.0.md`](releases/v0.6.0.md).
+
+## Beyond v0.6.0 — Core and public surface (Planned)
+
+Remaining public-surface consolidation the v0.5.4 contracts enable:
+`ApplicationResult<T>` adoption across every workflow return type, a decision on
+the provider diagnostic shape, Project Memory and data-integrity hardening,
+security and trust-boundary hardening, diagnostics and operability, performance
+and test architecture, and a Core freeze. Nothing here is committed, designed, or
+implemented.
 
 ## Beyond v0.6 — Local Project Dashboard (Planned)
 
 A local read-only Dashboard over the same application use cases the CLI and MCP
 server consume. The v0.5 patches establish the `@oh-my-pm/application` boundary it
 would depend on; nothing about the Dashboard itself is designed or implemented,
-and no release in the v0.5 line — v0.5.3 and v0.5.4 included — contains any
-Dashboard, web UI, HTTP server, or UI dependency.
+and no release through v0.6.0 contains any Dashboard, web UI, HTTP server, or UI
+dependency.
 
 ## Out of scope
 

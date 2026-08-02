@@ -5,6 +5,40 @@ The detailed public roadmap is maintained in [`docs/roadmap.md`](docs/roadmap.md
 Work is labelled with one of five states: **Shipped**, **Prepared but
 unpublished**, **Active maintenance**, **Planned**, or **Out of scope**.
 
+## Active maintenance — v0.6.0
+
+**Canonical `omp` command migration and public surface stabilization.** Prepared
+but unpublished: the source version is `0.6.0` while the latest published stable
+remains [`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4).
+
+`omp`, `omp-mcp`, and `omp-install` become the canonical executables. The former
+`ohmypm*` family — canonical in v0.5 — becomes a supported **compatibility
+alias** rather than a deprecated one, because demoting a name that was canonical
+one minor version ago would retroactively withdraw a promise. The oldest
+`oh-my-pm*` family remains **deprecated**. No removal is scheduled for either.
+
+`command-surface.json` moves to schema version 2, carrying a machine-checked
+product identity block and the two distinct alias classes, so every derived
+surface — package `bin` maps, installer shim plans, release metadata, generated
+MCP configuration, help output, documentation validators — computes its command
+names from one authority instead of restating them.
+
+This is a command namespace migration only. The product name, package scope
+`@oh-my-pm/*`, environment prefix `OH_MY_PM_*`, data directories, archive names,
+install layout, and MCP server key `oh-my-pm` are all unchanged, and are now
+enforced as manifest invariants rather than asserted in prose. Project Memory
+schema 1 and store format 2 are unchanged, so **no data migration** is required,
+and the MCP tool inventory, order, schemas, and annotations are untouched. See
+[`docs/v0.6/README.md`](docs/v0.6/README.md) and
+[`docs/releases/v0.6.0.md`](docs/releases/v0.6.0.md).
+
+## Shipped — v0.5.4
+
+**Contract and repository consistency.** A patch release with no public behavior
+change, published as
+[`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4) and the base
+stable that `v0.6.0` builds on.
+
 ## Shipped — v0.5.3
 
 **Documentation and architecture truth.** A patch release with no product code
@@ -64,7 +98,7 @@ See [`docs/v0.5/v0.5.1-scope.md`](docs/v0.5/v0.5.1-scope.md) and
 
 ## Prepared but unpublished — v0.5.0
 
-**CLI command namespace.** `ohmypm`, `ohmypm-mcp` and `ohmypm-install` are the
+**CLI command namespace.** `omp`, `omp-mcp` and `omp-install` are the
 canonical commands, with the former `oh-my-pm` family retained as deprecated
 compatibility aliases and no removal scheduled. Not a product rename: package
 scope, environment variables, installation paths, data directories, archive
@@ -72,13 +106,13 @@ names and the MCP server key are unchanged, and no data migration is required.
 
 The v0.5.0 work merged to `main` but was **never published** — no `v0.5.0` tag or
 GitHub release exists. It is superseded by v0.5.1, the first published stable of
-the v0.5 line. See [`docs/v0.5/README.md`](docs/v0.5/README.md).
+the v0.5 line. See [`docs/v0.6/README.md`](docs/v0.6/README.md).
 
 ## Shipped
 
 - **v0.4 Project Timeline** — a local, bounded, deterministic history of project
   changes derived from already-captured Project Brain snapshots, exposed
-  read-only through `ohmypm memory timeline` and the `project_timeline` MCP
+  read-only through `omp memory timeline` and the `project_timeline` MCP
   tool. See [`docs/v0.4/README.md`](docs/v0.4/README.md).
 - **v0.3 Project Brain and Project Memory** — local capture, comparison, and the
   `memory` command namespace, with the local persistence adapter.
@@ -119,7 +153,7 @@ See [`docs/releases/v0.5.4.md`](docs/releases/v0.5.4.md) and
 migration (making `omp` canonical while keeping compatibility aliases) and
 whatever public-surface consolidation the v0.5.4 contracts enable. Nothing here
 is committed or implemented, and v0.5.3 and v0.5.4 deliberately do **not** begin
-it: `ohmypm` remains the canonical command.
+it: `omp` remains the canonical command.
 
 ## Future — beyond v0.6
 

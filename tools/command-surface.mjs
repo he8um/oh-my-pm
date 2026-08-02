@@ -1,13 +1,26 @@
 // Tool-only loader and validator for the repository command-surface manifest
 // (`command-surface.json`). The manifest is the single source of truth for the
-// public command names: which executables are canonical and which older names
-// remain as deprecated compatibility aliases.
+// public command names: which executables are canonical, which older names
+// remain as supported compatibility aliases, and which are deprecated.
 //
 // This module is pure apart from reading the manifest file itself: no network,
 // no environment reads, no writes, no clock, no randomness. Every consumer
 // (package manifests, installer planning, release metadata, generated MCP
 // configuration, documentation validation, tests) derives its command names
 // from here so no second, silently diverging list can exist.
+//
+// v0.6 (schemaVersion 2) splits the single "legacy" bucket into two distinct
+// classes, because they carry different promises:
+//
+//   - compatibilityAliases (`ohmypm*`): fully supported, no removal scheduled.
+//     These were canonical in v0.5, so demoting them to "deprecated" would
+//     retroactively break a promise made one minor version ago.
+//   - deprecatedAliases (`oh-my-pm*`): still work, still no removal scheduled,
+//     but they are documented as deprecated and say so on stderr.
+//
+// The product identity block is also lifted into the manifest so the invariants
+// that must NOT change (package scope, environment prefix, archive prefix, MCP
+// server key) are machine-checked rather than merely asserted in prose.
 
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -20,10 +33,28 @@ export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const COMMAND_SURFACE_PATH = join(REPO_ROOT, "command-surface.json");
 
 /** The manifest schema version this loader understands. */
-export const COMMAND_SURFACE_SCHEMA_VERSION = 1;
+export const COMMAND_SURFACE_SCHEMA_VERSION = 2;
 
 /** The three command roles, in a fixed order used by every renderer. */
 export const COMMAND_ROLES = ["cli", "mcp", "installer"];
+
+/** The two alias classes, in the order they are always rendered. */
+export const ALIAS_CLASSES = ["compatibilityAliases", "deprecatedAliases"];
+
+/**
+ * The product identity fields that this migration must NOT change, with their
+ * required values. A command-namespace migration that quietly renamed the
+ * package scope or the MCP server key would be a different, much larger change;
+ * pinning them here turns "unchanged" into an enforced invariant.
+ */
+export const REQUIRED_PRODUCT_IDENTITY = Object.freeze({
+  name: "OH MY PM",
+  slug: "oh-my-pm",
+  packageScope: "@oh-my-pm",
+  environmentPrefix: "OH_MY_PM_",
+  archivePrefix: "oh-my-pm",
+  mcpServerKey: "oh-my-pm",
+});
 
 // The bounded command-name rule: 1..64 characters of ASCII lowercase letters,
 // digits, and hyphens, starting and ending with an alphanumeric. Deliberately
@@ -34,6 +65,11 @@ const COMMAND_NAME_RE = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
 /** Whether a value is a usable command name. Pure. */
 export function isValidCommandName(value) {
   return typeof value === "string" && COMMAND_NAME_RE.test(value);
+}
+
+function aliasListOf(roleEntry, aliasClass) {
+  const list = roleEntry?.[aliasClass];
+  return Array.isArray(list) ? list : [];
 }
 
 /**
@@ -50,81 +86,109 @@ export function validateCommandSurface(raw) {
   if (raw.schemaVersion !== COMMAND_SURFACE_SCHEMA_VERSION) {
     errors.push(`schemaVersion must be ${COMMAND_SURFACE_SCHEMA_VERSION}`);
   }
-  if (raw.product !== "oh-my-pm") {
-    // The product identity is deliberately NOT migrated: this repository, its
-    // package scope, its data directory, and its release archives all stay
-    // "oh-my-pm". Only the invoked command names change.
-    errors.push('product must be "oh-my-pm"');
-  }
 
-  const canonical = raw.canonical;
-  if (typeof canonical !== "object" || canonical === null || Array.isArray(canonical)) {
-    errors.push("canonical must be an object");
+  // --- Product identity: every field is pinned. -----------------------------
+  const product = raw.product;
+  if (typeof product !== "object" || product === null || Array.isArray(product)) {
+    errors.push("product must be an object");
   } else {
-    const keys = Object.keys(canonical);
-    if (keys.length !== COMMAND_ROLES.length || !COMMAND_ROLES.every((r) => keys.includes(r))) {
-      errors.push(`canonical must declare exactly: ${COMMAND_ROLES.join(", ")}`);
-    }
-    for (const role of COMMAND_ROLES) {
-      if (!isValidCommandName(canonical[role])) {
-        errors.push(`canonical.${role} is not a valid command name`);
+    for (const [field, expected] of Object.entries(REQUIRED_PRODUCT_IDENTITY)) {
+      if (product[field] !== expected) {
+        // The product identity is deliberately NOT migrated: this repository,
+        // its package scope, its data directory, its environment variables, and
+        // its release archives all stay "oh-my-pm". Only command names change.
+        errors.push(`product.${field} must be "${expected}"`);
       }
     }
   }
 
-  const legacy = raw.legacyAliases;
-  if (typeof legacy !== "object" || legacy === null || Array.isArray(legacy)) {
-    errors.push("legacyAliases must be an object");
+  // --- Executables: one canonical name plus two alias classes per role. -----
+  const executables = raw.executables;
+  if (typeof executables !== "object" || executables === null || Array.isArray(executables)) {
+    errors.push("executables must be an object");
   } else {
-    const keys = Object.keys(legacy);
+    const keys = Object.keys(executables);
     if (keys.length !== COMMAND_ROLES.length || !COMMAND_ROLES.every((r) => keys.includes(r))) {
-      errors.push(`legacyAliases must declare exactly: ${COMMAND_ROLES.join(", ")}`);
+      errors.push(`executables must declare exactly: ${COMMAND_ROLES.join(", ")}`);
     }
     for (const role of COMMAND_ROLES) {
-      const aliases = legacy[role];
-      if (!Array.isArray(aliases)) {
-        errors.push(`legacyAliases.${role} must be an array`);
+      const entry = executables[role];
+      if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+        errors.push(`executables.${role} must be an object`);
         continue;
       }
-      for (const alias of aliases) {
-        if (!isValidCommandName(alias)) {
-          errors.push(`legacyAliases.${role} contains an invalid command name`);
+      if (!isValidCommandName(entry.canonical)) {
+        errors.push(`executables.${role}.canonical is not a valid command name`);
+      }
+      for (const aliasClass of ALIAS_CLASSES) {
+        const aliases = entry[aliasClass];
+        if (!Array.isArray(aliases)) {
+          errors.push(`executables.${role}.${aliasClass} must be an array`);
+          continue;
+        }
+        for (const alias of aliases) {
+          if (!isValidCommandName(alias)) {
+            errors.push(`executables.${role}.${aliasClass} contains an invalid command name`);
+          }
+        }
+        if (new Set(aliases).size !== aliases.length) {
+          errors.push(`executables.${role}.${aliasClass} contains a duplicate`);
         }
       }
-      if (new Set(aliases).size !== aliases.length) {
-        errors.push(`legacyAliases.${role} contains a duplicate`);
+      // The two alias classes carry different support promises, so a name that
+      // appeared in both would make its own promise ambiguous.
+      const compat = aliasListOf(entry, "compatibilityAliases");
+      const deprecated = aliasListOf(entry, "deprecatedAliases");
+      for (const name of compat) {
+        if (deprecated.includes(name)) {
+          errors.push(`executables.${role}: ${name} is both a compatibility and deprecated alias`);
+        }
+      }
+      // An alias may never equal the canonical name it forwards to: the warning
+      // logic and the "canonical never warns" guarantee both depend on this.
+      if (compat.includes(entry.canonical) || deprecated.includes(entry.canonical)) {
+        errors.push(`executables.${role}: ${entry.canonical} is declared both canonical and alias`);
+      }
+    }
+
+    // --- Global uniqueness across every role. -------------------------------
+    if (errors.length === 0) {
+      const canonicalNames = COMMAND_ROLES.map((r) => executables[r].canonical);
+      if (new Set(canonicalNames).size !== canonicalNames.length) {
+        errors.push("canonical command names must be distinct");
+      }
+      // Every declared name, across every role and class, must be unique: one
+      // executable name can only resolve to one implementation on PATH.
+      const seen = new Map();
+      for (const role of COMMAND_ROLES) {
+        const entry = executables[role];
+        const names = [
+          entry.canonical,
+          ...aliasListOf(entry, "compatibilityAliases"),
+          ...aliasListOf(entry, "deprecatedAliases"),
+        ];
+        for (const name of names) {
+          if (seen.has(name) && seen.get(name) !== role) {
+            errors.push(`${name} is declared in more than one role`);
+          } else if (seen.has(name)) {
+            errors.push(`${name} is declared more than once in role ${role}`);
+          }
+          seen.set(name, role);
+        }
       }
     }
   }
 
-  // A name may never be both canonical and legacy: the deprecation warning and
-  // the reference-regression check both depend on the two sets being disjoint.
-  if (errors.length === 0) {
-    const canonicalNames = COMMAND_ROLES.map((r) => canonical[r]);
-    const legacyNames = COMMAND_ROLES.flatMap((r) => legacyAliasesOf(legacy, r));
-    for (const name of legacyNames) {
-      if (canonicalNames.includes(name)) {
-        errors.push(`${name} is declared both canonical and legacy`);
-      }
+  for (const field of ["canonicalSince", "compatibilityAliasSince", "deprecatedSince"]) {
+    if (typeof raw[field] !== "string" || raw[field] === "") {
+      errors.push(`${field} must be a non-empty string`);
     }
-    if (new Set(canonicalNames).size !== canonicalNames.length) {
-      errors.push("canonical command names must be distinct");
-    }
-  }
-
-  if (typeof raw.deprecatedSince !== "string" || raw.deprecatedSince === "") {
-    errors.push("deprecatedSince must be a non-empty string");
   }
   if (typeof raw.removalScheduled !== "boolean") {
     errors.push("removalScheduled must be a boolean");
   }
 
   return errors;
-}
-
-function legacyAliasesOf(legacy, role) {
-  const aliases = legacy[role];
-  return Array.isArray(aliases) ? aliases : [];
 }
 
 /**
@@ -148,37 +212,88 @@ export function loadCommandSurface() {
 /** The validated manifest, loaded once per process. */
 export const COMMAND_SURFACE = loadCommandSurface();
 
-/** The canonical CLI command name, e.g. `ohmypm`. */
-export const CANONICAL_CLI = COMMAND_SURFACE.canonical.cli;
-/** The canonical MCP stdio server command name, e.g. `ohmypm-mcp`. */
-export const CANONICAL_MCP = COMMAND_SURFACE.canonical.mcp;
-/** The canonical release-bundle installer command name, e.g. `ohmypm-install`. */
-export const CANONICAL_INSTALLER = COMMAND_SURFACE.canonical.installer;
+/** The product identity block. */
+export const PRODUCT = COMMAND_SURFACE.product;
+/** The product slug used for the repository, data directories, and archives. */
+export const PRODUCT_SLUG = PRODUCT.slug;
+/** The MCP server key. Unchanged by the command migration. */
+export const MCP_SERVER_KEY = PRODUCT.mcpServerKey;
 
-/** The deprecated CLI alias names, in manifest order. */
-export const LEGACY_CLI = [...COMMAND_SURFACE.legacyAliases.cli];
-/** The deprecated MCP alias names, in manifest order. */
-export const LEGACY_MCP = [...COMMAND_SURFACE.legacyAliases.mcp];
-/** The deprecated installer alias names, in manifest order. */
-export const LEGACY_INSTALLER = [...COMMAND_SURFACE.legacyAliases.installer];
+/** The canonical CLI command name, e.g. `omp`. */
+export const CANONICAL_CLI = COMMAND_SURFACE.executables.cli.canonical;
+/** The canonical MCP stdio server command name, e.g. `omp-mcp`. */
+export const CANONICAL_MCP = COMMAND_SURFACE.executables.mcp.canonical;
+/** The canonical release-bundle installer command name, e.g. `omp-install`. */
+export const CANONICAL_INSTALLER = COMMAND_SURFACE.executables.installer.canonical;
+
+/** Supported compatibility aliases per role, in manifest order. */
+export const COMPAT_CLI = [...COMMAND_SURFACE.executables.cli.compatibilityAliases];
+export const COMPAT_MCP = [...COMMAND_SURFACE.executables.mcp.compatibilityAliases];
+export const COMPAT_INSTALLER = [...COMMAND_SURFACE.executables.installer.compatibilityAliases];
+
+/** Deprecated aliases per role, in manifest order. */
+export const DEPRECATED_CLI = [...COMMAND_SURFACE.executables.cli.deprecatedAliases];
+export const DEPRECATED_MCP = [...COMMAND_SURFACE.executables.mcp.deprecatedAliases];
+export const DEPRECATED_INSTALLER = [...COMMAND_SURFACE.executables.installer.deprecatedAliases];
 
 /**
- * The two canonical *installed* commands, in the order every installer, shim
+ * Every alias for a role, compatibility class first then deprecated. This is the
+ * order every generated inventory uses, so the ordering itself records which
+ * names carry the stronger promise.
+ */
+export function aliasesForRole(role) {
+  const entry = COMMAND_SURFACE.executables[role];
+  return [...entry.compatibilityAliases, ...entry.deprecatedAliases];
+}
+
+/** Every declared name for a role, canonical first. */
+export function namesForRole(role) {
+  return [COMMAND_SURFACE.executables[role].canonical, ...aliasesForRole(role)];
+}
+
+/**
+ * The canonical *installed* commands, in the order every installer, shim
  * planner, and installed-state verifier uses. The installer command itself is
  * shipped inside a release bundle rather than installed into `<prefix>/bin`.
  */
 export const CANONICAL_INSTALLED_COMMANDS = [CANONICAL_CLI, CANONICAL_MCP];
 
-/** The legacy installed compatibility commands, aligned with the canonical pair. */
-export const LEGACY_INSTALLED_COMMANDS = [...LEGACY_CLI, ...LEGACY_MCP];
+/** The compatibility-alias installed commands, aligned with the canonical pair. */
+export const COMPAT_INSTALLED_COMMANDS = [...COMPAT_CLI, ...COMPAT_MCP];
+
+/** The deprecated-alias installed commands, aligned with the canonical pair. */
+export const DEPRECATED_INSTALLED_COMMANDS = [...DEPRECATED_CLI, ...DEPRECATED_MCP];
 
 /**
- * Every installed command, canonical first then legacy. Installers create all
- * of these; uninstall/cleanup removes all of these.
+ * Every installed command: canonical, then compatibility aliases, then
+ * deprecated aliases. Installers create all of these; uninstall removes all.
  */
 export const ALL_INSTALLED_COMMANDS = [
   ...CANONICAL_INSTALLED_COMMANDS,
-  ...LEGACY_INSTALLED_COMMANDS,
+  ...COMPAT_INSTALLED_COMMANDS,
+  ...DEPRECATED_INSTALLED_COMMANDS,
+];
+
+/** Every non-canonical installed command, in rendering order. */
+export const ALIAS_INSTALLED_COMMANDS = [
+  ...COMPAT_INSTALLED_COMMANDS,
+  ...DEPRECATED_INSTALLED_COMMANDS,
+];
+
+/**
+ * Every executable the release bundle ships in `bin/`, including the installer
+ * family, canonical-first within each class.
+ */
+export const BUNDLE_EXECUTABLE_NAMES = [
+  CANONICAL_CLI,
+  CANONICAL_MCP,
+  CANONICAL_INSTALLER,
+  ...COMPAT_CLI,
+  ...COMPAT_MCP,
+  ...COMPAT_INSTALLER,
+  ...DEPRECATED_CLI,
+  ...DEPRECATED_MCP,
+  ...DEPRECATED_INSTALLER,
 ];
 
 /**
@@ -197,8 +312,6 @@ export const SHIM_LAUNCHER_SUFFIXES = ["", ".cmd"];
  * shims" claim in a README is exactly the drift Issue #30 recorded, and it
  * survived precisely because the number lived in prose instead of being
  * computed from the manifest.
- *
- * Ordered canonical-then-legacy, POSIX launcher before `.cmd` for each command.
  */
 export const INSTALLED_SHIM_NAMES = ALL_INSTALLED_COMMANDS.flatMap((command) =>
   SHIM_LAUNCHER_SUFFIXES.map((suffix) => `${command}${suffix}`),
@@ -208,32 +321,56 @@ export const INSTALLED_SHIM_NAMES = ALL_INSTALLED_COMMANDS.flatMap((command) =>
 export const INSTALLED_SHIM_COUNT = INSTALLED_SHIM_NAMES.length;
 
 /**
- * The canonical name a legacy alias forwards to, or null when the name is not a
- * known alias. Used by the compatibility wrappers and by the tests that assert
- * a deprecation warning names the right replacement. Pure.
+ * The alias class of a name: "canonical", "compatibility", "deprecated", or
+ * null when the name is not declared at all. Pure and total.
  */
-export function canonicalForLegacyAlias(name) {
+export function aliasClassOf(name) {
   for (const role of COMMAND_ROLES) {
-    if (legacyAliasesOf(COMMAND_SURFACE.legacyAliases, role).includes(name)) {
-      return COMMAND_SURFACE.canonical[role];
+    const entry = COMMAND_SURFACE.executables[role];
+    if (entry.canonical === name) return "canonical";
+    if (entry.compatibilityAliases.includes(name)) return "compatibility";
+    if (entry.deprecatedAliases.includes(name)) return "deprecated";
+  }
+  return null;
+}
+
+/**
+ * The canonical name an alias forwards to, or null when the name is not a known
+ * alias. Used by the compatibility wrappers and by the tests that assert a
+ * warning names the right replacement. Pure.
+ */
+export function canonicalForAlias(name) {
+  for (const role of COMMAND_ROLES) {
+    const entry = COMMAND_SURFACE.executables[role];
+    if (entry.compatibilityAliases.includes(name) || entry.deprecatedAliases.includes(name)) {
+      return entry.canonical;
     }
   }
   return null;
 }
 
 /**
- * The exact deprecation warning text for a legacy alias, without a trailing
- * newline. Shared by every compatibility wrapper so the wording cannot drift,
- * and asserted verbatim by the compatibility tests.
+ * The exact warning text for an alias, without a trailing newline. Shared by
+ * every wrapper so the wording cannot drift, and asserted verbatim by the
+ * compatibility tests.
+ *
+ * The two classes get deliberately different wording: a compatibility alias is
+ * supported and merely non-preferred, while a deprecated alias is discouraged.
+ * Flattening them into one message would either overstate the risk of `ohmypm`
+ * or understate the status of `oh-my-pm`.
  *
  * This text is always written to stderr, never stdout: stdout must stay a clean
  * JSON document for `--json` commands and a clean MCP protocol stream for the
  * stdio server.
  */
-export function deprecationWarning(legacyName) {
-  const canonical = canonicalForLegacyAlias(legacyName);
+export function aliasWarning(aliasName) {
+  const canonical = canonicalForAlias(aliasName);
   if (canonical === null) {
-    throw new Error(`not a legacy alias: ${legacyName}`);
+    throw new Error(`not an alias: ${aliasName}`);
   }
-  return `Warning: \`${legacyName}\` is a deprecated compatibility alias.\nUse \`${canonical}\` instead.`;
+  const aliasClass = aliasClassOf(aliasName);
+  if (aliasClass === "compatibility") {
+    return `Warning: \`${aliasName}\` is a compatibility alias; use \`${canonical}\`.`;
+  }
+  return `Warning: \`${aliasName}\` is deprecated; use \`${canonical}\`.`;
 }

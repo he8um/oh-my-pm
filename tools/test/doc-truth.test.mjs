@@ -413,9 +413,13 @@ describe("active documentation must agree with the release state", () => {
 // ---------------------------------------------------------------------------
 
 describe("the installed shim inventory is derived, not restated", () => {
-  it("derives eight shims from the command manifest", () => {
-    expect(INSTALLED_SHIM_COUNT).toBe(8);
+  it("derives twelve shims from the command manifest", () => {
+    expect(INSTALLED_SHIM_COUNT).toBe(12);
     expect(INSTALLED_SHIM_NAMES).toEqual([
+      "omp",
+      "omp.cmd",
+      "omp-mcp",
+      "omp-mcp.cmd",
       "ohmypm",
       "ohmypm.cmd",
       "ohmypm-mcp",
@@ -436,16 +440,27 @@ describe("the installed shim inventory is derived, not restated", () => {
 
   it("catches a stale four-shim claim in a README", () => {
     withTemporaryEdit("README.md", (text) =>
-      text.replace("writes eight shims under", "writes four shims under"),
+      text.replace("writes twelve shims under", "writes four shims under"),
     );
     const result = runValidator();
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/claims "four shims", but an install writes eight/);
+    expect(result.stderr).toMatch(/claims "four shims", but an install writes twelve/);
+  });
+
+  it("catches a README that still claims the previous release's eight shims", () => {
+    // The exact drift this migration would otherwise introduce: the count was
+    // correct in v0.5 and silently became wrong when two commands were added.
+    withTemporaryEdit("README.md", (text) =>
+      text.replace("writes twelve shims under", "writes eight shims under"),
+    );
+    const result = runValidator();
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/claims "eight shims", but an install writes twelve/);
   });
 
   it("catches a stale shim count in an active workflow comment", () => {
     withTemporaryEdit(".github/workflows/ci.yml", (text) =>
-      text.replace("# Apply and verify the eight shims", "# Apply and verify the four shims"),
+      text.replace("# Apply and verify the twelve shims", "# Apply and verify the four shims"),
     );
     const result = runValidator();
     expect(result.status).toBe(1);
@@ -455,7 +470,7 @@ describe("the installed shim inventory is derived, not restated", () => {
   it("catches a canonical/deprecated split that does not add up", () => {
     withTemporaryEdit("docs/getting-started.md", (text) =>
       text.replace(
-        "two canonical commands and two deprecated aliases",
+        "two canonical commands, two compatibility aliases, and two deprecated aliases",
         "four canonical and four deprecated aliases",
       ),
     );

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Deprecated compatibility alias for the portable OH MY PM release-bundle
-// installer. The canonical command is `ohmypm-install`; this name is retained so
-// an existing installation script keeps working. No removal is scheduled.
+// installer. The canonical command is `omp-install`; this name is retained so an
+// existing installation script keeps working. No removal is scheduled.
 //
 // This wrapper duplicates no installer logic: it calls the same
 // runReleaseInstallCli in the release install core as the canonical entrypoint,
@@ -12,15 +12,16 @@
 
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runReleaseInstallCli } from "../libexec/release-install-core.mjs";
+import {
+  releaseInstallAliasWarning,
+  runReleaseInstallCli,
+} from "../libexec/release-install-core.mjs";
 
-// The warning text is restated here rather than imported from the CLI package:
-// the installer must remain runnable from inside an extracted bundle using only
-// the shipped libexec core, with no workspace package resolution. The wording is
-// asserted against the shared helper by the compatibility tests.
-process.stderr.write(
-  "Warning: `oh-my-pm-install` is a deprecated compatibility alias.\nUse `ohmypm-install` instead.\n",
-);
+// The wording comes from the shipped core rather than a restated literal, so the
+// installer stays runnable from inside an extracted bundle with no workspace
+// package resolution while still having exactly one source for the text. The
+// compatibility tests assert it matches the shared application helper verbatim.
+process.stderr.write(`${releaseInstallAliasWarning("oh-my-pm-install")}\n`);
 
 const bundleRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 

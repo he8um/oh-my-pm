@@ -29,7 +29,7 @@ export type {
 
 // The separate Project Brain Runtime API (capture/compare/timeline), added in
 // v0.3 Phase 3 and shipped since v0.3.0. It is reached through the application
-// layer's memory orchestrator, which backs the seven `ohmypm memory`
+// layer's memory orchestrator, which backs the seven `omp memory`
 // subcommands and the read-only project_changes and project_timeline MCP tools.
 //
 // The existing createRuntime() and Runtime.handle() behavior above is separate

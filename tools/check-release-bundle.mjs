@@ -138,8 +138,9 @@ async function run(bundle) {
   // GitHub tools are opt-in network. The "project-brain" (v0.3) profile appends
   // exactly one read-only tool, project_changes, for eleven total. The
   // "project-brain-timeline" (v0.4) profile appends project_timeline after it,
-  // for twelve total. The "ohmypm-cli-namespace" (v0.5) profile migrates the
-  // command names only and keeps that same twelve-tool surface. The legacy
+  // for twelve total. The "ohmypm-cli-namespace" (v0.5) and "omp-cli-namespace"
+  // (v0.6) profiles migrate the command names only and keep that same twelve-tool
+  // surface: a command-namespace migration must never move a tool. The legacy
   // profile (absent or "source-v0.2") ships the
   // ten-tool surface. Any other profile fails closed: the verifier never guesses
   // a surface.
@@ -165,7 +166,8 @@ async function run(bundle) {
     expectedMemorySubcommands = ["capture", "changes", "status", "history", "export", "delete"];
   } else if (
     bundleProfile === "project-brain-timeline" ||
-    bundleProfile === "ohmypm-cli-namespace"
+    bundleProfile === "ohmypm-cli-namespace" ||
+    bundleProfile === "omp-cli-namespace"
   ) {
     expectedTools = [...TEN_TOOLS, "project_changes", "project_timeline"];
     expectedReadTools = 2;
@@ -187,7 +189,8 @@ async function run(bundle) {
   const hasProjectBrain =
     bundleProfile === "project-brain" ||
     bundleProfile === "project-brain-timeline" ||
-    bundleProfile === "ohmypm-cli-namespace";
+    bundleProfile === "ohmypm-cli-namespace" ||
+    bundleProfile === "omp-cli-namespace";
   if (JSON.stringify(release.mcpTools) !== JSON.stringify(expectedTools)) {
     return fail("RELEASE.json mcpTools list is unexpected");
   }
@@ -223,7 +226,11 @@ async function run(bundle) {
     // v0.4 and v0.5: the timeline is derived, so the profile must declare that no
     // timeline is persisted and that no store migration is required. v0.5 changes
     // command names only, so this stays true and is asserted for it too.
-    if (bundleProfile === "project-brain-timeline" || bundleProfile === "ohmypm-cli-namespace") {
+    if (
+      bundleProfile === "project-brain-timeline" ||
+      bundleProfile === "ohmypm-cli-namespace" ||
+      bundleProfile === "omp-cli-namespace"
+    ) {
       if (pb.timelinePersistence !== false) {
         return fail("RELEASE.json projectBrain.timelinePersistence must be false");
       }
@@ -337,7 +344,7 @@ async function run(bundle) {
   if (installer === null || typeof installer !== "object") {
     return fail("RELEASE.json installer metadata is missing");
   }
-  if (installer.entrypoint !== "bin/ohmypm-install.mjs") {
+  if (installer.entrypoint !== "bin/omp-install.mjs") {
     return fail("RELEASE.json installer.entrypoint is unexpected");
   }
   if (installer.previewFirst !== true)
@@ -451,13 +458,13 @@ async function run(bundle) {
   }
 
   // Entrypoints
-  const cliBin = join(bundle, "bin", "ohmypm.mjs");
-  const mcpBin = join(bundle, "bin", "ohmypm-mcp.mjs");
+  const cliBin = join(bundle, "bin", "omp.mjs");
+  const mcpBin = join(bundle, "bin", "omp-mcp.mjs");
   if (!isRegularFile(cliBin)) return fail("CLI entrypoint missing");
   if (!isRegularFile(mcpBin)) return fail("MCP entrypoint missing");
 
   // Installer surfaces: entrypoint, core, and the shipped bundle verifier.
-  const installBin = join(bundle, "bin", "ohmypm-install.mjs");
+  const installBin = join(bundle, "bin", "omp-install.mjs");
   const installCore = join(bundle, "libexec", "release-install-core.mjs");
   const shippedVerifier = join(bundle, "libexec", "check-release-bundle.mjs");
   if (!isRegularFile(installBin)) return fail("installer entrypoint missing");

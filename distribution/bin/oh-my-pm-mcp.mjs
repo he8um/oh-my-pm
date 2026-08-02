@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Deprecated compatibility alias for the portable OH MY PM MCP stdio server. The
-// canonical command is `ohmypm-mcp`; this name is retained so an existing MCP
+// canonical command is `omp-mcp`; this name is retained so an existing MCP
 // client configuration keeps working without being edited. No removal is
 // scheduled.
 //
@@ -10,10 +10,10 @@
 //
 // Contains no repository-relative path and duplicates no server logic.
 
-import { commandDeprecationWarning } from "@oh-my-pm/cli";
+import { commandAliasWarning } from "@oh-my-pm/cli";
 import { startOhMyPmMcpStdioServer } from "@oh-my-pm/mcp-server";
 
-process.stderr.write(`${commandDeprecationWarning("oh-my-pm-mcp")}\n`);
+process.stderr.write(`${commandAliasWarning("oh-my-pm-mcp")}\n`);
 
 try {
   await startOhMyPmMcpStdioServer();

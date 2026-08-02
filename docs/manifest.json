@@ -195,11 +195,19 @@
       "concern": "provider-github-reviews"
     },
     {
-      "path": "docs/v0.5/README.md",
+      "path": "docs/v0.6/README.md",
       "status": "active",
       "authority": "normative",
       "appliesTo": "current",
       "replacement": null,
+      "concern": "v0.6-migration-guide"
+    },
+    {
+      "path": "docs/v0.5/README.md",
+      "status": "superseded",
+      "authority": "normative",
+      "appliesTo": "v0.5",
+      "replacement": "docs/v0.6/README.md",
       "concern": "v0.5-migration-guide"
     },
     {

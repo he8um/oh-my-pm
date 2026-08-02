@@ -16,7 +16,7 @@ environment, or the filesystem: every non-deterministic input is injected.
 
 `createProjectBrainRuntime()` is the separate capture, comparison, and timeline
 API over Project Brain memory. Shipped since v0.3.0, it is reached through the
-application layer's memory orchestrator, which backs the seven `ohmypm memory`
+application layer's memory orchestrator, which backs the seven `omp memory`
 subcommands and the read-only `project_changes` and `project_timeline` MCP
 tools.
 

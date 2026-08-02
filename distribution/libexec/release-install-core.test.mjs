@@ -214,10 +214,16 @@ describe("createInstalledManifest", () => {
       bundle: `oh-my-pm-v${CANONICAL_VERSION}`,
       activeVersion: CANONICAL_VERSION,
       versionRoot: `lib/oh-my-pm/versions/${CANONICAL_VERSION}`,
-      // v0.5: canonical and legacy commands are separate fields, so a reader can
-      // never mistake a deprecated alias for a primary command.
-      commands: { ohmypm: "bin/ohmypm", "ohmypm-mcp": "bin/ohmypm-mcp" },
-      legacyCommands: { "oh-my-pm": "bin/oh-my-pm", "oh-my-pm-mcp": "bin/oh-my-pm-mcp" },
+      // v0.6: canonical and alias commands are separate fields, so a reader can
+      // never mistake an alias for a primary command. Both alias classes appear
+      // under legacyCommands, compatibility first.
+      commands: { omp: "bin/omp", "omp-mcp": "bin/omp-mcp" },
+      legacyCommands: {
+        ohmypm: "bin/ohmypm",
+        "ohmypm-mcp": "bin/ohmypm-mcp",
+        "oh-my-pm": "bin/oh-my-pm",
+        "oh-my-pm-mcp": "bin/oh-my-pm-mcp",
+      },
       source: { kind: "release-bundle", verified: true },
     });
     const text = serializeInstalledManifest(manifest);

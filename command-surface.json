@@ -1,16 +1,32 @@
 {
-  "schemaVersion": 1,
-  "product": "oh-my-pm",
-  "canonical": {
-    "cli": "ohmypm",
-    "mcp": "ohmypm-mcp",
-    "installer": "ohmypm-install"
+  "schemaVersion": 2,
+  "product": {
+    "name": "OH MY PM",
+    "slug": "oh-my-pm",
+    "packageScope": "@oh-my-pm",
+    "environmentPrefix": "OH_MY_PM_",
+    "archivePrefix": "oh-my-pm",
+    "mcpServerKey": "oh-my-pm"
   },
-  "legacyAliases": {
-    "cli": ["oh-my-pm"],
-    "mcp": ["oh-my-pm-mcp"],
-    "installer": ["oh-my-pm-install"]
+  "executables": {
+    "cli": {
+      "canonical": "omp",
+      "compatibilityAliases": ["ohmypm"],
+      "deprecatedAliases": ["oh-my-pm"]
+    },
+    "mcp": {
+      "canonical": "omp-mcp",
+      "compatibilityAliases": ["ohmypm-mcp"],
+      "deprecatedAliases": ["oh-my-pm-mcp"]
+    },
+    "installer": {
+      "canonical": "omp-install",
+      "compatibilityAliases": ["ohmypm-install"],
+      "deprecatedAliases": ["oh-my-pm-install"]
+    }
   },
+  "canonicalSince": "0.6.0",
+  "compatibilityAliasSince": "0.5.0",
   "deprecatedSince": "0.5.0",
   "removalScheduled": false
 }

@@ -1,14 +1,19 @@
 #!/usr/bin/env node
-// Portable OH MY PM CLI entrypoint. Thin process adapter over the public
-// runLocalCliProcess runner; contains no repository-relative path, no build
-// logic, and no project parsing.
+// Compatibility alias for the portable OH MY PM CLI entrypoint. `ohmypm` was the
+// canonical command in v0.5; the canonical command is now `omp`. This name
+// remains fully supported and no removal is scheduled, so an existing script or
+// shell alias keeps working unchanged.
+//
+// The notice is written to stderr before the runner produces any output, so an
+// invocation's stdout stays a complete, parseable document.
 
-import { runLocalCliProcess } from "@oh-my-pm/cli";
+import { commandAliasWarning, runLocalCliProcess } from "@oh-my-pm/cli";
 
-// The real clock is read only here, at the process boundary, and is consumed by
-// the runner only for the explicit live github command; local/offline commands
-// ignore it and use their fixed deterministic clock. The entry-script path is
-// read here and used only by mcp-config to infer the installed prefix.
+process.stderr.write(`${commandAliasWarning("ohmypm")}\n`);
+
+// Identical boundary wiring to bin/omp.mjs: the real clock is read only here at
+// the process boundary, and the entry-script path is used only by mcp-config to
+// infer the installed prefix.
 const result = await runLocalCliProcess(process.argv.slice(2), {
   clock: () => new Date().toISOString(),
   entryScriptPath: process.argv[1] ?? "",

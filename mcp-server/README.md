@@ -15,7 +15,7 @@ Four local Markdown project workflows (filesystem-only), four GitHub workflows
 tools (offline, with one explicitly confirmed GitHub request), and two read-only
 Project Brain memory tools. The package is private and is not published to npm.
 
-The current v0.5 release bundle (profile `ohmypm-cli-namespace`) always packages
+The current v0.5 release bundle (profile `omp-cli-namespace`) always packages
 `@oh-my-pm/project-memory`, so an installed server always registers all twelve
 tools. See [Conditional registration](#conditional-registration) for the
 mechanism and the historical profiles where it mattered.
@@ -38,16 +38,16 @@ The only transport is local **stdio**. There is no HTTP, SSE, host, port, networ
 Start the server (development, from the repository):
 
 ```bash
-node mcp-server/bin/ohmypm-mcp.mjs
+node mcp-server/bin/omp-mcp.mjs
 ```
 
 After a local installation (see [the getting-started guide](../docs/getting-started.md)), the server is available through the installed command once `<prefix>/bin` is on PATH:
 
 ```bash
-ohmypm-mcp
+omp-mcp
 ```
 
-The former `oh-my-pm-mcp` name remains as a deprecated compatibility alias, so an existing client configuration keeps working without being edited. It prints a deprecation warning to stderr only -- never to stdout, which is reserved for MCP protocol messages. No removal is scheduled. See [the v0.5 migration guide](../docs/v0.5/README.md).
+The `ohmypm-mcp` name (canonical in v0.5) remains a supported **compatibility alias**, and `oh-my-pm-mcp` remains a **deprecated alias**, so an existing client configuration keeps working without being edited. Each prints one notice to stderr only -- never to stdout, which is reserved for MCP protocol messages. No removal is scheduled for either. See [the v0.6 migration guide](../docs/v0.6/README.md).
 
 Generate a generic stdio client configuration for the installed command:
 
@@ -99,7 +99,7 @@ still live code, which is why the mechanism is documented rather than removed.
 
 | Profile                                     | Project Memory bundled | Tools |
 | ------------------------------------------- | ---------------------- | ----- |
-| `ohmypm-cli-namespace` (current, v0.5)      | yes                    | 12    |
+| `omp-cli-namespace` (current, v0.5)         | yes                    | 12    |
 | `project-brain-timeline` (v0.4, historical) | yes                    | 12    |
 | `project-brain` (v0.3, historical)          | yes                    | 11    |
 | `source-v0.2` (historical)                  | no                     | 10    |
@@ -184,7 +184,7 @@ Each tool reuses the CLI's configured document loader: it reads only `<root>/oh-
   "mcpServers": {
     "oh-my-pm": {
       "command": "node",
-      "args": ["/absolute/path/to/oh-my-pm/mcp-server/bin/ohmypm-mcp.mjs"]
+      "args": ["/absolute/path/to/oh-my-pm/mcp-server/bin/omp-mcp.mjs"]
     }
   }
 }

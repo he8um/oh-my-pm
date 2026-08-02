@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-// Reference-regression check for the v0.5 command migration.
+// Reference-regression check for the v0.6 command migration.
 //
-// The migration is only durable if a deprecated command name cannot quietly
-// reappear as the primary one. This scans every tracked text file for legacy
-// command *invocations* and fails unless the file is in an explicitly approved
-// category.
+// The migration is only durable if a non-canonical command name cannot quietly
+// reappear as the primary one. This scans every tracked text file for alias
+// command *invocations* -- both the supported `ohmypm*` compatibility family and
+// the deprecated `oh-my-pm*` family -- and fails unless the file is in an
+// explicitly approved category.
 //
 // The hard part is precision. The string "oh-my-pm" legitimately appears all over
 // this repository as product identity, and none of those uses are commands:
@@ -31,7 +32,22 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { LEGACY_CLI, LEGACY_INSTALLER, LEGACY_MCP, REPO_ROOT } from "./command-surface.mjs";
+import {
+  COMPAT_CLI,
+  COMPAT_INSTALLER,
+  COMPAT_MCP,
+  DEPRECATED_CLI,
+  DEPRECATED_INSTALLER,
+  DEPRECATED_MCP,
+  REPO_ROOT,
+} from "./command-surface.mjs";
+
+// Both alias classes are policed identically here: an active document that tells
+// a reader to run `ohmypm brief` is just as stale as one that says `oh-my-pm
+// brief`, even though `ohmypm` remains fully supported at runtime.
+const LEGACY_CLI = [...COMPAT_CLI, ...DEPRECATED_CLI];
+const LEGACY_MCP = [...COMPAT_MCP, ...DEPRECATED_MCP];
+const LEGACY_INSTALLER = [...COMPAT_INSTALLER, ...DEPRECATED_INSTALLER];
 
 const errors = [];
 
@@ -60,6 +76,11 @@ const APPROVED_FILES = new Set([
   "command-surface.json",
 
   // Compatibility implementation: the wrappers themselves.
+  "cli/bin/ohmypm.mjs",
+  "mcp-server/bin/ohmypm-mcp.mjs",
+  "distribution/bin/ohmypm.mjs",
+  "distribution/bin/ohmypm-mcp.mjs",
+  "distribution/bin/ohmypm-install.mjs",
   "cli/bin/oh-my-pm.mjs",
   "mcp-server/bin/oh-my-pm-mcp.mjs",
   "distribution/bin/oh-my-pm.mjs",
@@ -96,6 +117,10 @@ const APPROVED_FILES = new Set([
   // deprecated command.
   "docs/getting-started.md",
   "docs/v0.5/README.md",
+  "docs/v0.6/README.md",
+  // The v0.6 release notes show a before/after pair, so they must name the
+  // previous canonical command to be useful at all.
+  "docs/releases/v0.6.0.md",
   "docs/releases/v0.5.0.md",
   "docs/releases/publishing-v0.5.0.md",
   "CHANGELOG.md",
@@ -103,6 +128,7 @@ const APPROVED_FILES = new Set([
   // The active CI and release workflows test the aliases explicitly.
   ".github/workflows/ci.yml",
   ".github/workflows/release-v0.5.yml",
+  ".github/workflows/release-v0.6.yml",
 
   // The distribution package is the one manifest that intentionally maps both
   // command families to their entrypoints. validate-command-surface.mjs asserts
@@ -150,8 +176,11 @@ const APPROVED_PREFIXES = [
   { prefix: "docs/releases/publishing-v0.2", reason: "historical release content" },
   { prefix: "docs/releases/publishing-v0.3", reason: "historical release content" },
   { prefix: "docs/releases/publishing-v0.4", reason: "historical release content" },
+  { prefix: "docs/releases/publishing-v0.5", reason: "historical release content" },
   { prefix: "docs/v0.3/", reason: "historical version documentation" },
   { prefix: "docs/v0.4/", reason: "historical version documentation" },
+  { prefix: "docs/v0.5/", reason: "historical version documentation" },
+  { prefix: "docs/releases/v0.5", reason: "historical release content" },
   { prefix: "docs/architecture/", reason: "historical architecture audits" },
 
   // Published release workflows are never rewritten.

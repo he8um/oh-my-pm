@@ -569,9 +569,10 @@ const NODE_CLI_BOUNDARY_FILES = [
   "application/src/node/project-config.ts",
   "application/src/node/provider-config.ts",
   "cli/src/mcp-config-resolve.ts",
+  "cli/bin/omp.mjs",
+  // v0.6: both alias classes are held to the same boundary rules as the
+  // canonical entrypoint -- each runs the same runner in-process.
   "cli/bin/ohmypm.mjs",
-  // v0.5: the deprecated compatibility alias is held to the same boundary rules
-  // as the canonical entrypoint -- it runs the same runner in-process.
   "cli/bin/oh-my-pm.mjs",
 ];
 const BOUNDARY_WRITE_APIS = [
@@ -713,11 +714,15 @@ for (const file of MCP_SOURCE_FILES) {
   }
 }
 // The MCP bin wrappers: no stdout writing or startup banner; stderr/exitCode ok.
-// v0.5 ships the canonical entrypoint plus a deprecated compatibility alias.
-// Both are held to the identical rule, because the stdout ban is exactly what
-// keeps the JSON-RPC stream protocol-safe -- including for the alias, whose
-// deprecation warning must reach stderr only.
-const MCP_BINS = ["mcp-server/bin/ohmypm-mcp.mjs", "mcp-server/bin/oh-my-pm-mcp.mjs"];
+// v0.6 ships the canonical entrypoint plus two alias classes. All are held to
+// the identical rule, because the stdout ban is exactly what keeps the JSON-RPC
+// stream protocol-safe -- including for the aliases, whose notices must reach
+// stderr only.
+const MCP_BINS = [
+  "mcp-server/bin/omp-mcp.mjs",
+  "mcp-server/bin/ohmypm-mcp.mjs",
+  "mcp-server/bin/oh-my-pm-mcp.mjs",
+];
 for (const MCP_BIN of MCP_BINS) {
   if (!trackedFiles.includes(MCP_BIN)) {
     err(`mcp bin wrapper is not tracked: ${MCP_BIN}`);
@@ -903,9 +908,11 @@ for (const file of RELEASE_TOOLS) {
 
 // The distribution bin entrypoints are thin adapters: no repo path, no build
 // logic, no filesystem writes, no network.
-// v0.5 ships canonical entrypoints plus deprecated compatibility aliases; all of
-// them are held to the identical thin-adapter rule.
+// v0.6 ships canonical entrypoints plus two alias classes; all of them are held
+// to the identical thin-adapter rule.
 const DISTRIBUTION_BINS = [
+  "distribution/bin/omp.mjs",
+  "distribution/bin/omp-mcp.mjs",
   "distribution/bin/ohmypm.mjs",
   "distribution/bin/ohmypm-mcp.mjs",
   "distribution/bin/oh-my-pm.mjs",
@@ -1132,7 +1139,7 @@ if (trackedFiles.includes(RELEASE_INSTALL_VERIFIER)) {
   }
   // The installed .mjs entrypoints (not node_modules/.bin, not source repo)
   // must be the Windows launch target.
-  if (!verifier.includes('join(versionDir, "bin", "ohmypm.mjs")')) {
+  if (!verifier.includes('join(versionDir, "bin", "omp.mjs")')) {
     err(
       `${RELEASE_INSTALL_VERIFIER} must launch the installed CLI .mjs entrypoint from the version directory`,
     );
@@ -1488,12 +1495,14 @@ const RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.2-rc.yml";
 const STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.2.yml";
 const V03_RC_RELEASE_WORKFLOW = ".github/workflows/release-v0.3-rc.yml";
 const V03_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.3.yml";
-// The v0.4 stable workflow, now historical: v0.5 supersedes it as the active
-// line. It stays tracked and unmodified so published history remains accurate.
+// The v0.4 stable workflow, now historical: later lines supersede it. It stays
+// tracked and unmodified so published history remains accurate.
 const V04_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.4.yml";
+// The v0.5 stable workflow, now historical for the same reason.
+const V05_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.5.yml";
 // The ACTIVE stable release workflow. Every earlier stable workflow above is
 // historical and immutable; the active-line policy below applies to this file.
-const ACTIVE_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.5.yml";
+const ACTIVE_STABLE_RELEASE_WORKFLOW = ".github/workflows/release-v0.6.yml";
 
 /** Shared manual-gate policy applied to every dedicated release workflow. */
 function checkReleaseWorkflowCommon(path, confirmation) {
@@ -1735,12 +1744,12 @@ if (v03Wf !== null) {
 // place; the immutable base stable lineage stays pinned. The ACTIVE stable line
 // is v0.4, whose base stable tag is the published v0.3.1.
 const V03_PATCH_VERSION = JSON.parse(readFileSync("version.json", "utf8")).version;
-// The base stable release the ACTIVE line builds on. v0.5.2 follows the published
-// v0.5.1 stable, so the active workflow must verify that published release still
-// exists unchanged before it publishes on top of it. (v0.5.1 superseded v0.4.0 as
-// the base stable when it became the first published stable of the v0.5 line.)
-const V03_BASE_STABLE_TAG = "v0.5.1";
-const V03_BASE_STABLE_SHA = "49e2cbbc7590af52e648b615c6245ce3cbcee0e9";
+// The base stable release the ACTIVE line builds on. v0.6.0 follows the published
+// v0.5.4 stable, so the active workflow must verify that published release still
+// exists unchanged before it publishes on top of it. (v0.5.4 superseded v0.5.1 as
+// the base stable when it became the latest published stable of the v0.5 line.)
+const V03_BASE_STABLE_TAG = "v0.5.4";
+const V03_BASE_STABLE_SHA = "288337a9514150b7a5973d9d9410f7186567520f";
 const v03StableWf = checkReleaseWorkflowCommon(
   ACTIVE_STABLE_RELEASE_WORKFLOW,
   `RELEASE v${V03_PATCH_VERSION}`,
@@ -1854,6 +1863,7 @@ const RELEASE_PUBLISH_ALLOWED = new Set([
   V03_RC_RELEASE_WORKFLOW,
   V03_STABLE_RELEASE_WORKFLOW,
   V04_STABLE_RELEASE_WORKFLOW,
+  V05_STABLE_RELEASE_WORKFLOW,
   ACTIVE_STABLE_RELEASE_WORKFLOW,
   "docs/releases/publishing-v0.1.0.md",
   "docs/releases/publishing-v0.2.0-rc.1.md",
@@ -2270,7 +2280,7 @@ if (trackedFiles.includes("mcp-server/src/server.ts")) {
   }
 }
 // Neither MCP bin may statically import the project-memory package.
-for (const mcpBin of ["mcp-server/bin/ohmypm-mcp.mjs", "mcp-server/bin/oh-my-pm-mcp.mjs"]) {
+for (const mcpBin of MCP_BINS) {
   if (!trackedFiles.includes(mcpBin)) continue;
   const bin = readFileSync(mcpBin, "utf8");
   if (bin.includes("@oh-my-pm/project-memory")) {
@@ -2414,7 +2424,13 @@ if (trackedFiles.includes("kernel/crate/Cargo.toml")) {
 //
 // v0.5.3 (documentation and architecture truth) promotes the source to 0.5.3 on
 // top of the published v0.5.2 stable.
-const EXPECTED_SOURCE_VERSION = "0.5.4";
+//
+// v0.6.0 (canonical `omp` command migration) promotes the source to 0.6.0 on top
+// of the published v0.5.4 stable. The expected version is DERIVED from
+// version.json rather than restated, so a bump cannot leave this check pinned to
+// a stale value while still appearing to enforce something; what this check
+// actually enforces is that release-state.json agrees with it.
+const EXPECTED_SOURCE_VERSION = JSON.parse(readFileSync("version.json", "utf8")).version;
 if (trackedFiles.includes("version.json")) {
   const version = JSON.parse(readFileSync("version.json", "utf8")).version;
   if (version !== EXPECTED_SOURCE_VERSION) {

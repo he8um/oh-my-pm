@@ -16,16 +16,34 @@ import {
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-// The v0.5 command surface. Canonical commands come first so the ordering itself
+// The v0.6 command surface. Canonical commands come first so the ordering itself
 // records which names are primary. Checked against command-surface.json by
 // tools/validate-command-surface.mjs.
-export const LOCAL_CANONICAL_COMMAND_NAMES = ["ohmypm", "ohmypm-mcp"];
-export const LOCAL_LEGACY_COMMAND_NAMES = ["oh-my-pm", "oh-my-pm-mcp"];
+export const LOCAL_CANONICAL_COMMAND_NAMES = ["omp", "omp-mcp"];
 
 /**
- * Every locally installed command, canonical first then the deprecated
- * compatibility aliases. Install creates all of these; uninstall removes all of
- * these.
+ * Supported compatibility aliases: canonical in v0.5, still fully supported with
+ * no removal scheduled.
+ */
+export const LOCAL_COMPATIBILITY_COMMAND_NAMES = ["ohmypm", "ohmypm-mcp"];
+
+/** Deprecated aliases: still installed and still working, no removal scheduled. */
+export const LOCAL_DEPRECATED_COMMAND_NAMES = ["oh-my-pm", "oh-my-pm-mcp"];
+
+/**
+ * Every non-canonical locally installed command, compatibility class first.
+ * Retained under the original exported name so existing consumers keep resolving
+ * the full alias set.
+ */
+export const LOCAL_LEGACY_COMMAND_NAMES = [
+  ...LOCAL_COMPATIBILITY_COMMAND_NAMES,
+  ...LOCAL_DEPRECATED_COMMAND_NAMES,
+];
+
+/**
+ * Every locally installed command, canonical first then the compatibility
+ * aliases then the deprecated aliases. Install creates all of these; uninstall
+ * removes all of these.
  */
 export const LOCAL_COMMAND_NAMES = [
   ...LOCAL_CANONICAL_COMMAND_NAMES,
@@ -36,32 +54,47 @@ export const LOCAL_COMMAND_NAMES = [
 // from the current working directory, so plans are stable regardless of cwd.
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-// Each command's shim launches its *own* entry script. A deprecated alias points
-// at the alias entrypoint, not the canonical one, because that is the file that
-// prints the stderr deprecation warning before delegating.
-const COMMAND_TARGETS = {
-  ohmypm: join(REPO_ROOT, "cli", "bin", "ohmypm.mjs"),
-  "ohmypm-mcp": join(REPO_ROOT, "mcp-server", "bin", "ohmypm-mcp.mjs"),
-  "oh-my-pm": join(REPO_ROOT, "cli", "bin", "oh-my-pm.mjs"),
-  "oh-my-pm-mcp": join(REPO_ROOT, "mcp-server", "bin", "oh-my-pm-mcp.mjs"),
-};
+// Whether a command is the MCP server rather than the CLI, derived from the
+// name's role suffix so a new alias needs no second table entry.
+function isMcpCommand(command) {
+  return command.endsWith("-mcp");
+}
 
-// Reason codes stay stable per role (cli/mcp) and gain a legacy_ prefix for the
-// compatibility aliases, so an existing consumer of the canonical codes is
-// unaffected.
-const TARGET_MISSING_REASON = {
-  ohmypm: "local_install_cli_target_missing",
-  "ohmypm-mcp": "local_install_mcp_target_missing",
-  "oh-my-pm": "local_install_legacy_cli_target_missing",
-  "oh-my-pm-mcp": "local_install_legacy_mcp_target_missing",
-};
+// Each command's shim launches its *own* entry script. An alias points at the
+// alias entrypoint, not the canonical one, because that is the file that prints
+// the stderr notice before delegating. Derived from the command name so a name
+// added to the manifest can never be silently missing a target.
+const COMMAND_TARGETS = Object.fromEntries(
+  LOCAL_COMMAND_NAMES.map((command) => [
+    command,
+    isMcpCommand(command)
+      ? join(REPO_ROOT, "mcp-server", "bin", `${command}.mjs`)
+      : join(REPO_ROOT, "cli", "bin", `${command}.mjs`),
+  ]),
+);
 
-const SHIM_EXISTS_REASON = {
-  ohmypm: "local_install_cli_shim_exists",
-  "ohmypm-mcp": "local_install_mcp_shim_exists",
-  "oh-my-pm": "local_install_legacy_cli_shim_exists",
-  "oh-my-pm-mcp": "local_install_legacy_mcp_shim_exists",
-};
+// Reason codes stay stable per role (cli/mcp) for the canonical commands, so an
+// existing consumer of the v0.5 canonical codes is unaffected; alias codes carry
+// a class prefix. Derived rather than restated for the same reason as the
+// targets above.
+function reasonPrefixFor(command) {
+  if (LOCAL_CANONICAL_COMMAND_NAMES.includes(command)) return "";
+  if (LOCAL_COMPATIBILITY_COMMAND_NAMES.includes(command)) return "compat_";
+  return "legacy_";
+}
+
+function reasonCodes(suffix) {
+  return Object.fromEntries(
+    LOCAL_COMMAND_NAMES.map((command) => [
+      command,
+      `local_install_${reasonPrefixFor(command)}${isMcpCommand(command) ? "mcp" : "cli"}_${suffix}`,
+    ]),
+  );
+}
+
+const TARGET_MISSING_REASON = reasonCodes("target_missing");
+
+const SHIM_EXISTS_REASON = reasonCodes("shim_exists");
 
 /** Parse install CLI args deterministically. No filesystem or env access. */
 export function parseLocalInstallArgs(args) {

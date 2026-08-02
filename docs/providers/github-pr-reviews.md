@@ -35,7 +35,7 @@ The following are **explicitly excluded**:
 ### CLI
 
 ```bash
-ohmypm github risks owner/repository \
+omp github risks owner/repository \
   --source item \
   --number 123 \
   --include-reviews \

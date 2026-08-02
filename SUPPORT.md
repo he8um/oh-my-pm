@@ -28,7 +28,7 @@ vulnerability reporting instead — see [`SECURITY.md`](SECURITY.md).
 
 A report that cannot be reproduced cannot be fixed. Please include:
 
-- the version (`ohmypm --version`) and how it was installed (release archive or
+- the version (`omp --version`) and how it was installed (release archive or
   repository build);
 - your operating system and Node.js version (`node --version`);
 - the exact command you ran and its full output;

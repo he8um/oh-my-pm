@@ -17,7 +17,7 @@ import type { RuntimeRequestFactory } from "../src/index.js";
 
 const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(pkgDir, "..");
-const binPath = join(pkgDir, "bin", "ohmypm.mjs");
+const binPath = join(pkgDir, "bin", "omp.mjs");
 const fixtureRoot = join(repoRoot, "examples", "fixtures", "markdown-project");
 
 function runBin(args: readonly string[]): {

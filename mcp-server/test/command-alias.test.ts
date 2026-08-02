@@ -1,4 +1,4 @@
-// MCP stdio protocol safety for the canonical `ohmypm-mcp` entrypoint and the
+// MCP stdio protocol safety for the canonical `omp-mcp` entrypoint and the
 // deprecated `oh-my-pm-mcp` compatibility alias.
 //
 // The load-bearing property here is that the alias's deprecation warning cannot
@@ -14,11 +14,10 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
-const CANONICAL_BIN = join(pkgDir, "bin", "ohmypm-mcp.mjs");
+const CANONICAL_BIN = join(pkgDir, "bin", "omp-mcp.mjs");
 const LEGACY_BIN = join(pkgDir, "bin", "oh-my-pm-mcp.mjs");
 
-const EXPECTED_WARNING =
-  "Warning: `oh-my-pm-mcp` is a deprecated compatibility alias.\nUse `ohmypm-mcp` instead.\n";
+const EXPECTED_WARNING = "Warning: `oh-my-pm-mcp` is deprecated; use `omp-mcp`.\n";
 
 type Exchange = { stdout: string; stderr: string; exitCode: number | null };
 
@@ -84,7 +83,7 @@ function parseProtocolLines(stdout: string): Record<string, unknown>[] {
     .map((line) => JSON.parse(line) as Record<string, unknown>);
 }
 
-describe("canonical ohmypm-mcp entrypoint", () => {
+describe("canonical omp-mcp entrypoint", () => {
   it("completes an initialize handshake with protocol-only stdout", async () => {
     const result = await exchange(CANONICAL_BIN);
     const messages = parseProtocolLines(result.stdout);
@@ -120,7 +119,7 @@ describe("deprecated oh-my-pm-mcp compatibility alias", () => {
   it("emits the deprecation warning on stderr", async () => {
     const result = await exchange(LEGACY_BIN);
     expect(result.stderr).toContain(EXPECTED_WARNING);
-    expect(result.stderr).toContain("`ohmypm-mcp`");
+    expect(result.stderr).toContain("`omp-mcp`");
   }, 20000);
 
   it("completes the same handshake as the canonical entrypoint", async () => {
@@ -162,7 +161,7 @@ describe("mcp bin wrapper sources", () => {
   it("the legacy wrapper warns before starting the transport", () => {
     // Ordering matters: warning first, then the server. This is what prevents the
     // warning from interleaving with protocol traffic.
-    const warnIndex = legacySource.indexOf("process.stderr.write(`${commandDeprecationWarning(");
+    const warnIndex = legacySource.indexOf("process.stderr.write(`${commandAliasWarning(");
     const startIndex = legacySource.indexOf("startOhMyPmMcpStdioServer(");
     expect(warnIndex).toBeGreaterThan(-1);
     expect(startIndex).toBeGreaterThan(-1);
@@ -172,9 +171,9 @@ describe("mcp bin wrapper sources", () => {
   it("the legacy wrapper starts the same server, duplicating no logic", () => {
     expect(legacySource).toContain("startOhMyPmMcpStdioServer");
     expect(legacySource).toContain('from "../dist/index.js"');
-    expect(legacySource).toContain("commandDeprecationWarning");
+    expect(legacySource).toContain("commandAliasWarning");
     // Derived from the shared helper, never restated inline.
-    expect(legacySource).not.toContain("is a deprecated compatibility alias.");
+    expect(legacySource).not.toContain("is deprecated; use");
   });
 
   it("the legacy wrapper does not invoke the canonical wrapper", () => {

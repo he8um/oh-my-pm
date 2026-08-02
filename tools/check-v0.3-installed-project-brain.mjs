@@ -2,8 +2,8 @@
 // Installed-artifact Project Brain qualification (v0.3 Phase 6; extended for the
 // v0.4 Project Timeline).
 //
-// Drives the EXTRACTED and INSTALLED release artifact (the canonical ohmypm and
-// ohmypm-mcp shims under a temporary prefix), never the workspace package
+// Drives the EXTRACTED and INSTALLED release artifact (the canonical omp and
+// omp-mcp shims under a temporary prefix), never the workspace package
 // entrypoints. It qualifies the full Project Brain feature slice end to end:
 // the installed memory subcommands (capture/changes/status/history/export/
 // delete, plus timeline under the v0.4 profile) across brief, --json, and
@@ -16,9 +16,10 @@
 // The tool is PROFILE-AWARE: it reads the installed RELEASE.json bundleProfile
 // and qualifies whichever released surface the artifact declares, so the same
 // harness qualifies a v0.3 "project-brain" artifact (six memory subcommands,
-// eleven MCP tools), a v0.4 "project-brain-timeline" artifact, and a v0.5
-// "ohmypm-cli-namespace" artifact (seven memory
-// subcommands, twelve MCP tools) without a competing parallel implementation.
+// eleven MCP tools), a v0.4 "project-brain-timeline" artifact, a v0.5
+// "ohmypm-cli-namespace" artifact, and a v0.6 "omp-cli-namespace" artifact
+// (seven memory subcommands, twelve MCP tools) without a competing parallel
+// implementation.
 //
 // Node.js 20+ built-ins only, plus the MCP SDK and @oh-my-pm/project-memory that
 // are already contained in the installed artifact. Every writable location
@@ -32,7 +33,8 @@
 //   node tools/check-v0.3-installed-project-brain.mjs --archive <tar.gz|zip> --work <dir> [--json]
 //
 // The expected profile may be pinned with --profile <project-brain|
-// project-brain-timeline|ohmypm-cli-namespace>; when omitted the artifact's own
+// project-brain-timeline|ohmypm-cli-namespace|omp-cli-namespace>; when omitted
+// the artifact's own
 // declared profile is
 // accepted and drives which surface is qualified.
 //
@@ -106,6 +108,13 @@ const PROFILES = {
   // v0.5 migrates the command names only: the memory subcommands, MCP tool
   // count, and derived-timeline behavior are identical to v0.4.
   "ohmypm-cli-namespace": {
+    memorySubcommands: ["capture", "changes", "status", "history", "export", "delete", "timeline"],
+    mcpToolCount: 12,
+    hasTimeline: true,
+  },
+  // v0.6 likewise migrates command names only: `omp*` becomes canonical while
+  // the runtime surface stays exactly as it was in v0.4/v0.5.
+  "omp-cli-namespace": {
     memorySubcommands: ["capture", "changes", "status", "history", "export", "delete", "timeline"],
     mcpToolCount: 12,
     hasTimeline: true,
@@ -209,8 +218,8 @@ function newlineTerminated(s) {
 // vector, never a shell string, so spaces in paths are safe.
 // ----------------------------------------------------------------------------
 function makeRunner(prefix, versionDir) {
-  const cliShim = join(prefix, "bin", isWindows ? "ohmypm.cmd" : "ohmypm");
-  const cliEntry = join(versionDir, "bin", "ohmypm.mjs");
+  const cliShim = join(prefix, "bin", isWindows ? "omp.cmd" : "omp");
+  const cliEntry = join(versionDir, "bin", "omp.mjs");
   // The platform-safe argument vector for a set of CLI args (no shell string).
   const invocation = (args) => ({
     command: isWindows ? process.execPath : cliShim,
@@ -456,7 +465,7 @@ function installFromArchive(archivePath, workRoot) {
   const bundleDir = join(extractDir, roots[0]);
   const prefix = mkdtempSync(join(workRoot, "prefix-"));
   scratchDirs.push(prefix);
-  const installer = join(bundleDir, "bin", "ohmypm-install.mjs");
+  const installer = join(bundleDir, "bin", "omp-install.mjs");
   try {
     execFileSync(process.execPath, [installer, "--prefix", prefix, "--apply"], {
       stdio: ["ignore", "pipe", "pipe"],
@@ -580,7 +589,7 @@ async function qualifyHelpAndMcpConfig(runCli, prefix, profile) {
   assert(unknownCommand.code === 2, "installed unknown command still exits 2");
 
   section("cli-mcp-config");
-  const expectedCommand = join(prefix, "bin", isWindows ? "ohmypm-mcp.cmd" : "ohmypm-mcp");
+  const expectedCommand = join(prefix, "bin", isWindows ? "omp-mcp.cmd" : "omp-mcp");
 
   const jsonConfig = runCli(["mcp-config"], { env });
   assert(jsonConfig.code === 0, "installed mcp-config exits 0 with no --prefix");
@@ -971,8 +980,8 @@ async function qualifyMcp(prefix, versionDir, release, profile) {
   const env = isolatedDataEnv(dataRoot);
   const fixtureRoot = join(versionDir, "examples", "markdown-project");
 
-  const mcpShim = join(prefix, "bin", isWindows ? "ohmypm-mcp.cmd" : "ohmypm-mcp");
-  const mcpEntry = join(versionDir, "bin", "ohmypm-mcp.mjs");
+  const mcpShim = join(prefix, "bin", isWindows ? "omp-mcp.cmd" : "omp-mcp");
+  const mcpEntry = join(versionDir, "bin", "omp-mcp.mjs");
   const command = isWindows ? process.execPath : mcpShim;
   const args = isWindows ? [mcpEntry] : [];
 
@@ -1550,8 +1559,8 @@ async function assertMcpCorruptError(prefix, versionDir, dataDir, pid) {
   cpSync(join(dataDir, "project-brain"), join(stdRoot, "project-brain"), { recursive: true });
   const env = isolatedDataEnv(isoRoot);
 
-  const mcpShim = join(prefix, "bin", isWindows ? "ohmypm-mcp.cmd" : "ohmypm-mcp");
-  const mcpEntry = join(versionDir, "bin", "ohmypm-mcp.mjs");
+  const mcpShim = join(prefix, "bin", isWindows ? "omp-mcp.cmd" : "omp-mcp");
+  const mcpEntry = join(versionDir, "bin", "omp-mcp.mjs");
   const command = isWindows ? process.execPath : mcpShim;
   const args = isWindows ? [mcpEntry] : [];
   const mcpManifest = realpathSync(
@@ -1924,11 +1933,7 @@ function qualifySourceIndependenceAndRelocation(prefix, versionDir) {
   const relocatedCommand = relocatedParsed?.mcpServers?.["oh-my-pm"]?.command;
   // mcp-config resolves the CANONICAL sibling command, so the expectation is the
   // canonical name even though the surrounding lib/oh-my-pm path is unchanged.
-  const expectedRelocated = join(
-    relocatedPrefix,
-    "bin",
-    isWindows ? "ohmypm-mcp.cmd" : "ohmypm-mcp",
-  );
+  const expectedRelocated = join(relocatedPrefix, "bin", isWindows ? "omp-mcp.cmd" : "omp-mcp");
   assert(
     relocatedCommand === expectedRelocated,
     "relocated installed mcp-config resolves the relocated executable",
@@ -2357,8 +2362,8 @@ async function qualifyTimelineMcp(prefix, versionDir) {
   // cannot be spawned without a shell). The SDK is resolved from the installed
   // mcp-server package under node_modules — the installed artifact has no
   // packages/ directory.
-  const mcpShim = join(prefix, "bin", isWindows ? "ohmypm-mcp.cmd" : "ohmypm-mcp");
-  const mcpEntry = join(versionDir, "bin", "ohmypm-mcp.mjs");
+  const mcpShim = join(prefix, "bin", isWindows ? "omp-mcp.cmd" : "omp-mcp");
+  const mcpEntry = join(versionDir, "bin", "omp-mcp.mjs");
   const command = isWindows ? process.execPath : mcpShim;
   const args = isWindows ? [mcpEntry] : [];
   const requireFromBundle = createRequire(

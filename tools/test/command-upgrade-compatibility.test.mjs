@@ -1,7 +1,7 @@
 // Upgrade compatibility: a prefix installed by v0.4 (which had only the
-// `oh-my-pm` command family) must upgrade to v0.5 leaving every canonical command
-// AND every deprecated alias working, with no orphaned shims. Uninstall must then
-// be able to remove all of them.
+// `oh-my-pm` command family) must upgrade to v0.6 leaving every canonical command
+// AND both alias families working, with no orphaned shims. Uninstall must then be
+// able to remove all of them.
 //
 // This drives the real repository installer against real temporary prefixes; it
 // asserts observed process behavior, not source text.
@@ -81,7 +81,7 @@ function runInstalled(prefix, command, args) {
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 
-describe("a v0.4-shaped prefix upgrades to the full v0.5 command set", () => {
+describe("a v0.4-shaped prefix upgrades to the full v0.6 command set", () => {
   const root = makeRoot("v04");
   const prefix = join(root, "prefix");
   const binDir = seedV04Prefix(prefix);
@@ -109,17 +109,29 @@ describe("a v0.4-shaped prefix upgrades to the full v0.5 command set", () => {
     expect(result.stdout).toContain("applied");
   }, 60000);
 
-  it("leaves all eight shims and no orphans", () => {
+  it("leaves all twelve shims and no orphans", () => {
     const expected = LOCAL_COMMAND_NAMES.flatMap((n) => [n, `${n}.cmd`]).sort();
     expect(readdirSync(binDir).sort()).toEqual(expected);
-    expect(expected).toHaveLength(8);
+    expect(expected).toHaveLength(12);
   });
 
-  it("makes ohmypm work", () => {
-    const result = runInstalled(prefix, "ohmypm", ["status"]);
+  it("makes omp work with no notice at all", () => {
+    const result = runInstalled(prefix, "omp", ["status"]);
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain("OH MY PM status: healthy");
     expect(result.stderr).toBe("");
+  }, 60000);
+
+  it("makes ohmypm work as a compatibility alias", () => {
+    const result = runInstalled(prefix, "ohmypm", ["status"]);
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain("OH MY PM status: healthy");
+    expect(result.stderr).toContain("is a compatibility alias");
+    expect(result.stderr).toContain("omp");
+    // It was canonical one minor version ago, so it must not be called
+    // deprecated.
+    expect(result.stderr).not.toContain("deprecated");
+    expect(result.stdout).not.toContain("Warning:");
   }, 60000);
 
   it("makes oh-my-pm work as a deprecated alias", () => {
@@ -128,33 +140,44 @@ describe("a v0.4-shaped prefix upgrades to the full v0.5 command set", () => {
     expect(result.stdout).toContain("OH MY PM status: healthy");
     // The warning is on stderr only, so the upgraded alias keeps piped output
     // usable for anything that was consuming it before the upgrade.
-    expect(result.stderr).toContain("deprecated compatibility alias");
-    expect(result.stderr).toContain("ohmypm");
+    expect(result.stderr).toContain("is deprecated");
+    expect(result.stderr).toContain("omp");
     expect(result.stdout).not.toContain("deprecated");
   }, 60000);
 
-  it("produces identical stdout from the canonical command and the alias", () => {
-    const canonical = runInstalled(prefix, "ohmypm", ["status"]);
-    const legacy = runInstalled(prefix, "oh-my-pm", ["status"]);
-    expect(legacy.stdout).toBe(canonical.stdout);
-    expect(legacy.status).toBe(canonical.status);
+  it("emits exactly one notice per alias invocation", () => {
+    for (const alias of ["ohmypm", "oh-my-pm"]) {
+      const result = runInstalled(prefix, alias, ["status"]);
+      expect(result.stderr.split("Warning:").length - 1, alias).toBe(1);
+    }
   }, 60000);
 
-  it("keeps JSON parseable through the upgraded alias", () => {
-    const result = runInstalled(prefix, "oh-my-pm", ["status", "--json"]);
-    expect(result.status).toBe(0);
-    expect(() => JSON.parse(result.stdout)).not.toThrow();
+  it("produces identical stdout from the canonical command and every alias", () => {
+    const canonical = runInstalled(prefix, "omp", ["status"]);
+    for (const alias of ["ohmypm", "oh-my-pm"]) {
+      const aliased = runInstalled(prefix, alias, ["status"]);
+      expect(aliased.stdout, alias).toBe(canonical.stdout);
+      expect(aliased.status, alias).toBe(canonical.status);
+    }
   }, 60000);
 
-  it("installs both MCP commands", () => {
-    for (const name of ["ohmypm-mcp", "oh-my-pm-mcp"]) {
+  it("keeps JSON parseable through every upgraded alias", () => {
+    for (const alias of ["ohmypm", "oh-my-pm"]) {
+      const result = runInstalled(prefix, alias, ["status", "--json"]);
+      expect(result.status, alias).toBe(0);
+      expect(() => JSON.parse(result.stdout), alias).not.toThrow();
+    }
+  }, 60000);
+
+  it("installs all three MCP commands", () => {
+    for (const name of ["omp-mcp", "ohmypm-mcp", "oh-my-pm-mcp"]) {
       expect(existsSync(join(binDir, name)), name).toBe(true);
       expect(existsSync(join(binDir, `${name}.cmd`)), `${name}.cmd`).toBe(true);
     }
   });
 });
 
-describe("a fresh v0.5 install offers both families", () => {
+describe("a fresh v0.6 install offers all three families", () => {
   const root = makeRoot("fresh");
   const prefix = join(root, "prefix");
 
@@ -196,7 +219,7 @@ describe("uninstall removes every command shim", () => {
   const root = makeRoot("uninstall");
   const prefix = join(root, "prefix");
 
-  it("removes all eight shims and leaves unrelated files alone", () => {
+  it("removes all twelve shims and leaves unrelated files alone", () => {
     expect(runInstaller(["--prefix", prefix, "--apply"]).status).toBe(0);
     const binDir = join(prefix, "bin");
 

@@ -7,6 +7,8 @@ import { runLocalCliProcess } from "../src/local-process.js";
 import {
   MCP_CONFIG_COMMAND_NAME,
   MCP_CONFIG_DEFAULT_SERVER_NAME,
+  MCP_CONFIG_COMPATIBILITY_COMMAND_NAMES,
+  MCP_CONFIG_DEPRECATED_COMMAND_NAMES,
   MCP_CONFIG_LEGACY_COMMAND_NAMES,
   MCP_CONFIG_READ_ONLY_TOOLS,
   buildMcpClientConfig,
@@ -22,10 +24,10 @@ import {
 
 // A POSIX and a Windows installed entry-script path, in the exact shape the
 // release installer creates: <prefix>/lib/oh-my-pm/versions/<version>/bin/…
-const POSIX_ENTRY = "/opt/omp/lib/oh-my-pm/versions/0.3.1/bin/ohmypm.mjs";
-const POSIX_MCP = "/opt/omp/bin/ohmypm-mcp";
-const WINDOWS_ENTRY = "C:\\Tools\\omp\\lib\\oh-my-pm\\versions\\0.3.1\\bin\\ohmypm.mjs";
-const WINDOWS_MCP = "C:\\Tools\\omp\\bin\\ohmypm-mcp.cmd";
+const POSIX_ENTRY = "/opt/omp/lib/oh-my-pm/versions/0.3.1/bin/omp.mjs";
+const POSIX_MCP = "/opt/omp/bin/omp-mcp";
+const WINDOWS_ENTRY = "C:\\Tools\\omp\\lib\\oh-my-pm\\versions\\0.3.1\\bin\\omp.mjs";
+const WINDOWS_MCP = "C:\\Tools\\omp\\bin\\omp-mcp.cmd";
 
 /** Run mcp-config against an injected installed layout. Never touches disk. */
 async function run(
@@ -112,15 +114,15 @@ describe("installed prefix inference", () => {
   });
 
   it("derives nothing from a non-installed entry script", () => {
-    for (const path of ["", "/repo/cli/bin/ohmypm.mjs", "/usr/local/bin/ohmypm", "ohmypm.mjs"]) {
+    for (const path of ["", "/repo/cli/bin/omp.mjs", "/usr/local/bin/omp", "omp.mjs"]) {
       expect(candidateInstalledBinDirectories(path)).toEqual([]);
     }
   });
 
   it("selects the platform-correct command filename", () => {
-    expect(installedMcpCommandFileName("linux")).toBe("ohmypm-mcp");
-    expect(installedMcpCommandFileName("darwin")).toBe("ohmypm-mcp");
-    expect(installedMcpCommandFileName("win32")).toBe("ohmypm-mcp.cmd");
+    expect(installedMcpCommandFileName("linux")).toBe("omp-mcp");
+    expect(installedMcpCommandFileName("darwin")).toBe("omp-mcp");
+    expect(installedMcpCommandFileName("win32")).toBe("omp-mcp.cmd");
   });
 
   it("resolves the POSIX command from the installed prefix", () => {
@@ -291,8 +293,8 @@ describe("mcp-config through the process runner", () => {
   });
 
   it("needs no --prefix: the prefix comes from the CLI's own location", async () => {
-    const relocated = "/srv/other/lib/oh-my-pm/versions/0.3.1/bin/ohmypm.mjs";
-    const relocatedMcp = "/srv/other/bin/ohmypm-mcp";
+    const relocated = "/srv/other/lib/oh-my-pm/versions/0.3.1/bin/omp.mjs";
+    const relocatedMcp = "/srv/other/bin/omp-mcp";
     const result = await run([], {
       entryScriptPath: relocated,
       exists: [relocatedMcp],
@@ -376,22 +378,27 @@ describe("mcp-config through the process runner", () => {
 });
 
 // ---------------------------------------------------------------------------
-// v0.5 command migration: canonical vs legacy configuration.
+// v0.6 command migration: canonical, compatibility, and deprecated configuration.
 // ---------------------------------------------------------------------------
 
-describe("v0.5 generated configuration", () => {
-  it("invokes the canonical ohmypm-mcp command", () => {
-    expect(MCP_CONFIG_COMMAND_NAME).toBe("ohmypm-mcp");
+describe("v0.6 generated configuration", () => {
+  it("invokes the canonical omp-mcp command", () => {
+    expect(MCP_CONFIG_COMMAND_NAME).toBe("omp-mcp");
   });
 
   it("keeps the default server key as the product identity oh-my-pm", () => {
     // The server *key* is not a command. Leaving it unchanged means an existing
-    // client configuration keeps the same key and only its `command` changes.
+    // client configuration keeps the same key and only its `command` changes --
+    // so regenerating never creates a duplicate server entry.
     expect(MCP_CONFIG_DEFAULT_SERVER_NAME).toBe("oh-my-pm");
   });
 
-  it("recognizes the deprecated executable as a legacy command", () => {
-    expect(MCP_CONFIG_LEGACY_COMMAND_NAMES).toEqual(["oh-my-pm-mcp"]);
+  it("recognizes both alias families as still-functional commands", () => {
+    expect(MCP_CONFIG_COMPATIBILITY_COMMAND_NAMES).toEqual(["ohmypm-mcp"]);
+    expect(MCP_CONFIG_DEPRECATED_COMMAND_NAMES).toEqual(["oh-my-pm-mcp"]);
+    // The historical field name still resolves the full alias set, so a v0.5-era
+    // consumer keeps working.
+    expect(MCP_CONFIG_LEGACY_COMMAND_NAMES).toEqual(["ohmypm-mcp", "oh-my-pm-mcp"]);
   });
 
   it("generates a configuration whose command is canonical", () => {
@@ -404,19 +411,22 @@ describe("v0.5 generated configuration", () => {
 describe("classifyMcpConfigCommand", () => {
   it("classifies the canonical command by bare name and by absolute path", () => {
     for (const value of [
-      "ohmypm-mcp",
-      "/opt/omp/bin/ohmypm-mcp",
-      "C:\\Tools\\omp\\bin\\ohmypm-mcp.cmd",
-      "/opt/omp/bin/ohmypm-mcp.mjs",
+      "omp-mcp",
+      "/opt/omp/bin/omp-mcp",
+      "C:\\Tools\\omp\\bin\\omp-mcp.cmd",
+      "/opt/omp/bin/omp-mcp.mjs",
     ]) {
       expect(classifyMcpConfigCommand(value), value).toBe("canonical");
     }
   });
 
-  it("classifies a deprecated command as legacy rather than broken", () => {
-    // A configuration written before v0.5 still works through the compatibility
-    // shim, so it must never be reported as completely broken.
+  it("classifies either alias family as legacy rather than broken", () => {
+    // A configuration written before v0.6 still works through the alias, so it
+    // must never be reported as completely broken.
     for (const value of [
+      "ohmypm-mcp",
+      "/opt/omp/bin/ohmypm-mcp",
+      "C:\\Tools\\omp\\bin\\ohmypm-mcp.cmd",
       "oh-my-pm-mcp",
       "/opt/omp/bin/oh-my-pm-mcp",
       "C:\\Tools\\omp\\bin\\oh-my-pm-mcp.cmd",
@@ -431,25 +441,37 @@ describe("classifyMcpConfigCommand", () => {
     }
   });
 
-  it("never confuses the CLI command with the MCP command", () => {
+  it("never confuses a CLI command with the MCP command", () => {
+    expect(classifyMcpConfigCommand("omp")).toBe("unrecognized");
     expect(classifyMcpConfigCommand("ohmypm")).toBe("unrecognized");
     expect(classifyMcpConfigCommand("oh-my-pm")).toBe("unrecognized");
   });
 });
 
 describe("legacyMcpConfigGuidance", () => {
-  it("states that a legacy configuration still works and should be regenerated", () => {
+  it("states that a deprecated configuration still works and should be regenerated", () => {
     const guidance = legacyMcpConfigGuidance("/opt/omp/bin/oh-my-pm-mcp");
     expect(guidance).not.toBeNull();
     expect(guidance).toContain("still works");
-    expect(guidance).toContain("ohmypm-mcp");
+    expect(guidance).toContain("omp-mcp");
+    expect(guidance).toContain("deprecated");
     expect(guidance).not.toContain("broken");
     expect(guidance).not.toContain("invalid");
   });
 
+  it("does not call a compatibility alias deprecated", () => {
+    // `ohmypm-mcp` was canonical in v0.5. Reporting a configuration written then
+    // as "deprecated" would misstate its support level.
+    const guidance = legacyMcpConfigGuidance("/opt/omp/bin/ohmypm-mcp");
+    expect(guidance).not.toBeNull();
+    expect(guidance).toContain("still works");
+    expect(guidance).toContain("compatibility alias");
+    expect(guidance).not.toContain("deprecated");
+  });
+
   it("offers no guidance for a canonical or unrecognized command", () => {
-    expect(legacyMcpConfigGuidance("ohmypm-mcp")).toBeNull();
-    expect(legacyMcpConfigGuidance("/opt/omp/bin/ohmypm-mcp")).toBeNull();
+    expect(legacyMcpConfigGuidance("omp-mcp")).toBeNull();
+    expect(legacyMcpConfigGuidance("/opt/omp/bin/omp-mcp")).toBeNull();
     expect(legacyMcpConfigGuidance("node")).toBeNull();
   });
 

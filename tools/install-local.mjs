@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Preview-first local installer for the ohmypm and ohmypm-mcp command shims, plus
-// the retained deprecated compatibility aliases. Preview by default; writes only
+// Preview-first local installer for the omp and omp-mcp command shims, plus the
+// retained compatibility and deprecated aliases. Preview by default; writes only
 // with --apply, and only inside <prefix>/bin. No PATH edits, no shell-profile
 // edits, no network, no env.
 

@@ -305,7 +305,8 @@ jobs:
           # Apply, verify installed state.
           node "$BUNDLE/bin/ohmypm-install.mjs" --prefix "$PREFIX" --apply
           node tools/check-release-install.mjs --prefix "$PREFIX" --expected-version "$VERSION"
-          # All eight shims: canonical commands and compatibility aliases.
+          # All twelve shims: canonical commands, compatibility aliases, and
+          # deprecated aliases.
           for name in ohmypm ohmypm-mcp oh-my-pm oh-my-pm-mcp; do
             test -f "$PREFIX/bin/$name"
             test -f "$PREFIX/bin/$name.cmd"
@@ -419,7 +420,7 @@ jobs:
           node $installer --prefix $prefix
           if ($LASTEXITCODE -ne 0) { throw "installer preview failed" }
           if (Test-Path $prefix) { throw "preview created a prefix" }
-          # Apply and verify the eight shims, including the .cmd shims, exist.
+          # Apply and verify the twelve shims, including the .cmd shims, exist.
           # Capture stderr so a failure surfaces the installer's bounded,
           # path-free reason codes (e.g. post_install_verification_failed,
           # post_posix_shim_mode_mismatch) that pinpoint the failing subsystem.
@@ -428,7 +429,7 @@ jobs:
           $applyExit = $LASTEXITCODE
           if (Test-Path $applyErr) { Get-Content $applyErr | Write-Host }
           if ($applyExit -ne 0) { throw "installer apply failed" }
-          # v0.5 installs eight shims on Windows too: the canonical commands and
+          # v0.6 installs twelve shims on Windows too: the canonical commands and
           # the deprecated compatibility aliases, each with a .cmd launcher.
           foreach ($shim in @(
             "ohmypm", "ohmypm.cmd", "ohmypm-mcp", "ohmypm-mcp.cmd",

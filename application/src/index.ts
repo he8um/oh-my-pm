@@ -21,20 +21,27 @@ export type {
 
 // --- public command names --------------------------------------------------
 // The invoked executable names are a shared vocabulary, not a CLI-private
-// detail: the MCP alias wrapper needs the same deprecation warning. This module
-// is pure -- no filesystem, environment, network, clock, or randomness -- and
+// detail: the MCP alias wrappers need the same warning text. This module is pure
+// -- no filesystem, environment, network, clock, or randomness -- and
 // tools/validate-command-surface.mjs pins it against command-surface.json.
 export {
   CANONICAL_CLI_COMMAND,
   CANONICAL_INSTALLER_COMMAND,
   CANONICAL_MCP_COMMAND,
+  COMMAND_CANONICAL_SINCE,
+  COMMAND_COMPATIBILITY_SINCE,
   COMMAND_DEPRECATED_SINCE,
-  LEGACY_CLI_COMMANDS,
-  LEGACY_INSTALLER_COMMANDS,
-  LEGACY_MCP_COMMANDS,
+  COMPATIBILITY_CLI_COMMANDS,
+  COMPATIBILITY_INSTALLER_COMMANDS,
+  COMPATIBILITY_MCP_COMMANDS,
+  DEPRECATED_CLI_COMMANDS,
+  DEPRECATED_INSTALLER_COMMANDS,
+  DEPRECATED_MCP_COMMANDS,
   canonicalCommandForAlias,
-  commandDeprecationWarning,
+  commandAliasClass,
+  commandAliasWarning,
 } from "./command-surface.js";
+export type { CommandAliasClass } from "./command-surface.js";
 
 // --- runtime response projection -------------------------------------------
 // Presentation-neutral rendering of a RuntimeResponse into the JSON, Markdown,

@@ -64,19 +64,26 @@ export type {
 } from "./mcp-config.js";
 
 // --- command-name compatibility --------------------------------------------
-// v0.5: the canonical command names and the deprecation-warning helper shared by
-// every compatibility wrapper.
+// v0.6: the canonical `omp*` command names, the two alias classes, and the
+// warning helper shared by every compatibility wrapper.
 export {
   CANONICAL_CLI_COMMAND,
   CANONICAL_INSTALLER_COMMAND,
   CANONICAL_MCP_COMMAND,
+  COMMAND_CANONICAL_SINCE,
+  COMMAND_COMPATIBILITY_SINCE,
   COMMAND_DEPRECATED_SINCE,
-  LEGACY_CLI_COMMANDS,
-  LEGACY_INSTALLER_COMMANDS,
-  LEGACY_MCP_COMMANDS,
+  COMPATIBILITY_CLI_COMMANDS,
+  COMPATIBILITY_INSTALLER_COMMANDS,
+  COMPATIBILITY_MCP_COMMANDS,
+  DEPRECATED_CLI_COMMANDS,
+  DEPRECATED_INSTALLER_COMMANDS,
+  DEPRECATED_MCP_COMMANDS,
   canonicalCommandForAlias,
-  commandDeprecationWarning,
+  commandAliasClass,
+  commandAliasWarning,
 } from "@oh-my-pm/application";
+export type { CommandAliasClass } from "@oh-my-pm/application";
 
 // --- installer preview -----------------------------------------------------
 export { formatInstallerPreview, runInstallerPreview } from "./install-preview.js";

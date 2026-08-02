@@ -20,11 +20,11 @@ Shipped since v0.3.0, and packaged in the current release bundle. It is reached
 ([`@oh-my-pm/application`](../application/README.md)), which loads it via a lazy
 dynamic import so a profile without Project Memory still starts:
 
-| Surface | Entry points                                                                                                     |
-| ------- | ---------------------------------------------------------------------------------------------------------------- |
-| CLI     | the seven `ohmypm memory` subcommands: `capture`, `changes`, `status`, `history`, `export`, `delete`, `timeline` |
-| MCP     | the read-only `project_changes` and `project_timeline` tools                                                     |
-| Runtime | the Project Brain Runtime API (`createProjectBrainRuntime`) via the structural port                              |
+| Surface | Entry points                                                                                                  |
+| ------- | ------------------------------------------------------------------------------------------------------------- |
+| CLI     | the seven `omp memory` subcommands: `capture`, `changes`, `status`, `history`, `export`, `delete`, `timeline` |
+| MCP     | the read-only `project_changes` and `project_timeline` tools                                                  |
+| Runtime | the Project Brain Runtime API (`createProjectBrainRuntime`) via the structural port                           |
 
 No package takes a production dependency on it except the application layer,
 CLI, and MCP server; the Runtime reaches it only through a structural port, and

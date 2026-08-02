@@ -38,10 +38,17 @@ import {
   CANONICAL_MCP,
   INSTALLED_SHIM_COUNT,
   INSTALLED_SHIM_NAMES,
-  LEGACY_CLI,
-  LEGACY_INSTALLED_COMMANDS,
+  ALIAS_INSTALLED_COMMANDS,
+  COMPAT_CLI,
+  DEPRECATED_CLI,
   REPO_ROOT,
 } from "./command-surface.mjs";
+
+// Active documentation must present the canonical family. Both alias classes are
+// equally wrong as the *primary* example, even though `ohmypm*` remains fully
+// supported at runtime, so the two are policed together here.
+const LEGACY_CLI = [...COMPAT_CLI, ...DEPRECATED_CLI];
+const LEGACY_INSTALLED_COMMANDS = ALIAS_INSTALLED_COMMANDS;
 import { loadReleaseState } from "./release-state.mjs";
 import {
   activeDocPaths,
@@ -241,10 +248,16 @@ const MCP_SURFACE_DOCS = [
     const text = read(rel);
     if (text === null) continue;
     for (const block of text.matchAll(/^```(?:bash|sh|console)\n([\s\S]*?)^```/gm)) {
-      // A block that shows the deprecation warning is DOCUMENTING the alias
-      // behavior, not recommending the alias. That is the one legitimate reason
-      // to type a deprecated name in an example.
-      if (/deprecated compatibility alias/i.test(block[1])) continue;
+      // A block that shows the alias notice is DOCUMENTING the alias behavior,
+      // not recommending the alias.
+      if (/is a compatibility alias|is deprecated|deprecated compatibility alias/i.test(block[1])) {
+        continue;
+      }
+      // A migration guide's before/after pair must show the old command to be
+      // useful at all. The `before` marker is what distinguishes "here is what
+      // you used to type" from "here is what to type", and it is only honored in
+      // a block that also shows the canonical replacement.
+      if (/^#\s*before\b/im.test(block[1]) && block[1].includes(CANONICAL_CLI)) continue;
       if (aliasExample.test(block[1])) {
         err(
           `${rel}: a shell example invokes a deprecated alias; use "${CANONICAL_CLI}" ` +

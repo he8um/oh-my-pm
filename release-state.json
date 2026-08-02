@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "sourceVersion": "0.5.4",
-  "sourceState": "published",
+  "sourceVersion": "0.6.0",
+  "sourceState": "prepared",
   "latestStableVersion": "0.5.4",
   "latestStableTag": "v0.5.4",
   "latestStableCommit": "288337a9514150b7a5973d9d9410f7186567520f",
-  "releaseLine": "v0.5",
-  "bundleProfile": "ohmypm-cli-namespace",
-  "publicationTarget": null
+  "releaseLine": "v0.6",
+  "bundleProfile": "omp-cli-namespace",
+  "publicationTarget": "v0.6.0"
 }

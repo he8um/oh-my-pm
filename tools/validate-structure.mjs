@@ -221,8 +221,10 @@ const CLI_SOURCES = [
   "cli/test/cli.test.ts",
   "cli/test/purity.test.ts",
   "cli/README.md",
+  "cli/bin/omp.mjs",
+  // v0.6: retained compatibility alias (canonical in v0.5) and the older
+  // deprecated alias.
   "cli/bin/ohmypm.mjs",
-  // v0.5: retained deprecated compatibility alias.
   "cli/bin/oh-my-pm.mjs",
   "cli/test/bin.test.ts",
   "cli/test/local-runtime-smoke.test.ts",
@@ -462,8 +464,10 @@ const MCP_SERVER_SOURCES = [
   "mcp-server/src/project-tool-runner.ts",
   "mcp-server/src/server.ts",
   "mcp-server/src/index.ts",
+  "mcp-server/bin/omp-mcp.mjs",
+  // v0.6: retained compatibility alias (canonical in v0.5) and the older
+  // deprecated alias.
   "mcp-server/bin/ohmypm-mcp.mjs",
-  // v0.5: retained deprecated compatibility alias.
   "mcp-server/bin/oh-my-pm-mcp.mjs",
   "mcp-server/test/project-tool-runner.test.ts",
   "mcp-server/test/server.test.ts",
@@ -497,9 +501,12 @@ const RELEASE_BUNDLE_SOURCES = [
   "CHANGELOG.md",
   "distribution/package.json",
   "distribution/README.md",
+  "distribution/bin/omp.mjs",
+  "distribution/bin/omp-mcp.mjs",
+  // v0.6: retained compatibility aliases (canonical in v0.5) and the older
+  // deprecated aliases.
   "distribution/bin/ohmypm.mjs",
   "distribution/bin/ohmypm-mcp.mjs",
-  // v0.5: retained deprecated compatibility aliases.
   "distribution/bin/oh-my-pm.mjs",
   "distribution/bin/oh-my-pm-mcp.mjs",
   "cli/src/local-process.ts",
@@ -558,8 +565,10 @@ for (const file of GITHUB_FEATURE_SOURCES) {
 // 7g7. Portable release-bundle installer surfaces, repository wrapper,
 // read-only installed-state verifier, and their tests.
 const RELEASE_INSTALL_SOURCES = [
+  "distribution/bin/omp-install.mjs",
+  // v0.6: retained compatibility alias (canonical in v0.5) and the older
+  // deprecated alias.
   "distribution/bin/ohmypm-install.mjs",
-  // v0.5: retained deprecated compatibility alias.
   "distribution/bin/oh-my-pm-install.mjs",
   "distribution/libexec/release-install-core.mjs",
   "distribution/libexec/release-install-core.test.mjs",
@@ -987,8 +996,12 @@ const ALLOWED_RELEASE_WORKFLOWS = new Set([
   // historically accurate.
   "release-v0.4.yml",
   // v0.5 STABLE release workflow (manually gated stable, validated in detail by
-  // validate-boundaries.mjs). It is the ACTIVE stable release workflow.
+  // validate-boundaries.mjs). Superseded as the active workflow by v0.6 and kept
+  // historically accurate.
   "release-v0.5.yml",
+  // v0.6 STABLE release workflow (manually gated stable, validated in detail by
+  // validate-boundaries.mjs). It is the ACTIVE stable release workflow.
+  "release-v0.6.yml",
   // v0.3 STABLE release workflow (manually gated stable, validated in detail by
   // validate-boundaries.mjs). It legitimately uses gh release / tags.
   "release-v0.3.yml",
@@ -1249,7 +1262,7 @@ if (existsSync("project-memory/src/types.ts")) {
 // machine-readable manifest at the repository root, with a tool-side loader and
 // a consistency validator. Every other surface that restates a command name is
 // checked against the manifest by tools/validate-command-surface.mjs.
-const V05_COMMAND_SURFACE_REQUIRED = [
+const COMMAND_SURFACE_REQUIRED = [
   "command-surface.json",
   "tools/command-surface.mjs",
   "tools/validate-command-surface.mjs",
@@ -1260,18 +1273,21 @@ const V05_COMMAND_SURFACE_REQUIRED = [
   "tools/test/command-upgrade-compatibility.test.mjs",
   "cli/test/command-alias.test.ts",
   "mcp-server/test/command-alias.test.ts",
-  // The v0.5 release line gets its own workflow and qualification test; the
-  // published v0.1-v0.4 workflows are never rewritten.
+  // The v0.6 release line gets its own workflow and qualification test; the
+  // published v0.1-v0.5 workflows are never rewritten.
+  ".github/workflows/release-v0.6.yml",
   ".github/workflows/release-v0.5.yml",
   ".github/workflows/v0.5-installed-qualification.yml",
-  "tools/test/v0.5-release-qualification.test.mjs",
-  // v0.5 migration guide, release notes, and publishing runbook.
+  "tools/test/v0.6-release-qualification.test.mjs",
+  // v0.6 migration guide and release notes, plus the retained v0.5 material.
+  "docs/v0.6/README.md",
+  "docs/releases/v0.6.0.md",
   "docs/v0.5/README.md",
   "docs/releases/v0.5.0.md",
   "docs/releases/publishing-v0.5.0.md",
 ];
-for (const file of V05_COMMAND_SURFACE_REQUIRED) {
-  if (!existsSync(file)) err(`v0.5 command-surface file missing: ${file}`);
+for (const file of COMMAND_SURFACE_REQUIRED) {
+  if (!existsSync(file)) err(`command-surface file missing: ${file}`);
 }
 
 if (fail) {
