@@ -108,7 +108,7 @@ export type LocalCliProcessOptions = {
 // This module previously declared its own LOCAL_FIXED_NOW holding the same
 // value for the same reason; two constants that must agree but are declared
 // apart will eventually disagree.
-const DEFAULT_VERSION = "0.6.0";
+const DEFAULT_VERSION = "0.6.1";
 
 // Seed items for the commands that do not read project documents
 // (status/doctor/plan). The shared project workflows load their own documents

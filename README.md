@@ -29,7 +29,7 @@ It is designed for teams that want clearer delivery context, safer execution bou
 
 ## What this repository is
 
-This repository is the current implementation of OH MY PM. Its release line is `v0.x`: the published stable releases run from [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) through [`v0.6.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.0), and the source version is recorded in [`version.json`](version.json).
+This repository is the current implementation of OH MY PM. Its release line is `v0.x`: the published stable releases run from [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) through [`v0.6.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.0), and the source version is recorded in [`version.json`](version.json) — currently `0.6.1`, which is prepared but not yet published.
 
 It began as a clean rebuild with a new architecture, replacing an earlier prototype line that is no longer developed here. That rebuild is history, not a pending migration: there is no `v2.x` target, and the versions above are the only release line this repository ships. See [the roadmap](ROADMAP.md) for what is planned next.
 
