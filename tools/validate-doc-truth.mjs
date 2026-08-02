@@ -8,7 +8,10 @@
 // Every expectation is DERIVED from a canonical source, never restated here:
 //
 //   version.json                      the source version
+//   release-state.json                the release lifecycle and latest stable
 //   command-surface.json              the canonical and deprecated command names
+//   docs/manifest.json                which documents are current truth
+//   pnpm-workspace.yaml               the real workspace packages
 //   mcp-server/src/server.ts          the registered MCP tools, in order
 //   application/src/memory-types.ts   the memory subcommands
 //   */package.json                    private/version/type facts
@@ -16,16 +19,18 @@
 // So this file adds no second source of truth: if the product changes, the
 // derived expectation changes with it and the documentation must follow.
 //
-// HISTORICAL documents are excluded. docs/releases/**, docs/v0.3/**, the v0.2
-// stabilization audit, and superseded CHANGELOG entries are point-in-time
-// records; their old versions and tool counts were true when written and must
-// stay that way. Only documents that describe the system AS IT IS NOW are
-// checked.
+// HISTORICAL documents are excluded, and which documents those are is read from
+// docs/manifest.json rather than hard-coded here. Release notes, the v0.3/v0.4
+// design records, the v0.2 stabilization audit, and the CHANGELOG are
+// point-in-time records; their old versions and tool counts were true when
+// written and must stay that way. Only documents classified `active` describe
+// the system AS IT IS NOW, and only those are checked for current-state claims.
 //
 // Read-only: no writes, no network, no environment reads.
 
+import { execFileSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, normalize } from "node:path";
 import {
   CANONICAL_CLI,
   CANONICAL_INSTALLED_COMMANDS,
@@ -38,6 +43,15 @@ import {
   REPO_ROOT,
 } from "./command-surface.mjs";
 import { loadReleaseState } from "./release-state.mjs";
+import {
+  activeDocPaths,
+  classificationOf,
+  historicalDocPaths,
+  isExcluded,
+  loadDocsManifest,
+  normativeDocPaths,
+  supersededDocPaths,
+} from "./docs-manifest.mjs";
 
 let fail = false;
 const err = (msg) => {
@@ -135,43 +149,29 @@ const memoryWord = NUMBER_WORDS[MEMORY_SUBCOMMANDS.length] ?? String(MEMORY_SUBC
 // Document classification.
 // ---------------------------------------------------------------------------
 
+// v0.5.3: the active/historical split is no longer restated here. It is DERIVED
+// from docs/manifest.json, the authoritative classification contract, so this
+// validator and tools/docs-inventory.mjs cannot disagree, and a newly added
+// document is classified deliberately instead of defaulting to unchecked.
+//
+// Structural defects in the manifest are reported here for the same reason
+// release-state defects are: a malformed classification contract is a
+// documentation defect and must fail `pnpm validate:docs`.
+const { manifest: DOCS_MANIFEST, errors: DOCS_MANIFEST_ERRORS } = loadDocsManifest(REPO_ROOT);
+for (const message of DOCS_MANIFEST_ERRORS) err(message);
+
 /**
  * Historical documents are point-in-time records. They are never checked for
  * current-state claims, and they must not be rewritten to match today.
+ *
+ * `_dev/` is untracked scratch space and never classified, so it stays a prefix
+ * rule rather than a manifest entry.
  */
-const HISTORICAL_PREFIXES = [
-  "docs/releases/",
-  "docs/v0.3/",
-  "docs/v0.4/",
-  "docs/architecture/",
-  "_dev/",
-];
-const isHistorical = (rel) => HISTORICAL_PREFIXES.some((p) => rel.startsWith(p));
+const HISTORICAL_PATHS = new Set(DOCS_MANIFEST === null ? [] : historicalDocPaths(DOCS_MANIFEST));
+const isHistorical = (rel) => rel.startsWith("_dev/") || HISTORICAL_PATHS.has(rel);
 
 /** Active documents whose current-state claims are checked. */
-const ACTIVE_DOCS = [
-  "README.md",
-  "ROADMAP.md",
-  "CONTRIBUTING.md",
-  // Issue #30: the support and security policies were not checked, so they kept
-  // describing a project with no supported release and an unfinished scaffold.
-  "SECURITY.md",
-  "SUPPORT.md",
-  "docs/architecture.md",
-  "docs/roadmap.md",
-  "docs/getting-started.md",
-  "docs/security-model.md",
-  "docs/v0.5/README.md",
-  "docs/v0.5/v0.5.1-scope.md",
-  "docs/v0.5/application-boundary.md",
-  "application/README.md",
-  "cli/README.md",
-  "mcp-server/README.md",
-  "runtime/README.md",
-  "project-memory/README.md",
-  "installer/README.md",
-  "distribution/README.md",
-];
+const ACTIVE_DOCS = DOCS_MANIFEST === null ? [] : activeDocPaths(DOCS_MANIFEST);
 
 /**
  * Active documents that deliberately QUOTE stale claims in order to record what
@@ -781,6 +781,143 @@ if (RELEASE_STATE !== null) {
     // Security reports must be routed away from public issues.
     if (!/SECURITY\.md|security (?:report|vulnerabilit)/i.test(support)) {
       err("SUPPORT.md must route security reports away from public issues");
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 15. Every tracked document is classified.
+// ---------------------------------------------------------------------------
+//
+// An unclassified document is an unchecked document: none of the current-state
+// guards above apply to it, so it can claim anything indefinitely. Requiring
+// classification makes "is this current truth?" an answered question for every
+// file rather than an accident of which array someone remembered to edit.
+
+if (DOCS_MANIFEST !== null) {
+  const tracked = execFileSync("git", ["ls-files", "*.md"], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+  })
+    .split("\n")
+    .filter((line) => line.length > 0);
+
+  for (const rel of tracked) {
+    if (isExcluded(DOCS_MANIFEST, rel)) continue;
+    if (classificationOf(DOCS_MANIFEST, rel) === null) {
+      err(
+        `${rel} is not classified in docs/manifest.json; add it with a status and ` +
+          `authority, or exclude it explicitly`,
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 16. Active documentation names only packages that exist, and the
+//     authoritative package map omits none that do.
+// ---------------------------------------------------------------------------
+//
+// Two symmetrical drifts, both of which mislead a reader who is trying to find
+// the code behind a claim:
+//
+//   a package named as implemented that does not exist -- the reader looks for
+//   @oh-my-pm/<thing>, finds nothing, and cannot tell whether the docs or the
+//   tree is wrong;
+//
+//   a real workspace package missing from the architecture package map -- the
+//   reader concludes the package is not part of the system.
+//
+// Both expectations derive from pnpm-workspace.yaml, so adding or removing a
+// package moves them automatically.
+
+{
+  /** Real workspace package names, from the workspace manifest. */
+  const workspacePackages = (() => {
+    const yaml = read("pnpm-workspace.yaml");
+    if (yaml === null) return [];
+    const dirs = [...yaml.matchAll(/^\s*-\s*"([^"]+)"/gm)].map((m) => m[1]);
+    const names = [];
+    for (const dir of dirs) {
+      const pkg = read(`${dir}/package.json`);
+      if (pkg === null) {
+        err(`pnpm-workspace.yaml lists "${dir}" but ${dir}/package.json is missing`);
+        continue;
+      }
+      names.push(JSON.parse(pkg).name);
+    }
+    return names;
+  })();
+
+  if (workspacePackages.length === 0) {
+    err("could not derive the workspace package list from pnpm-workspace.yaml");
+  }
+  const realPackages = new Set(workspacePackages);
+
+  // 16a. No active document may present a nonexistent @oh-my-pm/* package as
+  //      part of the implemented system.
+  for (const rel of ACTIVE_DOCS) {
+    const text = read(rel);
+    if (text === null || QUOTES_STALE_CLAIMS.has(rel)) continue;
+    const named = new Set([...text.matchAll(/@oh-my-pm\/([a-z][a-z0-9-]*)/g)].map((m) => m[0]));
+    for (const pkg of [...named].sort()) {
+      if (!realPackages.has(pkg)) {
+        err(
+          `${rel}: names the package "${pkg}", which is not a workspace package ` +
+            `(real packages: ${[...realPackages].sort().join(", ")})`,
+        );
+      }
+    }
+  }
+
+  // 16b. The authoritative package map must account for every real package.
+  //      docs/architecture.md is that map: it is the active+normative document
+  //      for the "architecture" concern.
+  const architecture = read("docs/architecture.md");
+  if (architecture !== null) {
+    for (const pkg of [...realPackages].sort()) {
+      if (!architecture.includes(pkg)) {
+        err(
+          `docs/architecture.md is the authoritative package map but omits the real ` +
+            `workspace package "${pkg}"`,
+        );
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 17. A superseded document is not linked as though it were current.
+// ---------------------------------------------------------------------------
+//
+// Marking a document superseded records that it should no longer be followed.
+// That is only meaningful if the active, normative documents stop pointing at
+// it -- otherwise a reader arrives via a current index and reads stale guidance
+// with no indication it was replaced. The replacement path exists precisely so
+// the link can be redirected.
+
+if (DOCS_MANIFEST !== null) {
+  const superseded = supersededDocPaths(DOCS_MANIFEST);
+  if (superseded.length > 0) {
+    for (const rel of normativeDocPaths(DOCS_MANIFEST)) {
+      const text = read(rel);
+      if (text === null) continue;
+      // Markdown inline links only: a bare path mentioned in prose (for example
+      // when explaining that a document WAS superseded) is not a live link.
+      const linked = [...text.matchAll(/\]\(([^)\s#]+)/g)].map((m) => m[1]);
+      for (const target of linked) {
+        const resolved = target.startsWith("/")
+          ? target.slice(1)
+          : normalize(join(dirname(rel), target));
+        const hit = superseded.find((s) => s === resolved);
+        if (hit !== undefined) {
+          const replacement = classificationOf(DOCS_MANIFEST, hit)?.replacement;
+          err(
+            `${rel} is active+normative but links to the superseded document ${hit}; ` +
+              `link ${replacement ?? "its replacement"} instead`,
+          );
+        }
+      }
     }
   }
 }
