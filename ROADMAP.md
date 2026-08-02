@@ -8,7 +8,7 @@ unpublished**, **Active maintenance**, **Planned**, or **Out of scope**.
 ## Shipped — v0.5.3
 
 **Documentation and architecture truth.** A patch release with no product code
-change and no public behavior change, **published as the latest stable release**.
+change and no public behavior change, superseded as latest stable by `v0.5.4`.
 
 `docs/manifest.json` becomes the authoritative, machine-readable record of
 documentation authority — `status`, `authority`, `appliesTo`, `replacement`, and
@@ -89,12 +89,12 @@ the v0.5 line. See [`docs/v0.5/README.md`](docs/v0.5/README.md).
   context provider framework, and the validation and release lifecycle.
 
 The latest **published** stable release is
-[`v0.5.3`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.3).
+[`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4).
 
-## Prepared but unpublished — v0.5.4
+## Shipped — v0.5.4
 
 **Contract and repository consistency.** A patch release with no public behavior
-change.
+change, **published as the latest stable release**.
 
 `packages.json` becomes the authoritative package catalog — one role per
 workspace, explicit dependency allowances and forbidden inversions, permitted
