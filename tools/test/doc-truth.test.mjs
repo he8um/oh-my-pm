@@ -228,12 +228,28 @@ describe("the release-state contract is validated", () => {
       join(repoRoot, ".github", "workflows", "release-v0.5.yml"),
       "utf8",
     );
-    // The immutable base lineage is the stable this release is published FROM,
-    // which is the contract's current latestStable. v0.5.3 is released on top of
-    // the published v0.5.2.
-    const { state } = loadReleaseState(repoRoot);
-    expect(workflow).toContain(`BASE_TAG=${state.latestStableTag}`);
-    expect(workflow).toContain(`BASE_SHA=${state.latestStableCommit}`);
+    // The base lineage is the stable this release is published FROM. It is a
+    // STRICTLY EARLIER release than the one the workflow targets, so it must not
+    // be compared against the contract's latestStable: once a release is
+    // published those two are the same version, and the assertion would demand
+    // the workflow claim it was built on top of itself.
+    //
+    // What must hold is the property: the base is pinned as a tag/SHA pair, and
+    // it names an earlier version than the workflow's target.
+    const target = workflow.match(/^\s*default: "(\d+\.\d+\.\d+)"$/m);
+    expect(target, "the workflow must declare a default target version").not.toBeNull();
+
+    const baseTag = workflow.match(/BASE_TAG=v(\d+\.\d+\.\d+)/);
+    const baseSha = workflow.match(/BASE_SHA=([0-9a-f]{40})/);
+    expect(baseTag, "the workflow must pin a base stable tag").not.toBeNull();
+    expect(baseSha, "the workflow must pin a base stable SHA").not.toBeNull();
+
+    const asParts = (v) => v.split(".").map(Number);
+    const [tMaj, tMin, tPatch] = asParts(target[1]);
+    const [bMaj, bMin, bPatch] = asParts(baseTag[1]);
+    const earlier =
+      bMaj < tMaj || (bMaj === tMaj && (bMin < tMin || (bMin === tMin && bPatch < tPatch)));
+    expect(earlier, `base ${baseTag[1]} must be earlier than the target ${target[1]}`).toBe(true);
   });
 
   it("catches a stale latest stable version", () => {
@@ -299,18 +315,22 @@ describe("the release-state contract is validated", () => {
   });
 
   it("catches a published source whose latest stable is an older release", () => {
+    // Build a genuinely older version rather than reusing the contract's current
+    // latestStable: once the source is published those are the same value, so
+    // reusing it would assert an invariant that already holds and the mutation
+    // would silently test nothing.
     const { state } = loadReleaseState(repoRoot);
+    const [major, minor, patch] = state.sourceVersion.split(".").map(Number);
+    const older = patch > 0 ? `${major}.${minor}.${patch - 1}` : `${major}.${minor - 1}.0`;
     withReleaseState({
       sourceState: "published",
-      latestStableVersion: state.latestStableVersion,
-      latestStableTag: state.latestStableTag,
+      latestStableVersion: older,
+      latestStableTag: `v${older}`,
       publicationTarget: null,
     });
     const result = runValidator();
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain(
-      `latestStableVersion (${state.latestStableVersion}) is not sourceVersion`,
-    );
+    expect(result.stderr).toContain(`latestStableVersion (${older}) is not sourceVersion`);
   });
 
   it("catches a contract that disagrees with version.json", () => {
@@ -465,10 +485,13 @@ describe("the security policy is checked", () => {
   });
 
   it("catches SECURITY.md that stops naming the supported stable", () => {
-    withTemporaryEdit("SECURITY.md", (text) => text.replaceAll("0.5.2", "0.0.0"));
+    const { state } = loadReleaseState(repoRoot);
+    withTemporaryEdit("SECURITY.md", (text) => text.replaceAll(state.latestStableVersion, "0.0.0"));
     const result = runValidator();
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/must name the supported stable release v0\.5\.2/);
+    expect(result.stderr).toContain(
+      `must name the supported stable release ${state.latestStableTag}`,
+    );
   });
 
   it("catches an invented security email address", () => {
@@ -644,10 +667,15 @@ describe("the published state is recorded and enforced", () => {
   });
 
   it("requires the security policy's supported stable to equal the latest stable", () => {
-    withTemporaryEdit("SECURITY.md", (text) => text.replaceAll("0.5.2", "0.5.1"));
+    const { state } = loadReleaseState(repoRoot);
+    const [major, minor, patch] = state.latestStableVersion.split(".").map(Number);
+    const older = patch > 0 ? `${major}.${minor}.${patch - 1}` : `${major}.${minor - 1}.0`;
+    withTemporaryEdit("SECURITY.md", (text) => text.replaceAll(state.latestStableVersion, older));
     const result = runValidator();
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/must name the supported stable release v0\.5\.2/);
+    expect(result.stderr).toContain(
+      `must name the supported stable release ${state.latestStableTag}`,
+    );
   });
 
   it("points installation guidance at the published release", () => {

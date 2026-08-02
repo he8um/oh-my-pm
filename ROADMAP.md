@@ -5,10 +5,10 @@ The detailed public roadmap is maintained in [`docs/roadmap.md`](docs/roadmap.md
 Work is labelled with one of five states: **Shipped**, **Prepared but
 unpublished**, **Active maintenance**, **Planned**, or **Out of scope**.
 
-## Prepared but unpublished — v0.5.3
+## Shipped — v0.5.3
 
 **Documentation and architecture truth.** A patch release with no product code
-change and no public behavior change.
+change and no public behavior change, **published as the latest stable release**.
 
 `docs/manifest.json` becomes the authoritative, machine-readable record of
 documentation authority — `status`, `authority`, `appliesTo`, `replacement`, and
@@ -26,12 +26,13 @@ repository as a "new v2 line" (it ships `v0.x`, with no `v2.x` target), and the
 architecture package map omitted the real `@oh-my-pm/examples` package. Historical
 and release records are preserved unedited — the changelog is classified as a
 release record precisely so its accurate past claims are not rewritten. See
-[`docs/releases/v0.5.3.md`](docs/releases/v0.5.3.md).
+[`docs/releases/v0.5.3.md`](docs/releases/v0.5.3.md) and the
+[post-publication validation record](docs/releases/v0.5.3-post-publication-validation.md).
 
 ## Shipped — v0.5.2
 
 **The shared GitHub application boundary.** A patch release with no public
-behavior change, **published as the latest stable release**.
+behavior change, superseded as latest stable by `v0.5.3`.
 
 The GitHub-backed project workflow is composed once in
 `@oh-my-pm/application`, so the CLI and MCP surfaces consume the same
@@ -88,7 +89,7 @@ the v0.5 line. See [`docs/v0.5/README.md`](docs/v0.5/README.md).
   context provider framework, and the validation and release lifecycle.
 
 The latest **published** stable release is
-[`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2).
+[`v0.5.3`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.3).
 
 ## Planned — v0.5.4
 

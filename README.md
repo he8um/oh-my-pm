@@ -10,12 +10,12 @@
 </p>
 It is designed for teams that want clearer delivery context, safer execution boundaries, and repeatable validation around project work.
 
-> **Latest stable release:** [`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2)
-> **Source version:** `0.5.3` (prepared; not yet published)
+> **Latest stable release:** [`v0.5.3`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.3)
+> **Source version:** `0.5.3` (published)
 >
-> **`v0.5.3` is prepared and not yet published.** It is a **documentation and architecture truth** patch with no product code change and no public behavior change: `docs/manifest.json` becomes the authoritative machine-readable record of documentation authority, `pnpm validate:docs` derives its active and historical document sets from that manifest and gains guards for nonexistent-package claims, packages omitted from the authoritative package map, superseded documents linked as normative, and duplicate authoritative documents, and `pnpm docs:inventory` reports the classification offline. It corrects two real errors: this README's former claim to be a "new v2 line", and the omission of `@oh-my-pm/examples` from the architecture package map. See the [v0.5.3 release notes](docs/releases/v0.5.3.md).
+> [`v0.5.3`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.3) is the current stable release, a **documentation and architecture truth** patch with no product code change and no public behavior change: `docs/manifest.json` becomes the authoritative machine-readable record of documentation authority, `pnpm validate:docs` derives its active and historical document sets from that manifest and gains guards for nonexistent-package claims, packages omitted from the authoritative package map, superseded documents linked as normative, and duplicate authoritative documents, and `pnpm docs:inventory` reports the classification offline. It corrects two real errors: this README's former claim to be a "new v2 line", and the omission of `@oh-my-pm/examples` from the architecture package map. See the [v0.5.3 release notes](docs/releases/v0.5.3.md) and the [post-publication validation record](docs/releases/v0.5.3-post-publication-validation.md).
 >
-> [`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2) is the current stable release, a **maintenance release** whose scope is centralizing the GitHub-backed project workflow in `@oh-my-pm/application`, so the CLI and MCP surfaces consume the same application use case instead of each rebuilding the Runtime pipeline. It changes **no** public behavior: no new command, no changed CLI syntax or JSON output, no changed MCP tool, schema, annotation or tool order, no Project Brain schema change, no Project Memory format change, and **no migration** from v0.5.1. It includes no Dashboard. See the [v0.5.2 release notes](docs/releases/v0.5.2.md) and the [post-publication validation record](docs/releases/v0.5.2-post-publication-validation.md).
+> [`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2) is a preserved stable release, a **maintenance release** whose scope is centralizing the GitHub-backed project workflow in `@oh-my-pm/application`, so the CLI and MCP surfaces consume the same application use case instead of each rebuilding the Runtime pipeline. It changes **no** public behavior: no new command, no changed CLI syntax or JSON output, no changed MCP tool, schema, annotation or tool order, no Project Brain schema change, no Project Memory format change, and **no migration** from v0.5.1. It includes no Dashboard. See the [v0.5.2 release notes](docs/releases/v0.5.2.md) and the [post-publication validation record](docs/releases/v0.5.2-post-publication-validation.md).
 >
 > [`v0.5.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.1) is a preserved stable release and the **first published stable of the v0.5 line**. It corrected active documentation and introduced `@oh-my-pm/application` as the shared application boundary, so the CLI and MCP server became presentation adapters over the same use cases, with no public behavior change. See the [v0.5.1 release notes](docs/releases/v0.5.1.md), the [v0.5.1 scope](docs/v0.5/v0.5.1-scope.md), and [the application boundary](docs/v0.5/application-boundary.md).
 >
@@ -29,7 +29,7 @@ It is designed for teams that want clearer delivery context, safer execution bou
 
 ## What this repository is
 
-This repository is the current implementation of OH MY PM. Its release line is `v0.x`: the published stable releases run from [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) through [`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2), and the source version is recorded in [`version.json`](version.json).
+This repository is the current implementation of OH MY PM. Its release line is `v0.x`: the published stable releases run from [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) through [`v0.5.3`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.3), and the source version is recorded in [`version.json`](version.json).
 
 It began as a clean rebuild with a new architecture, replacing an earlier prototype line that is no longer developed here. That rebuild is history, not a pending migration: there is no `v2.x` target, and the versions above are the only release line this repository ships. See [the roadmap](ROADMAP.md) for what is planned next.
 
@@ -155,7 +155,7 @@ The current next-task workflow extracts explicit unchecked Markdown checklist it
 
 ## Getting started locally
 
-The packages are private and repository-based (there is no registry package), and the latest stable release is [`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2). To build from a checkout, see [the getting-started guide](docs/getting-started.md) for the full walkthrough. The short path is:
+The packages are private and repository-based (there is no registry package), and the latest stable release is [`v0.5.3`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.3). To build from a checkout, see [the getting-started guide](docs/getting-started.md) for the full walkthrough. The short path is:
 
 ```bash
 rustup target add wasm32-unknown-unknown
@@ -177,13 +177,13 @@ ohmypm handoff ./project --markdown
 
 Run `ohmypm --help` for the full command reference, or `ohmypm <namespace> --help` for a namespace.
 
-MCP onboarding needs no manual path: the installed CLI prints a ready client configuration with `ohmypm mcp-config` (add `--markdown` for a documented block, `--name <name>` for a custom server key). From a repository checkout use `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`, which takes an explicit prefix. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the source line in `version.json`; the latest published stable release is [`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2). Installed release archives require only Node.js 20+.
+MCP onboarding needs no manual path: the installed CLI prints a ready client configuration with `ohmypm mcp-config` (add `--markdown` for a documented block, `--name <name>` for a custom server key). From a repository checkout use `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`, which takes an explicit prefix. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the source line in `version.json`; the latest published stable release is [`v0.5.3`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.3). Installed release archives require only Node.js 20+.
 
 ### Historical stable release (v0.2.0)
 
-> Historical. The current install target is [`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2).
+> Historical. The current install target is [`v0.5.3`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.3).
 
-The [`v0.2.0` release](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0) — superseded as latest stable by [`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2) — ships three assets:
+The [`v0.2.0` release](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0) — superseded as latest stable by [`v0.5.3`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.3) — ships three assets:
 
 ```text
 oh-my-pm-v0.2.0.tar.gz
