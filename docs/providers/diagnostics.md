@@ -8,25 +8,25 @@ only way any network is touched.
 There are two distinct doctors:
 
 ```text
-ohmypm doctor
+omp doctor
 - Runtime/Kernel foundation diagnostics
 - offline
 - no config/token/provider access
 
-ohmypm providers doctor
+omp providers doctor
 - process/provider configuration diagnostics
 - offline by default
 - optional explicit GitHub network check
 ```
 
-`ohmypm doctor` is unchanged and remains Kernel-focused and provider-agnostic.
+`omp doctor` is unchanged and remains Kernel-focused and provider-agnostic.
 
 ## `providers status`
 
 Inspect the resolved provider state without any network access:
 
 ```bash
-ohmypm providers status --markdown
+omp providers status --markdown
 ```
 
 It reports the configuration source/existence/validity, each provider's
@@ -50,7 +50,7 @@ configuration.
 Run all offline checks with no network access:
 
 ```bash
-ohmypm providers doctor --markdown
+omp providers doctor --markdown
 ```
 
 The checks run in a fixed, deterministic order:
@@ -84,7 +84,7 @@ To verify GitHub connectivity and access, opt in explicitly with
 `--confirm-network`:
 
 ```bash
-ohmypm providers doctor github he8um/oh-my-pm \
+omp providers doctor github he8um/oh-my-pm \
   --confirm-network \
   --markdown
 ```
@@ -92,7 +92,7 @@ ohmypm providers doctor github he8um/oh-my-pm \
 or, relying on a configured default repository:
 
 ```bash
-ohmypm providers doctor github \
+omp providers doctor github \
   --confirm-network \
   --markdown
 ```

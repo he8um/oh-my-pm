@@ -74,13 +74,21 @@ describe("resolveLocalInstallPlan", () => {
   it("resolves targets from the module repository root, not cwd", () => {
     const plan = resolveLocalInstallPlan({ prefix: makePrefix() });
     expect(plan.repositoryRoot).toBe(repoRoot);
-    // Canonical commands first, then the deprecated compatibility aliases. Each
-    // alias shim launches the *alias* entrypoint, so the stderr deprecation
-    // warning is preserved rather than bypassed.
-    expect(plan.entries[0].target).toBe(join(repoRoot, "cli", "bin", "ohmypm.mjs"));
-    expect(plan.entries[1].target).toBe(join(repoRoot, "mcp-server", "bin", "ohmypm-mcp.mjs"));
-    expect(plan.entries[2].target).toBe(join(repoRoot, "cli", "bin", "oh-my-pm.mjs"));
-    expect(plan.entries[3].target).toBe(join(repoRoot, "mcp-server", "bin", "oh-my-pm-mcp.mjs"));
+    // Canonical commands first, then the compatibility aliases, then the
+    // deprecated aliases. Each alias shim launches the *alias* entrypoint, so
+    // the stderr notice is preserved rather than bypassed -- a shim pointing at
+    // the canonical entrypoint would silently drop the warning.
+    const expectedTargets = LOCAL_COMMAND_NAMES.map((command) =>
+      command.endsWith("-mcp")
+        ? join(repoRoot, "mcp-server", "bin", `${command}.mjs`)
+        : join(repoRoot, "cli", "bin", `${command}.mjs`),
+    );
+    expect(plan.entries.map((e) => e.target)).toEqual(expectedTargets);
+    // Spot-check both ends so a wholesale derivation bug cannot pass vacuously.
+    expect(plan.entries[0].target).toBe(join(repoRoot, "cli", "bin", "omp.mjs"));
+    expect(plan.entries.at(-1).target).toBe(
+      join(repoRoot, "mcp-server", "bin", "oh-my-pm-mcp.mjs"),
+    );
   });
 
   it("orders entries deterministically as cli then mcp", () => {
@@ -101,9 +109,13 @@ describe("resolveLocalInstallPlan", () => {
     const plan = resolveLocalInstallPlan({ prefix });
     expect(plan.ok).toBe(false);
     expect(plan.entries.map((e) => e.action)).toEqual(LOCAL_COMMAND_NAMES.map(() => "blocked"));
+    // The canonical reason codes are unchanged from v0.5 so an existing consumer
+    // keeps working; the two alias classes get distinct prefixes.
     expect(plan.reasons).toEqual([
       "local_install_cli_shim_exists",
       "local_install_mcp_shim_exists",
+      "local_install_compat_cli_shim_exists",
+      "local_install_compat_mcp_shim_exists",
       "local_install_legacy_cli_shim_exists",
       "local_install_legacy_mcp_shim_exists",
     ]);
@@ -166,14 +178,14 @@ describe("applyLocalInstallPlan", () => {
   });
 
   it("creates a POSIX and a .cmd shim for every command under <prefix>/bin", () => {
-    // v0.5 installs eight shims: two canonical commands plus two deprecated
-    // compatibility aliases, each in POSIX and .cmd form.
+    // v0.6 installs twelve shims: two canonical commands, two compatibility
+    // aliases, and two deprecated aliases, each in POSIX and .cmd form.
     const prefix = makePrefix();
     const result = applyLocalInstallPlan(resolveLocalInstallPlan({ prefix, apply: true }));
     expect(result.ok).toBe(true);
     const expected = LOCAL_COMMAND_NAMES.flatMap((name) => [name, `${name}.cmd`]).sort();
     expect(readdirSync(join(prefix, "bin")).sort()).toEqual(expected);
-    expect(expected.length).toBe(8);
+    expect(expected.length).toBe(12);
   });
 
   it("makes extensionless shims executable on non-Windows platforms", () => {
@@ -189,15 +201,15 @@ describe("applyLocalInstallPlan", () => {
   it("blocks a second non-force apply and leaves the shim unchanged", () => {
     const prefix = makePrefix();
     applyLocalInstallPlan(resolveLocalInstallPlan({ prefix, apply: true }));
-    const before = readFileSync(join(prefix, "bin", "ohmypm"), "utf8");
+    const before = readFileSync(join(prefix, "bin", "omp"), "utf8");
     const second = applyLocalInstallPlan(resolveLocalInstallPlan({ prefix, apply: true }));
     expect(second).toMatchObject({ ok: false, code: "plan_not_applicable" });
-    expect(readFileSync(join(prefix, "bin", "ohmypm"), "utf8")).toBe(before);
+    expect(readFileSync(join(prefix, "bin", "omp"), "utf8")).toBe(before);
   });
 
   it("does not modify target files and writes nothing outside the prefix", () => {
     const prefix = makePrefix();
-    const cliTarget = join(repoRoot, "cli", "bin", "ohmypm.mjs");
+    const cliTarget = join(repoRoot, "cli", "bin", "omp.mjs");
     const before = readFileSync(cliTarget, "utf8");
     applyLocalInstallPlan(resolveLocalInstallPlan({ prefix, apply: true }));
     expect(readFileSync(cliTarget, "utf8")).toBe(before);

@@ -18,7 +18,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const mcpPkgDir = join(repoRoot, "mcp-server");
-const binPath = join(mcpPkgDir, "bin", "ohmypm-mcp.mjs");
+const binPath = join(mcpPkgDir, "bin", "omp-mcp.mjs");
 const fixtureRoot = "examples/fixtures/markdown-project";
 
 // The MCP SDK is a dependency of the mcp-server package; resolve it from there.

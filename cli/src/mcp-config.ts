@@ -11,7 +11,11 @@
 // the caller prints it and the user pastes it into their own client. Nothing
 // here rewrites a configuration file the user owns.
 
-import { CANONICAL_MCP_COMMAND, LEGACY_MCP_COMMANDS } from "@oh-my-pm/application";
+import {
+  CANONICAL_MCP_COMMAND,
+  COMPATIBILITY_MCP_COMMANDS,
+  DEPRECATED_MCP_COMMANDS,
+} from "@oh-my-pm/application";
 
 /**
  * The default MCP server key. This is a *product identity*, not a command, so
@@ -24,11 +28,27 @@ export const MCP_CONFIG_DEFAULT_SERVER_NAME = "oh-my-pm";
 export const MCP_CONFIG_COMMAND_NAME = CANONICAL_MCP_COMMAND;
 
 /**
+ * Supported compatibility MCP executable names. `ohmypm-mcp` was canonical in
+ * v0.5, so a configuration naming it is current-but-not-preferred, not stale.
+ */
+export const MCP_CONFIG_COMPATIBILITY_COMMAND_NAMES: readonly string[] = COMPATIBILITY_MCP_COMMANDS;
+
+/**
  * Deprecated MCP executable names. A configuration that still invokes one of
  * these keeps working through the compatibility alias, so it is recognized as
  * legacy-but-functional rather than reported as broken.
  */
-export const MCP_CONFIG_LEGACY_COMMAND_NAMES: readonly string[] = LEGACY_MCP_COMMANDS;
+export const MCP_CONFIG_DEPRECATED_COMMAND_NAMES: readonly string[] = DEPRECATED_MCP_COMMANDS;
+
+/**
+ * Every non-canonical MCP executable name that still resolves to this server,
+ * compatibility class first. Retained under the original exported name so an
+ * existing workspace consumer keeps compiling across the v0.6 migration.
+ */
+export const MCP_CONFIG_LEGACY_COMMAND_NAMES: readonly string[] = [
+  ...COMPATIBILITY_MCP_COMMANDS,
+  ...DEPRECATED_MCP_COMMANDS,
+];
 
 /**
  * The bounded server-name rule. Identical to the repository helper's existing
@@ -210,10 +230,14 @@ export function classifyMcpConfigCommand(command: string): McpConfigCommandClass
 }
 
 /**
- * Guidance for a configuration that still invokes a deprecated executable. The
+ * Guidance for a configuration that invokes a non-canonical executable. The
  * wording states plainly that the configuration keeps working, so a user is
  * never told to fix something that is not broken. Returns null when the
  * configuration already uses the canonical command or is unrecognized.
+ *
+ * The two alias classes get different wording: `ohmypm-mcp` was the canonical
+ * command in v0.5 and remains fully supported, so calling it "deprecated" would
+ * misreport a configuration written one minor version ago.
  *
  * This is advice only. OH MY PM never rewrites a client configuration file the
  * user owns; regenerating one is always an explicit `mcp-config` invocation.
@@ -221,8 +245,11 @@ export function classifyMcpConfigCommand(command: string): McpConfigCommandClass
 export function legacyMcpConfigGuidance(command: string): string | null {
   if (classifyMcpConfigCommand(command) !== "legacy") return null;
   const base = commandBaseName(command);
+  const status = MCP_CONFIG_COMPATIBILITY_COMMAND_NAMES.includes(base)
+    ? "a compatibility alias"
+    : "a deprecated compatibility alias";
   return (
-    `\`${base}\` is a deprecated compatibility alias and still works. ` +
+    `\`${base}\` is ${status} and still works. ` +
     `Regenerate this configuration to use \`${MCP_CONFIG_COMMAND_NAME}\`.`
   );
 }

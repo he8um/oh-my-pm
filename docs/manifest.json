@@ -195,11 +195,19 @@
       "concern": "provider-github-reviews"
     },
     {
-      "path": "docs/v0.5/README.md",
+      "path": "docs/v0.6/README.md",
       "status": "active",
       "authority": "normative",
       "appliesTo": "current",
       "replacement": null,
+      "concern": "v0.6-migration-guide"
+    },
+    {
+      "path": "docs/v0.5/README.md",
+      "status": "superseded",
+      "authority": "normative",
+      "appliesTo": "v0.5",
+      "replacement": "docs/v0.6/README.md",
       "concern": "v0.5-migration-guide"
     },
     {
@@ -217,6 +225,14 @@
       "appliesTo": "current",
       "replacement": null,
       "concern": "contract-model"
+    },
+    {
+      "path": "docs/releases/v0.6.0.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.6.0",
+      "replacement": null,
+      "concern": "release-notes-v0.6.0"
     },
     {
       "path": "docs/releases/v0.5.4.md",

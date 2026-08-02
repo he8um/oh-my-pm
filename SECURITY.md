@@ -43,7 +43,7 @@ reproduction, and no affected version.
 
 ### What to include
 
-- the affected version (`ohmypm --version`) and release line, or the exact commit;
+- the affected version (`omp --version`) and release line, or the exact commit;
 - your platform and Node.js version;
 - what an attacker gains — the security consequence, not only the misbehavior;
 - minimal reproduction steps, with a redacted fixture project if one is needed;

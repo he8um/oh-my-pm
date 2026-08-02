@@ -3,7 +3,7 @@
 // filesystem, environment, token, network, or clock access.
 
 import { describe, expect, it } from "vitest";
-import { CANONICAL_CLI_COMMAND, LEGACY_CLI_COMMANDS } from "@oh-my-pm/application";
+import { CANONICAL_CLI_COMMAND, DEPRECATED_CLI_COMMANDS } from "@oh-my-pm/application";
 import { HELP_TOPICS, formatHelp, isHelpFlag, resolveHelpRequest } from "../src/help.js";
 import { runLocalCliProcess } from "../src/local-process.js";
 import { MEMORY_SUBCOMMANDS } from "@oh-my-pm/application";
@@ -120,11 +120,11 @@ describe("help text", () => {
     expect(text).toContain("--markdown");
     expect(text).toContain("Exit codes:");
     expect(text).toContain("Examples:");
-    expect(text).toContain("ohmypm status");
+    expect(text).toContain("omp status");
   });
 
-  it("presents ohmypm as the only executable in every topic", () => {
-    // v0.5: `ohmypm` is canonical. A deprecated alias may never appear in help
+  it("presents omp as the only executable in every topic", () => {
+    // v0.6: `omp` is canonical. A deprecated alias may never appear in help
     // as an equal alternative, in any topic, in any usage line or example.
     //
     // The one permitted occurrence of the string "oh-my-pm" is the default MCP
@@ -134,7 +134,7 @@ describe("help text", () => {
     const serverKeyPhrase = "server key (default: oh-my-pm)";
     for (const topic of HELP_TOPICS) {
       const text = formatHelp(topic).split(serverKeyPhrase).join("");
-      for (const legacy of LEGACY_CLI_COMMANDS) {
+      for (const legacy of DEPRECATED_CLI_COMMANDS) {
         expect(text, `${topic} help must not present "${legacy}"`).not.toContain(legacy);
       }
     }
@@ -266,7 +266,7 @@ describe("help through the process runner", () => {
   it("never resolves an installed MCP command for help", async () => {
     const probed: string[] = [];
     const result = await runLocalCliProcess(["mcp-config", "--help"], {
-      entryScriptPath: "/opt/omp/lib/oh-my-pm/versions/0.3.1/bin/ohmypm.mjs",
+      entryScriptPath: "/opt/omp/lib/oh-my-pm/versions/0.3.1/bin/omp.mjs",
       platform: "linux",
       commandExists: (path) => {
         probed.push(path);

@@ -1,4 +1,4 @@
-// Cross-surface consistency for the v0.5 command names.
+// Cross-surface consistency for the v0.6 command names.
 //
 // command-surface.json is the single source of truth, but several surfaces cannot
 // import it at runtime: the CLI and MCP packages are deliberately pure (no
@@ -20,16 +20,20 @@ import {
   CANONICAL_INSTALLED_COMMANDS,
   CANONICAL_INSTALLER,
   CANONICAL_MCP,
+  ALIAS_INSTALLED_COMMANDS,
+  BUNDLE_EXECUTABLE_NAMES,
   COMMAND_SURFACE,
-  LEGACY_CLI,
-  LEGACY_INSTALLED_COMMANDS,
-  LEGACY_INSTALLER,
-  LEGACY_MCP,
+  COMPAT_MCP,
+  DEPRECATED_MCP,
+  INSTALLED_SHIM_COUNT,
+  MCP_SERVER_KEY,
+  PRODUCT,
 } from "../command-surface.mjs";
 import {
   RELEASE_INSTALL_CANONICAL_COMMANDS,
   RELEASE_INSTALL_COMMANDS,
   RELEASE_INSTALL_LEGACY_COMMANDS,
+  RELEASE_INSTALLER_CANONICAL_COMMAND,
   RELEASE_INSTALLER_ENTRYPOINT,
   createInstalledManifest,
   releaseInstallShimFileNames,
@@ -69,16 +73,9 @@ describe("package bin maps match the manifest", () => {
     });
   });
 
-  it("the distribution package ships both families, canonical first", () => {
+  it("the distribution package ships all three families, canonical first", () => {
     const bin = readJson("distribution/package.json").bin;
-    expect(Object.keys(bin)).toEqual([
-      CANONICAL_CLI,
-      CANONICAL_MCP,
-      CANONICAL_INSTALLER,
-      ...LEGACY_CLI,
-      ...LEGACY_MCP,
-      ...LEGACY_INSTALLER,
-    ]);
+    expect(Object.keys(bin)).toEqual(BUNDLE_EXECUTABLE_NAMES);
     for (const [name, target] of Object.entries(bin)) {
       expect(target).toBe(`./bin/${name}.mjs`);
     }
@@ -98,13 +95,13 @@ describe("package bin maps match the manifest", () => {
 describe("installer command arrays match the manifest", () => {
   it("the local installer plans the manifest's commands, canonical first", () => {
     expect(LOCAL_CANONICAL_COMMAND_NAMES).toEqual(CANONICAL_INSTALLED_COMMANDS);
-    expect(LOCAL_LEGACY_COMMAND_NAMES).toEqual(LEGACY_INSTALLED_COMMANDS);
+    expect(LOCAL_LEGACY_COMMAND_NAMES).toEqual(ALIAS_INSTALLED_COMMANDS);
     expect(LOCAL_COMMAND_NAMES).toEqual(ALL_INSTALLED_COMMANDS);
   });
 
   it("the release install core plans the same command set", () => {
     expect(RELEASE_INSTALL_CANONICAL_COMMANDS).toEqual(CANONICAL_INSTALLED_COMMANDS);
-    expect(RELEASE_INSTALL_LEGACY_COMMANDS).toEqual(LEGACY_INSTALLED_COMMANDS);
+    expect(RELEASE_INSTALL_LEGACY_COMMANDS).toEqual(ALIAS_INSTALLED_COMMANDS);
     expect(RELEASE_INSTALL_COMMANDS).toEqual(ALL_INSTALLED_COMMANDS);
   });
 
@@ -117,11 +114,12 @@ describe("installer command arrays match the manifest", () => {
   it("plans a POSIX and a .cmd launcher for every command", () => {
     const shims = releaseInstallShimFileNames();
     expect(shims).toEqual(ALL_INSTALLED_COMMANDS.flatMap((n) => [n, `${n}.cmd`]));
-    expect(shims).toHaveLength(8);
+    expect(shims).toHaveLength(INSTALLED_SHIM_COUNT);
   });
 
   it("declares the canonical installer entrypoint", () => {
     expect(RELEASE_INSTALLER_ENTRYPOINT).toBe(`bin/${CANONICAL_INSTALLER}.mjs`);
+    expect(RELEASE_INSTALLER_CANONICAL_COMMAND).toBe(CANONICAL_INSTALLER);
   });
 });
 
@@ -133,18 +131,22 @@ describe("the installed manifest separates canonical from legacy", () => {
   });
 
   it("lists the aliases under legacyCommands, never mixed in", () => {
-    expect(Object.keys(manifest.legacyCommands)).toEqual(LEGACY_INSTALLED_COMMANDS);
-    for (const legacy of LEGACY_INSTALLED_COMMANDS) {
+    expect(Object.keys(manifest.legacyCommands)).toEqual(ALIAS_INSTALLED_COMMANDS);
+    for (const legacy of ALIAS_INSTALLED_COMMANDS) {
       expect(manifest.commands).not.toHaveProperty(legacy);
     }
   });
 
   it("keeps product identity out of the command migration", () => {
-    // The migration renames commands only. These four facts must not move.
+    // The migration renames commands only. These facts must not move.
     expect(manifest.product).toBe("oh-my-pm");
     expect(manifest.bundle).toBe("oh-my-pm-v9.9.9");
     expect(manifest.versionRoot).toBe("lib/oh-my-pm/versions/9.9.9");
-    expect(COMMAND_SURFACE.product).toBe("oh-my-pm");
+    expect(PRODUCT.slug).toBe("oh-my-pm");
+    expect(PRODUCT.packageScope).toBe("@oh-my-pm");
+    expect(PRODUCT.environmentPrefix).toBe("OH_MY_PM_");
+    expect(PRODUCT.archivePrefix).toBe("oh-my-pm");
+    expect(MCP_SERVER_KEY).toBe("oh-my-pm");
   });
 });
 
@@ -153,20 +155,22 @@ describe("generated MCP configuration matches the manifest", () => {
     const { MCP_CONFIG_COMMAND_NAME, MCP_CONFIG_LEGACY_COMMAND_NAMES } =
       await import("../../cli/dist/index.js");
     expect(MCP_CONFIG_COMMAND_NAME).toBe(CANONICAL_MCP);
-    expect([...MCP_CONFIG_LEGACY_COMMAND_NAMES]).toEqual(LEGACY_MCP);
+    expect([...MCP_CONFIG_LEGACY_COMMAND_NAMES]).toEqual([...COMPAT_MCP, ...DEPRECATED_MCP]);
   });
 
   it("keeps the default server key as the product name, not a command", async () => {
     const { MCP_CONFIG_DEFAULT_SERVER_NAME } = await import("../../cli/dist/index.js");
-    expect(MCP_CONFIG_DEFAULT_SERVER_NAME).toBe(COMMAND_SURFACE.product);
+    expect(MCP_CONFIG_DEFAULT_SERVER_NAME).toBe(MCP_SERVER_KEY);
     expect(MCP_CONFIG_DEFAULT_SERVER_NAME).not.toBe(CANONICAL_MCP);
   });
 });
 
 describe("release metadata declares both families distinctly", () => {
-  it("names canonicalCommands and legacyAliases as separate fields", () => {
+  it("names canonical commands and both alias classes as separate fields", () => {
     const utils = readFileSync(join(toolsDir, "release-bundle-utils.mjs"), "utf8");
     expect(utils).toContain("canonicalCommands");
+    expect(utils).toContain("compatibilityAliases");
+    expect(utils).toContain("deprecatedAliases");
     expect(utils).toContain("legacyAliases");
     expect(utils).toContain("commandRemovalScheduled");
   });
@@ -175,20 +179,21 @@ describe("release metadata declares both families distinctly", () => {
     const utils = readFileSync(join(toolsDir, "release-bundle-utils.mjs"), "utf8");
     expect(utils).toContain("`oh-my-pm-v${RELEASE_BUNDLE_VERSION}`");
     expect(utils).not.toContain("ohmypm-v");
+    expect(utils).not.toContain("omp-v${");
   });
 });
 
 describe("the deprecation contract", () => {
-  it("declares 0.5.0 as the deprecation point with no removal scheduled", () => {
+  it("declares 0.6.0 as the canonical point and schedules no removal", () => {
+    expect(COMMAND_SURFACE.canonicalSince).toBe("0.6.0");
     expect(COMMAND_SURFACE.deprecatedSince).toBe("0.5.0");
     expect(COMMAND_SURFACE.removalScheduled).toBe(false);
   });
 
-  it("keeps canonical and legacy name sets disjoint", () => {
-    for (const legacy of ALL_INSTALLED_COMMANDS.filter((n) =>
-      LEGACY_INSTALLED_COMMANDS.includes(n),
-    )) {
-      expect(CANONICAL_INSTALLED_COMMANDS).not.toContain(legacy);
+  it("keeps canonical and alias name sets disjoint", () => {
+    for (const alias of ALIAS_INSTALLED_COMMANDS) {
+      expect(CANONICAL_INSTALLED_COMMANDS).not.toContain(alias);
     }
+    expect(new Set(ALL_INSTALLED_COMMANDS).size).toBe(ALL_INSTALLED_COMMANDS.length);
   });
 });

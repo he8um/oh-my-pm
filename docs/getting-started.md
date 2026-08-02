@@ -2,7 +2,7 @@
 
 ## What this version is
 
-The source tree is at version `0.5.4`, which is also the current published stable release. The canonical commands are `ohmypm`, `ohmypm-mcp` and `ohmypm-install`; the former `oh-my-pm` family still works as deprecated compatibility aliases with no removal scheduled — see [the v0.5 migration guide](v0.5/README.md). [`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4) is the current published stable release; [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) is a published **prerelease** (not marked latest); `v0.5.3`, `v0.5.2`, `v0.5.1`, `v0.4.0`, `v0.3.1`, `v0.3.0`, `v0.2.0`, `v0.2.0-rc.1` and `v0.1.0` are preserved historical releases. `v0.5.0` was never published. OH MY PM is installed from the repository or a release archive, not from a package registry — the workspace packages remain private and unpublished. Installed release archives require only **Node.js 20+**. The CLI and the MCP server are both read-only: they analyze local Markdown project documents (and, only on explicit opt-in, read-only GitHub context) and never modify project files. No project context is uploaded and no telemetry is emitted. For the v0.3 Project Brain memory feature specifically, see the [installed v0.3 getting-started guide](v0.3/getting-started-installed.md).
+The source tree is at version `0.5.4`, which is also the current published stable release. The canonical commands are `omp`, `omp-mcp` and `omp-install`; the `ohmypm` family remains a supported compatibility alias and the `oh-my-pm` family a deprecated alias, both with no removal scheduled — see [the v0.6 migration guide](v0.6/README.md). [`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4) is the current published stable release; [`v0.3.0-rc.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.3.0-rc.1) is a published **prerelease** (not marked latest); `v0.5.3`, `v0.5.2`, `v0.5.1`, `v0.4.0`, `v0.3.1`, `v0.3.0`, `v0.2.0`, `v0.2.0-rc.1` and `v0.1.0` are preserved historical releases. `v0.5.0` was never published. OH MY PM is installed from the repository or a release archive, not from a package registry — the workspace packages remain private and unpublished. Installed release archives require only **Node.js 20+**. The CLI and the MCP server are both read-only: they analyze local Markdown project documents (and, only on explicit opt-in, read-only GitHub context) and never modify project files. No project context is uploaded and no telemetry is emitted. For the v0.3 Project Brain memory feature specifically, see the [installed v0.3 getting-started guide](v0.3/getting-started-installed.md).
 
 There are two ways to run OH MY PM:
 
@@ -45,24 +45,29 @@ It reports what would be created under `<prefix>/bin` and exits without touching
 pnpm local:install -- --prefix "$HOME/.local" --apply
 ```
 
-This writes only command shims under `<prefix>/bin` — the canonical commands plus
-the deprecated compatibility aliases retained from v0.4, each with a POSIX and a
-Windows `.cmd` launcher:
+This writes only command shims under `<prefix>/bin` — the canonical commands,
+the compatibility aliases retained from v0.5, and the deprecated aliases retained
+from v0.4, each with a POSIX and a Windows `.cmd` launcher:
 
 ```text
-<prefix>/bin/ohmypm
+<prefix>/bin/omp
+<prefix>/bin/omp.cmd
+<prefix>/bin/omp-mcp
+<prefix>/bin/omp-mcp.cmd
+<prefix>/bin/ohmypm              # compatibility alias for omp
 <prefix>/bin/ohmypm.cmd
-<prefix>/bin/ohmypm-mcp
+<prefix>/bin/ohmypm-mcp          # compatibility alias for omp-mcp
 <prefix>/bin/ohmypm-mcp.cmd
-<prefix>/bin/oh-my-pm            # deprecated alias for ohmypm
+<prefix>/bin/oh-my-pm            # deprecated alias for omp
 <prefix>/bin/oh-my-pm.cmd
-<prefix>/bin/oh-my-pm-mcp        # deprecated alias for ohmypm-mcp
+<prefix>/bin/oh-my-pm-mcp        # deprecated alias for omp-mcp
 <prefix>/bin/oh-my-pm-mcp.cmd
 ```
 
-Use `ohmypm` and `ohmypm-mcp`. The `oh-my-pm` family still works but prints a
-deprecation warning to stderr; see [the v0.5 migration guide](v0.5/README.md). No
-removal is scheduled.
+Use `omp` and `omp-mcp`. The `ohmypm` family still works as a supported
+compatibility alias and the `oh-my-pm` family as a deprecated alias; each prints
+one notice to stderr. See [the v0.6 migration guide](v0.6/README.md). No removal
+is scheduled for either family.
 
 Nothing else is written. If a shim already exists, the apply is blocked; rerun with `--apply --force` only after you have inspected the existing shim.
 
@@ -90,15 +95,15 @@ Make the change permanent through your own shell configuration if you want it to
 pnpm local:check -- --prefix "$HOME/.local"
 ```
 
-The verifier is read-only. It confirms the eight shims exist with the exact expected content — two canonical commands and two deprecated aliases, each as a POSIX shim plus a Windows `.cmd` shim — and, on POSIX platforms, that the POSIX shims are executable (Windows has no executable bit). It then runs the installed CLI (`status` and a fixture `brief`) and drives the installed MCP command over stdio (lists the twelve read-only tools and calls `project_brief`).
+The verifier is read-only. It confirms the twelve shims exist with the exact expected content — two canonical commands, two compatibility aliases, and two deprecated aliases, each as a POSIX shim plus a Windows `.cmd` shim — and, on POSIX platforms, that the POSIX shims are executable (Windows has no executable bit). It then runs the installed CLI (`status` and a fixture `brief`) and drives the installed MCP command over stdio (lists the twelve read-only tools and calls `project_brief`).
 
 ## CLI workflows
 
 ```bash
-ohmypm brief ./project --markdown
-ohmypm risks ./project --markdown
-ohmypm next ./project --markdown
-ohmypm handoff ./project --markdown
+omp brief ./project --markdown
+omp risks ./project --markdown
+omp next ./project --markdown
+omp handoff ./project --markdown
 ```
 
 Each command reads an optional `oh-my-pm.config.json` at the project root to select which Markdown documents are analyzed. See [the CLI guide](../cli/README.md) for the full configuration and glob rules. These local workflows are fully offline: no network request is made and no token is read.
@@ -111,12 +116,12 @@ The same four workflows can run against a GitHub repository through the explicit
 
 ```bash
 # Public repository — no token needed:
-ohmypm github brief owner/repository --markdown
-ohmypm github risks owner/repository --limit 25 --markdown
+omp github brief owner/repository --markdown
+omp github risks owner/repository --limit 25 --markdown
 
 # Private repository or higher rate limit:
 export OH_MY_PM_GITHUB_TOKEN="<fine-grained read-only token>"
-ohmypm github next owner/private-repository --markdown
+omp github next owner/private-repository --markdown
 ```
 
 The provider is strictly read-only (`GET`-only to `api.github.com`, REST API version `2026-03-10`). The token is optional, supplied only through `OH_MY_PM_GITHUB_TOKEN`, and never accepted as a CLI argument or printed. `--limit` accepts `1..100` (default 50). See [the GitHub provider guide](providers/github.md).
@@ -124,13 +129,13 @@ The provider is strictly read-only (`GET`-only to `api.github.com`, REST API ver
 `--source` selects exactly which context to analyze (default `overview`):
 
 ```bash
-ohmypm github brief owner/repository --source repository --markdown
-ohmypm github risks owner/repository --source issues --state open --markdown
-ohmypm github handoff owner/repository --source pull-requests --state closed --markdown
-ohmypm github brief owner/repository --source item --number 123 --markdown
-ohmypm github risks owner/repository --source item --number 123 --include-comments --comment-limit 20 --markdown
-ohmypm github risks owner/repository --source item --number 123 --include-reviews --review-limit 10 --include-review-comments --review-comment-limit 10 --markdown
-ohmypm github risks owner/repository --source search --query "release blocker" --kind all --markdown
+omp github brief owner/repository --source repository --markdown
+omp github risks owner/repository --source issues --state open --markdown
+omp github handoff owner/repository --source pull-requests --state closed --markdown
+omp github brief owner/repository --source item --number 123 --markdown
+omp github risks owner/repository --source item --number 123 --include-comments --comment-limit 20 --markdown
+omp github risks owner/repository --source item --number 123 --include-reviews --review-limit 10 --include-review-comments --review-comment-limit 10 --markdown
+omp github risks owner/repository --source search --query "release blocker" --kind all --markdown
 ```
 
 `item` auto-detects issue vs. pull request; `search` terms never override the injected repository/state/kind scope. The `item` source can optionally include ordinary conversation comments with `--include-comments` (disabled by default) and `--comment-limit` (`1..50`, default `20`) — see [GitHub item comments](providers/github-item-comments.md). A pull-request `item` can additionally include bounded review submissions (`--include-reviews` / `--review-limit`, `1..20`, default `10`) and inline review comments (`--include-review-comments` / `--review-comment-limit`), disabled by default and only when the item is a pull request — see [GitHub pull-request reviews](providers/github-pr-reviews.md). Provider configuration may set `defaultSource`/`defaultState`. See [GitHub source selection](providers/github-source-selection.md).
@@ -155,25 +160,25 @@ Provider configuration is optional and strictly read-only. Create the file yours
 Place it at `~/.config/oh-my-pm/providers.json` (POSIX) or `%APPDATA%\oh-my-pm\providers.json` (Windows), or point at it explicitly:
 
 ```bash
-ohmypm providers status \
+omp providers status \
   --provider-config ./providers.json \
   --markdown
 
 # With a configured default repository:
-ohmypm github risks --markdown
+omp github risks --markdown
 ```
 
 Inspect and validate resolved provider state without touching the network:
 
 ```bash
-ohmypm providers status --markdown
-ohmypm providers doctor --markdown
+omp providers status --markdown
+omp providers doctor --markdown
 ```
 
 To verify GitHub connectivity, opt in explicitly — this performs exactly one read-only repository-metadata request:
 
 ```bash
-ohmypm providers doctor github \
+omp providers doctor github \
   --confirm-network \
   --markdown
 ```
@@ -186,9 +191,9 @@ The installed CLI prints a configuration for its own installation, with no prefi
 argument required:
 
 ```bash
-ohmypm mcp-config              # JSON (default)
-ohmypm mcp-config --markdown   # the same JSON in a documented Markdown block
-ohmypm mcp-config --name my-project   # a custom server key
+omp mcp-config              # JSON (default)
+omp mcp-config --markdown   # the same JSON in a documented Markdown block
+omp mcp-config --name my-project   # a custom server key
 ```
 
 From a repository checkout — which has no installed prefix to infer — the
@@ -253,7 +258,7 @@ node ./oh-my-pm-v0.2.0/bin/ohmypm-install.mjs --prefix "$HOME/.local"
 node ./oh-my-pm-v0.2.0/bin/ohmypm-install.mjs --prefix "$HOME/.local" --apply
 
 export PATH="$HOME/.local/bin:$PATH"           # add it yourself; the installer never edits PATH
-ohmypm status                                # reports the installed version and kernel
+omp status                                # reports the installed version and kernel
 ```
 
 Each archive expands to a single `oh-my-pm-v0.2.0/` directory. See [the v0.2.0 release notes](releases/v0.2.0.md), [the post-stable closure report](releases/v0.2.0-post-stable-closure.md), and [the v0.2.x maintenance policy](releases/v0.2.x-maintenance-policy.md). The [full self-installer walkthrough](#self-installing-a-development-bundle) covers preview/apply/force semantics and the installed layout. The earlier [`v0.1.0` release](releases/v0.1.0.md) remains available as a preserved historical stable.
@@ -293,7 +298,7 @@ Locally assembled bundles produce the same artifact shape as a published release
 There are three distinct ways to run OH MY PM, in increasing independence from a repository checkout:
 
 1. **Published stable archive** — download, verify checksums, extract, and run the shipped preview-first installer (see [Installing a published stable release](#installing-a-published-stable-release)). The earliest v0.1.0 archive has no installer; run its `node ./oh-my-pm-v0.1.0/bin/*.mjs` entrypoints directly.
-2. **Repository-development install** — from a checkout, `pnpm local:install -- --prefix <prefix> --apply` writes eight shims that point back into the repository (see [Apply local installation](#apply-local-installation)).
+2. **Repository-development install** — from a checkout, `pnpm local:install -- --prefix <prefix> --apply` writes twelve shims that point back into the repository (see [Apply local installation](#apply-local-installation)).
 3. **Bundle self-installation** — extract a portable bundle and run its own installer, which copies a complete, versioned, source-independent installation into an explicit prefix.
 
 The third path uses the installer shipped inside every bundle:
@@ -305,15 +310,15 @@ tar -xzf oh-my-pm-v0.2.0.tar.gz               # or: unzip oh-my-pm-v0.2.0.zip
 # Preview writes nothing and requires an explicit --prefix.
 node ./oh-my-pm-v0.2.0/bin/ohmypm-install.mjs --prefix "$HOME/.local"
 
-# Apply installs the versioned copy and the eight command shims.
+# Apply installs the versioned copy and the twelve command shims.
 node ./oh-my-pm-v0.2.0/bin/ohmypm-install.mjs --prefix "$HOME/.local" --apply
 
 export PATH="$HOME/.local/bin:$PATH"                # add it yourself; the installer never edits PATH
 
-ohmypm status
-ohmypm brief ./project --markdown
+omp status
+omp brief ./project --markdown
 # GitHub opt-in (read-only; network only when invoked; token optional, env-only):
-ohmypm github brief owner/repository --markdown
+omp github brief owner/repository --markdown
 # Installed stdio MCP server, absolute command:
 "$HOME/.local/bin/ohmypm-mcp"
 ```
@@ -346,7 +351,7 @@ The shims use paths relative to `<prefix>/bin`, so the whole prefix is movable a
 
 - **Preview is the default** and performs no writes. It reports `create`, `already-installed`, `replace`, or `blocked`.
 - **`--apply`** is required for any write.
-- **`--force`** (only with `--apply`) replaces the exact managed targets — the version directory, the eight shims, and `install.json` — and nothing else. Unrelated files under `<prefix>/bin` and `<prefix>/lib`, and other version directories, are left untouched. `--force` is the explicit replacement gate; it is **not** a version-policy engine and performs no update, downgrade, rollback, or uninstall.
+- **`--force`** (only with `--apply`) replaces the exact managed targets — the version directory, the twelve shims, and `install.json` — and nothing else. Unrelated files under `<prefix>/bin` and `<prefix>/lib`, and other version directories, are left untouched. `--force` is the explicit replacement gate; it is **not** a version-policy engine and performs no update, downgrade, rollback, or uninstall.
 - A second apply from the same bundle is a no-op that reports **already installed**.
 - Any managed target that exists but does not exactly match the expected installation **blocks** without `--force`.
 
@@ -362,11 +367,11 @@ From a repository checkout:
 pnpm release:install:check -- --prefix "$HOME/.local"
 ```
 
-The read-only verifier validates the manifest, the versioned bundle, the eight shims, then runs the installed CLI (`status` plus the four workflows) and the installed MCP server over stdio. Outside a checkout, verify directly with the installed commands:
+The read-only verifier validates the manifest, the versioned bundle, the twelve shims, then runs the installed CLI (`status` plus the four workflows) and the installed MCP server over stdio. Outside a checkout, verify directly with the installed commands:
 
 ```bash
-ohmypm status
-ohmypm brief ./project --markdown
+omp status
+omp brief ./project --markdown
 ```
 
 Maintainers with a checkout can also install any explicitly supplied verified bundle through the repository wrapper:

@@ -27,7 +27,7 @@ import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 export const RELEASE_INSTALL_MANIFEST_SCHEMA_VERSION = 1;
 
-// The v0.5 command surface. This core is deliberately repository-independent --
+// The v0.6 command surface. This core is deliberately repository-independent --
 // it must run from inside an extracted bundle with nothing else available -- so
 // the names are restated here rather than imported from command-surface.json.
 // tools/validate-command-surface.mjs compares these arrays against the manifest
@@ -35,12 +35,32 @@ export const RELEASE_INSTALL_MANIFEST_SCHEMA_VERSION = 1;
 //
 // Canonical commands come first everywhere they are used, so the ordering itself
 // records which names are primary.
-export const RELEASE_INSTALL_CANONICAL_COMMANDS = ["ohmypm", "ohmypm-mcp"];
-export const RELEASE_INSTALL_LEGACY_COMMANDS = ["oh-my-pm", "oh-my-pm-mcp"];
+export const RELEASE_INSTALL_CANONICAL_COMMANDS = ["omp", "omp-mcp"];
 
 /**
- * Every installed command, canonical first then the deprecated compatibility
- * aliases. Install creates all of these; uninstall/cleanup removes all of these.
+ * Supported compatibility aliases. These were the canonical commands in v0.5, so
+ * they are fully supported with no removal scheduled -- a separate class from the
+ * deprecated names below, because they carry a different promise.
+ */
+export const RELEASE_INSTALL_COMPATIBILITY_COMMANDS = ["ohmypm", "ohmypm-mcp"];
+
+/** Deprecated aliases. Still installed and still working; no removal scheduled. */
+export const RELEASE_INSTALL_DEPRECATED_COMMANDS = ["oh-my-pm", "oh-my-pm-mcp"];
+
+/**
+ * Every non-canonical installed command, compatibility class first. Retained
+ * under the original exported name so an existing consumer of the v0.5 core
+ * keeps resolving the full alias set.
+ */
+export const RELEASE_INSTALL_LEGACY_COMMANDS = [
+  ...RELEASE_INSTALL_COMPATIBILITY_COMMANDS,
+  ...RELEASE_INSTALL_DEPRECATED_COMMANDS,
+];
+
+/**
+ * Every installed command, canonical first then the compatibility aliases then
+ * the deprecated aliases. Install creates all of these; uninstall/cleanup
+ * removes all of these.
  */
 export const RELEASE_INSTALL_COMMANDS = [
   ...RELEASE_INSTALL_CANONICAL_COMMANDS,
@@ -48,7 +68,54 @@ export const RELEASE_INSTALL_COMMANDS = [
 ];
 
 /** The canonical installer entrypoint, as a bundle-relative POSIX path. */
-export const RELEASE_INSTALLER_ENTRYPOINT = "bin/ohmypm-install.mjs";
+export const RELEASE_INSTALLER_ENTRYPOINT = "bin/omp-install.mjs";
+
+/** The canonical installer command name. */
+export const RELEASE_INSTALLER_CANONICAL_COMMAND = "omp-install";
+
+/** Installer compatibility and deprecated aliases, in rendering order. */
+export const RELEASE_INSTALLER_COMPATIBILITY_COMMANDS = ["ohmypm-install"];
+export const RELEASE_INSTALLER_DEPRECATED_COMMANDS = ["oh-my-pm-install"];
+
+/**
+ * The canonical command an alias forwards to, or null when the name is not a
+ * known alias. Pure and total.
+ */
+export function releaseInstallCanonicalForAlias(name) {
+  const roles = [
+    [RELEASE_INSTALL_CANONICAL_COMMANDS[0], ["ohmypm"], ["oh-my-pm"]],
+    [RELEASE_INSTALL_CANONICAL_COMMANDS[1], ["ohmypm-mcp"], ["oh-my-pm-mcp"]],
+    [
+      RELEASE_INSTALLER_CANONICAL_COMMAND,
+      RELEASE_INSTALLER_COMPATIBILITY_COMMANDS,
+      RELEASE_INSTALLER_DEPRECATED_COMMANDS,
+    ],
+  ];
+  for (const [canonical, compat, deprecated] of roles) {
+    if (compat.includes(name) || deprecated.includes(name)) return canonical;
+  }
+  return null;
+}
+
+/**
+ * The exact alias warning text, without a trailing newline. Defined here so a
+ * bundle's alias entrypoints have one in-bundle source for the wording rather
+ * than each restating it; the repository compatibility tests assert this matches
+ * the shared application helper verbatim.
+ *
+ * Always written to stderr by callers: stdout must stay a parseable `--json`
+ * document and a clean MCP protocol stream.
+ */
+export function releaseInstallAliasWarning(name) {
+  const canonical = releaseInstallCanonicalForAlias(name);
+  if (canonical === null) throw new Error(`not an alias: ${name}`);
+  const isCompatibility =
+    RELEASE_INSTALL_COMPATIBILITY_COMMANDS.includes(name) ||
+    RELEASE_INSTALLER_COMPATIBILITY_COMMANDS.includes(name);
+  return isCompatibility
+    ? `Warning: \`${name}\` is a compatibility alias; use \`${canonical}\`.`
+    : `Warning: \`${name}\` is deprecated; use \`${canonical}\`.`;
+}
 
 const EXPECTED_CLI_WORKFLOWS = ["brief", "risks", "next", "handoff"];
 const EXPECTED_GITHUB_WORKFLOWS = ["brief", "risks", "next", "handoff"];
@@ -77,11 +144,15 @@ const EXPECTED_GITHUB_ORIGIN = `${"https"}://api.github.com`;
 const REQUIRED_BUNDLE_FILES = [
   "RELEASE.json",
   "SHA256SUMS",
+  "bin/omp.mjs",
+  "bin/omp-mcp.mjs",
+  "bin/omp-install.mjs",
+  // v0.6: the bundle intentionally also ships both alias families -- the
+  // supported `ohmypm*` compatibility set and the deprecated `oh-my-pm*` set --
+  // so an installed prefix offers every name a user may already have scripted.
   "bin/ohmypm.mjs",
   "bin/ohmypm-mcp.mjs",
   "bin/ohmypm-install.mjs",
-  // v0.5: the bundle intentionally also ships the deprecated compatibility
-  // aliases, so an installed prefix offers both families.
   "bin/oh-my-pm.mjs",
   "bin/oh-my-pm-mcp.mjs",
   "bin/oh-my-pm-install.mjs",
@@ -364,12 +435,14 @@ export function validateReleaseBundleForInstall(bundleRoot) {
     expectedMcpTools = [...TEN_MCP_TOOLS, "project_changes"];
   } else if (
     bundleProfile === "project-brain-timeline" ||
-    bundleProfile === "ohmypm-cli-namespace"
+    bundleProfile === "ohmypm-cli-namespace" ||
+    bundleProfile === "omp-cli-namespace"
   ) {
     // v0.4 ("project-brain-timeline") appends project_timeline after
-    // project_changes, for twelve. v0.5 ("ohmypm-cli-namespace") migrates the
-    // command names only and keeps that exact twelve-tool surface, so the two
-    // profiles share one expectation rather than duplicating the list.
+    // project_changes, for twelve. v0.5 ("ohmypm-cli-namespace") and v0.6
+    // ("omp-cli-namespace") migrate the command names only and keep that exact
+    // twelve-tool surface, so the profiles share one expectation rather than
+    // duplicating the list. A command-namespace migration must not move a tool.
     expectedMcpTools = [...TEN_MCP_TOOLS, "project_changes", "project_timeline"];
   } else if (bundleProfile === "source-v0.2") {
     expectedMcpTools = [...TEN_MCP_TOOLS];
@@ -600,8 +673,9 @@ function entryScriptForCommand(command) {
  * single installed prefix serves both platform families. Pure string
  * construction.
  *
- * v0.5 plans twelve shims: two canonical commands plus two deprecated aliases,
- * each in POSIX and .cmd form.
+ * v0.6 plans eighteen shims: two canonical commands, two compatibility aliases,
+ * and two deprecated aliases, each in POSIX and .cmd form. The count is derived
+ * from RELEASE_INSTALL_COMMANDS, never restated as a literal.
  */
 function shimTargetsForVersion(version) {
   const shims = {};
@@ -1244,8 +1318,8 @@ export function applyReleaseInstallPlan(plan) {
 /**
  * Run the whole installer command: parse args, resolve the plan, and either print
  * the preview or apply it. This is the single implementation shared by the
- * canonical `ohmypm-install` entrypoint and the deprecated `oh-my-pm-install`
- * compatibility alias, so the alias duplicates no installer logic.
+ * canonical `omp-install` entrypoint and both alias entrypoints
+ * (`ohmypm-install`, `oh-my-pm-install`), so no alias duplicates installer logic.
  *
  * The caller supplies `bundleRoot` (each entrypoint infers its own) and the two
  * stream writers, so this function itself performs no direct process access and

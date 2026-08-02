@@ -46,32 +46,32 @@ The canonical values above are exact — there are no aliases such as `pr`,
 
 ```bash
 # Default overview + open (unchanged behavior):
-ohmypm github brief owner/repository --markdown
+omp github brief owner/repository --markdown
 
 # Repository metadata only:
-ohmypm github brief owner/repository --source repository --markdown
+omp github brief owner/repository --source repository --markdown
 
 # Open issues only:
-ohmypm github risks owner/repository --source issues --state open --limit 50 --markdown
+omp github risks owner/repository --source issues --state open --limit 50 --markdown
 
 # Closed pull requests only:
-ohmypm github handoff owner/repository --source pull-requests --state closed --limit 25 --markdown
+omp github handoff owner/repository --source pull-requests --state closed --limit 25 --markdown
 
 # One specific issue or pull request (type auto-detected):
-ohmypm github brief owner/repository --source item --number 123 --markdown
+omp github brief owner/repository --source item --number 123 --markdown
 
 # One item, optionally including its ordinary conversation comments (opt-in):
-ohmypm github risks owner/repository --source item --number 123 \
+omp github risks owner/repository --source item --number 123 \
   --include-comments --comment-limit 20 --markdown
 
 # One pull-request item, optionally including bounded reviews and inline review
 # comments (opt-in, PR-only):
-ohmypm github risks owner/repository --source item --number 123 \
+omp github risks owner/repository --source item --number 123 \
   --include-reviews --review-limit 10 \
   --include-review-comments --review-comment-limit 10 --markdown
 
 # Repository-scoped search:
-ohmypm github risks owner/repository \
+omp github risks owner/repository \
   --source search --query "release blocker" --kind all --state open --limit 25 --markdown
 ```
 

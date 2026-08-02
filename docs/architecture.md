@@ -17,7 +17,7 @@ tooling.
 | --------------------------- | --------------------------------------------------------------------------------- |
 | Source version              | see [`version.json`](../version.json) — the single source of truth                |
 | Runtime requirement         | Node.js 20+ (installed archives need nothing else)                                |
-| Canonical commands          | `ohmypm`, `ohmypm-mcp`, `ohmypm-install`                                          |
+| Canonical commands          | `omp`, `omp-mcp`, `omp-install`                                                   |
 | Deprecated aliases          | `oh-my-pm`, `oh-my-pm-mcp`, `oh-my-pm-install` — no removal scheduled             |
 | MCP tools                   | twelve read-only, zero write                                                      |
 | MCP transport               | stdio only                                                                        |
@@ -136,7 +136,7 @@ The separate **Project Brain Runtime** (`createProjectBrainRuntime`) is the
 capture/compare/timeline API. It reaches persistence only through a structural
 port, never by importing the persistence package directly. It is invoked in
 production through the Application layer's memory orchestrator, which backs the
-seven `ohmypm memory` subcommands and the read-only `project_changes` and
+seven `omp memory` subcommands and the read-only `project_changes` and
 `project_timeline` MCP tools.
 
 **Must not:** import a Node built-in, own use cases, resolve provider
@@ -263,7 +263,7 @@ manifest validation, install reports, update-plan checks through the Kernel
 boundary, rollback reports, and real transactional installation of a release
 bundle into an explicit prefix.
 
-Real installation ships as `ohmypm-install`. It is **preview-first**: a plan is
+Real installation ships as `omp-install`. It is **preview-first**: a plan is
 computed and can be inspected before anything is written, `--apply` is required
 to write, `--force` is required to replace an existing managed target, and the
 managed target set is exactly the version directory, the command shims, and
@@ -304,8 +304,8 @@ dependency graph, or become the only place a behavior is verified.
 ### Distribution and release lifecycle
 
 `@oh-my-pm/distribution` defines the production dependency surface the release
-bundler deploys, and provides the thin portable command entrypoints — `ohmypm`,
-`ohmypm-mcp`, `ohmypm-install`, plus the three deprecated aliases. The
+bundler deploys, and provides the thin portable command entrypoints — `omp`,
+`omp-mcp`, `omp-install`, plus the three deprecated aliases. The
 entrypoints are process adapters only: no build logic, no repo path, no
 filesystem writes, no network.
 
@@ -320,7 +320,7 @@ The release lifecycle is a chain of deterministic, locally verifiable steps:
 | Install         | `pnpm release:install`                  | a transactional prefix install from the local bundle           |
 | Verify install  | `pnpm release:install:check`            | installed-state qualification, platform-aware                  |
 
-The current v0.5 bundle profile is `ohmypm-cli-namespace`, which always packages
+The current v0.5 bundle profile is `omp-cli-namespace`, which always packages
 `@oh-my-pm/project-memory` — so an installed server always registers all twelve
 MCP tools. A bundle runs on Node.js 20+ with no Rust, no pnpm, and no repository
 checkout.

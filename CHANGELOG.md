@@ -2,6 +2,62 @@
 
 ## [Unreleased]
 
+## [0.6.0]
+
+Canonical `omp` command migration and public surface stabilization, **prepared
+but not yet published**. This is a command namespace migration, not a product
+rename and not a data migration.
+
+**No behavior changes beyond the executable names.** No command added or removed,
+no changed CLI syntax or output schema, no changed MCP tool, schema, annotation,
+or tool order, no failure code renamed or removed, no changed exit code, no
+Project Brain schema change, no Project Memory format change, and **no migration
+is required**.
+
+### Added
+
+- Canonical executables `omp`, `omp-mcp`, and `omp-install`, with entrypoints in
+  `cli/bin/`, `mcp-server/bin/`, and `distribution/bin/`.
+- A **compatibility alias** class, distinct from the deprecated class.
+  `ohmypm`, `ohmypm-mcp`, and `ohmypm-install` were canonical in v0.5, so they
+  are fully supported rather than deprecated; demoting a name that was canonical
+  one minor version ago would retroactively withdraw a promise.
+- `command-surface.json` schema version 2: a pinned `product` identity block
+  (name, slug, package scope, environment prefix, archive prefix, MCP server key)
+  and per-role `canonical` / `compatibilityAliases` / `deprecatedAliases`.
+- Manifest invariants enforced by `pnpm validate:commands`: one canonical name
+  per role, no duplicate executable name, no alias equal to a canonical name, no
+  alias in two classes or two roles, and no renamed product identity.
+- `RELEASE.json` declares `compatibilityAliases`, `deprecatedAliases`, and
+  `commandsCanonicalSince` as distinct fields.
+- The `omp-cli-namespace` bundle profile, and the `Release v0.6 Stable` workflow.
+- `docs/v0.6/README.md` — the migration guide.
+
+### Changed
+
+- `omp*` is canonical in help output, examples, active documentation, and
+  generated MCP client configuration.
+- An install now writes **twelve** shims (six commands × POSIX + `.cmd`); the
+  release bundle ships **nine** executables. Both counts are derived from the
+  manifest, never restated.
+- Alias notices are per class: ``Warning: `ohmypm` is a compatibility alias; use
+`omp`.`` and ``Warning: `oh-my-pm` is deprecated; use `omp`.``
+- `docs/v0.5/README.md` is marked superseded by `docs/v0.6/README.md`.
+
+### Deprecated
+
+- `oh-my-pm`, `oh-my-pm-mcp`, and `oh-my-pm-install` remain deprecated.
+  **No removal is scheduled** for either alias family.
+
+### Unchanged
+
+Product name **OH MY PM**, package scope `@oh-my-pm/*`, environment prefix
+`OH_MY_PM_*`, `.oh-my-pm/` and `~/.oh-my-pm/` data directories, the
+`lib/oh-my-pm/versions/<version>/` install layout, `oh-my-pm-v<version>` archive
+names, and the `oh-my-pm` MCP server key. Alias stdout is byte-identical to
+canonical stdout, notices are stderr-only and emitted exactly once, exit codes
+match, and the MCP stdio stream stays protocol-clean.
+
 ## [0.5.4]
 
 Contract and repository consistency release, **prepared but not yet published**.

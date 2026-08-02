@@ -1,17 +1,30 @@
 #!/usr/bin/env node
-// Private local development wrapper for the OH MY PM CLI core. This is a thin
-// process adapter: all behavior lives in the public runLocalCliProcess runner,
-// which uses the real Rust Kernel through the WASM binding and the config-aware
-// Markdown loader. This wrapper only forwards argv and writes the result.
+// Compatibility alias for the OH MY PM CLI. `ohmypm` was the canonical command
+// in v0.5; the canonical command is now `omp`. This name remains fully
+// supported and no removal is scheduled — demoting a name that was canonical
+// one minor version ago would retroactively withdraw a promise — so the notice
+// says "compatibility alias", not "deprecated".
+//
+// This wrapper duplicates no application logic. It runs the same
+// runLocalCliProcess runner as the canonical entrypoint, with the same process
+// boundary values, and forwards argv, stdout, stderr, and the exit code
+// unchanged. It runs in-process rather than launching a second interpreter, so
+// stdin, the environment, the working directory, and signal/termination behavior
+// are all inherited exactly.
+//
+// The notice goes to stderr and only to stderr. stdout must stay a clean
+// document: a `--json` command's stdout has to remain parseable JSON, so a
+// warning written there would corrupt a machine-readable contract.
 
-import { runLocalCliProcess } from "../dist/index.js";
+import { commandAliasWarning, runLocalCliProcess } from "../dist/index.js";
 
-// The real clock is read only here, at the process boundary, and is consumed by
-// the runner only for the explicit live github and memory commands; local/
-// offline commands ignore it and use their fixed deterministic clock. The
-// process id is read here too and used only to derive the memory operation id
-// (a bounded, non-displayed, non-persisted staging token). The entry-script path
-// is read here and used only by mcp-config to infer the installed prefix.
+process.stderr.write(`${commandAliasWarning("ohmypm")}\n`);
+
+// Identical boundary wiring to bin/omp.mjs: the real clock, the process id used
+// only to derive the memory operation id, and the entry-script path used only by
+// mcp-config to infer the installed prefix. Passing this script's own path keeps
+// prefix inference correct for the alias too, because the inference matches on
+// the installed directory shape, not on the filename.
 const result = await runLocalCliProcess(process.argv.slice(2), {
   clock: () => new Date().toISOString(),
   processId: process.pid,

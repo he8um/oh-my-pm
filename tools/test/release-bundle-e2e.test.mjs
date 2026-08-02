@@ -100,7 +100,7 @@ describe("portable release bundle e2e", () => {
     }
     const release = JSON.parse(readFileSync(join(movedBundle, "RELEASE.json"), "utf8"));
     expect(release.installer).toEqual({
-      entrypoint: "bin/ohmypm-install.mjs",
+      entrypoint: "bin/omp-install.mjs",
       previewFirst: true,
       prefixRequired: true,
       applyFlag: "--apply",
@@ -114,12 +114,12 @@ describe("portable release bundle e2e", () => {
     expect(existsSync(join(movedBundle, "libexec", "release-install-core.test.mjs"))).toBe(false);
   });
 
-  it("declares the twelve MCP tools and the v0.5 ohmypm-cli-namespace profile", () => {
+  it("declares the twelve MCP tools and the v0.6 omp-cli-namespace profile", () => {
     const release = JSON.parse(readFileSync(join(movedBundle, "RELEASE.json"), "utf8"));
-    // The current source prepares the v0.5 "ohmypm-cli-namespace" profile. Its
-    // runtime surface is identical to v0.4: the ten historical tools, then
-    // project_changes, then project_timeline, in exactly that order. v0.5 migrates
-    // the command names only.
+    // The current source prepares the v0.6 "omp-cli-namespace" profile. Its
+    // runtime surface is identical to v0.4/v0.5: the ten historical tools, then
+    // project_changes, then project_timeline, in exactly that order. v0.6
+    // migrates the command names only.
     expect(release.mcpTools).toEqual([
       "project_brief",
       "project_risks",
@@ -134,22 +134,36 @@ describe("portable release bundle e2e", () => {
       "project_changes",
       "project_timeline",
     ]);
-    expect(release.releaseLine).toBe("v0.5");
-    expect(release.bundleProfile).toBe("ohmypm-cli-namespace");
+    expect(release.releaseLine).toBe("v0.6");
+    expect(release.bundleProfile).toBe("omp-cli-namespace");
     expect(release.expectedMcpToolCount).toBe(12);
-    // Canonical commands and deprecated aliases are distinct fields, never one
-    // flat list that would present the aliases as equals.
+    // Canonical commands and BOTH alias classes are distinct fields, never one
+    // flat list that would present the aliases as equals -- and never one merged
+    // alias field, which would misreport `ohmypm*` (canonical in v0.5) as
+    // deprecated.
     expect(release.canonicalCommands).toEqual({
-      cli: "ohmypm",
-      mcp: "ohmypm-mcp",
-      installer: "ohmypm-install",
+      cli: "omp",
+      mcp: "omp-mcp",
+      installer: "omp-install",
     });
-    expect(release.legacyAliases).toEqual({
+    expect(release.compatibilityAliases).toEqual({
+      cli: ["ohmypm"],
+      mcp: ["ohmypm-mcp"],
+      installer: ["ohmypm-install"],
+    });
+    expect(release.deprecatedAliases).toEqual({
       cli: ["oh-my-pm"],
       mcp: ["oh-my-pm-mcp"],
       installer: ["oh-my-pm-install"],
     });
-    expect(release.commands).toEqual(["ohmypm", "ohmypm-mcp"]);
+    // The historical field still resolves the full alias set for a v0.5-era reader.
+    expect(release.legacyAliases).toEqual({
+      cli: ["ohmypm", "oh-my-pm"],
+      mcp: ["ohmypm-mcp", "oh-my-pm-mcp"],
+      installer: ["ohmypm-install", "oh-my-pm-install"],
+    });
+    expect(release.commands).toEqual(["omp", "omp-mcp"]);
+    expect(release.commandsCanonicalSince).toBe("0.6.0");
     expect(release.commandsDeprecatedSince).toBe("0.5.0");
     expect(release.commandRemovalScheduled).toBe(false);
     // Product identity is unchanged: the archive stays product-based.

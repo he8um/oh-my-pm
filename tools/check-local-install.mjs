@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Read-only verifier for a local installation. Confirms the four shims exist
-// and are executable, runs the installed CLI (status + fixture brief), and
+// Read-only verifier for a local installation. Confirms every shim the command
+// manifest declares exists and is executable, runs the installed CLI (status + fixture brief), and
 // drives the installed MCP command over stdio (list tools + project_brief).
 // No writes, no environment lookups. It may spawn the explicitly installed
 // commands; package source stays free of child-process usage.
@@ -13,7 +13,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 // The installed command set comes from the one place that defines it, so this
 // verifier can never check a stale list.
-import { LOCAL_COMMAND_NAMES } from "./local-install-utils.mjs";
+import {
+  LOCAL_CANONICAL_COMMAND_NAMES,
+  LOCAL_COMMAND_NAMES,
+  LOCAL_LEGACY_COMMAND_NAMES,
+} from "./local-install-utils.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const fixtureRoot = join(repoRoot, "examples", "fixtures", "markdown-project");
@@ -77,15 +81,15 @@ if (!parsed.ok) {
 
 async function run(prefix) {
   const binDir = join(prefix, "bin");
-  // The functional checks below run the *canonical* commands. The deprecated
-  // aliases are verified to exist and to be launchable, but the canonical pair is
-  // what the check treats as the product surface.
+  // The functional checks below run the *canonical* commands. Both alias classes
+  // are verified to exist, to be launchable, and to warn correctly, but the
+  // canonical pair is what the check treats as the product surface.
   const platformCommand = (name) => join(binDir, isWindows ? `${name}.cmd` : name);
-  const cliCommand = platformCommand("ohmypm");
-  const mcpCommand = platformCommand("ohmypm-mcp");
+  const cliCommand = platformCommand(LOCAL_CANONICAL_COMMAND_NAMES[0]);
+  const mcpCommand = platformCommand(LOCAL_CANONICAL_COMMAND_NAMES[1]);
 
-  // v0.5: every canonical command and every deprecated compatibility alias is
-  // installed in both POSIX and .cmd form.
+  // v0.6: every canonical command, every compatibility alias, and every
+  // deprecated alias is installed in both POSIX and .cmd form.
   const shimPaths = LOCAL_COMMAND_NAMES.flatMap((name) => [
     join(binDir, name),
     join(binDir, `${name}.cmd`),
@@ -106,22 +110,25 @@ async function run(prefix) {
     }
   }
 
-  // The deprecated CLI alias must run and must warn on stderr only, never
-  // polluting stdout.
-  const legacyCli = platformCommand("oh-my-pm");
-  try {
-    const legacyOut = execFileSync(legacyCli, ["status"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    if (!legacyOut.includes("OH MY PM status: healthy")) {
-      return fail("deprecated CLI alias status was not healthy");
+  // Every CLI alias must run and must write its notice to stderr only, never
+  // polluting stdout. Each class is checked with its own wording so a
+  // compatibility alias can never be reported as deprecated.
+  for (const alias of LOCAL_LEGACY_COMMAND_NAMES.filter((n) => !n.endsWith("-mcp"))) {
+    const aliasCommand = platformCommand(alias);
+    try {
+      const aliasOut = execFileSync(aliasCommand, ["status"], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      if (!aliasOut.includes("OH MY PM status: healthy")) {
+        return fail(`alias ${alias} status was not healthy`);
+      }
+      if (aliasOut.includes("Warning:")) {
+        return fail(`alias ${alias} wrote its notice to stdout`);
+      }
+    } catch {
+      return fail(`alias ${alias} did not exit cleanly`);
     }
-    if (legacyOut.includes("deprecated")) {
-      return fail("deprecated CLI alias wrote its warning to stdout");
-    }
-  } catch {
-    return fail("deprecated CLI alias did not exit cleanly");
   }
 
   // Installed CLI: status

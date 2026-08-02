@@ -21,6 +21,7 @@ import { pathToFileURL } from "node:url";
 import {
   RELEASE_INSTALL_CANONICAL_COMMANDS,
   RELEASE_INSTALL_COMMANDS,
+  RELEASE_INSTALL_COMPATIBILITY_COMMANDS,
   RELEASE_INSTALL_LEGACY_COMMANDS,
 } from "../distribution/libexec/release-install-core.mjs";
 
@@ -28,7 +29,8 @@ const isWindows = process.platform === "win32";
 
 // The historical ten installed MCP tools (four local + four GitHub + two
 // provider diagnostics), compared sorted. The "project-brain" (v0.3) and
-// "project-brain-timeline" (v0.4), and "ohmypm-cli-namespace" (v0.5) profiles add
+// "project-brain-timeline" (v0.4), "ohmypm-cli-namespace" (v0.5), and
+// "omp-cli-namespace" (v0.6) profiles add
 // exactly one read-only tool, project_changes; the profile is read from the
 // installed RELEASE.json and the expected surface is resolved fail-closed below.
 // This verifier calls only offline tools (project_brief, provider_status, and —
@@ -276,7 +278,8 @@ async function run(prefix, expectedVersion) {
 
   // Resolve the installed MCP surface from the bundle's own declared profile and
   // fail closed on any unknown profile. The project-brain (v0.3) profile expects
-  // eleven tools; the project-brain-timeline (v0.4) and ohmypm-cli-namespace
+  // eleven tools; the project-brain-timeline (v0.4), ohmypm-cli-namespace (v0.5),
+  // and omp-cli-namespace (v0.6)
   // (v0.5) profiles expect twelve; both
   // require the bundled Project Memory package. The legacy profile (absent or
   // "source-v0.2") expects the historical ten.
@@ -286,7 +289,8 @@ async function run(prefix, expectedVersion) {
     expectedMcpToolsSorted = ELEVEN_MCP_TOOLS_SORTED;
   } else if (
     installedProfile === "project-brain-timeline" ||
-    installedProfile === "ohmypm-cli-namespace"
+    installedProfile === "ohmypm-cli-namespace" ||
+    installedProfile === "omp-cli-namespace"
   ) {
     expectedMcpToolsSorted = TWELVE_MCP_TOOLS_SORTED;
   } else if (installedProfile === "source-v0.2") {
@@ -297,7 +301,8 @@ async function run(prefix, expectedVersion) {
   const installedHasProjectBrain =
     installedProfile === "project-brain" ||
     installedProfile === "project-brain-timeline" ||
-    installedProfile === "ohmypm-cli-namespace";
+    installedProfile === "ohmypm-cli-namespace" ||
+    installedProfile === "omp-cli-namespace";
   if (installedHasProjectBrain) {
     const pmEntry = join(
       versionDir,
@@ -361,8 +366,8 @@ async function run(prefix, expectedVersion) {
   }
 
   // The functional checks below drive the canonical commands.
-  const cliShim = join(binDir, isWindows ? "ohmypm.cmd" : "ohmypm");
-  const mcpShim = join(binDir, isWindows ? "ohmypm-mcp.cmd" : "ohmypm-mcp");
+  const cliShim = join(binDir, isWindows ? "omp.cmd" : "omp");
+  const mcpShim = join(binDir, isWindows ? "omp-mcp.cmd" : "omp-mcp");
   const fixtureRoot = join(versionDir, "examples", "markdown-project");
 
   // The installed JavaScript entrypoints under the versioned prefix. On Windows
@@ -370,8 +375,8 @@ async function run(prefix, expectedVersion) {
   // without a shell); on POSIX the executable shim is launched instead. All
   // executed code comes from the installed version directory — never the source
   // repository and never a package-manager bin directory.
-  const cliEntrypoint = join(versionDir, "bin", "ohmypm.mjs");
-  const mcpEntrypoint = join(versionDir, "bin", "ohmypm-mcp.mjs");
+  const cliEntrypoint = join(versionDir, "bin", "omp.mjs");
+  const mcpEntrypoint = join(versionDir, "bin", "omp-mcp.mjs");
   if (!isRegularFile(cliEntrypoint))
     return fail(`installed CLI entrypoint missing: ${cliEntrypoint}`);
   if (!isRegularFile(mcpEntrypoint))
@@ -403,36 +408,48 @@ async function run(prefix, expectedVersion) {
     return fail("installed CLI status version mismatch");
   if (!statusOut.includes(`kernel: ${version}`))
     return fail("installed CLI kernel version mismatch");
-  // The canonical command must never print a deprecation warning.
+  // The canonical command must never print an alias notice of any class.
   if (statusOut.includes("deprecated")) return fail("canonical CLI emitted a deprecation warning");
+  if (statusOut.includes("compatibility alias"))
+    return fail("canonical CLI emitted a compatibility-alias warning");
 
-  // v0.5: the deprecated CLI alias still works, and its warning stays on stderr.
-  // stdout must remain byte-identical to the canonical command's, which is what
-  // keeps a piped `--json` invocation parseable through the alias.
-  const legacyCliEntrypoint = join(versionDir, "bin", "oh-my-pm.mjs");
-  if (!isRegularFile(legacyCliEntrypoint)) {
-    return fail(`installed legacy CLI entrypoint missing: ${legacyCliEntrypoint}`);
-  }
-  {
+  // v0.6: every CLI alias still works, and each warns only on stderr. stdout
+  // must remain byte-identical to the canonical command's, which is what keeps a
+  // piped `--json` invocation parseable through any alias. The two classes are
+  // asserted separately: a compatibility alias must NOT call itself deprecated.
+  for (const alias of RELEASE_INSTALL_LEGACY_COMMANDS.filter((n) => !n.endsWith("-mcp"))) {
+    const aliasEntrypoint = join(versionDir, "bin", `${alias}.mjs`);
+    if (!isRegularFile(aliasEntrypoint)) {
+      return fail(`installed alias CLI entrypoint missing: ${aliasEntrypoint}`);
+    }
     const invocation = createInstalledCommandInvocation({
       platform: process.platform,
       nodeExecutable: process.execPath,
-      shimPath: join(binDir, isWindows ? "oh-my-pm.cmd" : "oh-my-pm"),
-      entrypoint: legacyCliEntrypoint,
+      shimPath: join(binDir, isWindows ? `${alias}.cmd` : alias),
+      entrypoint: aliasEntrypoint,
       args: ["status"],
     });
-    const legacy = spawnSync(invocation.command, invocation.args, { encoding: "utf8" });
-    if (legacy.status !== 0) return fail("deprecated CLI alias status did not exit cleanly");
-    if (legacy.stdout !== statusOut)
-      return fail("deprecated CLI alias stdout differs from canonical");
-    if (legacy.stdout.includes("deprecated")) {
-      return fail("deprecated CLI alias wrote its warning to stdout");
+    const aliased = spawnSync(invocation.command, invocation.args, { encoding: "utf8" });
+    if (aliased.status !== 0) return fail(`alias ${alias} status did not exit cleanly`);
+    if (aliased.stdout !== statusOut) return fail(`alias ${alias} stdout differs from canonical`);
+    if (aliased.stdout.includes("Warning:")) {
+      return fail(`alias ${alias} wrote its warning to stdout`);
     }
-    if (!legacy.stderr.includes("deprecated compatibility alias")) {
-      return fail("deprecated CLI alias did not warn on stderr");
+    const isCompatibility = RELEASE_INSTALL_COMPATIBILITY_COMMANDS.includes(alias);
+    const expectedPhrase = isCompatibility ? "is a compatibility alias" : "is deprecated";
+    if (!aliased.stderr.includes(expectedPhrase)) {
+      return fail(`alias ${alias} did not warn on stderr with its class wording`);
     }
-    if (!legacy.stderr.includes("ohmypm")) {
-      return fail("deprecated CLI alias warning does not name the canonical command");
+    if (isCompatibility && aliased.stderr.includes("is deprecated")) {
+      return fail(`compatibility alias ${alias} was reported as deprecated`);
+    }
+    if (!aliased.stderr.includes(RELEASE_INSTALL_CANONICAL_COMMANDS[0])) {
+      return fail(`alias ${alias} warning does not name the canonical command`);
+    }
+    // Exactly one notice per invocation.
+    const occurrences = aliased.stderr.split("Warning:").length - 1;
+    if (occurrences !== 1) {
+      return fail(`alias ${alias} emitted ${occurrences} warnings, expected exactly 1`);
     }
   }
 

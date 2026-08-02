@@ -23,17 +23,17 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 // a patch promotion needs no test edit. The base stable lineage stays pinned.
 const PATCH_VERSION = JSON.parse(readFileSync(join(REPO_ROOT, "version.json"), "utf8")).version;
 // The immutable base stable lineage the ACTIVE release workflow must gate on.
-// The v0.5.2 candidate builds on the published v0.5.1 stable.
-const BASE_STABLE_TAG = "v0.5.1";
-const BASE_STABLE_SHA = "49e2cbbc7590af52e648b615c6245ce3cbcee0e9";
+// The v0.6.0 candidate builds on the published v0.5.4 stable.
+const BASE_STABLE_TAG = "v0.5.4";
+const BASE_STABLE_SHA = "288337a9514150b7a5973d9d9410f7186567520f";
 const RC_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.3-rc.yml");
 // The ACTIVE stable release workflow, whose gates are asserted against the
 // canonical source version. Every earlier stable workflow is historical and
-// immutable; v0.5 supersedes v0.4 as the active line.
-const STABLE_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.5.yml");
+// immutable; v0.6 supersedes v0.5 as the active line.
+const STABLE_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.6.yml");
 // The ACTIVE installed-qualification workflow. v0.4's is historical and
 // dispatch-only.
-const QUAL_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "v0.5-installed-qualification.yml");
+const QUAL_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "v0.6-installed-qualification.yml");
 
 function read(p) {
   return readFileSync(p, "utf8");
@@ -225,10 +225,10 @@ describe("v0.3 installed-qualification workflow (non-publishing)", () => {
 
   it("prepares one artifact and tests it across Linux/macOS/Windows", () => {
     expect(/ubuntu-latest,\s*macos-latest,\s*windows-latest/.test(wf)).toBe(true);
-    expect(wf.includes("v0.5-candidate-artifact")).toBe(true);
+    expect(wf.includes("v0.6-candidate-artifact")).toBe(true);
     // The expected release profile is pinned, so a matrix job can never
     // silently qualify the wrong surface.
-    expect(wf.includes("--profile ohmypm-cli-namespace")).toBe(true);
+    expect(wf.includes("--profile omp-cli-namespace")).toBe(true);
     expect(wf.includes("check-v0.3-installed-project-brain.mjs")).toBe(true);
   });
 
@@ -246,13 +246,13 @@ describe("v0.3 installed-qualification workflow (non-publishing)", () => {
 });
 
 describe("release profile is self-describing and fail-closed", () => {
-  it("release-bundle-utils declares the v0.5 ohmypm-cli-namespace profile", () => {
-    // v0.5 adds a NEW profile rather than reusing v0.4's, so a verifier can tell
-    // a bundle that ships both command families from one that ships only the old
-    // names. The runtime surface (twelve tools) is unchanged.
+  it("release-bundle-utils declares the v0.6 omp-cli-namespace profile", () => {
+    // v0.6 adds a NEW profile rather than reusing v0.5's, so a verifier can tell
+    // a bundle that ships all three command families from one that ships only
+    // two. The runtime surface (twelve tools) is unchanged.
     const utils = read(join(REPO_ROOT, "tools", "release-bundle-utils.mjs"));
-    expect(utils.includes('BUNDLE_PROFILE = "ohmypm-cli-namespace"')).toBe(true);
-    expect(utils.includes('RELEASE_LINE = "v0.5"')).toBe(true);
+    expect(utils.includes('BUNDLE_PROFILE = "omp-cli-namespace"')).toBe(true);
+    expect(utils.includes('RELEASE_LINE = "v0.6"')).toBe(true);
     expect(utils.includes('"project_changes"')).toBe(true);
     expect(utils.includes('"project_timeline"')).toBe(true);
   });
@@ -266,6 +266,7 @@ describe("release profile is self-describing and fail-closed", () => {
     expect(verifier.includes('bundleProfile === "project-brain-timeline"')).toBe(true);
     // Previously published profiles keep working alongside the new one.
     expect(verifier.includes('bundleProfile === "ohmypm-cli-namespace"')).toBe(true);
+    expect(verifier.includes('bundleProfile === "omp-cli-namespace"')).toBe(true);
   });
 
   it("the install core resolves the surface from the declared profile, fail-closed", () => {
@@ -316,10 +317,10 @@ describe("self-contained v0.3 bundle includes project-memory (dist-only)", () =>
     walk(pmDir);
   });
 
-  it("declares the v0.5 ohmypm-cli-namespace profile in the bundle RELEASE.json", () => {
+  it("declares the v0.6 omp-cli-namespace profile in the bundle RELEASE.json", () => {
     const release = JSON.parse(read(join(bundleDir, "RELEASE.json")));
-    expect(release.bundleProfile).toBe("ohmypm-cli-namespace");
-    expect(release.releaseLine).toBe("v0.5");
+    expect(release.bundleProfile).toBe("omp-cli-namespace");
+    expect(release.releaseLine).toBe("v0.6");
     expect(release.expectedMcpToolCount).toBe(12);
     expect(release.mcpTools[release.mcpTools.length - 1]).toBe("project_timeline");
     expect(release.mcpTools[release.mcpTools.length - 2]).toBe("project_changes");
@@ -384,6 +385,7 @@ describe("release profile resolution (v0.2 upgrade compatibility)", () => {
     expect(verifier.includes('bundleProfile === "project-brain"')).toBe(true);
     expect(verifier.includes('bundleProfile === "project-brain-timeline"')).toBe(true);
     expect(verifier.includes('bundleProfile === "ohmypm-cli-namespace"')).toBe(true);
+    expect(verifier.includes('bundleProfile === "omp-cli-namespace"')).toBe(true);
     expect(verifier.includes("bundleProfile is unknown")).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Deprecated compatibility alias for the OH MY PM CLI. The canonical command is
-// `ohmypm`; this name is retained so an existing script or shell alias keeps
+// `omp`; this name is retained so an existing script or shell alias keeps
 // working. No removal is scheduled.
 //
 // This wrapper duplicates no application logic. It runs the same
@@ -14,11 +14,11 @@
 // clean document: a `--json` command's stdout has to remain parseable JSON, so a
 // warning written there would corrupt a machine-readable contract.
 
-import { commandDeprecationWarning, runLocalCliProcess } from "../dist/index.js";
+import { commandAliasWarning, runLocalCliProcess } from "../dist/index.js";
 
-process.stderr.write(`${commandDeprecationWarning("oh-my-pm")}\n`);
+process.stderr.write(`${commandAliasWarning("oh-my-pm")}\n`);
 
-// Identical boundary wiring to bin/ohmypm.mjs: the real clock, the process id
+// Identical boundary wiring to bin/omp.mjs: the real clock, the process id
 // used only to derive the memory operation id, and the entry-script path used
 // only by mcp-config to infer the installed prefix. Passing this script's own
 // path keeps prefix inference correct for the deprecated shim too, because the

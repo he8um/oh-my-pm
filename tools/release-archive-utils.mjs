@@ -249,11 +249,11 @@ export function resolveReleaseArchivePlan(options) {
     { id: "bundle_basename", ok: basename(bundleDirectory) === RELEASE_ARCHIVE_BUNDLE_NAME },
     { id: "release_json", ok: isRegularFile(join(bundleDirectory, "RELEASE.json")) },
     { id: "internal_sha256sums", ok: isRegularFile(join(bundleDirectory, "SHA256SUMS")) },
-    { id: "cli_entrypoint", ok: isRegularFile(join(bundleDirectory, "bin", "ohmypm.mjs")) },
-    { id: "mcp_entrypoint", ok: isRegularFile(join(bundleDirectory, "bin", "ohmypm-mcp.mjs")) },
+    { id: "cli_entrypoint", ok: isRegularFile(join(bundleDirectory, "bin", "omp.mjs")) },
+    { id: "mcp_entrypoint", ok: isRegularFile(join(bundleDirectory, "bin", "omp-mcp.mjs")) },
     {
       id: "installer_entrypoint",
-      ok: isRegularFile(join(bundleDirectory, "bin", "ohmypm-install.mjs")),
+      ok: isRegularFile(join(bundleDirectory, "bin", "omp-install.mjs")),
     },
     // v0.5: the deprecated compatibility aliases are shipped intentionally, so a
     // missing alias entrypoint blocks archiving just like a missing canonical one.
@@ -425,9 +425,9 @@ function normalizeStaging(bundleRoot) {
       // the installer, and the deprecated compatibility aliases. Everything else
       // is normalized to 644 so archives stay byte-reproducible.
       const isBin = [
-        "bin/ohmypm.mjs",
-        "bin/ohmypm-mcp.mjs",
-        "bin/ohmypm-install.mjs",
+        "bin/omp.mjs",
+        "bin/omp-mcp.mjs",
+        "bin/omp-install.mjs",
         "bin/oh-my-pm.mjs",
         "bin/oh-my-pm-mcp.mjs",
         "bin/oh-my-pm-install.mjs",

@@ -1,4 +1,4 @@
-// The CLI GitHub adapter: the presentation boundary for `ohmypm github …`.
+// The CLI GitHub adapter: the presentation boundary for `omp github …`.
 //
 // This module owns only CLI concerns — turning parsed CLI options into shared
 // application input, choosing the output mode, routing stdout/stderr, and mapping

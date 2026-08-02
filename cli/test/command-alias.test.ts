@@ -1,4 +1,4 @@
-// Behavioral parity between the canonical `ohmypm` entrypoint and the deprecated
+// Behavioral parity between the canonical `omp` entrypoint and the deprecated
 // `oh-my-pm` compatibility alias. Both entrypoints are executed as real
 // processes so stdout/stderr separation, exit codes, and JSON validity are
 // observed exactly as a user's shell would see them.
@@ -9,18 +9,18 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   CANONICAL_CLI_COMMAND,
-  LEGACY_CLI_COMMANDS,
+  DEPRECATED_CLI_COMMANDS,
   canonicalCommandForAlias,
-  commandDeprecationWarning,
+  commandAliasWarning,
 } from "@oh-my-pm/application";
 
 const pkgDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(pkgDir, "..");
-const CANONICAL_BIN = join(pkgDir, "bin", "ohmypm.mjs");
+const CANONICAL_BIN = join(pkgDir, "bin", "omp.mjs");
 const LEGACY_BIN = join(pkgDir, "bin", "oh-my-pm.mjs");
 
 const LEGACY_CLI_NAME = "oh-my-pm";
-const EXPECTED_WARNING = `${commandDeprecationWarning(LEGACY_CLI_NAME)}\n`;
+const EXPECTED_WARNING = `${commandAliasWarning(LEGACY_CLI_NAME)}\n`;
 
 function run(bin: string, args: readonly string[]) {
   const result = spawnSync(process.execPath, [bin, ...args], {
@@ -31,19 +31,19 @@ function run(bin: string, args: readonly string[]) {
 }
 
 describe("command surface constants", () => {
-  it("declares ohmypm canonical and oh-my-pm legacy", () => {
-    expect(CANONICAL_CLI_COMMAND).toBe("ohmypm");
-    expect(LEGACY_CLI_COMMANDS).toEqual([LEGACY_CLI_NAME]);
-    expect(canonicalCommandForAlias(LEGACY_CLI_NAME)).toBe("ohmypm");
+  it("declares omp canonical and oh-my-pm deprecated", () => {
+    expect(CANONICAL_CLI_COMMAND).toBe("omp");
+    expect(DEPRECATED_CLI_COMMANDS).toEqual([LEGACY_CLI_NAME]);
+    expect(canonicalCommandForAlias(LEGACY_CLI_NAME)).toBe("omp");
   });
 
   it("refuses to produce a warning for the canonical command", () => {
     // Guards against a wrapper warning about the very name it forwards to.
-    expect(() => commandDeprecationWarning(CANONICAL_CLI_COMMAND)).toThrow(/not a legacy alias/);
+    expect(() => commandAliasWarning(CANONICAL_CLI_COMMAND)).toThrow(/not an alias/);
   });
 });
 
-describe("canonical ohmypm entrypoint", () => {
+describe("canonical omp entrypoint", () => {
   it("prints canonical help with no deprecation warning", () => {
     const result = run(CANONICAL_BIN, ["--help"]);
     expect(result.status).toBe(0);
@@ -86,7 +86,7 @@ describe("deprecated oh-my-pm compatibility alias", () => {
     const result = run(LEGACY_BIN, ["--help"]);
     expect(result.status).toBe(0);
     expect(result.stderr).toBe(EXPECTED_WARNING);
-    expect(result.stderr).toContain("deprecated compatibility alias");
+    expect(result.stderr).toContain("is deprecated");
     // The warning must never reach stdout.
     expect(result.stdout).not.toContain("deprecated");
     expect(result.stdout).not.toContain("Warning:");

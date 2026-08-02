@@ -1,6 +1,6 @@
-name: v0.5 Installed Qualification
+name: v0.6 Installed Qualification
 
-# Non-publishing continuous qualification of the v0.5 installed artifact. On every
+# Non-publishing continuous qualification of the v0.6 installed artifact. On every
 # push/PR to main it prepares ONE deterministic candidate archive set on Linux and
 # then qualifies that SAME prepared artifact on Linux, macOS, and Windows by
 # extracting it, installing it under a temporary prefix, and running the installed
@@ -9,21 +9,20 @@ name: v0.5 Installed Qualification
 # checks. The expected release profile is pinned so a job can never silently
 # qualify the wrong surface.
 #
-# v0.5 pins the "ohmypm-cli-namespace" profile. Its runtime surface is identical to
-# v0.4's "project-brain-timeline"; only the command names migrated. This workflow
-# supersedes v0.4-installed-qualification.yml, which is left byte-unchanged as
-# historical content.
+# v0.6 pins the "omp-cli-namespace" profile. Its runtime surface is identical to
+# v0.5's "ohmypm-cli-namespace" and v0.4's "project-brain-timeline"; only the
+# command names migrated. This workflow supersedes
+# v0.5-installed-qualification.yml, which is left byte-unchanged as historical
+# content.
 #
 # It creates no tag, no GitHub Release, no registry artifact. It grants only
 # contents: read. It uploads a workflow artifact (the prepared archives) so every
 # OS tests identical bytes — never independently rebuilt per OS.
-# SUPERSEDED by v0.6-installed-qualification.yml. The v0.6 source builds the
-# "omp-cli-namespace" profile, so this workflow's pinned v0.5 profile no longer
-# matches the current source and it must not gate every push/PR. Its content is
-# otherwise unchanged and it stays dispatchable, so the v0.5 surface can still be
-# qualified deliberately against a v0.5 artifact.
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
@@ -100,7 +99,7 @@ jobs:
       - name: Upload candidate artifact
         uses: actions/upload-artifact@v7
         with:
-          name: v0.5-candidate-artifact
+          name: v0.6-candidate-artifact
           path: ${{ runner.temp }}/candidate/*
           if-no-files-found: error
           compression-level: 0
@@ -135,7 +134,7 @@ jobs:
       - name: Download candidate artifact
         uses: actions/download-artifact@v7
         with:
-          name: v0.5-candidate-artifact
+          name: v0.6-candidate-artifact
           path: candidate
 
       - name: Verify checksum and qualify the installed artifact (POSIX)
@@ -148,7 +147,7 @@ jobs:
           node tools/check-v0.3-installed-project-brain.mjs \
             --archive "candidate/oh-my-pm-v$VERSION.tar.gz" \
             --work "$RUNNER_TEMP/qual-work" \
-            --profile ohmypm-cli-namespace
+            --profile omp-cli-namespace
 
       - name: Verify checksum and qualify the installed artifact (Windows)
         if: runner.os == 'Windows'
@@ -169,5 +168,5 @@ jobs:
           node tools/check-v0.3-installed-project-brain.mjs `
             --archive "candidate/oh-my-pm-v$version.zip" `
             --work "$env:RUNNER_TEMP/qual-work" `
-            --profile ohmypm-cli-namespace
+            --profile omp-cli-namespace
           if ($LASTEXITCODE -ne 0) { throw "installed qualification failed" }
