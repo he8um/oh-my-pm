@@ -5,11 +5,12 @@ The detailed public roadmap is maintained in [`docs/roadmap.md`](docs/roadmap.md
 Work is labelled with one of five states: **Shipped**, **Prepared but
 unpublished**, **Active maintenance**, **Planned**, or **Out of scope**.
 
-## Active maintenance — v0.6.0
+## Shipped — v0.6.0
 
-**Canonical `omp` command migration and public surface stabilization.** Prepared
-but unpublished: the source version is `0.6.0` while the latest published stable
-remains [`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4).
+**Canonical `omp` command migration and public surface stabilization.**
+**Published as the latest stable release**:
+[`v0.6.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.0). See the
+[post-publication validation record](docs/releases/v0.6.0-post-publication-validation.md).
 
 `omp`, `omp-mcp`, and `omp-install` become the canonical executables. The former
 `ohmypm*` family — canonical in v0.5 — becomes a supported **compatibility
@@ -36,8 +37,8 @@ and the MCP tool inventory, order, schemas, and annotations are untouched. See
 
 **Contract and repository consistency.** A patch release with no public behavior
 change, published as
-[`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4) and the base
-stable that `v0.6.0` builds on.
+[`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4), superseded as
+latest stable by `v0.6.0` and the immutable base it builds on.
 
 ## Shipped — v0.5.3
 
@@ -123,7 +124,7 @@ the v0.5 line. See [`docs/v0.6/README.md`](docs/v0.6/README.md).
   context provider framework, and the validation and release lifecycle.
 
 The latest **published** stable release is
-[`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4).
+[`v0.6.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.0).
 
 ## Shipped — v0.5.4
 

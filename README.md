@@ -29,7 +29,7 @@ It is designed for teams that want clearer delivery context, safer execution bou
 
 ## What this repository is
 
-This repository is the current implementation of OH MY PM. Its release line is `v0.x`: the published stable releases run from [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) through [`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4), and the source version is recorded in [`version.json`](version.json).
+This repository is the current implementation of OH MY PM. Its release line is `v0.x`: the published stable releases run from [`v0.1.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.1.0) through [`v0.6.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.0), and the source version is recorded in [`version.json`](version.json).
 
 It began as a clean rebuild with a new architecture, replacing an earlier prototype line that is no longer developed here. That rebuild is history, not a pending migration: there is no `v2.x` target, and the versions above are the only release line this repository ships. See [the roadmap](ROADMAP.md) for what is planned next.
 
@@ -155,7 +155,7 @@ The current next-task workflow extracts explicit unchecked Markdown checklist it
 
 ## Getting started locally
 
-The packages are private and repository-based (there is no registry package), and the latest stable release is [`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4). To build from a checkout, see [the getting-started guide](docs/getting-started.md) for the full walkthrough. The short path is:
+The packages are private and repository-based (there is no registry package), and the latest stable release is [`v0.6.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.0). To build from a checkout, see [the getting-started guide](docs/getting-started.md) for the full walkthrough. The short path is:
 
 ```bash
 rustup target add wasm32-unknown-unknown
@@ -177,13 +177,13 @@ omp handoff ./project --markdown
 
 Run `omp --help` for the full command reference, or `omp <namespace> --help` for a namespace.
 
-MCP onboarding needs no manual path: the installed CLI prints a ready client configuration with `omp mcp-config` (add `--markdown` for a documented block, `--name <name>` for a custom server key). From a repository checkout use `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`, which takes an explicit prefix. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the source line in `version.json`; the latest published stable release is [`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4). Installed release archives require only Node.js 20+.
+MCP onboarding needs no manual path: the installed CLI prints a ready client configuration with `omp mcp-config` (add `--markdown` for a documented block, `--name <name>` for a custom server key). From a repository checkout use `pnpm mcp:config -- --prefix "$HOME/.local" --markdown`, which takes an explicit prefix. The installer is preview-first and never edits your PATH, shell profiles, or MCP client configuration. This is the repository build of the source line in `version.json`; the latest published stable release is [`v0.6.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.0). Installed release archives require only Node.js 20+.
 
 ### Historical stable release (v0.2.0)
 
-> Historical. The current install target is [`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4).
+> Historical. The current install target is [`v0.6.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.0).
 
-The [`v0.2.0` release](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0) — superseded as latest stable by [`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4) — ships three assets:
+The [`v0.2.0` release](https://github.com/he8um/oh-my-pm/releases/tag/v0.2.0) — superseded as latest stable by [`v0.6.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.0) — ships three assets:
 
 ```text
 oh-my-pm-v0.2.0.tar.gz
@@ -395,7 +395,8 @@ Five release lines have shipped. What is built and released today:
 | Local Project Dashboard                                               | planned beyond v0.6, not implemented |
 
 The v0.5 line is complete through **v0.5.4** (contract and repository
-consistency). See
+consistency), and the current stable is **v0.6.0** (canonical `omp` command
+migration). See
 [`ROADMAP.md`](ROADMAP.md) and [`docs/roadmap.md`](docs/roadmap.md).
 
 ---

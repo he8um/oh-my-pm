@@ -11,9 +11,8 @@ Every entry below carries one of five explicit states:
 | **Out of scope**             | deliberately excluded                                       |
 
 The latest **published** stable release is
-[`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4). The v0.5 line
-is complete. The current source version is **v0.6.0**, which is the **active
-maintenance** scope: prepared but not yet published.
+[`v0.6.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.0), which is also
+the current source version. The v0.5 line is complete.
 
 Phases 0 through 6 below are the historical implementation log for the v0.1
 through v0.4 lines. Everything in them is **Shipped** unless a later section
@@ -537,10 +536,10 @@ unchanged, because they are returned directly as MCP tool results.
   [the contract model](v0.5/contracts.md), and
   [the post-publication validation record](releases/v0.5.4-post-publication-validation.md).
 
-## v0.6.0 — Canonical `omp` command migration (Active maintenance)
+## v0.6.0 — Canonical `omp` command migration (Shipped)
 
-Prepared but unpublished: the source version is `0.6.0`; the latest published
-stable remains `v0.5.4`.
+Published as the latest stable release; the source version is `0.6.0`. The
+immutable base it builds on is `v0.5.4`.
 
 `omp`, `omp-mcp`, and `omp-install` are the canonical executables. Two alias
 classes are retained, and the distinction is deliberate:

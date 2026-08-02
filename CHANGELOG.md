@@ -4,8 +4,9 @@
 
 ## [0.6.0]
 
-Canonical `omp` command migration and public surface stabilization, **prepared
-but not yet published**. This is a command namespace migration, not a product
+Canonical `omp` command migration and public surface stabilization, **published
+as the latest stable release**
+([`v0.6.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.0)). This is a command namespace migration, not a product
 rename and not a data migration.
 
 **No behavior changes beyond the executable names.** No command added or removed,

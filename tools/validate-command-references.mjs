@@ -121,6 +121,11 @@ const APPROVED_FILES = new Set([
   // The v0.6 release notes show a before/after pair, so they must name the
   // previous canonical command to be useful at all.
   "docs/releases/v0.6.0.md",
+  // The post-publication record states the verified *inventory* of a published
+  // artifact -- every shipped executable and shim, by name. That is a factual
+  // record of what was published, not an instruction to run an alias, and it is
+  // never rewritten.
+  "docs/releases/v0.6.0-post-publication-validation.md",
   "docs/releases/v0.5.0.md",
   "docs/releases/publishing-v0.5.0.md",
   "CHANGELOG.md",
