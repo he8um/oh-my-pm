@@ -11,10 +11,9 @@ Every entry below carries one of five explicit states:
 | **Out of scope**             | deliberately excluded                                       |
 
 The latest **published** stable release is
-[`v0.5.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.2). The current
-source version is `0.5.3` — the documentation and architecture truth patch, which
-is prepared but **not yet published**. The active maintenance scope is the v0.5
-line: `v0.5.3` followed by `v0.5.4` (contract and repository consistency). The
+[`v0.5.3`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.3), which is also
+the current source version. The active maintenance scope is the v0.5 line:
+`v0.5.4` (contract and repository consistency) is the next planned patch. The
 next line, **v0.6**, is planned and not started.
 
 Phases 0 through 6 below are the historical implementation log for the v0.1
@@ -463,10 +462,10 @@ in place (see Phase 5B).
 - Rollback model
 - Release gates
 
-## v0.5.3 — Documentation and architecture truth (Active maintenance)
+## v0.5.3 — Documentation and architecture truth (Shipped)
 
-The source version is `0.5.3`, prepared and **not yet published**. No product code
-changes; no public behavior changes.
+**Published as the latest stable release** on 2026-08-02 (tag `v0.5.3`, targeting
+`fa50d0e…`). No product code changes; no public behavior changes.
 
 - **Documentation authority is machine-readable.** `docs/manifest.json` classifies
   every tracked document exactly once with `status` (`active`, `historical`,
@@ -498,7 +497,8 @@ changes; no public behavior changes.
   are not rewritten to today's numbers.
 - **Explicitly not in v0.5.3:** any Dashboard, web UI, or HTTP server; the `omp`
   command migration; new providers; cloud sync; telemetry; or GitHub mutation.
-- See [the v0.5.3 release notes](releases/v0.5.3.md).
+- See [the v0.5.3 release notes](releases/v0.5.3.md) and
+  [the post-publication validation record](releases/v0.5.3-post-publication-validation.md).
 
 ## v0.5.4 — Contract and repository consistency (Planned)
 

@@ -627,6 +627,14 @@
       "concern": "release-notes-v0.5.3"
     },
     {
+      "path": "docs/releases/v0.5.3-post-publication-validation.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.5.3",
+      "replacement": null,
+      "concern": "post-publication-v0.5.3"
+    },
+    {
       "path": "docs/releases/v0.5.2-post-publication-validation.md",
       "status": "release-record",
       "authority": "informative",
