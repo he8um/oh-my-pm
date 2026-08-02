@@ -77,6 +77,22 @@ export type {
   SourceKind,
 } from "./result.js";
 
+// --- the presentation-neutral execution context ----------------------------
+// v0.6.1: carries the injected clock behind every `generatedAt`, a correlation
+// id, and optional cancellation. Deliberately minimal -- a logger and a
+// redactor were left out because nothing consumes them and sanitization already
+// happens where results are constructed.
+export {
+  FIXED_LOCAL_INSTANT,
+  OperationCancelledError,
+  executionContext,
+  fixedExecutionContext,
+  generatedAt,
+  isCancelled,
+  throwIfCancelled,
+} from "./execution-context.js";
+export type { ExecutionContext } from "./execution-context.js";
+
 // --- the repository-wide error taxonomy ------------------------------------
 // Classifies the EXISTING public failure codes; it renames none of them. The
 // CLI exit codes here are the ones the CLI already returns, per the policy
@@ -144,11 +160,13 @@ export {
   getLocalProjectNextActions,
   getLocalProjectRisks,
   loadLocalProjectDocuments,
+  runLocalProjectApplication,
   runLocalProjectWorkflow,
 } from "./local-project.js";
 export type {
   ConfiguredDocumentLoad,
   LocalProjectDeps,
+  LocalWorkflowData,
   ProjectDocumentLoader,
 } from "./local-project.js";
 
@@ -158,10 +176,12 @@ export {
   getGitHubProjectHandoff,
   getGitHubProjectNextActions,
   getGitHubProjectRisks,
+  runGitHubProjectApplication,
   runGitHubProjectWorkflow,
 } from "./github-project.js";
 export type {
   GitHubProjectDeps,
+  GitHubWorkflowData,
   GitHubWorkflowErrorCode,
   GitHubWorkflowFailure,
   GitHubWorkflowInput,

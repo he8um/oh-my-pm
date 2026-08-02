@@ -57,6 +57,8 @@ export const ERROR_CATEGORIES = [
   "unsupportedOperation",
   /** A security policy refused the operation. */
   "securityPolicy",
+  /** The caller cancelled the operation through its execution context. */
+  "cancelled",
   /** An invariant we control was broken; always a defect on our side. */
   "internalInvariant",
 ] as const;
@@ -157,6 +159,20 @@ const CONTRACTS: Readonly<Record<ErrorCategory, CategoryContract>> = Object.free
     severity: "error",
     mcpIsError: true,
   },
+  cancelled: {
+    category: "cancelled",
+    // The identical call can succeed once the caller stops cancelling it, so
+    // this is retryable in the sense the field means: nothing about the request
+    // was wrong.
+    retryable: true,
+    // Not our defect and not a bad request: the caller asked us to stop. It
+    // shares the precondition exit code rather than claiming a runtime failure.
+    exitCode: EXIT_INVOCATION_OR_PRECONDITION,
+    severity: "warning",
+    // A cancellation the caller itself requested is an expected outcome, not a
+    // protocol error, so MCP reports it as a structured result.
+    mcpIsError: false,
+  },
   internalInvariant: {
     category: "internalInvariant",
     retryable: false,
@@ -195,6 +211,7 @@ export const CODE_CATEGORIES: Readonly<Record<string, ErrorCategory>> = Object.f
   github_invalid_selection: "validation",
   github_runtime_failed: "provider",
   github_output_invalid: "internalInvariant",
+  github_cancelled: "cancelled",
 });
 
 /**

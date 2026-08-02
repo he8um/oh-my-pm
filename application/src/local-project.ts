@@ -15,7 +15,12 @@ import type { LocalProviderItemInput } from "@oh-my-pm/providers";
 import { createRuntime } from "@oh-my-pm/runtime";
 import type { Runtime } from "@oh-my-pm/runtime";
 import { createDefaultSkillRegistry } from "@oh-my-pm/skills";
+import { FIXED_LOCAL_INSTANT } from "./execution-context.js";
+import type { ExecutionContext } from "./execution-context.js";
 import { createRuntimeRequest } from "./request.js";
+import { applicationResult } from "./result.js";
+import type { ApplicationResult, SourceDescriptor } from "./result.js";
+import { diagnosticForCode } from "./taxonomy.js";
 import type {
   ProjectDocumentSummary,
   ProjectWorkflowErrorCode,
@@ -27,8 +32,14 @@ import type {
  * Fixed identity for the deterministic local pipeline. Local workflows never
  * read a real clock, so repeated runs over unchanged documents are
  * byte-identical.
+ *
+ * Re-exported from the single definition in execution-context.ts rather than
+ * restated. The CLI previously carried its own `LOCAL_FIXED_NOW` holding this
+ * same value for this same reason; two constants that must agree but are
+ * declared apart are a drift waiting to happen. Kept as a named export because
+ * it is already part of the application surface.
  */
-export const LOCAL_WORKFLOW_FIXED_NOW = "2026-01-01T00:00:00.000Z";
+export const LOCAL_WORKFLOW_FIXED_NOW = FIXED_LOCAL_INSTANT;
 
 /**
  * The configured-document loader this use case depends on. Injected so the core
@@ -239,4 +250,70 @@ export function getLocalProjectHandoff(
   deps: LocalProjectDeps,
 ): Promise<ProjectWorkflowResult> {
   return runLocalProjectWorkflow("handoff", root, deps);
+}
+
+// ---------------------------------------------------------------------------
+// The application-boundary envelope.
+// ---------------------------------------------------------------------------
+
+/**
+ * The semantic payload of a successful local workflow.
+ *
+ * As with the GitHub family, the raw `RuntimeResponse` stays out of the
+ * envelope: it is runtime-shaped and would make an internal type part of a
+ * contract both surfaces serialize. The document summary IS included -- it is
+ * derived, bounded, and already public on the MCP surface.
+ */
+export type LocalWorkflowData = {
+  readonly operation: ProjectWorkflowOperation;
+  readonly root: string;
+  readonly documents: ProjectDocumentSummary;
+  readonly output: JsonValue;
+};
+
+/**
+ * Execute a local workflow and describe it as an `ApplicationResult`.
+ *
+ * Wraps `runLocalProjectWorkflow` rather than replacing it, so both describe
+ * the same single execution and cannot drift. The local family takes no
+ * cancellation signal: these are bounded reads of a configured Markdown set,
+ * and adding cancellation machinery to a fast finite walk would be unused
+ * complexity. The context is still required, because `generatedAt` must come
+ * from an injected clock on every surface.
+ */
+export async function runLocalProjectApplication(
+  operation: ProjectWorkflowOperation,
+  root: string,
+  deps: LocalProjectDeps,
+  context: ExecutionContext,
+): Promise<ApplicationResult<LocalWorkflowData | null>> {
+  const result = await runLocalProjectWorkflow(operation, root, deps);
+  const generated = context.now().toISOString();
+
+  // The root is echoed exactly as the caller supplied it. `assertSafeSourceDescriptor`
+  // would reject a resolved absolute path here, which is the guarantee that
+  // makes this descriptor safe to serialize on both surfaces.
+  const source: SourceDescriptor = { kind: "local-project", reference: result.root };
+
+  if (!result.ok) {
+    return applicationResult<LocalWorkflowData | null>({
+      operation: `project.${operation}`,
+      generatedAt: generated,
+      source,
+      data: null,
+      diagnostics: [diagnosticForCode(result.code, result.message)],
+    });
+  }
+
+  return applicationResult<LocalWorkflowData>({
+    operation: `project.${operation}`,
+    generatedAt: generated,
+    source,
+    data: {
+      operation: result.operation,
+      root: result.root,
+      documents: result.documents,
+      output: result.output,
+    },
+  });
 }
