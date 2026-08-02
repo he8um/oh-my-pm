@@ -11,9 +11,9 @@ Every entry below carries one of five explicit states:
 | **Out of scope**             | deliberately excluded                                       |
 
 The latest **published** stable release is
-[`v0.5.3`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.3). The current
-source version is `0.5.4` — contract and repository consistency, prepared but
-**not yet published**. The next line, **v0.6**, is planned and not started.
+[`v0.5.4`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.4), which is also
+the current source version. The v0.5 line is complete. The next line, **v0.6**,
+is planned and not started.
 
 Phases 0 through 6 below are the historical implementation log for the v0.1
 through v0.4 lines. Everything in them is **Shipped** unless a later section
@@ -499,10 +499,10 @@ in place (see Phase 5B).
 - See [the v0.5.3 release notes](releases/v0.5.3.md) and
   [the post-publication validation record](releases/v0.5.3-post-publication-validation.md).
 
-## v0.5.4 — Contract and repository consistency (Active maintenance)
+## v0.5.4 — Contract and repository consistency (Shipped)
 
-The source version is `0.5.4`, prepared and **not yet published**. No public
-behavior changes.
+**Published as the latest stable release** on 2026-08-02 (tag `v0.5.4`, targeting
+`288337a…`). No public behavior changes.
 
 It makes repository boundaries and shared contracts explicit and mechanically
 enforced:
@@ -533,8 +533,9 @@ than changed: those commands are not exposed through the application boundary an
 no second surface consumes them. The provider report types are likewise retained
 unchanged, because they are returned directly as MCP tool results.
 
-- See [the v0.5.4 release notes](releases/v0.5.4.md) and
-  [the contract model](v0.5/contracts.md).
+- See [the v0.5.4 release notes](releases/v0.5.4.md),
+  [the contract model](v0.5/contracts.md), and
+  [the post-publication validation record](releases/v0.5.4-post-publication-validation.md).
 
 ## v0.6 — Core and public surface (Planned)
 

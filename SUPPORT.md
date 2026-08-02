@@ -5,7 +5,7 @@ server that analyze Markdown project documents and, only on explicit opt-in,
 read-only GitHub context. It is installed from a release archive or from a
 repository checkout; there is no registry package and no hosted service.
 
-The supported release is the current published stable, `v0.5.3`. Questions about
+The supported release is the current published stable, `v0.5.4`. Questions about
 earlier releases are answered by pointing at the current one: historical releases
 stay published as immutable records but receive no fixes.
 
