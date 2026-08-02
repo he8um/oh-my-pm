@@ -46,6 +46,60 @@ export { formatCliError, formatRuntimeResponse } from "./response-format.js";
 // --- structured errors -----------------------------------------------------
 export { looksLikeAbsolutePath, sanitizedErrorCode } from "./errors.js";
 
+// --- the shared application result contract --------------------------------
+// v0.5.4: the shared identity for a result at the application boundary. The
+// per-use-case results (ProjectWorkflowResult, GitHubWorkflowResult) keep their
+// exact shapes; this envelope describes them uniformly so a consumer can ask
+// "where did this come from?" without knowing which use case it called.
+export {
+  APPLICATION_RESULT_SCHEMA_VERSION,
+  DIAGNOSTIC_SEVERITIES,
+  SOURCE_KINDS,
+  applicationResult,
+  applicationResultToJson,
+  assertSafeSourceDescriptor,
+  orderedResult,
+  unsafeValueReason,
+} from "./result.js";
+export type {
+  ApplicationResult,
+  Diagnostic,
+  DiagnosticSeverity,
+  ProvenanceRecord,
+  SourceDescriptor,
+  SourceKind,
+} from "./result.js";
+
+// --- the repository-wide error taxonomy ------------------------------------
+// Classifies the EXISTING public failure codes; it renames none of them. The
+// CLI exit codes here are the ones the CLI already returns, per the policy
+// documented in cli/src/help.ts.
+export {
+  CODE_CATEGORIES,
+  ERROR_CATEGORIES,
+  EXIT_INVOCATION_OR_PRECONDITION,
+  EXIT_RUNTIME_FAILED,
+  EXIT_SUCCESS,
+  categoryContract,
+  categoryOfCode,
+  diagnosticForCode,
+  exitCodeForCode,
+  mcpIsErrorForCode,
+} from "./taxonomy.js";
+export type { CategoryContract, ErrorCategory } from "./taxonomy.js";
+
+// --- provider diagnostics, projected into the unified model ----------------
+// The provider report types stay exactly as they are: they are returned
+// directly as MCP tool results, so their shape is a public contract. These
+// helpers project them into the unified Diagnostic vocabulary for consumers
+// that want one model across every use case.
+export {
+  diagnosticFromProviderCheck,
+  diagnosticsFromDoctorReport,
+  hasError,
+  severityOfProviderStatus,
+} from "./diagnostics-adapter.js";
+
 // --- deterministic runtime requests ----------------------------------------
 export { createGitHubRuntimeRequest, createRuntimeRequest } from "./request.js";
 export type { GitHubWorkflowRequestInput } from "./request.js";

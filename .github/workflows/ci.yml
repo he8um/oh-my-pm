@@ -121,6 +121,12 @@ jobs:
       - name: Validate application boundaries
         run: pnpm validate:boundaries
 
+      # v0.5.4: the package catalog drives the dependency-direction, cycle,
+      # internal-import, and process-side-effect checks. Re-run as a named step
+      # so a boundary regression is attributable on its own in the checks list.
+      - name: Validate package catalog
+        run: pnpm validate:packages
+
       # v0.5.1: the dependency direction is the point of the application
       # boundary, so it is asserted directly in CI and not only in unit tests.
       - name: Application boundary parity

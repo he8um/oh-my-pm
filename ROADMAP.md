@@ -91,14 +91,27 @@ the v0.5 line. See [`docs/v0.5/README.md`](docs/v0.5/README.md).
 The latest **published** stable release is
 [`v0.5.3`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.3).
 
-## Planned — v0.5.4
+## Prepared but unpublished — v0.5.4
 
-**Contract and repository consistency.** An authoritative package catalog, a
-verified cycle-free dependency model, a shared `ApplicationResult<T>` envelope at
-the application boundary, normalized source descriptors and provenance, a unified
-diagnostic model and error taxonomy, explicit CLI exit-code and MCP error
-mapping, and semantic parity tests proving CLI and MCP consume the same
-application result.
+**Contract and repository consistency.** A patch release with no public behavior
+change.
+
+`packages.json` becomes the authoritative package catalog — one role per
+workspace, explicit dependency allowances and forbidden inversions, permitted
+process side effects, and release-bundle status — and `pnpm validate:packages`
+derives the boundary checks from it, so a package added later inherits them.
+`ApplicationResult<T>` with normalized source descriptors, provenance records, and
+a unified `Diagnostic` join the application boundary, alongside a repository-wide
+error taxonomy that classifies the existing public failure codes and maps them to
+the CLI exit codes the CLI already returns and to the MCP error shape. Direct
+CLI-vs-MCP semantic parity assertions cover the shared workflows.
+
+The audit found the dependency graph already acyclic, no deep `src/` imports,
+`@oh-my-pm/contracts` already pure, and the exit codes already consistent — those
+are locked in, not repaired. The CLI's separate local Runtime composition for
+`status`, `doctor`, and `plan` is documented as intentional rather than changed.
+See [`docs/releases/v0.5.4.md`](docs/releases/v0.5.4.md) and
+[`docs/v0.5/contracts.md`](docs/v0.5/contracts.md).
 
 ## Planned — v0.6
 

@@ -11,10 +11,9 @@ Every entry below carries one of five explicit states:
 | **Out of scope**             | deliberately excluded                                       |
 
 The latest **published** stable release is
-[`v0.5.3`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.3), which is also
-the current source version. The active maintenance scope is the v0.5 line:
-`v0.5.4` (contract and repository consistency) is the next planned patch. The
-next line, **v0.6**, is planned and not started.
+[`v0.5.3`](https://github.com/he8um/oh-my-pm/releases/tag/v0.5.3). The current
+source version is `0.5.4` — contract and repository consistency, prepared but
+**not yet published**. The next line, **v0.6**, is planned and not started.
 
 Phases 0 through 6 below are the historical implementation log for the v0.1
 through v0.4 lines. Everything in them is **Shipped** unless a later section
@@ -500,10 +499,13 @@ in place (see Phase 5B).
 - See [the v0.5.3 release notes](releases/v0.5.3.md) and
   [the post-publication validation record](releases/v0.5.3-post-publication-validation.md).
 
-## v0.5.4 — Contract and repository consistency (Planned)
+## v0.5.4 — Contract and repository consistency (Active maintenance)
 
-The next patch in the v0.5 line. It makes repository boundaries and shared
-contracts explicit and mechanically enforced:
+The source version is `0.5.4`, prepared and **not yet published**. No public
+behavior changes.
+
+It makes repository boundaries and shared contracts explicit and mechanically
+enforced:
 
 - an authoritative package catalog giving every workspace a role,
   responsibilities, allowed and forbidden dependencies, and release-bundle
@@ -521,6 +523,18 @@ contracts explicit and mechanically enforced:
 
 It preserves current public CLI output, MCP tool schemas and order, compatibility
 aliases, and Project Memory formats.
+
+The audit behind it found the dependency graph already acyclic, no cross-package
+deep `src/` imports, `@oh-my-pm/contracts` already dependency-free, and the CLI
+exit codes already consistent with the documented policy — so those properties are
+**locked in**, not repaired. The CLI's separate local Runtime composition for
+`status`, `doctor`, and `plan` is documented as an intentional asymmetry rather
+than changed: those commands are not exposed through the application boundary and
+no second surface consumes them. The provider report types are likewise retained
+unchanged, because they are returned directly as MCP tool results.
+
+- See [the v0.5.4 release notes](releases/v0.5.4.md) and
+  [the contract model](v0.5/contracts.md).
 
 ## v0.6 — Core and public surface (Planned)
 

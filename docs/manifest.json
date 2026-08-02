@@ -211,6 +211,22 @@
       "concern": "application-boundary"
     },
     {
+      "path": "docs/v0.5/contracts.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "contract-model"
+    },
+    {
+      "path": "docs/releases/v0.5.4.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.5.4",
+      "replacement": null,
+      "concern": "release-notes-v0.5.4"
+    },
+    {
       "path": "docs/v0.5/v0.5.1-scope.md",
       "status": "historical",
       "authority": "informative",

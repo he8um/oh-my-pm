@@ -2,6 +2,82 @@
 
 ## [Unreleased]
 
+## [0.5.4]
+
+Contract and repository consistency release, **prepared but not yet published**.
+It adds shared contracts at the application boundary and makes the package
+dependency model explicit and mechanically enforced.
+
+**No public behavior changes.** No new or removed command, no changed CLI syntax
+or output, no changed MCP tool, schema, annotation, or tool order, no failure code
+renamed or removed, no changed exit code, no Project Brain schema change, no
+Project Memory format change, and **no migration is required**.
+
+The audit behind this release found the dependency graph already acyclic, no
+cross-package deep `src/` imports, `@oh-my-pm/contracts` already
+dependency-free, and the CLI exit codes already consistent with the documented
+policy. Those are **locked in** here, not repaired.
+
+### Added
+
+- `packages.json` — the authoritative package catalog. Every workspace package
+  gets one role plus an explicit contract: allowed dependencies, forbidden
+  inversions, responsibilities and non-responsibilities, public entry points,
+  permitted process side effects, data ownership, release-bundle status,
+  compatibility surface, and test ownership. The layer order
+  (`contract < capability < composition < orchestration < application <
+presentation < packaging < development`) is derived from the real graph rather
+  than an imported convention.
+- `tools/package-catalog.mjs` and `tools/validate-packages.mjs` plus
+  `pnpm validate:packages`, wired into `pnpm validate`. Checks are DERIVED from
+  the catalog, so a package added later inherits them: no production dependency
+  cycle (dev-only edges correctly excluded), dependencies point down the layer
+  order and stay inside their allowance, no package reaches inside another's
+  `src`/`dist`/`test`, no undeclared workspace import, no package below the
+  presentation layer writes to a process stream, declared `exports` match the
+  catalog, and `inBundle` claims match the real release closure.
+- `application/src/result.ts` — `ApplicationResult<T>` with normalized
+  `SourceDescriptor` (a closed set of eight source kinds), `Diagnostic`, and
+  `ProvenanceRecord`, plus deterministic serialization that sorts `selection` and
+  `details` keys so byte-identical inputs give byte-identical output.
+  `assertSafeSourceDescriptor` and `unsafeValueReason` are the single shared
+  redaction rule.
+- `application/src/taxonomy.ts` — eleven error categories, each with retryability,
+  CLI exit code, severity, and MCP error behaviour. Every existing public failure
+  code is classified; **none is renamed or removed**.
+- `application/src/diagnostics-adapter.ts` — projects the provider reports into
+  the unified `Diagnostic` vocabulary.
+- `docs/v0.5/contracts.md` — the contract, dependency, and compatibility model,
+  including the documented CLI asymmetry.
+- `tests/e2e/semantic-parity.test.ts` — 15 direct CLI-vs-MCP assertions for the
+  shared workflows. The pre-existing `extraction-parity.test.ts` compares each
+  surface against its own expected shape and never against the other, so both
+  could pass while the surfaces diverged.
+- `application/test/result-contract.test.ts` — 21 tests, and
+  `tools/package-catalog.test.mjs` — 20 mutation tests, each introducing one
+  violation and asserting the specific guard fires.
+
+### Changed
+
+- `tools/validate-structure.mjs` allows `packages.json` as a top-level contract.
+- `@oh-my-pm/application` becomes a root devDependency, because the semantic
+  parity test imports the taxonomy to assert exit-code agreement.
+
+### Preserved deliberately
+
+- `ProviderStatusReport` and `ProviderDoctorReport` keep their exact shapes.
+  `buildProviderStatusReport(...)` is returned **directly** as the result of the
+  `provider_status` and `github_provider_diagnostics` MCP tools, so its
+  `schemaVersion: 1` and `ok | info | warning | fail` vocabulary are a
+  client-facing contract. An adapter projects them into the unified model instead
+  of a rewrite, which would have changed an MCP output schema.
+- The CLI's direct `runtime`/`providers`/`skills`/`kernel` composition for
+  `status`, `doctor`, and `plan`. Those commands are not exposed through the
+  application boundary and no second surface consumes them. Extending the boundary
+  purely for symmetry was considered and rejected; the asymmetry is documented.
+- `@oh-my-pm/project-memory` as a CLI production dependency — intentional, so it
+  ships in the bundle while being reached only through a lazy dynamic import.
+
 ## [0.5.3]
 
 Documentation and architecture truth release, **prepared but not yet published**.
