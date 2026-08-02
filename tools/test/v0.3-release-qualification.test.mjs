@@ -23,14 +23,14 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 // a patch promotion needs no test edit. The base stable lineage stays pinned.
 const PATCH_VERSION = JSON.parse(readFileSync(join(REPO_ROOT, "version.json"), "utf8")).version;
 // The immutable base stable lineage the ACTIVE release workflow must gate on.
-// The v0.5.2 candidate builds on the published v0.5.1 stable.
-const BASE_STABLE_TAG = "v0.5.1";
-const BASE_STABLE_SHA = "49e2cbbc7590af52e648b615c6245ce3cbcee0e9";
+// The v0.6.0 candidate builds on the published v0.5.4 stable.
+const BASE_STABLE_TAG = "v0.5.4";
+const BASE_STABLE_SHA = "288337a9514150b7a5973d9d9410f7186567520f";
 const RC_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.3-rc.yml");
 // The ACTIVE stable release workflow, whose gates are asserted against the
 // canonical source version. Every earlier stable workflow is historical and
-// immutable; v0.5 supersedes v0.4 as the active line.
-const STABLE_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.5.yml");
+// immutable; v0.6 supersedes v0.5 as the active line.
+const STABLE_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.6.yml");
 // The ACTIVE installed-qualification workflow. v0.4's is historical and
 // dispatch-only.
 const QUAL_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "v0.6-installed-qualification.yml");

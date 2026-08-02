@@ -100,7 +100,7 @@ describe("portable release bundle e2e", () => {
     }
     const release = JSON.parse(readFileSync(join(movedBundle, "RELEASE.json"), "utf8"));
     expect(release.installer).toEqual({
-      entrypoint: "bin/ohmypm-install.mjs",
+      entrypoint: "bin/omp-install.mjs",
       previewFirst: true,
       prefixRequired: true,
       applyFlag: "--apply",
