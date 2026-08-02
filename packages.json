@@ -1,0 +1,535 @@
+{
+  "schemaVersion": 1,
+  "$comment": [
+    "The authoritative package catalog: one entry per workspace package, giving it",
+    "exactly one role, an explicit dependency contract, and an explicit statement of",
+    "what it must never do.",
+    "",
+    "Why this exists",
+    "---------------",
+    "The dependency direction was already correct and already enforced -- but only",
+    "pairwise, by hand-written rules in tools/validate-boundaries.mjs section 10",
+    "('application must not import cli', 'mcp must not import cli', ...). Adding a",
+    "package meant remembering to hand-write its rules, and nothing said what a",
+    "package was FOR. Three properties were therefore unenforced: no cycle check, no",
+    "general rule that a layer may only depend downward, and no guard against",
+    "importing another package's internals.",
+    "",
+    "This catalog states those properties as data. tools/validate-packages.mjs",
+    "derives the checks from it, so the guarantees hold for every package including",
+    "ones added later.",
+    "",
+    "IMPORTANT: this file does not describe a repair. The v0.5.4 audit found the",
+    "graph already cycle-free, no cross-package deep `src/` imports anywhere, and",
+    "@oh-my-pm/contracts already dependency-free. The catalog LOCKS IN that",
+    "structure; it did not create it.",
+    "",
+    "Fields, per entry:",
+    "",
+    "  role          the single architectural role. Layer order is the `layers`",
+    "                array below: a package may depend only on its own layer or a",
+    "                LOWER one, which is what makes the direction mechanical",
+    "                rather than a list of pairs.",
+    "",
+    "  allowed       workspace packages this package may declare as production",
+    "                dependencies. Anything outside this set is a violation even if",
+    "                the layer order would permit it, so a package cannot quietly",
+    "                widen its surface.",
+    "",
+    "  forbidden     packages this package must never depend on OR import, called",
+    "                out explicitly because these are the inversions that would",
+    "                break the architecture rather than merely surprise a reader.",
+    "",
+    "  sideEffects   which process-level effects the package may perform.",
+    "                `stdout`/`stderr`/`exit` are reserved for presentation and",
+    "                executable boundaries; a package below the presentation",
+    "                layer writing to a stream makes it unusable by a second",
+    "                surface.",
+    "",
+    "  inBundle      whether the release bundler deploys this package's code.",
+    "                Verified against a real built bundle, not assumed.",
+    "",
+    "  dataOwnership what state the package is authoritative for; `none` means it",
+    "                owns no persistent state.",
+    "",
+    "  testOwnership where the package's behaviour is verified."
+  ],
+  "layers": [
+    "contract",
+    "capability",
+    "composition",
+    "orchestration",
+    "application",
+    "presentation",
+    "packaging",
+    "development"
+  ],
+  "$layerComment": [
+    "Ordered lowest to highest. A package may depend on its own layer or any",
+    "layer to its LEFT, never to its right. `development` is highest so nothing",
+    "can depend on it.",
+    "",
+    "These names describe THIS graph rather than importing a generic",
+    "domain/infrastructure split, which does not fit: `providers` owns both the",
+    "network boundary and the ProviderRegistry abstraction that `planner` is",
+    "written against, so neither is cleanly 'above' the other under the usual",
+    "convention. Ranking by actual longest dependency path gives an unambiguous",
+    "order, and each name states the job of that rank:",
+    "",
+    "  contract       shared shapes and owned local state, no workspace deps",
+    "                 (contracts, project-memory)",
+    "  capability     a single self-contained capability over the contracts",
+    "                 (kernel, providers, skills)",
+    "  composition    combines capabilities without orchestrating a request",
+    "                 (planner, installer)",
+    "  orchestration  sequences capabilities into a request/response flow",
+    "                 (runtime)",
+    "  application    the shared use cases every surface consumes (application)",
+    "  presentation   an adapter over the application boundary (cli, mcp-server)",
+    "  packaging      the release dependency surface and entrypoints",
+    "                 (distribution)",
+    "  development    harnesses that ship no code (examples)",
+    "",
+    "`project-memory` sits at `contract` because it declares no workspace",
+    "dependency at all: it owns the store format the way contracts owns the",
+    "shared shapes. `kernel` is a capability, not infrastructure -- it is the",
+    "pure Rust/WASM control plane, and WASM instantiation is an implementation",
+    "detail of that same package."
+  ],
+  "packages": [
+    {
+      "name": "@oh-my-pm/contracts",
+      "path": "contracts",
+      "role": "contract",
+      "responsibilities": [
+        "own the shared data shapes for the whole workspace",
+        "own the generated TypeScript and Rust contract output",
+        "own the schema that both generated forms derive from"
+      ],
+      "nonResponsibilities": [
+        "execute a workflow",
+        "read or write the filesystem",
+        "know any provider, runtime, or presentation concept"
+      ],
+      "entryPoints": ["."],
+      "allowed": [],
+      "forbidden": [
+        "@oh-my-pm/application",
+        "@oh-my-pm/runtime",
+        "@oh-my-pm/planner",
+        "@oh-my-pm/providers",
+        "@oh-my-pm/skills",
+        "@oh-my-pm/project-memory",
+        "@oh-my-pm/kernel",
+        "@oh-my-pm/cli",
+        "@oh-my-pm/mcp-server",
+        "@oh-my-pm/installer",
+        "@oh-my-pm/distribution",
+        "@oh-my-pm/examples"
+      ],
+      "sideEffects": [],
+      "dataOwnership": "none",
+      "inBundle": true,
+      "compatibility": "generated contract shapes and their schemaVersion values",
+      "testOwnership": "contracts/test"
+    },
+    {
+      "name": "@oh-my-pm/project-memory",
+      "path": "project-memory",
+      "role": "contract",
+      "responsibilities": [
+        "own the local Project Brain record store format",
+        "own snapshot capture, comparison, and chronology semantics",
+        "own the store-format version and its migration rules"
+      ],
+      "nonResponsibilities": [
+        "decide when a capture happens",
+        "render a report",
+        "reach the network"
+      ],
+      "entryPoints": ["."],
+      "allowed": [],
+      "forbidden": [
+        "@oh-my-pm/cli",
+        "@oh-my-pm/mcp-server",
+        "@oh-my-pm/application",
+        "@oh-my-pm/distribution",
+        "@oh-my-pm/examples"
+      ],
+      "sideEffects": ["filesystem-scoped-write"],
+      "dataOwnership": "the local Project Memory store (store format 2)",
+      "inBundle": true,
+      "compatibility": "store format version and record envelope shapes",
+      "testOwnership": "project-memory/test"
+    },
+    {
+      "name": "@oh-my-pm/kernel",
+      "path": "kernel/binding",
+      "role": "capability",
+      "responsibilities": [
+        "expose the pure Rust/WASM control plane to TypeScript",
+        "own validation, state, feature-flag, and update-safety decisions",
+        "own the generated WASM binding surface"
+      ],
+      "nonResponsibilities": [
+        "read configuration",
+        "perform I/O of its own",
+        "know a provider or a presentation surface"
+      ],
+      "entryPoints": ["."],
+      "allowed": ["@oh-my-pm/contracts"],
+      "forbidden": [
+        "@oh-my-pm/application",
+        "@oh-my-pm/runtime",
+        "@oh-my-pm/cli",
+        "@oh-my-pm/mcp-server",
+        "@oh-my-pm/distribution",
+        "@oh-my-pm/examples"
+      ],
+      "sideEffects": [],
+      "dataOwnership": "none",
+      "inBundle": true,
+      "compatibility": "kernel API surface and the Rust crate version",
+      "testOwnership": "kernel/binding/test plus the Rust crate's own tests"
+    },
+    {
+      "name": "@oh-my-pm/providers",
+      "path": "providers",
+      "role": "capability",
+      "responsibilities": [
+        "own read-only context acquisition from local and GitHub sources",
+        "own the single GitHub network boundary (github/transport.ts)",
+        "normalize provider items into the shared shape"
+      ],
+      "nonResponsibilities": [
+        "write to any external system",
+        "read environment variables",
+        "decide which workflow runs"
+      ],
+      "entryPoints": ["."],
+      "allowed": ["@oh-my-pm/contracts"],
+      "forbidden": [
+        "@oh-my-pm/cli",
+        "@oh-my-pm/mcp-server",
+        "@oh-my-pm/application",
+        "@oh-my-pm/runtime",
+        "@oh-my-pm/distribution",
+        "@oh-my-pm/examples"
+      ],
+      "sideEffects": ["network-explicit-opt-in"],
+      "dataOwnership": "none",
+      "inBundle": true,
+      "compatibility": "provider identifiers, normalized item shape, and config schema",
+      "testOwnership": "providers/test"
+    },
+    {
+      "name": "@oh-my-pm/skills",
+      "path": "skills",
+      "role": "capability",
+      "responsibilities": [
+        "own deterministic project-management transformations",
+        "own the skill registry and its envelopes"
+      ],
+      "nonResponsibilities": [
+        "acquire context",
+        "perform I/O",
+        "depend on wall-clock time or randomness"
+      ],
+      "entryPoints": ["."],
+      "allowed": ["@oh-my-pm/contracts"],
+      "forbidden": [
+        "@oh-my-pm/cli",
+        "@oh-my-pm/mcp-server",
+        "@oh-my-pm/application",
+        "@oh-my-pm/runtime",
+        "@oh-my-pm/distribution",
+        "@oh-my-pm/examples"
+      ],
+      "sideEffects": [],
+      "dataOwnership": "none",
+      "inBundle": true,
+      "compatibility": "skill identifiers and envelope shapes",
+      "testOwnership": "skills/test"
+    },
+    {
+      "name": "@oh-my-pm/planner",
+      "path": "planner",
+      "role": "composition",
+      "responsibilities": ["own task planning and dependency shaping over provider items"],
+      "nonResponsibilities": ["acquire context itself", "render output", "perform I/O"],
+      "entryPoints": ["."],
+      "allowed": ["@oh-my-pm/contracts", "@oh-my-pm/providers"],
+      "forbidden": [
+        "@oh-my-pm/cli",
+        "@oh-my-pm/mcp-server",
+        "@oh-my-pm/application",
+        "@oh-my-pm/runtime",
+        "@oh-my-pm/distribution",
+        "@oh-my-pm/examples"
+      ],
+      "sideEffects": [],
+      "dataOwnership": "none",
+      "inBundle": true,
+      "compatibility": "task graph shapes",
+      "testOwnership": "planner/test"
+    },
+    {
+      "name": "@oh-my-pm/runtime",
+      "path": "runtime",
+      "role": "orchestration",
+      "responsibilities": [
+        "own request orchestration and execution flow",
+        "sequence Kernel validation, provider acquisition, planning, and skills",
+        "produce a RuntimeResponse"
+      ],
+      "nonResponsibilities": [
+        "parse arguments",
+        "render terminal or protocol output",
+        "choose an exit code"
+      ],
+      "entryPoints": ["."],
+      "allowed": [
+        "@oh-my-pm/contracts",
+        "@oh-my-pm/kernel",
+        "@oh-my-pm/planner",
+        "@oh-my-pm/providers",
+        "@oh-my-pm/skills"
+      ],
+      "forbidden": [
+        "@oh-my-pm/cli",
+        "@oh-my-pm/mcp-server",
+        "@oh-my-pm/application",
+        "@oh-my-pm/distribution",
+        "@oh-my-pm/examples"
+      ],
+      "sideEffects": [],
+      "dataOwnership": "none",
+      "inBundle": true,
+      "compatibility": "RuntimeRequest and RuntimeResponse shapes",
+      "testOwnership": "runtime/test",
+      "$devDependencyComment": [
+        "@oh-my-pm/project-memory is a DEV dependency only: the runtime's",
+        "project_changes tests exercise real store fixtures, while the runtime",
+        "itself must not import the store. The boundary validator asserts the",
+        "production direction, so this dev edge cannot become a runtime one."
+      ]
+    },
+    {
+      "name": "@oh-my-pm/application",
+      "path": "application",
+      "role": "application",
+      "responsibilities": [
+        "own the shared use cases every presentation surface consumes",
+        "own workflow sequencing, failure classification, and result contracts",
+        "own the presentation-neutral response projection"
+      ],
+      "nonResponsibilities": [
+        "parse argv or produce help",
+        "write to a stream or choose an exit code",
+        "know an executable name, an MCP tool, or a terminal output mode",
+        "start a server"
+      ],
+      "entryPoints": [".", "./node"],
+      "allowed": [
+        "@oh-my-pm/contracts",
+        "@oh-my-pm/kernel",
+        "@oh-my-pm/project-memory",
+        "@oh-my-pm/providers",
+        "@oh-my-pm/runtime",
+        "@oh-my-pm/skills"
+      ],
+      "forbidden": [
+        "@oh-my-pm/cli",
+        "@oh-my-pm/mcp-server",
+        "@oh-my-pm/installer",
+        "@oh-my-pm/distribution",
+        "@oh-my-pm/examples"
+      ],
+      "sideEffects": ["filesystem-read-via-node-entrypoint"],
+      "dataOwnership": "none",
+      "inBundle": true,
+      "compatibility": "ApplicationResult, Diagnostic, error taxonomy, and use-case signatures",
+      "testOwnership": "application/test"
+    },
+    {
+      "name": "@oh-my-pm/installer",
+      "path": "installer",
+      "role": "composition",
+      "responsibilities": [
+        "own the deterministic installation and update lifecycle",
+        "own manifest validation, install/update/rollback planning and reports",
+        "own real transactional installation into an explicit prefix"
+      ],
+      "nonResponsibilities": [
+        "download an artifact or make any network request",
+        "read an environment-derived prefix",
+        "edit PATH, a shell profile, or an MCP client configuration",
+        "write outside the explicit prefix"
+      ],
+      "entryPoints": ["."],
+      "allowed": ["@oh-my-pm/contracts", "@oh-my-pm/kernel"],
+      "forbidden": [
+        "@oh-my-pm/cli",
+        "@oh-my-pm/mcp-server",
+        "@oh-my-pm/application",
+        "@oh-my-pm/runtime",
+        "@oh-my-pm/providers",
+        "@oh-my-pm/distribution",
+        "@oh-my-pm/examples"
+      ],
+      "sideEffects": ["filesystem-scoped-write"],
+      "dataOwnership": "the installed prefix layout and install.json",
+      "inBundle": true,
+      "compatibility": "install manifest shape and installed layout",
+      "testOwnership": "installer/test"
+    },
+    {
+      "name": "@oh-my-pm/cli",
+      "path": "cli",
+      "role": "presentation",
+      "responsibilities": [
+        "own the command grammar, parsing, and help",
+        "own terminal formatting, output-mode selection, and stream routing",
+        "own the CLI exit-code mapping",
+        "compose the local runtime identity for the status/doctor/plan commands"
+      ],
+      "nonResponsibilities": [
+        "own shared business logic any other surface needs",
+        "be imported by another presentation surface"
+      ],
+      "entryPoints": ["."],
+      "allowed": [
+        "@oh-my-pm/application",
+        "@oh-my-pm/contracts",
+        "@oh-my-pm/installer",
+        "@oh-my-pm/kernel",
+        "@oh-my-pm/project-memory",
+        "@oh-my-pm/providers",
+        "@oh-my-pm/runtime",
+        "@oh-my-pm/skills"
+      ],
+      "forbidden": ["@oh-my-pm/mcp-server", "@oh-my-pm/distribution", "@oh-my-pm/examples"],
+      "sideEffects": ["stdout", "stderr", "exit", "filesystem-read"],
+      "dataOwnership": "none",
+      "inBundle": true,
+      "compatibility": "command surface, flags, output formats, and exit codes",
+      "testOwnership": "cli/test",
+      "$asymmetryComment": [
+        "The CLI declares runtime/providers/skills/kernel while the MCP server",
+        "reaches the shared project workflows through @oh-my-pm/application. That",
+        "is INTENTIONAL, not residual duplication: cli/src/local-process.ts",
+        "composes a local Runtime for `status`, `doctor`, and `plan`, which are",
+        "runtime-identity and free-form planning commands the application boundary",
+        "does not expose and that no second surface consumes. The four SHARED",
+        "project workflows (brief/risks/next/handoff) go through the application",
+        "boundary on both surfaces, and tests/e2e asserts they agree semantically.",
+        "@oh-my-pm/project-memory is a production dependency so it ships in the",
+        "bundle, while being reached only through a lazy dynamic import;",
+        "cli/test/memory-boundary.test.ts enforces both halves."
+      ]
+    },
+    {
+      "name": "@oh-my-pm/mcp-server",
+      "path": "mcp-server",
+      "role": "presentation",
+      "responsibilities": [
+        "own MCP tool registration, input schemas, and annotations",
+        "own strict source projection and structured content",
+        "own protocol stdout safety and the MCP error mapping"
+      ],
+      "nonResponsibilities": [
+        "own shared business logic any other surface needs",
+        "depend on CLI error rendering",
+        "expose an HTTP or SSE transport",
+        "register a write tool"
+      ],
+      "entryPoints": ["."],
+      "allowed": [
+        "@oh-my-pm/application",
+        "@oh-my-pm/contracts",
+        "@oh-my-pm/kernel",
+        "@oh-my-pm/project-memory",
+        "@oh-my-pm/providers",
+        "@oh-my-pm/runtime",
+        "@oh-my-pm/skills"
+      ],
+      "forbidden": ["@oh-my-pm/cli", "@oh-my-pm/distribution", "@oh-my-pm/examples"],
+      "sideEffects": ["stdout-protocol-only", "stderr", "exit", "filesystem-read"],
+      "dataOwnership": "none",
+      "inBundle": true,
+      "compatibility": "MCP tool inventory, order, input schemas, and annotations",
+      "testOwnership": "mcp-server/test"
+    },
+    {
+      "name": "@oh-my-pm/distribution",
+      "path": "distribution",
+      "role": "packaging",
+      "responsibilities": [
+        "declare the production dependency surface the release bundler deploys",
+        "provide the thin portable command entrypoints, canonical and alias"
+      ],
+      "nonResponsibilities": [
+        "contain build logic or a repository path",
+        "become a dependency of any domain or application package",
+        "write files or reach the network"
+      ],
+      "entryPoints": [],
+      "allowed": [
+        "@oh-my-pm/cli",
+        "@oh-my-pm/kernel",
+        "@oh-my-pm/mcp-server",
+        "@oh-my-pm/providers",
+        "@oh-my-pm/runtime",
+        "@oh-my-pm/skills"
+      ],
+      "forbidden": ["@oh-my-pm/examples"],
+      "sideEffects": ["stdout", "stderr", "exit"],
+      "dataOwnership": "none",
+      "inBundle": false,
+      "$inBundleComment": [
+        "The bundle IS this package's entrypoints plus the deployed dependency",
+        "tree, so it is not itself a nested node_modules entry. Verified against a",
+        "real built bundle: node_modules/@oh-my-pm contains the eleven deployed",
+        "packages, and distribution is not among them."
+      ],
+      "compatibility": "installed command names and entrypoint paths",
+      "testOwnership": "distribution/libexec plus the release qualification tooling"
+    },
+    {
+      "name": "@oh-my-pm/examples",
+      "path": "examples",
+      "role": "development",
+      "responsibilities": [
+        "wire the real packages together so each documented composition is tested",
+        "own the Markdown project fixtures the installed qualification analyzes"
+      ],
+      "nonResponsibilities": [
+        "be imported by any shipped package",
+        "contribute to the release dependency graph",
+        "be the only place a behaviour is verified"
+      ],
+      "entryPoints": ["."],
+      "allowed": [
+        "@oh-my-pm/cli",
+        "@oh-my-pm/contracts",
+        "@oh-my-pm/installer",
+        "@oh-my-pm/kernel",
+        "@oh-my-pm/mcp-server",
+        "@oh-my-pm/providers",
+        "@oh-my-pm/runtime",
+        "@oh-my-pm/skills"
+      ],
+      "forbidden": ["@oh-my-pm/distribution"],
+      "sideEffects": ["stdout", "filesystem-read"],
+      "dataOwnership": "none",
+      "inBundle": false,
+      "$inBundleComment": [
+        "None of this package's CODE ships. Its fixtures/markdown-project/ tree is",
+        "copied into the bundle as the sample project, which is data, not a",
+        "dependency edge."
+      ],
+      "compatibility": "none \u2014 no public surface",
+      "testOwnership": "examples/test"
+    }
+  ]
+}

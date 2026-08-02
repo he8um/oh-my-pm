@@ -2414,7 +2414,7 @@ if (trackedFiles.includes("kernel/crate/Cargo.toml")) {
 //
 // v0.5.3 (documentation and architecture truth) promotes the source to 0.5.3 on
 // top of the published v0.5.2 stable.
-const EXPECTED_SOURCE_VERSION = "0.5.3";
+const EXPECTED_SOURCE_VERSION = "0.5.4";
 if (trackedFiles.includes("version.json")) {
   const version = JSON.parse(readFileSync("version.json", "utf8")).version;
   if (version !== EXPECTED_SOURCE_VERSION) {

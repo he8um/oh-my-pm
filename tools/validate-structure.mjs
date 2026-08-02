@@ -64,6 +64,10 @@ const ALLOWED_TOP_FILES = [
   "SECURITY.md",
   "SUPPORT.md",
   "package.json",
+  // v0.5.4: the authoritative package catalog. It gives every workspace one
+  // role, an explicit dependency allowance, and its release-bundle status;
+  // tools/validate-packages.mjs derives the boundary checks from it.
+  "packages.json",
   "pnpm-lock.yaml",
   "pnpm-workspace.yaml",
   // v0.5.2: the release lifecycle contract. version.json holds the source
