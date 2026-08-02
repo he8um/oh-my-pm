@@ -180,23 +180,23 @@ jobs:
         run: |
           FIXTURE=examples/fixtures/markdown-project
           # Deterministic: the same command twice must be byte-identical.
-          node cli/bin/ohmypm.mjs brief "$FIXTURE" --json > "$RUNNER_TEMP/brief-1.json"
-          node cli/bin/ohmypm.mjs brief "$FIXTURE" --json > "$RUNNER_TEMP/brief-2.json"
+          node cli/bin/omp.mjs brief "$FIXTURE" --json > "$RUNNER_TEMP/brief-1.json"
+          node cli/bin/omp.mjs brief "$FIXTURE" --json > "$RUNNER_TEMP/brief-2.json"
           diff "$RUNNER_TEMP/brief-1.json" "$RUNNER_TEMP/brief-2.json"
           node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' "$RUNNER_TEMP/brief-1.json"
           # Every read-only workflow exits 0 and writes nothing to stderr.
           for cmd in status doctor; do
-            node cli/bin/ohmypm.mjs "$cmd" > /dev/null 2> "$RUNNER_TEMP/$cmd.err"
+            node cli/bin/omp.mjs "$cmd" > /dev/null 2> "$RUNNER_TEMP/$cmd.err"
             test ! -s "$RUNNER_TEMP/$cmd.err"
           done
           for cmd in brief risks next handoff; do
-            node cli/bin/ohmypm.mjs "$cmd" "$FIXTURE" > /dev/null 2> "$RUNNER_TEMP/$cmd.err"
+            node cli/bin/omp.mjs "$cmd" "$FIXTURE" > /dev/null 2> "$RUNNER_TEMP/$cmd.err"
             test ! -s "$RUNNER_TEMP/$cmd.err"
           done
-          node cli/bin/ohmypm.mjs providers status > /dev/null 2> "$RUNNER_TEMP/providers.err"
+          node cli/bin/omp.mjs providers status > /dev/null 2> "$RUNNER_TEMP/providers.err"
           test ! -s "$RUNNER_TEMP/providers.err"
           # The memory namespace still resolves all seven subcommands.
-          node cli/bin/ohmypm.mjs memory --help > "$RUNNER_TEMP/memory-help.txt"
+          node cli/bin/omp.mjs memory --help > "$RUNNER_TEMP/memory-help.txt"
           for sub in capture changes status history export delete timeline; do
             grep -q "$sub" "$RUNNER_TEMP/memory-help.txt" || {
               echo "memory help lost the $sub subcommand" >&2
@@ -204,7 +204,7 @@ jobs:
             }
           done
           # A missing root fails closed with exit 2 and a sanitized message.
-          if node cli/bin/ohmypm.mjs brief ./definitely-not-a-real-root > /dev/null 2> "$RUNNER_TEMP/missing.err"; then
+          if node cli/bin/omp.mjs brief ./definitely-not-a-real-root > /dev/null 2> "$RUNNER_TEMP/missing.err"; then
             echo "a missing project root must fail" >&2
             exit 1
           fi
@@ -215,47 +215,65 @@ jobs:
         run: |
           PREFIX="$RUNNER_TEMP/oh-my-pm-local"
           node tools/install-local.mjs --prefix "$PREFIX"
-          test ! -e "$PREFIX/bin/ohmypm"
+          test ! -e "$PREFIX/bin/omp"
           node tools/install-local.mjs --prefix "$PREFIX" --apply
           node tools/check-local-install.mjs --prefix "$PREFIX"
           # Canonical commands: clean stdout, nothing on stderr.
-          "$PREFIX/bin/ohmypm" status > "$RUNNER_TEMP/canonical.out" 2> "$RUNNER_TEMP/canonical.err"
+          "$PREFIX/bin/omp" status > "$RUNNER_TEMP/canonical.out" 2> "$RUNNER_TEMP/canonical.err"
           grep -q "OH MY PM status: healthy" "$RUNNER_TEMP/canonical.out"
           test ! -s "$RUNNER_TEMP/canonical.err"
-          "$PREFIX/bin/ohmypm" --help | grep -q "ohmypm <command>"
+          "$PREFIX/bin/omp" --help | grep -q "omp <command>"
           # Generated MCP configuration must invoke the canonical MCP command.
-          node tools/print-mcp-client-config.mjs --prefix "$PREFIX" > "$RUNNER_TEMP/ohmypm-mcp.json"
-          node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' "$RUNNER_TEMP/ohmypm-mcp.json"
-          grep -q "bin/ohmypm-mcp" "$RUNNER_TEMP/ohmypm-mcp.json"
+          node tools/print-mcp-client-config.mjs --prefix "$PREFIX" > "$RUNNER_TEMP/omp-mcp.json"
+          node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' "$RUNNER_TEMP/omp-mcp.json"
+          grep -q "bin/omp-mcp" "$RUNNER_TEMP/omp-mcp.json"
           # The server KEY stays the product name; only the command migrated.
-          grep -q '"oh-my-pm"' "$RUNNER_TEMP/ohmypm-mcp.json"
+          grep -q '"oh-my-pm"' "$RUNNER_TEMP/omp-mcp.json"
 
-      # The compatibility aliases are tested separately and explicitly, so a
-      # regression in either family is attributable on its own.
-      - name: Local install smoke (compatibility aliases)
+      # Both alias classes are tested separately and explicitly, so a regression
+      # in any family is attributable on its own.
+      - name: Local install smoke (compatibility and deprecated aliases)
         run: |
           PREFIX="$RUNNER_TEMP/oh-my-pm-local"
           # Every alias shim exists, in both POSIX and .cmd form.
-          for name in oh-my-pm oh-my-pm-mcp; do
+          for name in ohmypm ohmypm-mcp oh-my-pm oh-my-pm-mcp; do
             test -f "$PREFIX/bin/$name"
             test -x "$PREFIX/bin/$name"
             test -f "$PREFIX/bin/$name.cmd"
           done
-          # The alias works, warns on stderr, and keeps stdout byte-identical.
-          "$PREFIX/bin/oh-my-pm" status > "$RUNNER_TEMP/alias.out" 2> "$RUNNER_TEMP/alias.err"
-          diff "$RUNNER_TEMP/canonical.out" "$RUNNER_TEMP/alias.out"
-          grep -q "deprecated compatibility alias" "$RUNNER_TEMP/alias.err"
-          grep -q "ohmypm" "$RUNNER_TEMP/alias.err"
-          # The warning must never reach stdout.
-          if grep -q "deprecated" "$RUNNER_TEMP/alias.out"; then
-            echo "alias wrote its deprecation warning to stdout" >&2
+          # Each alias works, emits exactly one stderr notice carrying its own
+          # class wording, and keeps stdout byte-identical to the canonical
+          # command's. The two classes differ deliberately: `ohmypm` was canonical
+          # in v0.5 and must NOT be reported as deprecated.
+          check_alias() {
+            ALIAS="$1"
+            PHRASE="$2"
+            "$PREFIX/bin/$ALIAS" status > "$RUNNER_TEMP/$ALIAS.out" 2> "$RUNNER_TEMP/$ALIAS.err"
+            diff "$RUNNER_TEMP/canonical.out" "$RUNNER_TEMP/$ALIAS.out"
+            grep -q "$PHRASE" "$RUNNER_TEMP/$ALIAS.err"
+            grep -q "omp" "$RUNNER_TEMP/$ALIAS.err"
+            if grep -q "Warning:" "$RUNNER_TEMP/$ALIAS.out"; then
+              echo "$ALIAS wrote its notice to stdout" >&2
+              exit 1
+            fi
+            COUNT="$(grep -c "Warning:" "$RUNNER_TEMP/$ALIAS.err" || true)"
+            if [ "$COUNT" -ne 1 ]; then
+              echo "$ALIAS emitted $COUNT warnings, expected exactly 1" >&2
+              exit 1
+            fi
+            # Help through the alias still teaches the canonical command.
+            "$PREFIX/bin/$ALIAS" --help 2>/dev/null | grep -q "omp <command>"
+            # JSON through the alias stays a complete, parseable document.
+            "$PREFIX/bin/$ALIAS" status --json > "$RUNNER_TEMP/$ALIAS.json" 2>/dev/null
+            node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' "$RUNNER_TEMP/$ALIAS.json"
+          }
+          check_alias ohmypm "is a compatibility alias"
+          check_alias oh-my-pm "is deprecated"
+          # A compatibility alias must never call itself deprecated.
+          if grep -q "deprecated" "$RUNNER_TEMP/ohmypm.err"; then
+            echo "compatibility alias reported itself as deprecated" >&2
             exit 1
           fi
-          # Help through the alias still teaches the canonical command.
-          "$PREFIX/bin/oh-my-pm" --help 2>/dev/null | grep -q "ohmypm <command>"
-          # JSON through the alias stays a complete, parseable document.
-          "$PREFIX/bin/oh-my-pm" status --json > "$RUNNER_TEMP/alias.json" 2>/dev/null
-          node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' "$RUNNER_TEMP/alias.json"
 
       - name: Portable release bundle smoke
         run: |
@@ -300,32 +318,38 @@ jobs:
           mv "$BUILD_OUT/$BUNDLE_NAME" "$BUNDLE_HOME/$BUNDLE_NAME"
           BUNDLE="$BUNDLE_HOME/$BUNDLE_NAME"
           # Preview must create no prefix.
-          node "$BUNDLE/bin/ohmypm-install.mjs" --prefix "$PREFIX"
+          node "$BUNDLE/bin/omp-install.mjs" --prefix "$PREFIX"
           test ! -e "$PREFIX"
           # Apply, verify installed state.
-          node "$BUNDLE/bin/ohmypm-install.mjs" --prefix "$PREFIX" --apply
+          node "$BUNDLE/bin/omp-install.mjs" --prefix "$PREFIX" --apply
           node tools/check-release-install.mjs --prefix "$PREFIX" --expected-version "$VERSION"
           # All twelve shims: canonical commands, compatibility aliases, and
           # deprecated aliases.
-          for name in ohmypm ohmypm-mcp oh-my-pm oh-my-pm-mcp; do
+          for name in omp omp-mcp ohmypm ohmypm-mcp oh-my-pm oh-my-pm-mcp; do
             test -f "$PREFIX/bin/$name"
             test -f "$PREFIX/bin/$name.cmd"
           done
-          # The deprecated installer alias forwards and warns on stderr only.
+          # Both installer aliases forward and warn on stderr only, each with its
+          # own class wording.
+          node "$BUNDLE/bin/ohmypm-install.mjs" 2> "$RUNNER_TEMP/inst-compat.err" || true
+          grep -q "is a compatibility alias" "$RUNNER_TEMP/inst-compat.err"
+          grep -q "omp-install" "$RUNNER_TEMP/inst-compat.err"
           node "$BUNDLE/bin/oh-my-pm-install.mjs" 2> "$RUNNER_TEMP/inst-alias.err" || true
-          grep -q "deprecated compatibility alias" "$RUNNER_TEMP/inst-alias.err"
-          grep -q "ohmypm-install" "$RUNNER_TEMP/inst-alias.err"
+          grep -q "is deprecated" "$RUNNER_TEMP/inst-alias.err"
+          grep -q "omp-install" "$RUNNER_TEMP/inst-alias.err"
           # Remove the source bundle by its exact RUNNER_TEMP child path;
           # installed CLI must still work. (Never delete $RUNNER_TEMP itself or
           # an inferred parent.)
           rm -rf "$BUNDLE_HOME"
-          "$PREFIX/bin/ohmypm" status
+          "$PREFIX/bin/omp" status
+          "$PREFIX/bin/ohmypm" status > /dev/null 2>&1
           "$PREFIX/bin/oh-my-pm" status > /dev/null 2>&1
           # Move the whole prefix to another exact RUNNER_TEMP child; relative
           # shims must still work. $RUNNER_TEMP already exists, so no parent is
           # created or inferred.
           mv "$PREFIX" "$MOVED_PREFIX"
-          "$MOVED_PREFIX/bin/ohmypm" status
+          "$MOVED_PREFIX/bin/omp" status
+          "$MOVED_PREFIX/bin/ohmypm" status > /dev/null 2>&1
           "$MOVED_PREFIX/bin/oh-my-pm" status > /dev/null 2>&1
           node tools/check-release-install.mjs --prefix "$MOVED_PREFIX" --expected-version "$VERSION"
           test -z "$(git status --porcelain)"
@@ -412,9 +436,9 @@ jobs:
             if (-not (Test-Path $assetPath)) { throw "missing generated kernel asset: $assetPath" }
           }
           # The bundled CLI must load the real Kernel and report status.
-          node (Join-Path $bundle "bin/ohmypm.mjs") status
+          node (Join-Path $bundle "bin/omp.mjs") status
           if ($LASTEXITCODE -ne 0) { throw "bundled CLI status failed" }
-          $installer = Join-Path $bundle "bin/ohmypm-install.mjs"
+          $installer = Join-Path $bundle "bin/omp-install.mjs"
           if (-not (Test-Path $installer)) { throw "missing bundled installer: $installer" }
           # Preview must create no prefix.
           node $installer --prefix $prefix
@@ -429,9 +453,11 @@ jobs:
           $applyExit = $LASTEXITCODE
           if (Test-Path $applyErr) { Get-Content $applyErr | Write-Host }
           if ($applyExit -ne 0) { throw "installer apply failed" }
-          # v0.6 installs twelve shims on Windows too: the canonical commands and
-          # the deprecated compatibility aliases, each with a .cmd launcher.
+          # v0.6 installs twelve shims on Windows too: the canonical commands,
+          # the compatibility aliases, and the deprecated aliases, each with a
+          # .cmd launcher.
           foreach ($shim in @(
+            "omp", "omp.cmd", "omp-mcp", "omp-mcp.cmd",
             "ohmypm", "ohmypm.cmd", "ohmypm-mcp", "ohmypm-mcp.cmd",
             "oh-my-pm", "oh-my-pm.cmd", "oh-my-pm-mcp", "oh-my-pm-mcp.cmd"
           )) {
@@ -440,34 +466,47 @@ jobs:
           }
           # Canonical installed CLI status through the .cmd shim.
           $canonicalOut = Join-Path $env:RUNNER_TEMP "omp-canonical.out"
-          & (Join-Path $prefix "bin/ohmypm.cmd") status > $canonicalOut
+          & (Join-Path $prefix "bin/omp.cmd") status > $canonicalOut
           if ($LASTEXITCODE -ne 0) { throw "installed CLI .cmd status failed" }
           if (-not (Select-String -Path $canonicalOut -Pattern "OH MY PM status: healthy" -Quiet)) {
             throw "canonical .cmd status was not healthy"
           }
-          # The deprecated .cmd alias must work, warn on stderr, and produce the
-          # same stdout. This is the Windows counterpart of the POSIX alias check.
-          $aliasOut = Join-Path $env:RUNNER_TEMP "omp-alias.out"
-          $aliasErr = Join-Path $env:RUNNER_TEMP "omp-alias.err"
-          & (Join-Path $prefix "bin/oh-my-pm.cmd") status > $aliasOut 2> $aliasErr
-          if ($LASTEXITCODE -ne 0) { throw "deprecated CLI .cmd alias failed" }
-          if ((Get-Content -Raw $aliasOut) -ne (Get-Content -Raw $canonicalOut)) {
-            throw "deprecated .cmd alias stdout differs from canonical"
+          # Every .cmd alias must work, emit exactly one stderr notice with its own
+          # class wording, and produce byte-identical stdout. This is the Windows
+          # counterpart of the POSIX alias check.
+          foreach ($pair in @(
+            @{ Alias = "ohmypm"; Phrase = "is a compatibility alias" },
+            @{ Alias = "oh-my-pm"; Phrase = "is deprecated" }
+          )) {
+            $a = $pair.Alias
+            $aliasOut = Join-Path $env:RUNNER_TEMP "$a-alias.out"
+            $aliasErr = Join-Path $env:RUNNER_TEMP "$a-alias.err"
+            & (Join-Path $prefix "bin/$a.cmd") status > $aliasOut 2> $aliasErr
+            if ($LASTEXITCODE -ne 0) { throw "$a .cmd alias failed" }
+            if ((Get-Content -Raw $aliasOut) -ne (Get-Content -Raw $canonicalOut)) {
+              throw "$a .cmd alias stdout differs from canonical"
+            }
+            if (-not (Select-String -Path $aliasErr -Pattern $pair.Phrase -Quiet)) {
+              throw "$a .cmd alias did not warn on stderr with its class wording"
+            }
+            if (Select-String -Path $aliasOut -Pattern "Warning:" -Quiet) {
+              throw "$a .cmd alias wrote its notice to stdout"
+            }
+            $warnCount = (Select-String -Path $aliasErr -Pattern "Warning:" -AllMatches).Matches.Count
+            if ($warnCount -ne 1) { throw "$a .cmd alias emitted $warnCount warnings, expected 1" }
+            # JSON through the alias must stay parseable.
+            $aliasJson = Join-Path $env:RUNNER_TEMP "$a-alias.json"
+            & (Join-Path $prefix "bin/$a.cmd") status --json > $aliasJson 2> $null
+            node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' $aliasJson
+            if ($LASTEXITCODE -ne 0) { throw "$a .cmd alias produced invalid JSON on stdout" }
           }
-          if (-not (Select-String -Path $aliasErr -Pattern "deprecated compatibility alias" -Quiet)) {
-            throw "deprecated .cmd alias did not warn on stderr"
+          # A compatibility alias must never call itself deprecated.
+          if (Select-String -Path (Join-Path $env:RUNNER_TEMP "ohmypm-alias.err") -Pattern "deprecated" -Quiet) {
+            throw "compatibility .cmd alias reported itself as deprecated"
           }
-          if (Select-String -Path $aliasOut -Pattern "deprecated" -Quiet) {
-            throw "deprecated .cmd alias wrote its warning to stdout"
-          }
-          # JSON through the deprecated .cmd alias must stay parseable.
-          $aliasJson = Join-Path $env:RUNNER_TEMP "omp-alias.json"
-          & (Join-Path $prefix "bin/oh-my-pm.cmd") status --json > $aliasJson 2> $null
-          node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' $aliasJson
-          if ($LASTEXITCODE -ne 0) { throw "deprecated .cmd alias produced invalid JSON on stdout" }
           # Installed MCP entrypoints available (resolve without launching). The
-          # lib/oh-my-pm product directory is deliberately unchanged by v0.5.
-          foreach ($entry in @("ohmypm-mcp.mjs", "oh-my-pm-mcp.mjs")) {
+          # lib/oh-my-pm product directory is deliberately unchanged by v0.6.
+          foreach ($entry in @("omp-mcp.mjs", "ohmypm-mcp.mjs", "oh-my-pm-mcp.mjs")) {
             $mcpTarget = Join-Path $prefix (Join-Path "lib" (Join-Path "oh-my-pm" (Join-Path "versions" (Join-Path $version (Join-Path "bin" $entry)))))
             if (-not (Test-Path $mcpTarget)) { throw "installed MCP entrypoint missing: $mcpTarget" }
           }
@@ -482,7 +521,7 @@ jobs:
           Assert-RunnerTempChild $buildOut
           Remove-Item -LiteralPath $buildOut -Recurse -Force
           if (Test-Path -LiteralPath $buildOut) { throw "source bundle removal failed" }
-          & (Join-Path $prefix "bin/ohmypm.cmd") status
+          & (Join-Path $prefix "bin/omp.cmd") status
           if ($LASTEXITCODE -ne 0) { throw "installed CLI failed after source bundle removal" }
           node tools/check-release-install.mjs --prefix $prefix --expected-version $version
           if ($LASTEXITCODE -ne 0) { throw "installed-state verification failed after source bundle removal" }
@@ -495,9 +534,11 @@ jobs:
           Move-Item -LiteralPath $prefix -Destination $movedPrefix
           if (Test-Path -LiteralPath $prefix) { throw "original prefix still exists after relocation" }
           if (-not (Test-Path -LiteralPath $movedPrefix)) { throw "relocated prefix is missing" }
-          & (Join-Path $movedPrefix "bin/ohmypm.cmd") status
+          & (Join-Path $movedPrefix "bin/omp.cmd") status
           if ($LASTEXITCODE -ne 0) { throw "relocated installed CLI .cmd status failed" }
-          & (Join-Path $movedPrefix "bin/oh-my-pm.cmd") status > $null 2> $null
-          if ($LASTEXITCODE -ne 0) { throw "relocated deprecated .cmd alias failed" }
+          foreach ($a in @("ohmypm", "oh-my-pm")) {
+            & (Join-Path $movedPrefix "bin/$a.cmd") status > $null 2> $null
+            if ($LASTEXITCODE -ne 0) { throw "relocated $a .cmd alias failed" }
+          }
           node tools/check-release-install.mjs --prefix $movedPrefix --expected-version $version
           if ($LASTEXITCODE -ne 0) { throw "relocated installed-state verification failed" }
