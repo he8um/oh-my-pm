@@ -104,23 +104,27 @@ async function seed(
   return store;
 }
 
-/**
- * The double keys its nodes on "/" after normalizing, so a native path must be
- * converted the same way before it is used as a prefix. Without this the
- * comparison silently matched nothing on Windows and every bound compared zero
- * against zero.
- */
-function toKey(nativePath: string): string {
-  return nativePath.replace(/\\/g, "/");
-}
-
 function recordPathsOf(fs: CountingFileSystem, projectId: string): string[] {
   const key = deriveProjectKey(projectId);
   // Normalized to "/" to match listPaths(), which returns normalized keys.
-  const prefix = `${toKey(join(layout.storeRoot, PROJECTS_DIRNAME, key))}/`;
+  // keyFor(), not a hand-rolled separator swap: the double's normalization also
+  // folds a Windows drive prefix into a leading segment, so only it produces the
+  // key form listPaths() returns.
+  const prefix = `${fs.keyFor(join(layout.storeRoot, PROJECTS_DIRNAME, key))}/`;
   // listPaths() returns NORMALIZED keys, so the prefix comparison holds whatever
   // separator the layout used. A raw nodes.keys() read matched nothing on Windows.
-  return fs.listPaths().filter((p) => p.startsWith(prefix) && p.endsWith(".json"));
+  const found = fs.listPaths().filter((p) => p.startsWith(prefix) && p.endsWith(".json"));
+  // ANTI-VACUITY GATE. Every bound in this file compares counts, and a helper that
+  // silently returned [] made each one compare zero against zero -- which is how
+  // these tests passed on POSIX while the same code found nothing on Windows.
+  // Failing loudly here turns a silent no-op into a visible defect.
+  if (found.length === 0) {
+    throw new Error(
+      `recordPathsOf found no records under ${prefix}. The fixture is non-empty, so ` +
+        `this is a path-key mismatch, not an empty store.`,
+    );
+  }
+  return found;
 }
 
 describe("scan is bounded by store size, not by finding count", () => {

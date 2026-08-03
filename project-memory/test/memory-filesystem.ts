@@ -170,6 +170,19 @@ export class MemoryFileSystem implements FileSystem {
     return [...this.nodes.keys()].sort();
   }
 
+  /**
+   * Test helper: the node-map KEY a given path maps to.
+   *
+   * Exposed so a test can compare against `listPaths()` output without
+   * reimplementing the normalization. A hand-rolled "swap the separators" version
+   * is not equivalent: `normalize` also turns a Windows drive prefix into a leading
+   * segment (`D:\\data` -> `/D:/data`), so a naive replace produced a key that
+   * matched nothing and every bound silently compared zero against zero.
+   */
+  keyFor(path: string): string {
+    return normalize(path);
+  }
+
   /** Test helper: snapshot of every file path -> content, for byte comparisons. */
   snapshot(): Map<string, string> {
     const out = new Map<string, string>();
