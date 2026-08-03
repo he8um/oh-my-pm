@@ -67,19 +67,20 @@ describe("v0.6 release workflow safety", () => {
     expect(wf.includes("refusing to overwrite")).toBe(true);
   });
 
-  it("verifies the v0.6.0 base stable lineage without modifying it", () => {
+  it("verifies the v0.6.1 base stable lineage without modifying it", () => {
     // The base advances with each published stable in the line: v0.6.0 built on
-    // v0.5.4, and v0.6.1 builds on v0.6.0. The workflow must prove the base
-    // release still exists and still resolves to the same commit before
-    // publishing on top of it, so a rewritten or deleted predecessor stops the
-    // release rather than being silently republished over.
+    // v0.5.4, v0.6.1 built on v0.6.0, and v0.6.2 builds on v0.6.1. The workflow
+    // must prove the base release still exists and still resolves to the same
+    // commit before publishing on top of it, so a rewritten or deleted
+    // predecessor stops the release rather than being silently republished over.
     //
     // The SHA is the DEREFERENCED tag commit, which is what
     // `git ls-remote --tags` returns and what the workflow compares against.
-    expect(wf.includes("BASE_TAG=v0.6.0")).toBe(true);
-    expect(wf.includes("34642c4fe121c34c65f80a08b3e75560099676ff")).toBe(true);
-    // The superseded base must be gone: leaving it would let the workflow
-    // qualify against a release two steps back in the chain.
+    expect(wf.includes("BASE_TAG=v0.6.1")).toBe(true);
+    expect(wf.includes("b5a43d1230d8af116f12848ba7cdfe6006a353ec")).toBe(true);
+    // Every superseded base must be gone: leaving one would let the workflow
+    // qualify against a release further back in the chain.
+    expect(wf.includes("34642c4fe121c34c65f80a08b3e75560099676ff")).toBe(false);
     expect(wf.includes("288337a9514150b7a5973d9d9410f7186567520f")).toBe(false);
   });
 

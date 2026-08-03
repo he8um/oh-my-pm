@@ -2,6 +2,75 @@
 
 ## [Unreleased]
 
+## [0.6.2]
+
+Project Memory integrity: verification, gap closure, and a supported recovery
+path. See [the release note](docs/releases/v0.6.2.md) and
+[the integrity audit](docs/releases/v0.6.2-integrity-audit.md).
+
+**One new command; nothing else behaves differently.** No changed flag, output
+schema, or exit code outside the additive command, no changed MCP tool, schema,
+annotation, or tool order, no Project Brain schema change, no Project Memory store
+format change, and **no migration is required**.
+
+### Added
+
+- `omp memory repair` — the supported Project Memory recovery path, and the eighth
+  `memory` subcommand. Preview-first: `repair` scans and proposes while changing no
+  byte; `repair --apply` performs bounded recovery under the single-writer lock.
+  Preview and apply are separate store calls, so the read-only path cannot reach
+  the writer.
+- A deterministic corruption scanner with twelve stable machine-readable codes,
+  each carrying an authority class that decides what may be done to the bytes.
+  Deliberately finer-grained than `inspect()`, which reports one coarse
+  `integrityFailure` kind for conditions requiring opposite responses.
+- Explicit repair plans, separate from execution, tied to a content-derived store
+  fingerprint. Apply re-scans under the lock and refuses a stale plan before the
+  first write, so a plan computed against different bytes produces no partial
+  mutation.
+- A governed quarantine location under the project store that preserves the exact
+  original bytes of an isolated file. Excluded from record discovery, manifest
+  chronology, and export by construction; never treated as cache; never
+  automatically pruned.
+- Repair receipts with distinct outcome tallies. `isolated` is reported separately
+  from `reconstructed` and there is no combined "repaired" total: quarantining a
+  record restores the readability of the rest of the store but does not recover
+  that record's meaning.
+- `removeFile` on the filesystem port, so a repair's single-file deletes do not
+  route through a recursive directory delete.
+- Bounded structural integrity baselines (operation counts at the filesystem port,
+  not wall-clock gates) and a `project-memory-integrity` CI matrix on Ubuntu,
+  macOS, and Windows with `fail-fast: false`.
+
+### Fixed
+
+- Atomic writes leaked a temp file when a failure occurred between temp creation
+  and rename, because cleanup was scoped only to the rename step.
+- A crash after the manifest rename left staging residue that survived every
+  subsequent identical commit, because the idempotent early-return skipped
+  cleanup. `inspect()` reported `abandonedStaging` indefinitely.
+- Path confinement consulted only path arithmetic, so a symlink or junction inside
+  the data root pointing outside satisfied every check. Writes are now validated
+  against the real filesystem one link level at a time.
+- A crash-recovery test constructed a fresh in-memory filesystem for its follow-up
+  commit, so it never wrote against the damaged store while claiming to prove
+  post-crash recovery.
+- An assertion filtered on a nonexistent property, making it pass regardless of
+  how damaged the store was.
+- An unhandled-rejection race made the integrity suite fail intermittently, and an
+  unformatted file failed `pnpm quality`. Both were introduced earlier in this
+  release.
+- A doc-truth test that claimed to derive the memory subcommand count in fact
+  asserted a hardcoded value; it now derives on both sides.
+
+### Unchanged
+
+- No Dashboard, cloud sync, telemetry, automatic pruning, automatic repair on
+  read, or MCP write tools. Reads never mutate.
+- The stale-lock rule still requires age **and** a dead owner, so a live slow
+  writer is never evicted.
+- No cache exists, so there are no eviction semantics.
+
 ## [0.6.0]
 
 Canonical `omp` command migration and public surface stabilization, **published

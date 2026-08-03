@@ -222,7 +222,7 @@ alias.
 
 Commands: `status`, `doctor`, `plan`, `brief`, `risks`, `next`, `handoff`,
 `github <brief|risks|next|handoff>`, `providers status`, `providers doctor`,
-`memory <capture|changes|status|history|export|delete|timeline>`,
+`memory <capture|changes|status|history|export|delete|timeline|repair>`,
 `install-preview`, and `mcp-config`.
 
 **Must not:** own shared application logic, invoke itself as a subprocess, parse

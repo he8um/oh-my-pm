@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "sourceVersion": "0.6.1",
-  "sourceState": "published",
+  "sourceVersion": "0.6.2",
+  "sourceState": "prepared",
   "latestStableVersion": "0.6.1",
   "latestStableTag": "v0.6.1",
   "latestStableCommit": "b5a43d1230d8af116f12848ba7cdfe6006a353ec",
   "releaseLine": "v0.6",
   "bundleProfile": "omp-cli-namespace",
-  "publicationTarget": null
+  "publicationTarget": "v0.6.2"
 }

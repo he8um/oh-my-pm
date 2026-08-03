@@ -9,4 +9,4 @@
 // The application GitHub use case receives this version from the MCP adapter; it
 // never knows the MCP package version itself.
 
-export const OH_MY_PM_MCP_VERSION = "0.6.1";
+export const OH_MY_PM_MCP_VERSION = "0.6.2";

@@ -1,35 +1,45 @@
 name: Release v0.6 Stable
 
 # Manually gated STABLE release workflow for the v0.6 line. It builds and verifies
-# the exact 0.6.1 self-contained "omp-cli-namespace" portable artifact.
+# the exact 0.6.2 self-contained "omp-cli-namespace" portable artifact.
 #
-# v0.6.1 completes the CLI command namespace migration begun in v0.5. It is a
-# COMMAND NAMESPACE migration, not a product rename and not a data migration:
+# v0.6.2 closes the Project Memory integrity gaps found by the audit in
+# docs/releases/v0.6.2-integrity-audit.md. It adds ONE command and changes nothing
+# else about how an existing store is read or written:
 #
-#   * `omp`, `omp-mcp`, and `omp-install` become the CANONICAL executables;
-#   * `ohmypm`, `ohmypm-mcp`, and `ohmypm-install` -- canonical in v0.5 -- become
-#     supported COMPATIBILITY aliases, not deprecated ones, because demoting a
-#     name that was canonical one minor version ago would retroactively withdraw
-#     a promise;
-#   * `oh-my-pm`, `oh-my-pm-mcp`, and `oh-my-pm-install` remain DEPRECATED
-#     aliases.
+#   * `omp memory repair` -- the supported, preview-first recovery path. `repair`
+#     scans and proposes while changing no byte; `repair --apply` performs bounded
+#     recovery under the single-writer lock, re-scanning under that lock and
+#     refusing a plan whose store fingerprint moved;
+#   * authoritative bytes are ISOLATED into a governed quarantine with their exact
+#     contents preserved -- never rewritten from a guess, never deleted -- and only
+#     derived state is rebuilt, from verified records only;
+#   * quarantine is recovery evidence: excluded from record discovery and
+#     chronology, and never automatically pruned.
 #
-# No removal is scheduled for either alias family. Every alias forwards to the
-# same implementation and writes exactly one notice to stderr; stdout stays
-# byte-identical to the canonical command's, so piped JSON remains parseable and
-# the MCP stdio stream remains protocol-clean.
+# Isolation is deliberately NOT reported as repair. A quarantined record's meaning
+# is not recovered, so `isolated` and `reconstructed` stay separate counters and
+# there is no combined "repaired" total.
 #
-# The artifact's runtime surface is identical to v0.4/v0.5 -- TWELVE read-only MCP
-# tools, zero write tools, the bundled @oh-my-pm/project-memory package, SEVEN
-# memory subcommands, Project Brain schema 1 and store format 2 unchanged, so no
-# data migration is required.
+# The executable surface is unchanged from v0.6.0: `omp`/`omp-mcp`/`omp-install`
+# canonical, `ohmypm*` supported compatibility aliases, `oh-my-pm*` deprecated
+# aliases, no removal scheduled. Every alias forwards to the same implementation
+# and writes exactly one notice to stderr; stdout stays byte-identical to the
+# canonical command's, so piped JSON remains parseable and the MCP stdio stream
+# remains protocol-clean.
 #
-# There is NO other public behavior change: no command added or removed, no CLI
-# syntax or output change, no MCP tool/schema/annotation/order change, no failure
-# code renamed or removed, and no exit code changed.
+# The artifact's runtime surface is otherwise identical to v0.6.1 -- TWELVE
+# read-only MCP tools, zero write tools, the bundled @oh-my-pm/project-memory
+# package, Project Brain schema 1 and store format 2 unchanged -- so no data
+# migration is required. `memory` now has EIGHT subcommands: `repair` is APPENDED
+# to the closed allowlist, so every historical subcommand keeps its position.
+#
+# There is NO other public behavior change: no command removed, no CLI syntax or
+# output change outside the additive command, no MCP tool/schema/annotation/order
+# change, no failure code renamed or removed, and no exit code changed.
 #
 # Product identity is deliberately unchanged: the archives remain
-# oh-my-pm-v0.6.1.{tar.gz,zip}, the installation directory remains
+# oh-my-pm-v0.6.2.{tar.gz,zip}, the installation directory remains
 # lib/oh-my-pm/versions/<version>/, the package scope remains @oh-my-pm/*, the
 # environment prefix remains OH_MY_PM_*, and the MCP server key remains
 # oh-my-pm.
@@ -52,7 +62,7 @@ on:
       version:
         description: Canonical version without v prefix
         required: true
-        default: "0.6.1"
+        default: "0.6.2"
         type: string
       publish:
         # publish=false is the DRY RUN: prepare, deterministic assets, and the
@@ -64,7 +74,7 @@ on:
         default: false
         type: boolean
       confirmation:
-        description: Type RELEASE v0.6.1 when publish is enabled
+        description: Type RELEASE v0.6.2 when publish is enabled
         required: false
         default: ""
         type: string
@@ -99,12 +109,12 @@ jobs:
           INPUT_PUBLISH: ${{ inputs.publish }}
           INPUT_CONFIRMATION: ${{ inputs.confirmation }}
         run: |
-          if [ "$INPUT_VERSION" != "0.6.1" ]; then
-            echo "Only version 0.6.1 is accepted by this workflow (got $INPUT_VERSION)" >&2
+          if [ "$INPUT_VERSION" != "0.6.2" ]; then
+            echo "Only version 0.6.2 is accepted by this workflow (got $INPUT_VERSION)" >&2
             exit 1
           fi
-          if [ "$INPUT_PUBLISH" = "true" ] && [ "$INPUT_CONFIRMATION" != "RELEASE v0.6.1" ]; then
-            echo "publish requires confirmation exactly equal to: RELEASE v0.6.1" >&2
+          if [ "$INPUT_PUBLISH" = "true" ] && [ "$INPUT_CONFIRMATION" != "RELEASE v0.6.2" ]; then
+            echo "publish requires confirmation exactly equal to: RELEASE v0.6.2" >&2
             exit 1
           fi
 
@@ -127,8 +137,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          BASE_TAG=v0.6.0
-          BASE_SHA=34642c4fe121c34c65f80a08b3e75560099676ff
+          BASE_TAG=v0.6.1
+          BASE_SHA=b5a43d1230d8af116f12848ba7cdfe6006a353ec
           # The base stable tag must still exist on origin.
           if ! git ls-remote --exit-code --tags origin "refs/tags/$BASE_TAG" >/dev/null 2>&1; then
             echo "Required base stable tag $BASE_TAG does not exist on origin" >&2
@@ -148,8 +158,8 @@ jobs:
             if (meta.isPrerelease !== false) { console.error("base stable must remain non-prerelease"); process.exit(1); }
             if (meta.isDraft !== false) { console.error("base stable must remain non-draft"); process.exit(1); }
           '
-          # The v0.6.1 release notes must exist.
-          test -f docs/releases/v0.6.1.md
+          # The v0.6.2 release notes must exist.
+          test -f docs/releases/v0.6.2.md
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4.4.0
@@ -296,11 +306,11 @@ jobs:
       - name: Upload release assets artifact
         uses: actions/upload-artifact@v7
         with:
-          name: oh-my-pm-v0.6.1-release-assets
+          name: oh-my-pm-v0.6.2-release-assets
           path: |
-            ${{ runner.temp }}/release-assets/oh-my-pm-v0.6.1.tar.gz
-            ${{ runner.temp }}/release-assets/oh-my-pm-v0.6.1.zip
-            ${{ runner.temp }}/release-assets/oh-my-pm-v0.6.1-SHA256SUMS.txt
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.6.2.tar.gz
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.6.2.zip
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.6.2-SHA256SUMS.txt
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
@@ -334,7 +344,7 @@ jobs:
       - name: Download prepared release assets
         uses: actions/download-artifact@v7
         with:
-          name: oh-my-pm-v0.6.1-release-assets
+          name: oh-my-pm-v0.6.2-release-assets
           path: release-assets
 
       - name: Verify checksum then qualify the installed artifact (POSIX)
@@ -492,12 +502,12 @@ jobs:
           INPUT_VERSION: ${{ inputs.version }}
           INPUT_CONFIRMATION: ${{ inputs.confirmation }}
         run: |
-          if [ "$INPUT_VERSION" != "0.6.1" ]; then
-            echo "Only version 0.6.1 is accepted by this workflow (got $INPUT_VERSION)" >&2
+          if [ "$INPUT_VERSION" != "0.6.2" ]; then
+            echo "Only version 0.6.2 is accepted by this workflow (got $INPUT_VERSION)" >&2
             exit 1
           fi
-          if [ "$INPUT_CONFIRMATION" != "RELEASE v0.6.1" ]; then
-            echo "publish requires confirmation exactly equal to: RELEASE v0.6.1" >&2
+          if [ "$INPUT_CONFIRMATION" != "RELEASE v0.6.2" ]; then
+            echo "publish requires confirmation exactly equal to: RELEASE v0.6.2" >&2
             exit 1
           fi
 
@@ -514,22 +524,22 @@ jobs:
       - name: Download release assets
         uses: actions/download-artifact@v7
         with:
-          name: oh-my-pm-v0.6.1-release-assets
+          name: oh-my-pm-v0.6.2-release-assets
           path: release-assets
 
       - name: Re-verify archive checksums
         run: |
           cd release-assets
-          sha256sum -c oh-my-pm-v0.6.1-SHA256SUMS.txt
+          sha256sum -c oh-my-pm-v0.6.2-SHA256SUMS.txt
 
       - name: Ensure release notes exist
-        run: test -f docs/releases/v0.6.1.md
+        run: test -f docs/releases/v0.6.2.md
 
       - name: Ensure tag and release do not already exist
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=v0.6.1
+          TAG=v0.6.2
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
             echo "Tag $TAG already exists on origin; refusing to overwrite" >&2
             exit 1
@@ -543,10 +553,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          BASE_TAG=v0.6.0
-          BASE_SHA=34642c4fe121c34c65f80a08b3e75560099676ff
+          BASE_TAG=v0.6.1
+          BASE_SHA=b5a43d1230d8af116f12848ba7cdfe6006a353ec
           if ! git ls-remote --exit-code --tags origin "refs/tags/$BASE_TAG" >/dev/null 2>&1; then
-            echo "Base stable tag $BASE_TAG no longer exists; refusing to publish v0.6.1" >&2
+            echo "Base stable tag $BASE_TAG no longer exists; refusing to publish v0.6.2" >&2
             exit 1
           fi
           BASE_RESOLVED="$(git ls-remote --tags origin "refs/tags/$BASE_TAG" | awk '{print $1}')"
@@ -565,30 +575,30 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v0.6.1" \
-            "release-assets/oh-my-pm-v0.6.1.tar.gz" \
-            "release-assets/oh-my-pm-v0.6.1.zip" \
-            "release-assets/oh-my-pm-v0.6.1-SHA256SUMS.txt" \
+          gh release create "v0.6.2" \
+            "release-assets/oh-my-pm-v0.6.2.tar.gz" \
+            "release-assets/oh-my-pm-v0.6.2.zip" \
+            "release-assets/oh-my-pm-v0.6.2-SHA256SUMS.txt" \
             --target "$GITHUB_SHA" \
-            --title "OH MY PM v0.6.1" \
-            --notes-file "docs/releases/v0.6.1.md" \
+            --title "OH MY PM v0.6.2" \
+            --notes-file "docs/releases/v0.6.2.md" \
             --latest
 
       - name: Verify published stable release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          META="$(gh release view v0.6.1 --json tagName,isDraft,isPrerelease,assets)"
+          META="$(gh release view v0.6.2 --json tagName,isDraft,isPrerelease,assets)"
           echo "$META"
           echo "$META" | node -e '
             const meta = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
             const expected = [
-              "oh-my-pm-v0.6.1-SHA256SUMS.txt",
-              "oh-my-pm-v0.6.1.tar.gz",
-              "oh-my-pm-v0.6.1.zip",
+              "oh-my-pm-v0.6.2-SHA256SUMS.txt",
+              "oh-my-pm-v0.6.2.tar.gz",
+              "oh-my-pm-v0.6.2.zip",
             ].sort();
             const names = (meta.assets || []).map((a) => a.name).sort();
-            if (meta.tagName !== "v0.6.1") { console.error("bad tag"); process.exit(1); }
+            if (meta.tagName !== "v0.6.2") { console.error("bad tag"); process.exit(1); }
             if (meta.isDraft !== false) { console.error("draft must be false"); process.exit(1); }
             if (meta.isPrerelease !== false) { console.error("prerelease must be false"); process.exit(1); }
             if (JSON.stringify(names) !== JSON.stringify(expected)) { console.error("asset mismatch"); process.exit(1); }
@@ -600,8 +610,8 @@ jobs:
         run: |
           LATEST="$(gh api repos/${GITHUB_REPOSITORY}/releases/latest --jq .tag_name)"
           echo "latest release: $LATEST"
-          if [ "$LATEST" != "v0.6.1" ]; then
-            echo "releases/latest is $LATEST, expected v0.6.1" >&2
+          if [ "$LATEST" != "v0.6.2" ]; then
+            echo "releases/latest is $LATEST, expected v0.6.2" >&2
             exit 1
           fi
 
@@ -611,13 +621,13 @@ jobs:
         run: |
           DL="$RUNNER_TEMP/published"
           mkdir -p "$DL"
-          gh release download v0.6.1 --dir "$DL"
+          gh release download v0.6.2 --dir "$DL"
           cd "$DL"
-          sha256sum -c oh-my-pm-v0.6.1-SHA256SUMS.txt
+          sha256sum -c oh-my-pm-v0.6.2-SHA256SUMS.txt
 
       - name: Print release URL to summary
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          URL="$(gh release view v0.6.1 --json url --jq .url)"
+          URL="$(gh release view v0.6.2 --json url --jq .url)"
           echo "Published stable release: $URL" >> "$GITHUB_STEP_SUMMARY"

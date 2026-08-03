@@ -227,6 +227,14 @@
       "concern": "contract-model"
     },
     {
+      "path": "docs/releases/v0.6.2.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.6.2",
+      "replacement": null,
+      "concern": "release-notes-v0.6.2"
+    },
+    {
       "path": "docs/releases/v0.6.2-integrity-audit.md",
       "status": "release-record",
       "authority": "informative",
