@@ -40,6 +40,8 @@
 // touch anything outside the governed data root, touch a project source file, or
 // make a network call.
 
+import { dirname, join } from "node:path";
+
 import { atomicCommitFailure, corruption, invalidInput } from "./errors.js";
 import type { FileSystem } from "./filesystem.js";
 import { computeIntegrity, deriveProjectKey, deriveRecordKey } from "./integrity.js";
@@ -289,7 +291,7 @@ async function quarantineOneFile(
   //    deterministic slot means a re-run of the same operation overwrites its own
   //    evidence rather than accumulating a second copy beside it.
   await failPoint(input, "beforeQuarantinePayloadWrite");
-  await fs.mkdirp(dirNameOf(payloadPath));
+  await fs.mkdirp(dirname(payloadPath));
   await fs.writeFileAtomic(payloadPath, liveBytes, tempName(plan.operationId, fs, "qpayload"));
   await failPoint(input, "afterQuarantinePayloadWrite");
 
@@ -517,17 +519,19 @@ function digestOf(contents: string): string {
  * it reaches is additionally validated by the Node adapter's physical confinement
  * before it touches the filesystem.
  */
-function absoluteFromStoreRelative(layout: StoreLayout, relativePath: string): string {
+export function absoluteFromStoreRelative(
+  layout: Pick<StoreLayout, "storeRoot">,
+  relativePath: string,
+): string {
   if (relativePath.includes("..")) {
     throw invalidInput("a repair target must not contain traversal");
   }
-  return `${layout.storeRoot}/${relativePath}`;
-}
-
-/** The directory portion of a `/`-joined managed path. */
-function dirNameOf(path: string): string {
-  const index = path.lastIndexOf("/");
-  return index <= 0 ? path : path.slice(0, index);
+  // `join`, not string concatenation. Store-relative targets always use POSIX
+  // separators so a finding compares equal across platforms, but the store root
+  // is spelled with the platform separator -- on Windows, backslashes. Gluing the
+  // two together produced a mixed-separator path that matched nothing the store
+  // had written, and the resulting write went to a path no reader would find.
+  return join(layout.storeRoot, ...relativePath.split("/"));
 }
 
 /** A deterministic temp name scoped to this operation and process. */
