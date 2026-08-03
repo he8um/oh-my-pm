@@ -549,3 +549,55 @@ jobs:
           }
           node tools/check-release-install.mjs --prefix $movedPrefix --expected-version $version
           if ($LASTEXITCODE -ne 0) { throw "relocated installed-state verification failed" }
+
+  project-memory-integrity:
+    name: Project Memory integrity (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    # The integrity suites spawn real child processes and create real temporary
+    # store trees, but build no Rust or wasm, so they are far cheaper than the
+    # validate job. Observed under 3 min on every platform.
+    timeout-minutes: 20
+
+    strategy:
+      # Every platform must report independently. A Windows-only path-semantics
+      # or process-termination defect must fail visibly rather than be masked by
+      # a green Linux job.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.4.0
+        with:
+          version: 9.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: pnpm
+
+      # No Rust, no kernel, no workspace build: these suites exercise the
+      # project-memory package against the real filesystem and real OS
+      # processes, and the suite itself builds the package's dist/ before
+      # spawning any worker.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Project Memory integrity suites (real processes, real filesystem)
+        run: pnpm test:integrity
+
+      - name: Working tree must be clean
+        shell: bash
+        run: |
+          # The integrity suites must leave no generated file behind. dist/ is
+          # git-ignored, so a dirty tree here means a test wrote into the repo.
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --porcelain
+            echo "integrity suites left the working tree dirty" >&2
+            exit 1
+          fi
