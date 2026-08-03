@@ -530,9 +530,9 @@ describe("killing a writer, then recovering on the same persisted store", () => 
     // issues carry a `kind`, and a filter on a property that does not exist
     // would pass vacuously no matter how damaged the store was.
     const unresolved = inspection.issues.filter((issue) =>
-      (["abandonedStaging", "missingRecord", "integrityFailure", "unsupportedFormat"] as const).includes(
-        issue.kind as "abandonedStaging",
-      ),
+      (
+        ["abandonedStaging", "missingRecord", "integrityFailure", "unsupportedFormat"] as const
+      ).includes(issue.kind as "abandonedStaging"),
     );
     expect(unresolved).toEqual([]);
     // And verification, which re-derives every checksum from the persisted bytes,

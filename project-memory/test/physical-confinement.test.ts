@@ -503,23 +503,30 @@ describe("errors are stable and disclose nothing", () => {
   it("every rejection reason produces the identical sanitized message", async () => {
     await symlink(outside, join(storeRoot, "projects"), "dir");
     const canonical = await canonicalRoot();
-    const reasons = [
-      assertPhysicallyConfined(
-        canonical,
-        join(storeRoot, "..", "outside", "a.txt"),
-        confineOptions(),
-      ),
-      assertPhysicallyConfined(canonical, join(outside, "a.txt"), confineOptions()),
-      assertPhysicallyConfined(canonical, join(storeRoot, "projects", "a.txt"), confineOptions()),
-      assertPhysicallyConfined(
-        canonical,
-        join(storeRoot, "projects", "missing.txt"),
-        confineOptions(),
-      ),
+    // Thunks, not already-invoked promises. Every one of these rejects, and a
+    // rejection that is not awaited in the same turn is reported as an unhandled
+    // rejection -- which fails the run even though each assertion passes. Each
+    // call is therefore created and awaited together.
+    const reasons: readonly (() => Promise<unknown>)[] = [
+      () =>
+        assertPhysicallyConfined(
+          canonical,
+          join(storeRoot, "..", "outside", "a.txt"),
+          confineOptions(),
+        ),
+      () => assertPhysicallyConfined(canonical, join(outside, "a.txt"), confineOptions()),
+      () =>
+        assertPhysicallyConfined(canonical, join(storeRoot, "projects", "a.txt"), confineOptions()),
+      () =>
+        assertPhysicallyConfined(
+          canonical,
+          join(storeRoot, "projects", "missing.txt"),
+          confineOptions(),
+        ),
     ];
     const messages = new Set<string>();
     for (const reason of reasons) {
-      const error = await expectEscape(reason);
+      const error = await expectEscape(reason());
       messages.add(String(error?.message));
     }
     // One message for every reason: a caller cannot distinguish "escaped via
