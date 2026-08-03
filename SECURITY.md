@@ -4,15 +4,16 @@
 
 | Release line | Status                                                           |
 | ------------ | ---------------------------------------------------------------- |
-| `v0.6.x`     | **Supported.** `v0.6.0` is the current published stable release. |
+| `v0.6.x`     | **Supported.** `v0.6.1` is the current published stable release. |
 | `v0.5.x`     | Not supported. Preserved as an immutable historical release.     |
 | `v0.4.x`     | Not supported. Preserved as an immutable historical release.     |
 | `v0.3.x`     | Not supported. Preserved as an immutable historical release.     |
 | `v0.2.x`     | Not supported. Preserved as an immutable historical release.     |
 | `v0.1.x`     | Not supported. Preserved as an immutable historical release.     |
 
-`v0.5.4` remains published and immutable, but it is superseded: the supported
-artifact is `v0.6.0`.
+`v0.6.0` remains published and immutable, but it is superseded within its own
+line: the supported artifact is `v0.6.1`. Every release before it, including the
+whole v0.5 line, stays published and immutable as well.
 
 Security fixes are made only on the supported line and are delivered by
 publishing a new release on it. Earlier releases stay published as immutable
