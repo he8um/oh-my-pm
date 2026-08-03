@@ -26,6 +26,34 @@ export const EVIDENCE_DIRNAME = "evidence";
 export const STAGING_DIRNAME = "staging";
 export const BACKUPS_DIRNAME = "backups";
 
+/**
+ * Directory holding quarantined recovery evidence.
+ *
+ * Quarantine is its own authority class, distinct from every other directory in
+ * the store:
+ *
+ *   * it is NOT authoritative live state -- a quarantined file is deliberately
+ *     no longer part of the readable store, and `snapshots/`/`evidence/`
+ *     discovery never looks here;
+ *   * it is NOT chronology -- the manifest never references a quarantined
+ *     payload, so `snapshotHistory` cannot regress when a record is isolated;
+ *   * it is NOT cache -- nothing regenerates it, so it is never evicted;
+ *   * it is NOT pruned -- automatic deletion of recovery evidence would destroy
+ *     the only remaining copy of the user's damaged authoritative data.
+ *
+ * Its sole purpose is to preserve the EXACT original bytes of a file the repair
+ * apply removed from the live store, so a user (or a support process) can still
+ * recover semantics a program cannot reconstruct.
+ */
+export const QUARANTINE_DIRNAME = "quarantine";
+
+/** Filenames inside one quarantine operation directory. */
+export const QUARANTINE_PAYLOAD_FILENAME = "payload.bin";
+export const QUARANTINE_METADATA_FILENAME = "metadata.json";
+
+/** The repair receipt filename inside one quarantine operation directory. */
+export const REPAIR_RECEIPT_FILENAME = "receipt.json";
+
 /** The manifest filename inside a project store. */
 export const MANIFEST_FILENAME = "manifest.json";
 
@@ -93,6 +121,132 @@ export function recordPathFor(
   return confine(
     layout.dataRoot,
     join(projectDirFor(layout, projectKey), recordDir, `${recordKey}.json`),
+  );
+}
+
+/**
+ * A validated operation-id path segment.
+ *
+ * Quarantine paths are operation-scoped, so the operation id becomes a directory
+ * name. It is therefore held to the same rules the store already applies to
+ * temp/backup/tombstone names: a bounded filename-safe charset and no traversal
+ * token. Rejecting `.`/`..` explicitly matters even though the charset already
+ * excludes a separator -- `..` is spelled entirely with permitted characters.
+ */
+const OPERATION_SEGMENT_RE = /^[A-Za-z0-9._-]+$/;
+
+/** Assert a value is usable as a single operation-scoped path segment. */
+function assertOperationSegment(value: string): void {
+  if (typeof value !== "string" || value.length === 0) {
+    throw invalidInput("the operation id must be a non-empty string");
+  }
+  if (!OPERATION_SEGMENT_RE.test(value)) {
+    throw invalidInput("the operation id must contain only [A-Za-z0-9._-]");
+  }
+  if (value === "." || value === "..") {
+    throw invalidInput("the operation id must not be a path traversal token");
+  }
+}
+
+/**
+ * The absolute quarantine root for a project key.
+ *
+ * A sibling of `snapshots/`/`evidence/` under the project store, so it inherits
+ * the same confinement and the same owner-only directory mode, while remaining
+ * outside every record-discovery path.
+ */
+export function quarantineDirFor(layout: StoreLayout, projectKey: string): string {
+  return confine(layout.dataRoot, join(projectDirFor(layout, projectKey), QUARANTINE_DIRNAME));
+}
+
+/**
+ * The absolute directory for ONE repair operation's quarantine evidence.
+ *
+ * Operation-scoped rather than content-scoped so a retry of the same operation
+ * lands on the same path -- which is what makes apply idempotent instead of
+ * accumulating a second copy of identical evidence on every attempt.
+ */
+export function quarantineOperationDirFor(
+  layout: StoreLayout,
+  projectKey: string,
+  operationId: string,
+): string {
+  assertOperationSegment(operationId);
+  return confine(layout.dataRoot, join(quarantineDirFor(layout, projectKey), operationId));
+}
+
+/**
+ * The absolute path of one quarantined payload's slot.
+ *
+ * `entryKey` is a caller-derived lowercase SHA-256 key, never a user-supplied
+ * name and never the quarantined file's own path: a corrupt record's on-disk
+ * name is already a derived key, but routing it through the same assertion keeps
+ * "no user-controlled path fragment" true by construction rather than by
+ * convention.
+ */
+export function quarantinePayloadPathFor(
+  layout: StoreLayout,
+  projectKey: string,
+  operationId: string,
+  entryKey: string,
+): string {
+  assertKey(entryKey, "quarantine entry key");
+  return confine(
+    layout.dataRoot,
+    join(
+      quarantineOperationDirFor(layout, projectKey, operationId),
+      entryKey,
+      QUARANTINE_PAYLOAD_FILENAME,
+    ),
+  );
+}
+
+/** The absolute path of one quarantined payload's sanitized metadata. */
+export function quarantineMetadataPathFor(
+  layout: StoreLayout,
+  projectKey: string,
+  operationId: string,
+  entryKey: string,
+): string {
+  assertKey(entryKey, "quarantine entry key");
+  return confine(
+    layout.dataRoot,
+    join(
+      quarantineOperationDirFor(layout, projectKey, operationId),
+      entryKey,
+      QUARANTINE_METADATA_FILENAME,
+    ),
+  );
+}
+
+/** The absolute repair-receipt path for one repair operation. */
+export function repairReceiptPathFor(
+  layout: StoreLayout,
+  projectKey: string,
+  operationId: string,
+): string {
+  return confine(
+    layout.dataRoot,
+    join(quarantineOperationDirFor(layout, projectKey, operationId), REPAIR_RECEIPT_FILENAME),
+  );
+}
+
+/**
+ * True when a project-relative directory name is a governed non-record
+ * directory: one that legitimately exists inside a project store but must never
+ * be treated as a live record, walked by record discovery, or added to the
+ * manifest chronology.
+ *
+ * Expressed as a single predicate so a new governed directory cannot be added to
+ * the layout while silently remaining invisible to the code that must exclude
+ * it.
+ */
+export function isNonRecordStoreDirname(name: string): boolean {
+  return (
+    name === STAGING_DIRNAME ||
+    name === BACKUPS_DIRNAME ||
+    name === QUARANTINE_DIRNAME ||
+    name === LOCKS_DIRNAME
   );
 }
 

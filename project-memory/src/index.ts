@@ -65,6 +65,16 @@ export type { DataLocationInputs } from "./data-location.js";
 export {
   assertProjectDataSeparation,
   assertExportDestinationSafe,
+  isNonRecordStoreDirname,
+  QUARANTINE_DIRNAME,
+  QUARANTINE_METADATA_FILENAME,
+  QUARANTINE_PAYLOAD_FILENAME,
+  quarantineDirFor,
+  quarantineMetadataPathFor,
+  quarantineOperationDirFor,
+  quarantinePayloadPathFor,
+  REPAIR_RECEIPT_FILENAME,
+  repairReceiptPathFor,
   resolveStoreLayout,
 } from "./path-safety.js";
 export type { StoreLayout } from "./path-safety.js";
