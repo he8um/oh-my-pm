@@ -3,6 +3,12 @@
 // entries, injected clock/liveness, and a single commit-point failure injection.
 // It is test-only and never shipped.
 
+import { performAtomicWrite } from "../src/atomic-write.js";
+import type {
+  AtomicWritePrimitives,
+  AtomicWriteStage,
+  TempFileHandle,
+} from "../src/atomic-write.js";
 import type {
   CommitFailurePoint,
   DirEntry,
@@ -48,6 +54,16 @@ export interface MemoryFsOptions {
   readonly isProcessAlive?: (pid: number) => boolean;
   readonly pid?: number;
   readonly failAt?: CommitFailurePoint;
+  readonly atomicFailAt?: AtomicWriteStage;
+}
+
+/** A hook that throws at one named atomic-write stage. */
+function failAtStage(stage: AtomicWriteStage) {
+  return (current: AtomicWriteStage): void => {
+    if (current === stage) {
+      throw new Error(`injected atomic-write failure at ${stage}`);
+    }
+  };
 }
 
 export class MemoryFileSystem implements FileSystem {
@@ -67,6 +83,12 @@ export class MemoryFileSystem implements FileSystem {
    * nothing about recovery. Use `simulateRestart()` rather than assigning here.
    */
   failAt: CommitFailurePoint | undefined;
+  /** Stage at which an atomic write should fail, for internal fault injection. */
+  atomicFailAt: AtomicWriteStage | undefined;
+  /** When set, an atomic write's temp file receives only this many characters. */
+  atomicPartialWriteLimit: number | undefined;
+  /** Directories fsync'd by atomic writes, in order. */
+  readonly syncedDirs: string[] = [];
   private readonly nowFn: () => string;
   private readonly aliveFn: (pid: number) => boolean;
   private readonly pid: number;
@@ -76,6 +98,7 @@ export class MemoryFileSystem implements FileSystem {
     this.aliveFn = options.isProcessAlive ?? (() => true);
     this.pid = options.pid ?? 4242;
     this.failAt = options.failAt;
+    this.atomicFailAt = options.atomicFailAt;
     this.nodes.set(SEP, { kind: "dir" });
   }
 
@@ -88,6 +111,8 @@ export class MemoryFileSystem implements FileSystem {
    */
   simulateRestart(): void {
     this.failAt = undefined;
+    this.atomicFailAt = undefined;
+    this.atomicPartialWriteLimit = undefined;
   }
 
   /** Every persisted path, sorted. For asserting on residue after a crash. */
@@ -177,10 +202,62 @@ export class MemoryFileSystem implements FileSystem {
     this.ensureDir(normalize(path));
   }
 
-  async writeFileAtomic(path: string, contents: string, _tmpName: string): Promise<void> {
+  /**
+   * Write through the SHARED atomic-write algorithm, not a shortcut.
+   *
+   * This used to set the target node directly, which meant every store-level
+   * test exercised an imitation: no temp file, no flush, no rename, no directory
+   * sync. A reordering bug in the real algorithm would have been invisible here.
+   * Now the ordering logic is the same code production runs, and `atomicFailAt`
+   * can inject a fault at any internal stage.
+   */
+  async writeFileAtomic(path: string, contents: string, tmpName: string): Promise<void> {
     const norm = normalize(path);
     this.ensureDir(parent(norm));
-    this.nodes.set(norm, { kind: "file", content: contents });
+    await performAtomicWrite(
+      this.atomicPrimitives(),
+      norm,
+      contents,
+      tmpName,
+      this.atomicFailAt === undefined ? undefined : failAtStage(this.atomicFailAt),
+    );
+  }
+
+  /** In-memory primitives for the shared atomic-write algorithm. */
+  private atomicPrimitives(): AtomicWritePrimitives {
+    return {
+      createTemp: async (tmpPath: string): Promise<TempFileHandle> => {
+        const norm = normalize(tmpPath);
+        this.ensureDir(parent(norm));
+        this.nodes.set(norm, { kind: "file", content: "" });
+        const limit = this.atomicPartialWriteLimit;
+        return {
+          write: async (chunk: string) => {
+            this.nodes.set(norm, {
+              kind: "file",
+              content: limit === undefined ? chunk : chunk.slice(0, limit),
+            });
+          },
+          flush: async () => {
+            /* no durability to model in memory */
+          },
+          close: async () => {
+            /* no handle to release in memory */
+          },
+        };
+      },
+      rename: async (from, to) => {
+        await this.moveFile(from, to);
+      },
+      syncDir: async (dir) => {
+        this.syncedDirs.push(normalize(dir));
+      },
+      removeFileIfExists: async (target) => {
+        this.nodes.delete(normalize(target));
+      },
+      joinPath: (dir, name) => (dir.endsWith(SEP) ? `${dir}${name}` : `${dir}${SEP}${name}`),
+      dirName: (target) => parent(normalize(target)),
+    };
   }
 
   async moveFile(from: string, to: string): Promise<void> {

@@ -11,6 +11,8 @@ import { homedir, platform as osPlatform } from "node:os";
 import { dirname, join } from "node:path";
 import process from "node:process";
 
+import { performAtomicWrite } from "./atomic-write.js";
+import type { AtomicWritePrimitives, TempFileHandle } from "./atomic-write.js";
 import { resolveDataRoot } from "./data-location.js";
 import type { DirEntry, FileSystem, LockCreateResult } from "./filesystem.js";
 import { DependencyInjectedStore } from "./store.js";
@@ -104,18 +106,42 @@ export class NodeFileSystem implements FileSystem {
     await mkdir(path, { recursive: true, ...(IS_POSIX ? { mode: DIR_MODE } : {}) });
   }
 
+  /**
+   * Write the temp file, fsync its data, then atomically rename over the target.
+   *
+   * The ordering lives in `performAtomicWrite` so tests exercise the exact
+   * sequence production runs, rather than an imitation that might drift. This
+   * method supplies the real Node primitives and NO stage hook, so behaviour is
+   * unchanged from when the sequence was inlined here.
+   */
   async writeFileAtomic(path: string, contents: string, tmpName: string): Promise<void> {
-    const dir = dirname(path);
-    const tmpPath = join(dir, tmpName);
-    // Write the temp file, fsync its data, then atomically rename over target.
-    const handle = await open(tmpPath, "w", FILE_MODE);
-    try {
-      await handle.writeFile(contents, "utf8");
-      await handle.sync();
-    } finally {
-      await handle.close();
-    }
-    await rename(tmpPath, path);
+    await performAtomicWrite(this.atomicPrimitives(), path, contents, tmpName);
+  }
+
+  /** The real Node primitives the shared atomic-write algorithm composes. */
+  private atomicPrimitives(): AtomicWritePrimitives {
+    return {
+      createTemp: async (tmpPath: string): Promise<TempFileHandle> => {
+        // "w" matches the previous behaviour exactly. The temp name is derived
+        // from a validated operation id and pid, so two concurrent writers
+        // cannot choose the same path.
+        const handle = await open(tmpPath, "w", FILE_MODE);
+        return {
+          write: (chunk) => handle.writeFile(chunk, "utf8"),
+          flush: () => handle.sync(),
+          close: () => handle.close(),
+        };
+      },
+      rename: (from, to) => rename(from, to),
+      syncDir: (dir) => this.syncDir(dir),
+      removeFileIfExists: async (target) => {
+        // force: true makes a missing file a no-op, which is what cleanup after
+        // a failed create needs.
+        await rm(target, { force: true });
+      },
+      joinPath: (dir, name) => join(dir, name),
+      dirName: (target) => dirname(target),
+    };
   }
 
   async moveFile(from: string, to: string): Promise<void> {
