@@ -208,6 +208,7 @@ function memoryHelp(): string {
     "  export       write a snapshot export to an explicit destination",
     "  delete       remove stored snapshots",
     "  timeline     list the derived history of project changes (read-only)",
+    "  repair       scan for store corruption and preview or apply recovery",
     "",
     "Common options:",
     "  --project-id <id>      explicit project identity",
@@ -236,6 +237,8 @@ function memoryHelp(): string {
     `  ${CLI} memory history --limit 5`,
     `  ${CLI} memory timeline --project-id my-project`,
     `  ${CLI} memory timeline --project-id my-project --kind risk --limit 10`,
+    `  ${CLI} memory repair`,
+    `  ${CLI} memory repair --apply`,
   ]);
 }
 

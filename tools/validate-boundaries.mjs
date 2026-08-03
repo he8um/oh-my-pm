@@ -1744,16 +1744,16 @@ if (v03Wf !== null) {
 // place; the immutable base stable lineage stays pinned. The ACTIVE stable line
 // is v0.4, whose base stable tag is the published v0.3.1.
 const V03_PATCH_VERSION = JSON.parse(readFileSync("version.json", "utf8")).version;
-// The base stable release the ACTIVE line builds on. v0.6.1 follows the published
-// v0.6.0 stable, so the active workflow must verify that published release still
-// exists unchanged before it publishes on top of it. (v0.6.0 superseded v0.5.4 as
-// the base stable when it became the latest published stable; v0.5.4 had itself
-// superseded v0.5.1 the same way.)
+// The base stable release the ACTIVE line builds on. v0.6.2 follows the published
+// v0.6.1 stable, so the active workflow must verify that published release still
+// exists unchanged before it publishes on top of it. (v0.6.1 superseded v0.6.0 as
+// the base stable when it became the latest published stable; v0.6.0 had itself
+// superseded v0.5.4, which superseded v0.5.1, the same way.)
 //
-// The SHA is the DEREFERENCED commit of the v0.6.0 tag, which is what
+// The SHA is the DEREFERENCED commit of the v0.6.1 tag, which is what
 // `git ls-remote --tags` resolves to and what the workflow compares against.
-const V03_BASE_STABLE_TAG = "v0.6.0";
-const V03_BASE_STABLE_SHA = "34642c4fe121c34c65f80a08b3e75560099676ff";
+const V03_BASE_STABLE_TAG = "v0.6.1";
+const V03_BASE_STABLE_SHA = "b5a43d1230d8af116f12848ba7cdfe6006a353ec";
 const v03StableWf = checkReleaseWorkflowCommon(
   ACTIVE_STABLE_RELEASE_WORKFLOW,
   `RELEASE v${V03_PATCH_VERSION}`,

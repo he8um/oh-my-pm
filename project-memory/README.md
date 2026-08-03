@@ -50,7 +50,17 @@ migration is required.
 - **Data minimization.** Payloads whose object keys normalize to a secret- or
   raw-content-bearing name are refused before a single byte is written.
 - **Safe reads.** No auto-repair, no orphan adoption, controlled corruption
-  errors with sanitized recovery hints.
+  errors with sanitized recovery hints. A read never mutates, never quarantines,
+  and never migrates.
+- **Explicit recovery.** Corruption is repaired only through the preview-first
+  path (`scanStore` -> `buildRepairPlan` -> `applyRepairPlan`, surfaced as
+  `omp memory repair`). The scan and plan are strictly read-only; apply requires
+  explicit intent, holds the writer lock, re-scans under it, and refuses a plan
+  whose store fingerprint moved. Authoritative bytes are **isolated** into
+  quarantine with their exact contents preserved, never rewritten from a guess and
+  never deleted; only derived state is rebuilt, and only from records that verify.
+  Quarantine is recovery evidence, not live state: it is excluded from record
+  discovery and chronology, and is never automatically pruned.
 
 ## Boundary
 

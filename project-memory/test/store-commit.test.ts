@@ -110,8 +110,7 @@ describe("commit-point failure injection", () => {
 
       // Before the manifest rename: no manifest exists → old store authoritative.
       // After the manifest rename: the manifest exists → new store authoritative.
-      const cleanFs = fs; // same fs; read manifest via a fresh store instance
-      const reader = new DependencyInjectedStore({ fs: cleanFs, dataRoot: DATA_ROOT });
+      const reader = new DependencyInjectedStore({ fs, dataRoot: DATA_ROOT });
       const manifest = await reader.readManifest(PID);
       const committed = point === "afterManifestRename" || point === "beforeCleanup";
       if (committed) {
@@ -121,12 +120,106 @@ describe("commit-point failure injection", () => {
         expect(manifest).toBeNull();
       }
 
-      // The lock must always be released (finally), so a follow-up commit works.
-      const followUpFs = new MemoryFileSystem();
-      const followUp = new DependencyInjectedStore({ fs: followUpFs, dataRoot: DATA_ROOT });
-      await expect(followUp.commitSnapshotBundle(commitInput())).resolves.toBeDefined();
+      // No MIXED state: a manifest that exists must verify, and its referenced
+      // records must all be present. A half-committed store would fail here
+      // rather than merely looking plausible.
+      if (committed) {
+        const verification = await reader.verify(PID);
+        expect(verification.manifestVerified).toBe(true);
+        expect(verification.ok).toBe(true);
+        expect(verification.verifiedSnapshotIds).toEqual(["snap-1"]);
+        expect(verification.verifiedEvidenceIds).toEqual(["ev-1"]);
+      }
+
+      // The lock must have been released in `finally`, and any staging residue
+      // must still be on disk for inspection rather than silently adopted.
+      expect(fs.pathsMatching("/locks/")).toEqual([]);
+      const residue = fs.pathsMatching("/staging");
+      if (point !== "afterLock" && point !== "beforeCleanup") {
+        expect(residue.length).toBeGreaterThan(0);
+      }
+
+      // Recovery runs against THIS store -- the one that just crashed, with
+      // whatever residue the failed commit left behind. A fresh
+      // MemoryFileSystem here would have no lock file, no staging, and no
+      // partial records, and would therefore prove nothing about recovery.
+      fs.simulateRestart();
+      const recovered = new DependencyInjectedStore({ fs, dataRoot: DATA_ROOT });
+      const result = await recovered.commitSnapshotBundle(commitInput());
+
+      // The recovered store is fully coherent: one snapshot, one evidence
+      // record, a verifying manifest, and a contiguous chronology.
+      expect(result.latestSnapshotId).toBe("snap-1");
+      expect(result.snapshotCount).toBe(1);
+      expect(result.evidenceCount).toBe(1);
+
+      const afterVerify = await recovered.verify(PID);
+      expect(afterVerify.manifestVerified).toBe(true);
+      expect(afterVerify.verifiedSnapshotIds).toEqual(["snap-1"]);
+      expect(afterVerify.verifiedEvidenceIds).toEqual(["ev-1"]);
+
+      expect(await recovered.listSnapshots(PID)).toEqual([
+        {
+          snapshotId: "snap-1",
+          capturedAt: "2026-01-01T00:00:00.000Z",
+          sequence: 1,
+          isLatest: true,
+        },
+      ]);
+
+      // The records are readable and carry the committed payload, so recovery
+      // restored data rather than just a manifest that parses.
+      expect((await recovered.readSnapshot(PID, "snap-1")).snapshotId).toBe("snap-1");
+      expect((await recovered.readEvidence(PID, "ev-1")).evidenceId).toBe("ev-1");
+
+      // Staging is cleaned by the successful commit: residue is transient, not
+      // permanent.
+      expect(fs.pathsMatching("/staging")).toEqual([]);
+      expect(fs.pathsMatching("/locks/")).toEqual([]);
     });
   }
+
+  it("a second crash on an already-committed store still recovers", async () => {
+    // Two crashes in a row, both against persisted state: the first leaves a
+    // committed store, the second fails on top of it. The store must never
+    // regress to the pre-first-commit state.
+    const fs = new MemoryFileSystem();
+    const store = new DependencyInjectedStore({ fs, dataRoot: DATA_ROOT });
+    await store.commitSnapshotBundle(commitInput());
+
+    fs.failAt = "afterFirstRecordWritten";
+    const crashing = new DependencyInjectedStore({ fs, dataRoot: DATA_ROOT });
+    await expect(
+      crashing.commitSnapshotBundle({
+        ...commitInput("2026-01-02T00:00:00.000Z"),
+        operationId: "op-2",
+        snapshot: makeSnapshot(PID, "snap-2", ["ev-2"]),
+        evidence: [makeEvidence(PID, "ev-2")],
+      }),
+    ).rejects.toBeInstanceOf(ProjectMemoryError);
+
+    // The first snapshot is still authoritative and still verifies.
+    fs.simulateRestart();
+    const reader = new DependencyInjectedStore({ fs, dataRoot: DATA_ROOT });
+    const manifest = await reader.readManifest(PID);
+    expect(manifest?.latestSnapshotId).toBe("snap-1");
+    const verification = await reader.verify(PID);
+    expect(verification.manifestVerified).toBe(true);
+    expect(verification.verifiedSnapshotIds).toEqual(["snap-1"]);
+
+    // And the interrupted second capture can be completed afterwards.
+    const completed = await reader.commitSnapshotBundle({
+      ...commitInput("2026-01-02T00:00:00.000Z"),
+      operationId: "op-2",
+      snapshot: makeSnapshot(PID, "snap-2", ["ev-2"]),
+      evidence: [makeEvidence(PID, "ev-2")],
+    });
+    expect(completed.latestSnapshotId).toBe("snap-2");
+    expect(completed.snapshotCount).toBe(2);
+    const summaries = await reader.listSnapshots(PID);
+    expect(summaries.map((s) => s.sequence)).toEqual([1, 2]);
+    expect(summaries.at(-1)?.isLatest).toBe(true);
+  });
 
   it("reports abandoned staging without adopting it", async () => {
     const fs = new MemoryFileSystem({ failAt: "afterFirstRecordWritten" });

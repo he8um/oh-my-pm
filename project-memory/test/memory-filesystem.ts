@@ -3,6 +3,12 @@
 // entries, injected clock/liveness, and a single commit-point failure injection.
 // It is test-only and never shipped.
 
+import { performAtomicWrite } from "../src/atomic-write.js";
+import type {
+  AtomicWritePrimitives,
+  AtomicWriteStage,
+  TempFileHandle,
+} from "../src/atomic-write.js";
 import type {
   CommitFailurePoint,
   DirEntry,
@@ -19,9 +25,22 @@ interface Node {
 
 const SEP = "/";
 
+/**
+ * Split on BOTH separators.
+ *
+ * The store builds its paths with `node:path`, so on Windows every managed path
+ * arrives spelled with backslashes -- `\\data\\oh-my-pm\\project-brain\\v1`. This
+ * in-memory filesystem keys its nodes with "/", so a backslash path used to match
+ * nothing at all: every suite that drives the store through this port failed on
+ * Windows, which is exactly what the first Windows run of the integrity matrix
+ * exposed. Accepting both separators here makes the fake behave like the real
+ * filesystem, where both are valid on Windows.
+ */
+const SEGMENT_SPLIT = /[\\/]+/;
+
 function normalize(path: string): string {
   const parts: string[] = [];
-  for (const seg of path.split(SEP)) {
+  for (const seg of path.split(SEGMENT_SPLIT)) {
     if (seg === "" || seg === ".") continue;
     if (seg === "..") {
       parts.pop();
@@ -48,11 +67,41 @@ export interface MemoryFsOptions {
   readonly isProcessAlive?: (pid: number) => boolean;
   readonly pid?: number;
   readonly failAt?: CommitFailurePoint;
+  readonly atomicFailAt?: AtomicWriteStage;
+}
+
+/** A hook that throws at one named atomic-write stage. */
+function failAtStage(stage: AtomicWriteStage) {
+  return (current: AtomicWriteStage): void => {
+    if (current === stage) {
+      throw new Error(`injected atomic-write failure at ${stage}`);
+    }
+  };
 }
 
 export class MemoryFileSystem implements FileSystem {
   readonly nodes = new Map<string, Node>();
-  readonly failAt: CommitFailurePoint | undefined;
+  /**
+   * The stage at which the next operation should fail, or undefined for normal
+   * operation.
+   *
+   * Mutable on the test double even though the `FileSystem` port declares it
+   * readonly, so a crash can be simulated and then STOPPED while every byte of
+   * on-disk state survives. That is what a real crash-and-restart looks like:
+   * the process dies, the filesystem keeps whatever it had.
+   *
+   * Before this was mutable, a recovery test had no way to retry against the
+   * damaged store and instead constructed a pristine MemoryFileSystem -- which
+   * has no lock file, no staging residue, and no partial records, so it proved
+   * nothing about recovery. Use `simulateRestart()` rather than assigning here.
+   */
+  failAt: CommitFailurePoint | undefined;
+  /** Stage at which an atomic write should fail, for internal fault injection. */
+  atomicFailAt: AtomicWriteStage | undefined;
+  /** When set, an atomic write's temp file receives only this many characters. */
+  atomicPartialWriteLimit: number | undefined;
+  /** Directories fsync'd by atomic writes, in order. */
+  readonly syncedDirs: string[] = [];
   private readonly nowFn: () => string;
   private readonly aliveFn: (pid: number) => boolean;
   private readonly pid: number;
@@ -62,7 +111,26 @@ export class MemoryFileSystem implements FileSystem {
     this.aliveFn = options.isProcessAlive ?? (() => true);
     this.pid = options.pid ?? 4242;
     this.failAt = options.failAt;
+    this.atomicFailAt = options.atomicFailAt;
     this.nodes.set(SEP, { kind: "dir" });
+  }
+
+  /**
+   * Stop injecting failures while keeping all persisted state.
+   *
+   * Models the process restarting after a crash: the same bytes are still on
+   * disk -- including any lock file and staging residue the dead writer left --
+   * but nothing is injecting failures any more.
+   */
+  simulateRestart(): void {
+    this.failAt = undefined;
+    this.atomicFailAt = undefined;
+    this.atomicPartialWriteLimit = undefined;
+  }
+
+  /** Every persisted path, sorted. For asserting on residue after a crash. */
+  pathsMatching(fragment: string): string[] {
+    return [...this.nodes.keys()].filter((p) => p.includes(fragment)).sort();
   }
 
   /** Test helper: plant a symbolic link node at a path. */
@@ -82,6 +150,37 @@ export class MemoryFileSystem implements FileSystem {
     const norm = normalize(path);
     this.ensureDir(parent(norm));
     this.nodes.set(norm, { kind: "file", content });
+  }
+
+  /**
+   * Test helper: delete exactly one node, normalizing the path first.
+   *
+   * Exists because `fs.nodes.delete(p)` bypasses `normalize()`. The store builds
+   * its paths with `node:path`, so on Windows a caller passes backslashes while the
+   * map is keyed on "/" -- the raw delete silently matched nothing and the test
+   * then asserted against an undamaged store. Every mutation from a test must go
+   * through a normalizing helper.
+   */
+  remove(path: string): void {
+    this.nodes.delete(normalize(path));
+  }
+
+  /** Test helper: every persisted path, normalized and sorted. */
+  listPaths(): string[] {
+    return [...this.nodes.keys()].sort();
+  }
+
+  /**
+   * Test helper: the node-map KEY a given path maps to.
+   *
+   * Exposed so a test can compare against `listPaths()` output without
+   * reimplementing the normalization. A hand-rolled "swap the separators" version
+   * is not equivalent: `normalize` also turns a Windows drive prefix into a leading
+   * segment (`D:\\data` -> `/D:/data`), so a naive replace produced a key that
+   * matched nothing and every bound silently compared zero against zero.
+   */
+  keyFor(path: string): string {
+    return normalize(path);
   }
 
   /** Test helper: snapshot of every file path -> content, for byte comparisons. */
@@ -147,10 +246,62 @@ export class MemoryFileSystem implements FileSystem {
     this.ensureDir(normalize(path));
   }
 
-  async writeFileAtomic(path: string, contents: string, _tmpName: string): Promise<void> {
+  /**
+   * Write through the SHARED atomic-write algorithm, not a shortcut.
+   *
+   * This used to set the target node directly, which meant every store-level
+   * test exercised an imitation: no temp file, no flush, no rename, no directory
+   * sync. A reordering bug in the real algorithm would have been invisible here.
+   * Now the ordering logic is the same code production runs, and `atomicFailAt`
+   * can inject a fault at any internal stage.
+   */
+  async writeFileAtomic(path: string, contents: string, tmpName: string): Promise<void> {
     const norm = normalize(path);
     this.ensureDir(parent(norm));
-    this.nodes.set(norm, { kind: "file", content: contents });
+    await performAtomicWrite(
+      this.atomicPrimitives(),
+      norm,
+      contents,
+      tmpName,
+      this.atomicFailAt === undefined ? undefined : failAtStage(this.atomicFailAt),
+    );
+  }
+
+  /** In-memory primitives for the shared atomic-write algorithm. */
+  private atomicPrimitives(): AtomicWritePrimitives {
+    return {
+      createTemp: async (tmpPath: string): Promise<TempFileHandle> => {
+        const norm = normalize(tmpPath);
+        this.ensureDir(parent(norm));
+        this.nodes.set(norm, { kind: "file", content: "" });
+        const limit = this.atomicPartialWriteLimit;
+        return {
+          write: async (chunk: string) => {
+            this.nodes.set(norm, {
+              kind: "file",
+              content: limit === undefined ? chunk : chunk.slice(0, limit),
+            });
+          },
+          flush: async () => {
+            /* no durability to model in memory */
+          },
+          close: async () => {
+            /* no handle to release in memory */
+          },
+        };
+      },
+      rename: async (from, to) => {
+        await this.moveFile(from, to);
+      },
+      syncDir: async (dir) => {
+        this.syncedDirs.push(normalize(dir));
+      },
+      removeFileIfExists: async (target) => {
+        this.nodes.delete(normalize(target));
+      },
+      joinPath: (dir, name) => (dir.endsWith(SEP) ? `${dir}${name}` : `${dir}${SEP}${name}`),
+      dirName: (target) => parent(normalize(target)),
+    };
   }
 
   async moveFile(from: string, to: string): Promise<void> {
@@ -171,6 +322,11 @@ export class MemoryFileSystem implements FileSystem {
     for (const p of [...this.nodes.keys()]) {
       if (p === norm || p.startsWith(prefix)) this.nodes.delete(p);
     }
+  }
+
+  async removeFile(path: string): Promise<void> {
+    // Single-file, idempotent: only the exact node, never a subtree.
+    this.nodes.delete(normalize(path));
   }
 
   async moveDir(from: string, to: string): Promise<void> {
@@ -195,6 +351,30 @@ export class MemoryFileSystem implements FileSystem {
     if (src === undefined || src.kind !== "file") throw enoent(from);
     this.ensureDir(parent(normalize(to)));
     this.nodes.set(normalize(to), { kind: "file", content: src.content ?? "" });
+  }
+
+  // Export-destination mutations. In this in-memory double they are the same
+  // operations as their store-governed counterparts -- the distinction that
+  // matters (store confinement applies to one set and not the other) lives in
+  // the Node adapter, which is where the real filesystem is touched.
+  async mkdirpExportDestination(path: string): Promise<void> {
+    await this.mkdirp(path);
+  }
+
+  async removeExportDestination(path: string): Promise<void> {
+    await this.removeDir(path);
+  }
+
+  async moveExportDestination(from: string, to: string): Promise<void> {
+    await this.moveDir(from, to);
+  }
+
+  async writeExportDestinationFileAtomic(
+    path: string,
+    contents: string,
+    tmpName: string,
+  ): Promise<void> {
+    await this.writeFileAtomic(path, contents, tmpName);
   }
 
   async createLockExclusive(path: string, contents: string): Promise<LockCreateResult> {

@@ -22,12 +22,12 @@ pub use validation::validate_json;
 
 /// Scaffold-only version marker.
 pub fn kernel_scaffold_version() -> &'static str {
-    "0.6.1"
+    "0.6.2"
 }
 
 /// Kernel crate version.
 pub fn kernel_version() -> &'static str {
-    "0.6.1"
+    "0.6.2"
 }
 
 #[cfg(test)]
@@ -36,11 +36,11 @@ mod tests {
 
     #[test]
     fn exposes_scaffold_version() {
-        assert_eq!(kernel_scaffold_version(), "0.6.1");
+        assert_eq!(kernel_scaffold_version(), "0.6.2");
     }
 
     #[test]
     fn exposes_kernel_version() {
-        assert_eq!(kernel_version(), "0.6.1");
+        assert_eq!(kernel_version(), "0.6.2");
     }
 }

@@ -5,6 +5,33 @@ The detailed public roadmap is maintained in [`docs/roadmap.md`](docs/roadmap.md
 Work is labelled with one of five states: **Shipped**, **Prepared but
 unpublished**, **Active maintenance**, **Planned**, or **Out of scope**.
 
+## Prepared but unpublished — v0.6.2
+
+**Project Memory integrity: verification, gap closure, and a supported recovery
+path.** Merged in source with **no tag and no GitHub release**, so the latest
+published stable release remains
+[`v0.6.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.1).
+
+The scope was re-written after an audit performed _before_ any implementation
+found that most of what the original scope proposed to build already existed and
+was correct. Five real gaps remained: atomic-write fault injection could not reach
+inside the write, post-crash recovery was untested and one test misreported itself,
+locking was never exercised across real processes, path confinement was purely
+lexical, and corruption could be detected but never isolated or repaired.
+
+Adds one command, `omp memory repair`. Preview-first: `repair` scans and proposes
+while changing no byte; `repair --apply` performs bounded recovery under the
+single-writer lock, re-scanning under that lock and refusing a plan whose store
+fingerprint moved. Damaged authoritative bytes are **isolated** into a governed
+quarantine with their exact contents preserved — never rewritten from a guess,
+never deleted — and only derived state is rebuilt, from verified records only.
+Isolation is deliberately not reported as repair.
+
+No Dashboard, cloud sync, telemetry, automatic pruning, automatic repair on read,
+or MCP write tools. No store format change and no migration required. See
+[`docs/releases/v0.6.2.md`](docs/releases/v0.6.2.md) and
+[the integrity audit](docs/releases/v0.6.2-integrity-audit.md).
+
 ## Shipped — v0.6.1
 
 **Application boundary completion.** **Published as the latest stable release**:

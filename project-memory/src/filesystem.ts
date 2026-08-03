@@ -58,10 +58,42 @@ export interface FileSystem {
   syncDir(path: string): Promise<void>;
   /** Remove a directory tree (used for staging, backups, tombstones). */
   removeDir(path: string): Promise<void>;
+  /**
+   * Remove a single FILE, idempotently (a missing file is not an error).
+   *
+   * Distinct from `removeDir` on purpose. Repair removes individual files -- a
+   * quarantined record's live path, one owned temp file -- and routing those
+   * through a recursive directory delete would make the most destructive
+   * operation in the package read as if it targeted a tree. Keeping them separate
+   * means a reader (and a reviewer) can see that a repair never removes a
+   * directory of records, only the exact file the plan named.
+   */
+  removeFile(path: string): Promise<void>;
   /** Rename a directory (used to move a project dir to a sibling tombstone). */
   moveDir(from: string, to: string): Promise<void>;
   /** Recursively copy a file to a destination (used by export). */
   copyFileTo(from: string, to: string): Promise<void>;
+
+  /**
+   * Export-destination mutations. These are the ONLY writes the store makes
+   * OUTSIDE its governed data root, so they are deliberately separate methods
+   * rather than reusing `mkdirp`/`removeDir`/`moveDir`.
+   *
+   * Keeping them distinct means the store-governed methods can be
+   * unconditionally confined to the data root by the Node adapter, while these
+   * four remain policed by `assertExportDestinationSafe`, which refuses a
+   * destination inside the project root or inside the active data root. An
+   * implementation must NOT apply store confinement to these paths -- doing so
+   * would reject every legitimate export -- and callers must not route
+   * store-internal paths through them.
+   */
+  mkdirpExportDestination(path: string): Promise<void>;
+  /** Remove an export-destination directory tree. */
+  removeExportDestination(path: string): Promise<void>;
+  /** Rename an export-destination directory into its final place. */
+  moveExportDestination(from: string, to: string): Promise<void>;
+  /** Durably write a file into an export destination (same algorithm as `writeFileAtomic`). */
+  writeExportDestinationFileAtomic(path: string, contents: string, tmpName: string): Promise<void>;
 
   /**
    * Exclusively create a lock file (open with "wx"), writing its contents.

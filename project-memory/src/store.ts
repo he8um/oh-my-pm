@@ -33,6 +33,10 @@ import {
   serializeManifest,
 } from "./manifest.js";
 import { planMigration } from "./migrations.js";
+import { applyRepairPlan } from "./repair-apply.js";
+import { buildRepairPlan } from "./repair-plan.js";
+import { scanStore } from "./repair-scan.js";
+import type { RepairPlan, RepairReceipt } from "./repair-types.js";
 import type { MigrationRegistry } from "./migrations.js";
 import {
   MAX_EVIDENCE_PER_COMMIT,
@@ -331,7 +335,51 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
     };
   }
 
+  /**
+   * Scan for corruption and build a bounded repair plan. READ-ONLY: it takes no
+   * lock and writes nothing, which is what makes the repair preview safe to run
+   * against a store another process is using.
+   *
+   * Deliberately grouped with the read paths above, not with the commit protocol
+   * below: a reader checking whether the preview can mutate should find it here,
+   * among the calls that provably cannot.
+   */
+  async planRepair(
+    projectId: string,
+    operationId: string,
+    occurredAt: string,
+  ): Promise<RepairPlan> {
+    assertNonEmptyId(projectId, "projectId");
+    assertOperationId(operationId);
+    const scan = await scanStore({ fs: this.fs, layout: this.layout, projectId });
+    return buildRepairPlan({ scan, operationId, generatedAt: occurredAt });
+  }
+
   // ---- Commit (atomic write protocol) --------------------------------------
+
+  /**
+   * Execute an approved repair plan. Requires explicit apply intent, takes the
+   * writer lock, re-scans under it, and refuses a plan whose store fingerprint
+   * moved -- before any write, so a stale plan mutates nothing.
+   */
+  async applyRepair(input: {
+    readonly plan: RepairPlan;
+    readonly apply: boolean;
+    readonly appliedAt: string;
+    readonly projectRootBoundary: string;
+  }): Promise<RepairReceipt> {
+    // The same project/data separation every other mutating entry point asserts:
+    // a repair must never be able to write into the analyzed project.
+    assertProjectDataSeparation(this.layout.dataRoot, input.projectRootBoundary);
+    return applyRepairPlan({
+      fs: this.fs,
+      layout: this.layout,
+      plan: input.plan,
+      apply: input.apply,
+      appliedAt: input.appliedAt,
+      projectRootBoundary: input.projectRootBoundary,
+    });
+  }
 
   async commitSnapshotBundle(input: CommitSnapshotBundleInput): Promise<CommitResult> {
     this.validateCommitInput(input);
@@ -354,6 +402,17 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
       // Idempotency + conflict detection against already-committed records.
       const idempotent = await this.reconcileExisting(input, existingManifest);
       if (idempotent) {
+        // Clean staging here too, not only on the write path below.
+        //
+        // A crash AFTER the manifest rename leaves the store committed and a
+        // staging directory behind. Re-running the same commit then takes this
+        // early return, which used to skip step 13 entirely, so the residue
+        // survived every subsequent identical commit and `inspect()` reported
+        // abandonedStaging forever. Removing it is safe precisely because
+        // reconcileExisting has already proved the records are committed with
+        // identical verified payloads -- there is nothing in staging that is not
+        // already authoritative.
+        await this.fs.removeDir(stagingDir);
         return this.commitResultFrom(existingManifest as ProjectStoreManifest, input, true);
       }
 
@@ -471,9 +530,12 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
 
     // Write to a temporary sibling destination, then atomically rename.
     const tmpDestination = `${input.destination}.tmp-${input.operationId}-${this.fs.currentPid()}`;
-    await this.fs.removeDir(tmpDestination);
-    await this.fs.mkdirp(`${tmpDestination}/${SNAPSHOTS_DIRNAME}`);
-    await this.fs.mkdirp(`${tmpDestination}/${EVIDENCE_DIRNAME}`);
+    // The export destination is OUTSIDE the governed data root by design, so
+    // these writes use the explicit export-destination methods. It has already
+    // been validated by assertExportDestinationSafe above.
+    await this.fs.removeExportDestination(tmpDestination);
+    await this.fs.mkdirpExportDestination(`${tmpDestination}/${SNAPSHOTS_DIRNAME}`);
+    await this.fs.mkdirpExportDestination(`${tmpDestination}/${EVIDENCE_DIRNAME}`);
 
     const inventory: ExportInventoryEntry[] = [];
     const copyRecord = async (
@@ -521,7 +583,7 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
       inventory: sortedInventory,
       inventoryIntegrity,
     };
-    await this.fs.writeFileAtomic(
+    await this.fs.writeExportDestinationFileAtomic(
       `${tmpDestination}/export-manifest.json`,
       `${JSON.stringify(exportManifest, null, 2)}\n`,
       tempName(input.operationId, this.fs.currentPid(), "export-manifest"),
@@ -529,7 +591,7 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
     await this.fs.syncDir(tmpDestination);
 
     // Atomically rename the temporary export to the final destination.
-    await this.fs.moveDir(tmpDestination, input.destination);
+    await this.fs.moveExportDestination(tmpDestination, input.destination);
 
     // Verify the exported copy: manifest present and integrity holds.
     const exportedManifestRaw = await this.fs.readFileIfExists(

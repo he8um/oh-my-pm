@@ -11,8 +11,12 @@ Every entry below carries one of five explicit states:
 | **Out of scope**             | deliberately excluded                                       |
 
 The latest **published** stable release is
-[`v0.6.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.1), which is also
-the current source version. The v0.5 line is complete.
+[`v0.6.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.1). The current
+source version is `0.6.2`, which is **prepared but unpublished** — merged in
+source with no tag and no GitHub release. v0.6.2 is the active maintenance scope:
+it closes the Project Memory integrity gaps recorded in
+[the v0.6.2 integrity audit](releases/v0.6.2-integrity-audit.md) and adds the
+preview-first `omp memory repair` recovery path. The v0.5 line is complete.
 
 Phases 0 through 6 below are the historical implementation log for the v0.1
 through v0.4 lines. Everything in them is **Shipped** unless a later section

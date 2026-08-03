@@ -107,7 +107,14 @@ describe("validate-doc-truth passes on the current tree", () => {
   });
 
   it("derives the memory subcommand count from the closed allowlist", () => {
-    expect(runValidator().stdout).toContain("7 memory subcommands");
+    // Derived on BOTH sides. Hardcoding the number here would restate the fact
+    // this test claims to check, so appending a subcommand would fail the test
+    // for the wrong reason -- a stale literal rather than real drift.
+    const source = readFileSync(join(repoRoot, "application/src/memory-types.ts"), "utf8");
+    const block = source.slice(source.indexOf("MEMORY_SUBCOMMANDS"));
+    const listed = block.slice(0, block.indexOf("];")).match(/^\s+"[a-z]+",$/gm) ?? [];
+    expect(listed.length).toBeGreaterThan(0);
+    expect(runValidator().stdout).toContain(`${listed.length} memory subcommands`);
   });
 });
 

@@ -1,7 +1,7 @@
 // `memory` command parse-result types.
 //
-// A dedicated discriminated-union model for the seven `memory` subcommands. Kept
-// separate from the flat CLI parser's types so the seven grammars never overload
+// A dedicated discriminated-union model for the eight `memory` subcommands. Kept
+// separate from the flat CLI parser's types so the eight grammars never overload
 // one loop. Pure type declarations only: no filesystem, environment, or clock.
 
 import type {
@@ -11,9 +11,9 @@ import type {
   TimelineEvent,
 } from "@oh-my-pm/contracts";
 
-/** The seven approved `memory` subcommands — an exact, closed allowlist. */
+/** The eight approved `memory` subcommands — an exact, closed allowlist. */
 export type MemorySubcommand =
-  "capture" | "changes" | "status" | "history" | "export" | "delete" | "timeline";
+  "capture" | "changes" | "status" | "history" | "export" | "delete" | "timeline" | "repair";
 
 /** The exact set of allowed subcommands, in canonical order. */
 export const MEMORY_SUBCOMMANDS: readonly MemorySubcommand[] = [
@@ -26,6 +26,9 @@ export const MEMORY_SUBCOMMANDS: readonly MemorySubcommand[] = [
   // v0.4: the read-only Project Timeline query. Appended last so the six
   // historical subcommands keep their exact order.
   "timeline",
+  // v0.6.2: the preview-first Project Memory recovery path (G5). Appended last
+  // so every historical subcommand keeps its exact position.
+  "repair",
 ];
 
 /** Supported capture/derivation locales (mirrors the contracts Locale union). */
@@ -107,6 +110,19 @@ export type MemoryTimelineCommand = MemoryCommonOptions & {
   kind?: StateItemKind;
 };
 
+/**
+ * `memory repair [root] [--apply]`.
+ *
+ * Preview-first like capture/export/delete: without `--apply` it scans and
+ * proposes, changing no byte of the store. With `--apply` it performs the bounded
+ * recovery the preview described, under the writer lock.
+ */
+export type MemoryRepairCommand = MemoryCommonOptions & {
+  subcommand: "repair";
+  projectRoot: string;
+  apply: boolean;
+};
+
 /** The parsed `memory` command discriminated by subcommand. */
 export type MemoryCliCommand =
   | MemoryCaptureCommand
@@ -115,7 +131,8 @@ export type MemoryCliCommand =
   | MemoryHistoryCommand
   | MemoryExportCommand
   | MemoryDeleteCommand
-  | MemoryTimelineCommand;
+  | MemoryTimelineCommand
+  | MemoryRepairCommand;
 
 /** The result of parsing a `memory` command (success or a controlled error). */
 export type MemoryCliParseResult =
@@ -304,6 +321,65 @@ export type MemoryDeleteOutcome = {
   deleted?: boolean;
 };
 
+/**
+ * One repair finding, projected for output.
+ *
+ * Sanitized by construction: the store layer already guarantees a store-relative
+ * target and no raw content, and this projection copies only those fields.
+ */
+export type MemoryRepairFinding = {
+  code: string;
+  authority: string;
+  target: string;
+  repairability: string;
+  action: string;
+  blockingReason?: string;
+};
+
+/** One executed repair action's outcome. */
+export type MemoryRepairOutcomeEntry = {
+  action: string;
+  code: string;
+  target: string;
+  status: string;
+  blockingReason?: string;
+};
+
+/**
+ * Repair outcome (preview or applied).
+ *
+ * The counters are deliberately separate rather than one "repaired" total.
+ * Quarantining a corrupt record restores the readability of the rest of the store
+ * but does NOT recover that record's meaning, and a single total would let a
+ * reader conclude otherwise — the one person most harmed by that misreading being
+ * the user whose data is damaged.
+ */
+export type MemoryRepairOutcome = {
+  command: "memory.repair";
+  ok: true;
+  mode: "preview" | "applied";
+  projectId: string;
+  storeExists: boolean;
+  /** Findings the scan classified, in deterministic order. */
+  findings: MemoryRepairFinding[];
+  findingCount: number;
+  /** Actions the plan would perform (preview) or did perform (applied). */
+  actionCount: number;
+  /** Findings a stated precondition prevents acting on. */
+  blockedCount: number;
+  /** Findings nothing can safely be done about. */
+  unrepairableCount: number;
+  /** Preview-only: true when applying would change the store. */
+  wouldRepair?: boolean;
+  /** Apply-only: per-action outcomes and distinct tallies. */
+  outcomes?: MemoryRepairOutcomeEntry[];
+  reconstructedCount?: number;
+  isolatedCount?: number;
+  removedCount?: number;
+  reclaimedCount?: number;
+  skippedCount?: number;
+};
+
 /** A controlled, sanitized failure with a stable code and exit code. */
 export type MemoryFailureOutcome = {
   command: `memory.${MemorySubcommand}`;
@@ -348,4 +424,5 @@ export type MemoryCommandOutcome =
   | MemoryExportOutcome
   | MemoryDeleteOutcome
   | MemoryTimelineOutcome
+  | MemoryRepairOutcome
   | MemoryFailureOutcome;
