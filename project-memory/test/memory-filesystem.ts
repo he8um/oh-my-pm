@@ -304,6 +304,30 @@ export class MemoryFileSystem implements FileSystem {
     this.nodes.set(normalize(to), { kind: "file", content: src.content ?? "" });
   }
 
+  // Export-destination mutations. In this in-memory double they are the same
+  // operations as their store-governed counterparts -- the distinction that
+  // matters (store confinement applies to one set and not the other) lives in
+  // the Node adapter, which is where the real filesystem is touched.
+  async mkdirpExportDestination(path: string): Promise<void> {
+    await this.mkdirp(path);
+  }
+
+  async removeExportDestination(path: string): Promise<void> {
+    await this.removeDir(path);
+  }
+
+  async moveExportDestination(from: string, to: string): Promise<void> {
+    await this.moveDir(from, to);
+  }
+
+  async writeExportDestinationFileAtomic(
+    path: string,
+    contents: string,
+    tmpName: string,
+  ): Promise<void> {
+    await this.writeFileAtomic(path, contents, tmpName);
+  }
+
   async createLockExclusive(path: string, contents: string): Promise<LockCreateResult> {
     const norm = normalize(path);
     if (this.nodes.has(norm)) return { acquired: false };

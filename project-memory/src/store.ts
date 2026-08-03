@@ -482,9 +482,12 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
 
     // Write to a temporary sibling destination, then atomically rename.
     const tmpDestination = `${input.destination}.tmp-${input.operationId}-${this.fs.currentPid()}`;
-    await this.fs.removeDir(tmpDestination);
-    await this.fs.mkdirp(`${tmpDestination}/${SNAPSHOTS_DIRNAME}`);
-    await this.fs.mkdirp(`${tmpDestination}/${EVIDENCE_DIRNAME}`);
+    // The export destination is OUTSIDE the governed data root by design, so
+    // these writes use the explicit export-destination methods. It has already
+    // been validated by assertExportDestinationSafe above.
+    await this.fs.removeExportDestination(tmpDestination);
+    await this.fs.mkdirpExportDestination(`${tmpDestination}/${SNAPSHOTS_DIRNAME}`);
+    await this.fs.mkdirpExportDestination(`${tmpDestination}/${EVIDENCE_DIRNAME}`);
 
     const inventory: ExportInventoryEntry[] = [];
     const copyRecord = async (
@@ -532,7 +535,7 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
       inventory: sortedInventory,
       inventoryIntegrity,
     };
-    await this.fs.writeFileAtomic(
+    await this.fs.writeExportDestinationFileAtomic(
       `${tmpDestination}/export-manifest.json`,
       `${JSON.stringify(exportManifest, null, 2)}\n`,
       tempName(input.operationId, this.fs.currentPid(), "export-manifest"),
@@ -540,7 +543,7 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
     await this.fs.syncDir(tmpDestination);
 
     // Atomically rename the temporary export to the final destination.
-    await this.fs.moveDir(tmpDestination, input.destination);
+    await this.fs.moveExportDestination(tmpDestination, input.destination);
 
     // Verify the exported copy: manifest present and integrity holds.
     const exportedManifestRaw = await this.fs.readFileIfExists(

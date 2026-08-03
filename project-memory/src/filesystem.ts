@@ -64,6 +64,27 @@ export interface FileSystem {
   copyFileTo(from: string, to: string): Promise<void>;
 
   /**
+   * Export-destination mutations. These are the ONLY writes the store makes
+   * OUTSIDE its governed data root, so they are deliberately separate methods
+   * rather than reusing `mkdirp`/`removeDir`/`moveDir`.
+   *
+   * Keeping them distinct means the store-governed methods can be
+   * unconditionally confined to the data root by the Node adapter, while these
+   * four remain policed by `assertExportDestinationSafe`, which refuses a
+   * destination inside the project root or inside the active data root. An
+   * implementation must NOT apply store confinement to these paths -- doing so
+   * would reject every legitimate export -- and callers must not route
+   * store-internal paths through them.
+   */
+  mkdirpExportDestination(path: string): Promise<void>;
+  /** Remove an export-destination directory tree. */
+  removeExportDestination(path: string): Promise<void>;
+  /** Rename an export-destination directory into its final place. */
+  moveExportDestination(from: string, to: string): Promise<void>;
+  /** Durably write a file into an export destination (same algorithm as `writeFileAtomic`). */
+  writeExportDestinationFileAtomic(path: string, contents: string, tmpName: string): Promise<void>;
+
+  /**
    * Exclusively create a lock file (open with "wx"), writing its contents.
    * Returns acquired=false when the file already exists rather than throwing.
    */

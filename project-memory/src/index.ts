@@ -69,6 +69,13 @@ export {
 } from "./path-safety.js";
 export type { StoreLayout } from "./path-safety.js";
 
+export {
+  assertPhysicallyConfined,
+  canonicalizeRoot,
+  isPhysicallyInside,
+} from "./physical-confinement.js";
+export type { PhysicalConfinementOptions, PhysicalProbe } from "./physical-confinement.js";
+
 export { assertNoForbiddenKeys, FORBIDDEN_KEY_NORMALIZED, normalizeKey } from "./privacy.js";
 
 export {
