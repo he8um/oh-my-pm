@@ -11,7 +11,7 @@ Every entry below carries one of five explicit states:
 | **Out of scope**             | deliberately excluded                                       |
 
 The latest **published** stable release is
-[`v0.6.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.0), which is also
+[`v0.6.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.1), which is also
 the current source version. The v0.5 line is complete.
 
 Phases 0 through 6 below are the historical implementation log for the v0.1
@@ -577,9 +577,10 @@ code changed. No Dashboard.
 See [`docs/v0.6/README.md`](v0.6/README.md) and
 [`docs/releases/v0.6.0.md`](releases/v0.6.0.md).
 
-## v0.6.1 — Application boundary completion (In progress)
+## v0.6.1 — Application boundary completion (Shipped)
 
-The source version is `0.6.1`. The immutable base it builds on is `v0.6.0`.
+Published as the latest stable release, from source version `0.6.1`. The
+immutable base it builds on is `v0.6.0`.
 
 `ApplicationResult<T>` shipped in v0.5.4 with no production caller. v0.6.1 makes
 it operational for the workflows that genuinely have two presentation consumers,
@@ -594,8 +595,11 @@ reuse. `tools/validate-application-boundary.mjs` enforces both halves of that
 claim.
 
 No public CLI or MCP behaviour changes, no Project Memory format changes, and no
-Dashboard work is included. See
-[`docs/releases/v0.6.1.md`](releases/v0.6.1.md).
+Dashboard work is included. Verified against the published artifact: the
+installed `omp brief --json` output is byte-identical to the recording captured
+from the v0.6.0 tree before the refactor began. See
+[`docs/releases/v0.6.1.md`](releases/v0.6.1.md) and the
+[post-publication validation record](releases/v0.6.1-post-publication-validation.md).
 
 ## Beyond v0.6.1 — Core and public surface (Planned)
 

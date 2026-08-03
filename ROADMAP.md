@@ -5,12 +5,11 @@ The detailed public roadmap is maintained in [`docs/roadmap.md`](docs/roadmap.md
 Work is labelled with one of five states: **Shipped**, **Prepared but
 unpublished**, **Active maintenance**, **Planned**, or **Out of scope**.
 
-## Active maintenance — v0.6.1
+## Shipped — v0.6.1
 
-**Application boundary completion.** The source version is `0.6.1`; the latest
-published stable remains
-[`v0.6.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.0) until v0.6.1
-publishes.
+**Application boundary completion.** **Published as the latest stable release**:
+[`v0.6.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.1). See the
+[post-publication validation record](docs/releases/v0.6.1-post-publication-validation.md).
 
 `ApplicationResult<T>` shipped in v0.5.4 with no production caller. This makes it
 operational for the workflows that genuinely have two presentation consumers, and
@@ -141,7 +140,7 @@ the v0.5 line. See [`docs/v0.6/README.md`](docs/v0.6/README.md).
   context provider framework, and the validation and release lifecycle.
 
 The latest **published** stable release is
-[`v0.6.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.0).
+[`v0.6.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.1).
 
 ## Shipped — v0.5.4
 
