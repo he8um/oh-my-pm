@@ -280,6 +280,11 @@ export class MemoryFileSystem implements FileSystem {
     }
   }
 
+  async removeFile(path: string): Promise<void> {
+    // Single-file, idempotent: only the exact node, never a subtree.
+    this.nodes.delete(normalize(path));
+  }
+
   async moveDir(from: string, to: string): Promise<void> {
     const src = normalize(from);
     const dst = normalize(to);

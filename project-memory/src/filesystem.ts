@@ -58,6 +58,17 @@ export interface FileSystem {
   syncDir(path: string): Promise<void>;
   /** Remove a directory tree (used for staging, backups, tombstones). */
   removeDir(path: string): Promise<void>;
+  /**
+   * Remove a single FILE, idempotently (a missing file is not an error).
+   *
+   * Distinct from `removeDir` on purpose. Repair removes individual files -- a
+   * quarantined record's live path, one owned temp file -- and routing those
+   * through a recursive directory delete would make the most destructive
+   * operation in the package read as if it targeted a tree. Keeping them separate
+   * means a reader (and a reviewer) can see that a repair never removes a
+   * directory of records, only the exact file the plan named.
+   */
+  removeFile(path: string): Promise<void>;
   /** Rename a directory (used to move a project dir to a sibling tombstone). */
   moveDir(from: string, to: string): Promise<void>;
   /** Recursively copy a file to a destination (used by export). */

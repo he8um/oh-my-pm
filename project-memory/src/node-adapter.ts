@@ -270,6 +270,13 @@ export class NodeFileSystem implements FileSystem {
     await rm(confined, { recursive: true, force: true });
   }
 
+  async removeFile(path: string): Promise<void> {
+    // A single-file delete, confined like every other mutation. `force` makes a
+    // missing file a no-op, which is what an idempotent repair retry needs.
+    const confined = await this.guardWrite(path);
+    await rm(confined, { force: true });
+  }
+
   async moveDir(from: string, to: string): Promise<void> {
     const source = await this.guardWrite(from);
     const target = await this.guardWrite(to);

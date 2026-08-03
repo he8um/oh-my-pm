@@ -112,6 +112,32 @@ export type {
   MigrationTarget,
 } from "./migrations.js";
 
+export { REPAIR_FINDING_CODES, REPAIR_PLAN_VERSION } from "./repair-types.js";
+export type {
+  QuarantineMetadata,
+  RepairActionCode,
+  RepairActionOutcome,
+  RepairAuthorityClass,
+  RepairFinding,
+  RepairFindingCode,
+  RepairOutcomeStatus,
+  RepairPlan,
+  RepairPlannedAction,
+  RepairReceipt,
+  RepairRepairability,
+  RepairScanResult,
+  RepairSummary,
+} from "./repair-types.js";
+
+export { deriveQuarantineEntryKey, scanStore } from "./repair-scan.js";
+export type { RepairScanOptions } from "./repair-scan.js";
+
+export { buildRepairPlan } from "./repair-plan.js";
+export type { BuildRepairPlanInput } from "./repair-plan.js";
+
+export { applyRepairPlan, REPAIR_FAILURE_POINTS } from "./repair-apply.js";
+export type { ApplyRepairPlanInput, RepairFailurePoint } from "./repair-apply.js";
+
 export { acquireLock, LOCK_VERSION, STALE_LOCK_THRESHOLD_MS } from "./lock.js";
 export type { LockHandle, LockRecord } from "./lock.js";
 

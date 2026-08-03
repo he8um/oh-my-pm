@@ -232,6 +232,28 @@ export function repairReceiptPathFor(
 }
 
 /**
+ * The store-relative path of one record file, with POSIX separators.
+ *
+ * The SINGLE authority for this spelling. The repair scanner emits it as a
+ * finding target and the repair rebuild derives it to decide which records
+ * survived; if those two spellings could drift, a damaged record would never be
+ * dropped from the manifest and the store would never converge. One function
+ * makes that class of bug unrepresentable rather than merely unlikely.
+ *
+ * Relative, never absolute: a finding target is printed, so it must not disclose
+ * a local filesystem layout.
+ */
+export function recordStoreRelativePath(
+  projectKey: string,
+  recordDir: typeof SNAPSHOTS_DIRNAME | typeof EVIDENCE_DIRNAME,
+  recordKey: string,
+): string {
+  assertKey(projectKey, "project key");
+  assertKey(recordKey, "record key");
+  return `${PROJECTS_DIRNAME}/${projectKey}/${recordDir}/${recordKey}.json`;
+}
+
+/**
  * True when a project-relative directory name is a governed non-record
  * directory: one that legitimately exists inside a project store but must never
  * be treated as a live record, walked by record discovery, or added to the
