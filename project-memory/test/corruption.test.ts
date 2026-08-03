@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { PROJECT_MEMORY_ERROR_CODES } from "../src/errors.js";
@@ -5,6 +6,7 @@ import { deriveProjectKey, deriveRecordKey } from "../src/integrity.js";
 import {
   EVIDENCE_DIRNAME,
   manifestPathFor,
+  projectDirFor,
   recordPathFor,
   resolveStoreLayout,
   SNAPSHOTS_DIRNAME,
@@ -131,8 +133,12 @@ describe("corruption handling", () => {
   it("reports a symlink inside a record directory as an integrity issue", async () => {
     const fs = new MemoryFileSystem();
     await seed(fs);
-    const dir = `${DATA_ROOT}/project-brain/v1/projects/${deriveProjectKey(PID)}/${SNAPSHOTS_DIRNAME}`;
-    fs.plantSymlink(`${dir}/evil.json`, "/etc/passwd");
+    // Built from the package's OWN path functions and joined natively. A literal
+    // "/project-brain/v1/projects/..." string does not match what the layout
+    // produces on Windows, where resolve() adds a drive letter and join() uses
+    // backslashes -- so the planted link landed somewhere the store never looked.
+    const dir = join(projectDirFor(layout, deriveProjectKey(PID)), SNAPSHOTS_DIRNAME);
+    fs.plantSymlink(join(dir, "evil.json"), "/etc/passwd");
     const inspection = await new DependencyInjectedStore({ fs, dataRoot: DATA_ROOT }).inspect(PID);
     expect(inspection.issues.some((i) => i.detail.includes("symlink"))).toBe(true);
   });

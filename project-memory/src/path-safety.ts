@@ -83,7 +83,16 @@ export function resolveStoreLayout(dataRoot: string): StoreLayout {
   if (!isAbsolute(dataRoot)) {
     throw invalidInput("the data root must be an absolute path");
   }
-  const normalizedRoot = normalize(dataRoot);
+  // `resolve`, not `normalize`. Every managed path is produced by `confine`, which
+  // resolves -- and on Windows `resolve` prefixes the CURRENT DRIVE onto a
+  // drive-relative path like `\data\oh-my-pm`. A layout root built with
+  // `normalize` alone therefore lacked the `D:` segment that every confined path
+  // below it carried, so the two could not be compared: stripping the root prefix
+  // failed, the repair scanner's derived directories matched nothing, and the scan
+  // observed an EMPTY store. Resolving here makes the root and everything under it
+  // agree on one spelling, on every platform. On POSIX `resolve` and `normalize`
+  // coincide for an absolute path, so nothing changes there.
+  const normalizedRoot = resolve(normalize(dataRoot));
   const storeRoot = join(normalizedRoot, STORE_ROOT_DIRNAME, STORE_FORMAT_SEGMENT);
   return {
     dataRoot: normalizedRoot,

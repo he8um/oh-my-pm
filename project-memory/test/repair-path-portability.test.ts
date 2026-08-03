@@ -46,7 +46,7 @@
 // runner is the authority for that, and for junction, process-termination, and
 // case-folding behaviour. Do not mark a separator fix proven on a green POSIX run.
 
-import { join, posix, sep, win32 } from "node:path";
+import { join, posix, resolve, sep, win32 } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { deriveProjectKey, deriveRecordKey } from "../src/integrity.js";
@@ -54,6 +54,10 @@ import {
   EVIDENCE_DIRNAME,
   PROJECTS_DIRNAME,
   SNAPSHOTS_DIRNAME,
+  isSameOrInside,
+  manifestPathFor,
+  projectDirFor,
+  recordPathFor,
   recordStoreRelativePath,
   resolveStoreLayout,
 } from "../src/path-safety.js";
@@ -293,5 +297,49 @@ describe("containment honours the caller's case rule on every platform", () => {
     // case-sensitive request. The segment-comparing implementation answers `false`,
     // as the caller asked.
     expect(isPhysicallyInside("/data/Store", "/data/store/a", false)).toBe(false);
+  });
+});
+
+describe("the layout root and every confined path agree on one spelling", () => {
+  // The defect this pins was the deepest of the Windows failures, and unlike the
+  // separator ones it IS provable on any platform, because it is about internal
+  // agreement rather than a platform-specific separator.
+  //
+  // `resolveStoreLayout` used `normalize(dataRoot)`, while every managed path goes
+  // through `confine`, which calls `resolve`. On Windows `resolve` prefixes the
+  // CURRENT DRIVE onto a drive-relative path, so `layout.storeRoot` had no `D:`
+  // segment while `projectDirFor(...)` did. `storeRelative` strips the root by
+  // prefix, that strip failed, and the repair scanner's derived directories matched
+  // nothing -- the scan reported an EMPTY store on a store full of records.
+  it("makes every managed path start with the layout store root", () => {
+    const key = deriveProjectKey(PROJECT_ID);
+    const managed = [
+      projectDirFor(layout, key),
+      manifestPathFor(layout, key),
+      recordPathFor(layout, key, SNAPSHOTS_DIRNAME, deriveRecordKey("snapshot", "s")),
+      recordPathFor(layout, key, EVIDENCE_DIRNAME, deriveRecordKey("evidence", "e")),
+    ];
+    for (const path of managed) {
+      // Prefix agreement is exactly what storeRelative() depends on, so it is the
+      // property worth asserting rather than a spelling detail.
+      expect(path.startsWith(layout.storeRoot)).toBe(true);
+      expect(isSameOrInside(layout.storeRoot, path)).toBe(true);
+    }
+  });
+
+  // NOT asserted here, deliberately: that `resolve` attaches a drive letter while
+  // `normalize` does not. `win32.resolve` derives the drive from the process CWD,
+  // and on a POSIX host there is no drive-letter CWD to derive -- so the divergence
+  // simply does not reproduce off Windows, and a test claiming to show it would be
+  // asserting something the host cannot exhibit. The Windows runner is the evidence
+  // for that half; the two invariants below are what IS checkable everywhere.
+
+  it("keeps the layout root stable under a second resolve", () => {
+    // If the root were not already resolved, resolving it again would change it --
+    // which is precisely how it came to disagree with the confined paths below it.
+    expect(resolve(layout.storeRoot)).toBe(layout.storeRoot);
+    expect(resolve(layout.dataRoot)).toBe(layout.dataRoot);
+    expect(resolve(layout.projectsDir)).toBe(layout.projectsDir);
+    expect(resolve(layout.locksDir)).toBe(layout.locksDir);
   });
 });
