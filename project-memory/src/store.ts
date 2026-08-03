@@ -354,6 +354,17 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
       // Idempotency + conflict detection against already-committed records.
       const idempotent = await this.reconcileExisting(input, existingManifest);
       if (idempotent) {
+        // Clean staging here too, not only on the write path below.
+        //
+        // A crash AFTER the manifest rename leaves the store committed and a
+        // staging directory behind. Re-running the same commit then takes this
+        // early return, which used to skip step 13 entirely, so the residue
+        // survived every subsequent identical commit and `inspect()` reported
+        // abandonedStaging forever. Removing it is safe precisely because
+        // reconcileExisting has already proved the records are committed with
+        // identical verified payloads -- there is nothing in staging that is not
+        // already authoritative.
+        await this.fs.removeDir(stagingDir);
         return this.commitResultFrom(existingManifest as ProjectStoreManifest, input, true);
       }
 

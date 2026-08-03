@@ -52,7 +52,21 @@ export interface MemoryFsOptions {
 
 export class MemoryFileSystem implements FileSystem {
   readonly nodes = new Map<string, Node>();
-  readonly failAt: CommitFailurePoint | undefined;
+  /**
+   * The stage at which the next operation should fail, or undefined for normal
+   * operation.
+   *
+   * Mutable on the test double even though the `FileSystem` port declares it
+   * readonly, so a crash can be simulated and then STOPPED while every byte of
+   * on-disk state survives. That is what a real crash-and-restart looks like:
+   * the process dies, the filesystem keeps whatever it had.
+   *
+   * Before this was mutable, a recovery test had no way to retry against the
+   * damaged store and instead constructed a pristine MemoryFileSystem -- which
+   * has no lock file, no staging residue, and no partial records, so it proved
+   * nothing about recovery. Use `simulateRestart()` rather than assigning here.
+   */
+  failAt: CommitFailurePoint | undefined;
   private readonly nowFn: () => string;
   private readonly aliveFn: (pid: number) => boolean;
   private readonly pid: number;
@@ -63,6 +77,22 @@ export class MemoryFileSystem implements FileSystem {
     this.pid = options.pid ?? 4242;
     this.failAt = options.failAt;
     this.nodes.set(SEP, { kind: "dir" });
+  }
+
+  /**
+   * Stop injecting failures while keeping all persisted state.
+   *
+   * Models the process restarting after a crash: the same bytes are still on
+   * disk -- including any lock file and staging residue the dead writer left --
+   * but nothing is injecting failures any more.
+   */
+  simulateRestart(): void {
+    this.failAt = undefined;
+  }
+
+  /** Every persisted path, sorted. For asserting on residue after a crash. */
+  pathsMatching(fragment: string): string[] {
+    return [...this.nodes.keys()].filter((p) => p.includes(fragment)).sort();
   }
 
   /** Test helper: plant a symbolic link node at a path. */
