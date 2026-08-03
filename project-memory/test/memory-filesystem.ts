@@ -25,9 +25,22 @@ interface Node {
 
 const SEP = "/";
 
+/**
+ * Split on BOTH separators.
+ *
+ * The store builds its paths with `node:path`, so on Windows every managed path
+ * arrives spelled with backslashes -- `\\data\\oh-my-pm\\project-brain\\v1`. This
+ * in-memory filesystem keys its nodes with "/", so a backslash path used to match
+ * nothing at all: every suite that drives the store through this port failed on
+ * Windows, which is exactly what the first Windows run of the integrity matrix
+ * exposed. Accepting both separators here makes the fake behave like the real
+ * filesystem, where both are valid on Windows.
+ */
+const SEGMENT_SPLIT = /[\\/]+/;
+
 function normalize(path: string): string {
   const parts: string[] = [];
-  for (const seg of path.split(SEP)) {
+  for (const seg of path.split(SEGMENT_SPLIT)) {
     if (seg === "" || seg === ".") continue;
     if (seg === "..") {
       parts.pop();
