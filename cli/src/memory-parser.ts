@@ -1,6 +1,6 @@
 // The nested `memory` command parser.
 //
-// A dedicated grammar for the seven `memory` subcommands, kept out of the flat
+// A dedicated grammar for the eight `memory` subcommands, kept out of the flat
 // CLI loop. Pure: no filesystem, environment, network, or clock access. Every value
 // is validated here; duplicate options, missing values, control characters, and
 // mutation-only options on read commands are rejected. The project root and any
@@ -102,7 +102,13 @@ type CommonAccumulator = {
 };
 
 /** The mutation flag (`--apply`) is accepted only by capture/export/delete. */
-const APPLY_SUBCOMMANDS: ReadonlySet<MemorySubcommand> = new Set(["capture", "export", "delete"]);
+const APPLY_SUBCOMMANDS: ReadonlySet<MemorySubcommand> = new Set([
+  "capture",
+  "export",
+  "delete",
+  // v0.6.2: repair is preview-first with the same explicit --apply gate.
+  "repair",
+]);
 
 /**
  * Parse `memory <subcommand> [root] [options…]`. Options may appear anywhere
@@ -159,7 +165,7 @@ export function parseMemoryCommand(rest: readonly string[]): MemoryCliParseResul
     // subcommand is known, or on the wrong subcommand, so misuse fails closed.
     if (arg === "--apply") {
       if (subcommand === null || !APPLY_SUBCOMMANDS.has(subcommand)) {
-        return fail("--apply is only valid for capture, export, or delete");
+        return fail("--apply is only valid for capture, export, delete, or repair");
       }
       if (apply) return fail("duplicate --apply");
       apply = true;
@@ -414,6 +420,9 @@ export function parseMemoryCommand(rest: readonly string[]): MemoryCliParseResul
         forceCorruptDelete,
         ...commonFields,
       };
+      break;
+    case "repair":
+      command = { subcommand: "repair", projectRoot, apply, ...commonFields };
       break;
     case "timeline":
       // timeline is identified purely by project id: it reads committed memory

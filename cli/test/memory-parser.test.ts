@@ -1,5 +1,5 @@
 // Nested `memory` parser tests. Covers every subcommand in all output modes,
-// the exact seven-subcommand allowlist, option validation, duplicate and
+// the exact eight-subcommand allowlist, option validation, duplicate and
 // mutation-only rejection, and legacy parser regression.
 
 import { describe, expect, it } from "vitest";
@@ -13,14 +13,17 @@ function parseTop(args: string[]) {
 }
 
 describe("memory parser — allowlist and dispatch", () => {
-  it("exposes exactly the seven approved subcommands", () => {
+  it("exposes exactly the eight approved subcommands", () => {
     expect([...MEMORY_SUBCOMMANDS].sort()).toEqual(
-      ["capture", "changes", "delete", "export", "history", "status", "timeline"].sort(),
+      ["capture", "changes", "delete", "export", "history", "repair", "status", "timeline"].sort(),
     );
   });
 
-  it("keeps the six historical subcommands in their original order", () => {
-    // timeline is APPENDED; the six v0.3 subcommands keep their exact order.
+  it("keeps every historical subcommand in its original position", () => {
+    // Each new subcommand is APPENDED, never inserted: the six v0.3 subcommands
+    // keep their exact order, timeline stays seventh, and repair (v0.6.2) is
+    // eighth. A shipped command changing position would be a breaking change to
+    // any consumer that relies on the documented order.
     expect(MEMORY_SUBCOMMANDS.slice(0, 6)).toEqual([
       "capture",
       "changes",
@@ -30,6 +33,7 @@ describe("memory parser — allowlist and dispatch", () => {
       "delete",
     ]);
     expect(MEMORY_SUBCOMMANDS[6]).toBe("timeline");
+    expect(MEMORY_SUBCOMMANDS[7]).toBe("repair");
   });
 
   it("rejects a missing subcommand", () => {
@@ -43,7 +47,10 @@ describe("memory parser — allowlist and dispatch", () => {
     expect(result.ok).toBe(false);
   });
 
-  it.each(["init", "import", "repair", "migrate", "prune", "config", "sync", "watch", "serve"])(
+  // `repair` was on this list until v0.6.2, when G5 shipped the supported
+  // preview-first recovery path. Everything still listed here remains outside the
+  // closed allowlist.
+  it.each(["init", "import", "migrate", "prune", "config", "sync", "watch", "serve"])(
     "rejects the forbidden subcommand %s",
     (sub) => {
       expect(parseMemoryCommand([sub]).ok).toBe(false);

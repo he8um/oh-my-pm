@@ -31,7 +31,7 @@ Current commands:
 - `github <brief|risks|next|handoff> [owner/repo] [--source <mode>] [--state <open|closed|all>] [--number <n>] [--query <text>] [--kind <all|issues|pull-requests>] [--limit <1..100>] [--include-comments] [--comment-limit <1..50>] [--include-reviews] [--review-limit <1..20>] [--include-review-comments] [--review-comment-limit <1..20>] [--provider-config <path>]`
 - `providers status [--provider-config <path>]`
 - `providers doctor [github [owner/repo]] [--provider-config <path>] [--confirm-network]`
-- `memory <capture|changes|status|history|export|delete|timeline> [options]`
+- `memory <capture|changes|status|history|export|delete|timeline|repair> [options]`
 - `install-preview <root>`
 - `mcp-config [--json|--markdown] [--name <name>]`
 
@@ -44,6 +44,36 @@ and deterministic: it writes nothing to stderr, ends with exactly one newline,
 makes no network request, creates no file or application-data directory, and reads
 no token. Unknown commands and options keep their existing nonzero usage exit
 code.
+
+## `memory repair`
+
+`memory repair` is the supported Project Memory recovery path. It is preview-first
+like `capture`, `export`, and `delete`:
+
+- `omp memory repair` scans the local store, classifies every problem it finds,
+  and prints the actions it _would_ take. It changes no byte of the store, takes
+  no lock, and never quarantines anything.
+- `omp memory repair --apply` performs the bounded recovery under the single-writer
+  lock. It re-scans after acquiring the lock and refuses a plan whose store state
+  changed since the preview, so a stale plan produces no partial mutation.
+
+What a repair may and may not do follows the authority of the bytes involved:
+
+| Class             | Examples                          | Repair action                                                                            |
+| ----------------- | --------------------------------- | ---------------------------------------------------------------------------------------- |
+| Authoritative     | memory records, the manifest      | may be **isolated** into quarantine; never rewritten from a guess, never deleted         |
+| Derived           | manifest inventory and chronology | rebuilt, but only from records that fully verify                                         |
+| Coordination      | lock files                        | reclaimed only when the lock is older than the stale threshold **and** its owner is dead |
+| Residue           | temp files, abandoned staging     | removed only when this store's ownership is proven                                       |
+| Recovery evidence | quarantine                        | never live, never auto-pruned, never rebuilt                                             |
+
+Quarantine preserves the **exact original bytes** of a damaged file and confirms
+that copy is readable before the corrupt live path is removed. Isolation restores
+the readability of the rest of the store; it does **not** recover the damaged
+record's own meaning, and the output reports `isolated` separately from
+`reconstructed` so that distinction stays visible. An unsupported future store
+format is reported and never downgraded. A repair never writes to your project's
+source files, makes no network request, and is not exposed as an MCP tool.
 
 ## `mcp-config`
 

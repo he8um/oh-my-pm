@@ -46,6 +46,7 @@ import type {
   MemoryExportCommand,
   MemoryFailureOutcome,
   MemoryHistoryCommand,
+  MemoryRepairCommand,
   MemoryStatusCommand,
   MemoryStoreStatus,
   MemorySubcommand,
@@ -85,6 +86,16 @@ export type MemoryStore = PreviewMemoryStoreReads & {
   deleteProject(input: DeleteInputLike): Promise<DeleteResultLike>;
   /** Explicit store-format migration to the current version (never on read). */
   migrateProject(projectId: string, operationId: string, occurredAt: string): Promise<void>;
+  /**
+   * Scan for corruption and propose a bounded repair plan. Strictly read-only:
+   * this is the preview half of the recovery path, so it must not lock or write.
+   */
+  planRepair(projectId: string, operationId: string, occurredAt: string): Promise<RepairPlanLike>;
+  /**
+   * Execute an approved repair plan under the writer lock. Requires explicit
+   * apply intent; re-scans and refuses a plan whose store fingerprint moved.
+   */
+  applyRepair(input: ApplyRepairLike): Promise<RepairReceiptLike>;
   /** Read-only projected migrated view (no write) backing the capture preview. */
   previewMigration(
     projectId: string,
@@ -150,6 +161,54 @@ type DeleteInputLike = {
   forceCorruptDelete?: boolean;
 };
 type DeleteResultLike = { projectId: string; deleted: boolean };
+
+// Structural mirrors of the Phase 2 repair types (G5). Kept local for the same
+// reason as the types above: this boundary must not depend on the concrete
+// @oh-my-pm/project-memory types at the type level.
+type RepairFindingLike = {
+  code: string;
+  authority: string;
+  target: string;
+  repairability: string;
+  action: string;
+  blockingReason?: string;
+};
+type RepairPlanLike = {
+  operationId: string;
+  projectId: string;
+  storeFingerprint: string;
+  findings: readonly RepairFindingLike[];
+  actions: readonly { action: string; code: string; target: string }[];
+  summary: {
+    findingCount: number;
+    repairableCount: number;
+    blockedCount: number;
+    unrepairableCount: number;
+  };
+};
+type ApplyRepairLike = {
+  plan: RepairPlanLike;
+  apply: boolean;
+  appliedAt: string;
+  projectRootBoundary: string;
+};
+type RepairReceiptLike = {
+  operationId: string;
+  projectId: string;
+  outcomes: readonly {
+    action: string;
+    code: string;
+    target: string;
+    status: string;
+    blockingReason?: string;
+  }[];
+  reconstructedCount: number;
+  isolatedCount: number;
+  removedCount: number;
+  reclaimedCount: number;
+  skippedCount: number;
+  blockedCount: number;
+};
 
 const DEFAULT_NOW = "2026-01-01T00:00:00.000Z";
 
@@ -266,6 +325,102 @@ export async function runMemoryProcess(
       return runDelete(command, options, now, pid);
     case "timeline":
       return runTimeline(command, options, now, pid);
+    case "repair":
+      return runRepair(command, options, now, pid);
+  }
+}
+
+// --- repair (preview-first recovery) ---------------------------------------
+
+/**
+ * Run one `memory repair`.
+ *
+ * Preview scans and proposes without writing; `--apply` performs the bounded
+ * recovery under the writer lock. The two halves are separate store calls rather
+ * than one call with a flag, so the read-only path physically cannot reach the
+ * writer.
+ */
+async function runRepair(
+  command: MemoryRepairCommand,
+  options: MemoryProcessOptions | undefined,
+  now: string,
+  pid: number,
+): Promise<MemoryCommandOutcome> {
+  const identity = await resolveReadIdentity("repair", command, command.projectId);
+  if (!identity.ok) return identity.failure;
+
+  const store = await loadStore(options, command.dataDir, now);
+  const operationId = deriveOperationId("repair", now, pid);
+
+  let plan: RepairPlanLike;
+  try {
+    plan = await store.planRepair(identity.projectId, operationId, now);
+  } catch (err) {
+    const code = sanitizedErrorCode(err, "OMP-C-3003");
+    return fail("repair", code, "repair scan failed", memoryErrorExitCode(code));
+  }
+
+  const inspection = await store.inspect(identity.projectId);
+  const findings = plan.findings.map((finding) => ({
+    code: finding.code,
+    authority: finding.authority,
+    target: finding.target,
+    repairability: finding.repairability,
+    action: finding.action,
+    ...(finding.blockingReason !== undefined ? { blockingReason: finding.blockingReason } : {}),
+  }));
+
+  if (!command.apply) {
+    return {
+      command: "memory.repair",
+      ok: true,
+      mode: "preview",
+      projectId: identity.projectId,
+      storeExists: inspection.exists,
+      findings,
+      findingCount: plan.summary.findingCount,
+      actionCount: plan.actions.length,
+      blockedCount: plan.summary.blockedCount,
+      unrepairableCount: plan.summary.unrepairableCount,
+      wouldRepair: plan.actions.length > 0,
+    };
+  }
+
+  try {
+    const receipt = await store.applyRepair({
+      plan,
+      apply: true,
+      appliedAt: now,
+      projectRootBoundary: command.projectRoot,
+    });
+    return {
+      command: "memory.repair",
+      ok: true,
+      mode: "applied",
+      projectId: identity.projectId,
+      storeExists: inspection.exists,
+      findings,
+      findingCount: plan.summary.findingCount,
+      actionCount: receipt.outcomes.length,
+      blockedCount: plan.summary.blockedCount,
+      unrepairableCount: plan.summary.unrepairableCount,
+      outcomes: receipt.outcomes.map((entry) => ({
+        action: entry.action,
+        code: entry.code,
+        target: entry.target,
+        status: entry.status,
+        ...(entry.blockingReason !== undefined ? { blockingReason: entry.blockingReason } : {}),
+      })),
+      // Distinct tallies: isolation is never presented as semantic recovery.
+      reconstructedCount: receipt.reconstructedCount,
+      isolatedCount: receipt.isolatedCount,
+      removedCount: receipt.removedCount,
+      reclaimedCount: receipt.reclaimedCount,
+      skippedCount: receipt.skippedCount,
+    };
+  } catch (err) {
+    const code = sanitizedErrorCode(err, "OMP-C-3003");
+    return fail("repair", code, "repair apply failed", memoryErrorExitCode(code));
   }
 }
 

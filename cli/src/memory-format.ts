@@ -15,6 +15,7 @@ import type {
   MemoryExportOutcome,
   MemoryFailureOutcome,
   MemoryHistoryOutcome,
+  MemoryRepairOutcome,
   MemoryStatusOutcome,
   MemoryTimelineOutcome,
 } from "@oh-my-pm/application";
@@ -99,6 +100,8 @@ function renderBrief(outcome: Extract<MemoryCommandOutcome, { ok: true }>): stri
       return deleteBrief(outcome);
     case "memory.timeline":
       return timelineBrief(outcome);
+    case "memory.repair":
+      return repairBrief(outcome);
   }
 }
 
@@ -185,6 +188,42 @@ function exportBrief(o: MemoryExportOutcome): string {
   return lines.join("\n");
 }
 
+/**
+ * Brief repair rendering.
+ *
+ * The tallies stay separate. "isolated" means a corrupt record's exact bytes were
+ * preserved in quarantine and removed from the live store -- the rest of the store
+ * is readable again, but that record's own meaning was NOT recovered. Collapsing
+ * it into a single "repaired" number would tell the user their data came back.
+ */
+function repairBrief(o: MemoryRepairOutcome): string {
+  const lines = [`OH MY PM memory repair: ${o.mode}`];
+  lines.push(`project: ${o.projectId}`);
+  lines.push(`store exists: ${o.storeExists ? "yes" : "no"}`);
+  lines.push(`findings: ${o.findingCount}`);
+  if (o.mode === "preview") {
+    lines.push(`would repair: ${o.wouldRepair ? "yes" : "no"}`);
+    lines.push(`proposed actions: ${o.actionCount}`);
+  } else {
+    lines.push(`actions performed: ${o.actionCount}`);
+    lines.push(`reconstructed: ${o.reconstructedCount ?? 0}`);
+    lines.push(`isolated (quarantined, not recovered): ${o.isolatedCount ?? 0}`);
+    lines.push(`removed: ${o.removedCount ?? 0}`);
+    lines.push(`reclaimed: ${o.reclaimedCount ?? 0}`);
+    lines.push(`skipped: ${o.skippedCount ?? 0}`);
+  }
+  lines.push(`blocked: ${o.blockedCount}`);
+  lines.push(`unrepairable: ${o.unrepairableCount}`);
+  for (const finding of o.findings) {
+    lines.push(
+      `- ${finding.code} ${finding.repairability} ${finding.action} ${finding.target}` +
+        `${finding.blockingReason !== undefined ? ` (${finding.blockingReason})` : ""}`,
+    );
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
 function deleteBrief(o: MemoryDeleteOutcome): string {
   const lines = [`OH MY PM memory delete: ${o.mode}`];
   lines.push(`project: ${o.projectId}`);
@@ -250,6 +289,8 @@ function renderMarkdown(outcome: Extract<MemoryCommandOutcome, { ok: true }>): s
       return deleteMarkdown(outcome);
     case "memory.timeline":
       return timelineMarkdown(outcome);
+    case "memory.repair":
+      return repairMarkdown(outcome);
   }
 }
 
@@ -402,6 +443,47 @@ function timelineMarkdown(o: MemoryTimelineOutcome): string {
     );
   }
   lines.push("");
+  return lines.join("\n");
+}
+
+/** Markdown repair rendering. Keeps the outcome tallies distinct, as brief does. */
+function repairMarkdown(o: MemoryRepairOutcome): string {
+  const rows = [
+    `- Mode: ${o.mode}`,
+    `- Project: \`${o.projectId}\``,
+    `- Store exists: ${o.storeExists ? "yes" : "no"}`,
+    `- Findings: ${o.findingCount}`,
+    o.mode === "preview"
+      ? `- Would repair: ${o.wouldRepair ? "yes" : "no"}`
+      : `- Actions performed: ${o.actionCount}`,
+    o.mode === "preview" ? `- Proposed actions: ${o.actionCount}` : "",
+    o.mode === "applied" ? `- Reconstructed: ${o.reconstructedCount ?? 0}` : "",
+    o.mode === "applied" ? `- Isolated (quarantined, not recovered): ${o.isolatedCount ?? 0}` : "",
+    o.mode === "applied" ? `- Removed: ${o.removedCount ?? 0}` : "",
+    o.mode === "applied" ? `- Reclaimed: ${o.reclaimedCount ?? 0}` : "",
+    o.mode === "applied" ? `- Skipped: ${o.skippedCount ?? 0}` : "",
+    `- Blocked: ${o.blockedCount}`,
+    `- Unrepairable: ${o.unrepairableCount}`,
+  ].filter((row) => row !== "");
+  const lines = ["# OH MY PM Memory Repair", "", ...rows, ""];
+  if (o.findings.length > 0) {
+    lines.push("## Findings", "");
+    for (const finding of o.findings) {
+      lines.push(
+        `- \`${finding.code}\` (${finding.authority}, ${finding.repairability}) ` +
+          `${finding.action} — \`${finding.target}\`` +
+          `${finding.blockingReason !== undefined ? `: ${finding.blockingReason}` : ""}`,
+      );
+    }
+    lines.push("");
+  }
+  if (o.mode === "applied" && o.outcomes !== undefined && o.outcomes.length > 0) {
+    lines.push("## Outcomes", "");
+    for (const entry of o.outcomes) {
+      lines.push(`- \`${entry.status}\` ${entry.action} — \`${entry.target}\``);
+    }
+    lines.push("");
+  }
   return lines.join("\n");
 }
 

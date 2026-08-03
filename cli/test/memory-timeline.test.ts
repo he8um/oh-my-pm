@@ -58,7 +58,8 @@ function timelineFailure(args: string[]): { code: string; message: string } {
 
 describe("memory timeline — parser", () => {
   it("is the seventh memory subcommand", () => {
-    expect(MEMORY_SUBCOMMANDS).toHaveLength(7);
+    // timeline keeps position seven even as later subcommands are appended.
+    expect(MEMORY_SUBCOMMANDS).toHaveLength(8);
     expect(MEMORY_SUBCOMMANDS[6]).toBe("timeline");
   });
 

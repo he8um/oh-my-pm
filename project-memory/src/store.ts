@@ -33,6 +33,10 @@ import {
   serializeManifest,
 } from "./manifest.js";
 import { planMigration } from "./migrations.js";
+import { applyRepairPlan } from "./repair-apply.js";
+import { buildRepairPlan } from "./repair-plan.js";
+import { scanStore } from "./repair-scan.js";
+import type { RepairPlan, RepairReceipt } from "./repair-types.js";
 import type { MigrationRegistry } from "./migrations.js";
 import {
   MAX_EVIDENCE_PER_COMMIT,
@@ -331,7 +335,51 @@ export class DependencyInjectedStore implements ProjectMemoryStore {
     };
   }
 
+  /**
+   * Scan for corruption and build a bounded repair plan. READ-ONLY: it takes no
+   * lock and writes nothing, which is what makes the repair preview safe to run
+   * against a store another process is using.
+   *
+   * Deliberately grouped with the read paths above, not with the commit protocol
+   * below: a reader checking whether the preview can mutate should find it here,
+   * among the calls that provably cannot.
+   */
+  async planRepair(
+    projectId: string,
+    operationId: string,
+    occurredAt: string,
+  ): Promise<RepairPlan> {
+    assertNonEmptyId(projectId, "projectId");
+    assertOperationId(operationId);
+    const scan = await scanStore({ fs: this.fs, layout: this.layout, projectId });
+    return buildRepairPlan({ scan, operationId, generatedAt: occurredAt });
+  }
+
   // ---- Commit (atomic write protocol) --------------------------------------
+
+  /**
+   * Execute an approved repair plan. Requires explicit apply intent, takes the
+   * writer lock, re-scans under it, and refuses a plan whose store fingerprint
+   * moved -- before any write, so a stale plan mutates nothing.
+   */
+  async applyRepair(input: {
+    readonly plan: RepairPlan;
+    readonly apply: boolean;
+    readonly appliedAt: string;
+    readonly projectRootBoundary: string;
+  }): Promise<RepairReceipt> {
+    // The same project/data separation every other mutating entry point asserts:
+    // a repair must never be able to write into the analyzed project.
+    assertProjectDataSeparation(this.layout.dataRoot, input.projectRootBoundary);
+    return applyRepairPlan({
+      fs: this.fs,
+      layout: this.layout,
+      plan: input.plan,
+      apply: input.apply,
+      appliedAt: input.appliedAt,
+      projectRootBoundary: input.projectRootBoundary,
+    });
+  }
 
   async commitSnapshotBundle(input: CommitSnapshotBundleInput): Promise<CommitResult> {
     this.validateCommitInput(input);
