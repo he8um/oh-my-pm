@@ -523,9 +523,21 @@ describe("killing a writer, then recovering on the same persisted store", () => 
     expect((await recoverer.waitFor("recovery-completed"))["ok"]).toBe(true);
 
     const inspection = await parentStore().inspect(PROJECT_ID);
-    // The store may legitimately report nothing; what it must not report is an
-    // unresolved inconsistency after a completed recovery.
-    expect(inspection.issues.filter((issue) => issue.severity === "error")).toEqual([]);
+    // After a completed recovery the store must be internally consistent: no
+    // abandoned staging left by the killed writer, no record the manifest
+    // references but cannot find, no integrity failure, and a supported format.
+    // Named explicitly rather than filtered on a severity field -- inspection
+    // issues carry a `kind`, and a filter on a property that does not exist
+    // would pass vacuously no matter how damaged the store was.
+    const unresolved = inspection.issues.filter((issue) =>
+      (["abandonedStaging", "missingRecord", "integrityFailure", "unsupportedFormat"] as const).includes(
+        issue.kind as "abandonedStaging",
+      ),
+    );
+    expect(unresolved).toEqual([]);
+    // And verification, which re-derives every checksum from the persisted bytes,
+    // still passes on the recovered store.
+    expect((await parentStore().verify(PROJECT_ID)).ok).toBe(true);
   });
 });
 
