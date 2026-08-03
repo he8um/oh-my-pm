@@ -118,8 +118,15 @@ jobs:
       - name: Validate documentation truth
         run: pnpm validate:docs
 
-      - name: Validate application boundaries
+      - name: Validate architecture boundaries
         run: pnpm validate:boundaries
+
+      # v0.6.1: ownership of the shared workflows, in both directions. The four
+      # shared project workflows must reach the application boundary from every
+      # surface, AND status/doctor/plan must stay outside it. Attributable on its
+      # own because over-migration and drift are distinct regressions.
+      - name: Validate application boundary ownership
+        run: pnpm validate:application
 
       # v0.5.4: the package catalog drives the dependency-direction, cycle,
       # internal-import, and process-side-effect checks. Re-run as a named step

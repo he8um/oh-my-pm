@@ -423,6 +423,13 @@
         "does not expose and that no second surface consumes. The four SHARED",
         "project workflows (brief/risks/next/handoff) go through the application",
         "boundary on both surfaces, and tests/e2e asserts they agree semantically.",
+        "Until v0.6.1 that last sentence was aspirational: the CLI called only the",
+        "shared document loader and then re-composed the Runtime, provider, and",
+        "Kernel itself, so the two surfaces shared one step of the pipeline rather",
+        "than all of it. The CLI now calls runLocalProjectWorkflow directly, and",
+        "tools/validate-application-boundary.mjs fails if either half of the claim",
+        "stops holding -- a shared workflow re-composed per surface, or a CLI-only",
+        "command pushed through the boundary for symmetry alone.",
         "@oh-my-pm/project-memory is a production dependency so it ships in the",
         "bundle, while being reached only through a lazy dynamic import;",
         "cli/test/memory-boundary.test.ts enforces both halves."

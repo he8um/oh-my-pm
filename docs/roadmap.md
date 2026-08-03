@@ -538,7 +538,7 @@ unchanged, because they are returned directly as MCP tool results.
 
 ## v0.6.0 — Canonical `omp` command migration (Shipped)
 
-Published as the latest stable release; the source version is `0.6.0`. The
+Published as the latest stable release, from source version `0.6.0`. The
 immutable base it builds on is `v0.5.4`.
 
 `omp`, `omp-mcp`, and `omp-install` are the canonical executables. Two alias
@@ -577,14 +577,34 @@ code changed. No Dashboard.
 See [`docs/v0.6/README.md`](v0.6/README.md) and
 [`docs/releases/v0.6.0.md`](releases/v0.6.0.md).
 
-## Beyond v0.6.0 — Core and public surface (Planned)
+## v0.6.1 — Application boundary completion (In progress)
 
-Remaining public-surface consolidation the v0.5.4 contracts enable:
-`ApplicationResult<T>` adoption across every workflow return type, a decision on
-the provider diagnostic shape, Project Memory and data-integrity hardening,
-security and trust-boundary hardening, diagnostics and operability, performance
-and test architecture, and a Core freeze. Nothing here is committed, designed, or
-implemented.
+The source version is `0.6.1`. The immutable base it builds on is `v0.6.0`.
+
+`ApplicationResult<T>` shipped in v0.5.4 with no production caller. v0.6.1 makes
+it operational for the workflows that genuinely have two presentation consumers,
+and closes the duplicated composition behind them: the CLI called only the shared
+document loader and then rebuilt the Runtime, provider, and Kernel itself, so the
+CLI and the MCP server reached the same answer by two different routes. The CLI
+now calls `runLocalProjectWorkflow` directly.
+
+`status`, `doctor`, and `plan` deliberately stay outside the boundary — each has
+exactly one presentation consumer, and moving them would buy symmetry and no
+reuse. `tools/validate-application-boundary.mjs` enforces both halves of that
+claim.
+
+No public CLI or MCP behaviour changes, no Project Memory format changes, and no
+Dashboard work is included. See
+[`docs/releases/v0.6.1.md`](releases/v0.6.1.md).
+
+## Beyond v0.6.1 — Core and public surface (Planned)
+
+Remaining public-surface consolidation: Project Memory and data-integrity
+hardening, security and trust-boundary hardening, diagnostics and operability,
+performance and test architecture, and a Core freeze. The provider diagnostic
+shape was decided in v0.6.1 — the existing report types stay as a compatibility
+surface, because replacing them with the unified `Diagnostic` model would change
+MCP output. Nothing else here is committed, designed, or implemented.
 
 ## Beyond v0.6 — Local Project Dashboard (Planned)
 

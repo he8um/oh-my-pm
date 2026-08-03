@@ -1,10 +1,17 @@
 import {
+  LOCAL_WORKFLOW_FIXED_NOW,
   executeProjectMemoryCommand,
+  formatCliError,
+  formatRuntimeResponse,
   getProviderStatus,
-  loadLocalProjectDocuments,
+  runLocalProjectWorkflow,
   runProviderDoctor,
 } from "@oh-my-pm/application";
-import type { MemoryProcessOptions, ProviderDiagnosticsDeps } from "@oh-my-pm/application";
+import type {
+  MemoryProcessOptions,
+  ProjectWorkflowOperation,
+  ProviderDiagnosticsDeps,
+} from "@oh-my-pm/application";
 import {
   createNodeProviderDiagnosticsDeps,
   loadConfiguredMarkdownProjectDocuments,
@@ -19,7 +26,7 @@ import type {
 } from "@oh-my-pm/providers";
 import { createRuntime } from "@oh-my-pm/runtime";
 import { createDefaultSkillRegistry } from "@oh-my-pm/skills";
-import { runCli } from "./cli.js";
+import { OMP_C_RUNTIME_FAILED, runCli } from "./cli.js";
 import { runGitHubCliCommand } from "./github-process.js";
 import { formatHelp, resolveHelpRequest } from "./help.js";
 import { runMcpConfigCommand } from "./mcp-config.js";
@@ -96,11 +103,16 @@ export type LocalCliProcessOptions = {
 // Default local runtime identity. Deterministic: no real clock, no randomness.
 // The fixed clock is used for every local/offline workflow so byte-identical
 // output is guaranteed regardless of when the command runs.
-const DEFAULT_VERSION = "0.6.0";
-const LOCAL_FIXED_NOW = "2026-01-01T00:00:00.000Z";
+//
+// The instant itself lives in @oh-my-pm/application (LOCAL_WORKFLOW_FIXED_NOW).
+// This module previously declared its own LOCAL_FIXED_NOW holding the same
+// value for the same reason; two constants that must agree but are declared
+// apart will eventually disagree.
+const DEFAULT_VERSION = "0.6.1";
 
 // Seed items for the commands that do not read project documents
-// (status/doctor/plan). Project workflows replace these with loaded documents.
+// (status/doctor/plan). The shared project workflows load their own documents
+// through the application use case and never see these.
 const SEED_ITEMS: LocalProviderItemInput[] = [
   {
     id: "task-1",
@@ -122,7 +134,26 @@ const SEED_ITEMS: LocalProviderItemInput[] = [
   },
 ];
 
-const PROJECT_COMMANDS: ReadonlySet<string> = new Set(["brief", "risks", "next", "handoff"]);
+/**
+ * The four SHARED project workflows, which route through the application use
+ * case rather than this adapter's own Runtime.
+ *
+ * Typed as the application's own operation union, not a bare string set, so the
+ * compiler proves the member list and the use case agree: adding a name here
+ * that `runLocalProjectWorkflow` does not accept is a build error rather than a
+ * runtime surprise.
+ */
+const PROJECT_COMMANDS: ReadonlySet<ProjectWorkflowOperation> = new Set([
+  "brief",
+  "risks",
+  "next",
+  "handoff",
+] as const);
+
+/** Whether a parsed command is one of the shared application workflows. */
+function isSharedProjectWorkflow(command: string): command is ProjectWorkflowOperation {
+  return PROJECT_COMMANDS.has(command as ProjectWorkflowOperation);
+}
 
 type NodeProcess = { platform?: NodeJS.Platform; cwd?: () => string; argv?: string[] };
 function ambientProcess(): NodeProcess {
@@ -290,36 +321,70 @@ export async function runLocalCliProcess(
     });
   }
 
-  let providerItems: LocalProviderItemInput[] = [...SEED_ITEMS];
-  const providers: Provider[] = [];
-
-  // Local/offline workflows always use the fixed clock; this module never reads
-  // the clock itself (see validate-boundaries).
-  const now = LOCAL_FIXED_NOW;
-
-  if (parsed.ok && PROJECT_COMMANDS.has(parsed.command)) {
-    // The document load and its failure classification are the shared
-    // application behavior; this adapter only renders the outcome. Errors report
-    // the root exactly as the user typed it, never a resolved internal absolute
-    // path, and never any document content or config text.
+  // The four SHARED project workflows go through the application use case, the
+  // same one the MCP server calls. This adapter composes no Runtime for them
+  // and only renders the outcome.
+  //
+  // Before v0.6.1 this path built its own Runtime, provider, and Kernel and
+  // reached the same result by a second composition -- so the two surfaces
+  // shared only the document loader and could drift apart in everything else.
+  // tools/validate-application-boundary.mjs now fails if that duplication
+  // returns.
+  if (parsed.ok && isSharedProjectWorkflow(parsed.command)) {
     const root = "input" in parsed ? (parsed.input ?? ".") : ".";
-    const loaded = loadLocalProjectDocuments(root, loadConfiguredMarkdownProjectDocuments);
-    if (!loaded.ok) {
-      return { exitCode: 2, stdout: "", stderr: `${loaded.message}\n` };
+    const workflow = await runLocalProjectWorkflow(parsed.command, root, {
+      loadDocuments: loadConfiguredMarkdownProjectDocuments,
+      version,
+    });
+
+    if (!workflow.ok) {
+      // Failure rendering is unchanged and is deliberately code-driven rather
+      // than uniform: a document-load or root problem is a precondition the
+      // caller can fix (exit 2, message on stderr, nothing on stdout), while a
+      // runtime failure is an execution failure the CLI has always reported
+      // through the runtime response itself. Routing both through one branch
+      // here would change one of the two observable behaviours.
+      if (
+        workflow.code === "project_runtime_failed" ||
+        workflow.code === "project_output_invalid"
+      ) {
+        return {
+          exitCode: 1,
+          stdout: "",
+          stderr: formatCliError(
+            OMP_C_RUNTIME_FAILED,
+            "runtime execution failed",
+            parsed.outputMode,
+          ),
+        };
+      }
+      return { exitCode: 2, stdout: "", stderr: `${workflow.message}\n` };
     }
-    providerItems = loaded.items;
+
+    // The formatter consumes the RuntimeResponse exactly as before, so stdout
+    // stays byte-identical. tests/e2e/public-golden.test.ts pins those bytes.
+    return {
+      exitCode: 0,
+      stdout: formatRuntimeResponse(workflow.response, parsed.outputMode),
+      stderr: "",
+    };
   }
 
-  if (providers.length === 0) {
-    providers.push(createLocalProvider({ items: providerItems }));
-  }
+  // Everything below serves the intentionally CLI-only commands -- status,
+  // doctor, and plan -- which have exactly one presentation consumer and are
+  // deliberately NOT application-owned. See the $asymmetryComment on
+  // @oh-my-pm/cli in packages.json.
+  const providers: Provider[] = [createLocalProvider({ items: [...SEED_ITEMS] })];
 
   const runtime = createRuntime({
     kernel: createNodeWasmKernelApi(),
     providers: createProviderRegistry(providers),
     skills: createDefaultSkillRegistry(),
     version,
-    now,
+    // Local/offline workflows always use the fixed clock; this module never
+    // reads the clock itself (see validate-boundaries). The instant is the
+    // application's single definition rather than a second local constant.
+    now: LOCAL_WORKFLOW_FIXED_NOW,
   });
 
   const result = await runCli([...args], { runtime });

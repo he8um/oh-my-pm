@@ -23,9 +23,11 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 // a patch promotion needs no test edit. The base stable lineage stays pinned.
 const PATCH_VERSION = JSON.parse(readFileSync(join(REPO_ROOT, "version.json"), "utf8")).version;
 // The immutable base stable lineage the ACTIVE release workflow must gate on.
-// The v0.6.0 candidate builds on the published v0.5.4 stable.
-const BASE_STABLE_TAG = "v0.5.4";
-const BASE_STABLE_SHA = "288337a9514150b7a5973d9d9410f7186567520f";
+// The base advances with each published stable: the v0.6.1 candidate builds on
+// the published v0.6.0 stable, which itself built on v0.5.4. The SHA is the
+// DEREFERENCED tag commit, matching what `git ls-remote --tags` returns.
+const BASE_STABLE_TAG = "v0.6.0";
+const BASE_STABLE_SHA = "34642c4fe121c34c65f80a08b3e75560099676ff";
 const RC_WORKFLOW = join(REPO_ROOT, ".github", "workflows", "release-v0.3-rc.yml");
 // The ACTIVE stable release workflow, whose gates are asserted against the
 // canonical source version. Every earlier stable workflow is historical and

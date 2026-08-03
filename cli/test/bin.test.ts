@@ -119,12 +119,18 @@ describe("local CLI process runner source", () => {
     for (const command of ["brief", "risks", "next", "handoff"]) {
       expect(localProcessSource).toContain(`"${command}"`);
     }
-    // v0.5.1: the document load and its failure classification (including the
-    // exact "no markdown project documents matched under:" and "invalid project
-    // config:" messages) belong to @oh-my-pm/application. The CLI calls the
-    // shared classifier and renders its message rather than restating it.
-    expect(localProcessSource).toContain("loadLocalProjectDocuments");
+    // v0.6.1: the CLI no longer calls the document loader directly. It calls
+    // the shared use case, which loads the documents itself -- so the surfaces
+    // now share the WHOLE pipeline rather than only its first step.
+    //
+    // The previous assertion here was `loadLocalProjectDocuments`, the narrow
+    // pre-convergence contract: the CLI shared the loader and then re-composed
+    // the Runtime, provider, and Kernel itself. Asserting the loader call now
+    // would pin the weaker guarantee and permit that duplication to return.
+    expect(localProcessSource).toContain("runLocalProjectWorkflow");
     expect(localProcessSource).toContain('from "@oh-my-pm/application"');
+    // The failure messages still belong to the application layer and are
+    // rendered, never restated, by this adapter.
     expect(localProcessSource).not.toContain("no markdown project documents matched under:");
   });
 

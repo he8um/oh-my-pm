@@ -1,9 +1,9 @@
 name: Release v0.6 Stable
 
 # Manually gated STABLE release workflow for the v0.6 line. It builds and verifies
-# the exact 0.6.0 self-contained "omp-cli-namespace" portable artifact.
+# the exact 0.6.1 self-contained "omp-cli-namespace" portable artifact.
 #
-# v0.6.0 completes the CLI command namespace migration begun in v0.5. It is a
+# v0.6.1 completes the CLI command namespace migration begun in v0.5. It is a
 # COMMAND NAMESPACE migration, not a product rename and not a data migration:
 #
 #   * `omp`, `omp-mcp`, and `omp-install` become the CANONICAL executables;
@@ -29,7 +29,7 @@ name: Release v0.6 Stable
 # code renamed or removed, and no exit code changed.
 #
 # Product identity is deliberately unchanged: the archives remain
-# oh-my-pm-v0.6.0.{tar.gz,zip}, the installation directory remains
+# oh-my-pm-v0.6.1.{tar.gz,zip}, the installation directory remains
 # lib/oh-my-pm/versions/<version>/, the package scope remains @oh-my-pm/*, the
 # environment prefix remains OH_MY_PM_*, and the MCP server key remains
 # oh-my-pm.
@@ -52,7 +52,7 @@ on:
       version:
         description: Canonical version without v prefix
         required: true
-        default: "0.6.0"
+        default: "0.6.1"
         type: string
       publish:
         # publish=false is the DRY RUN: prepare, deterministic assets, and the
@@ -64,7 +64,7 @@ on:
         default: false
         type: boolean
       confirmation:
-        description: Type RELEASE v0.6.0 when publish is enabled
+        description: Type RELEASE v0.6.1 when publish is enabled
         required: false
         default: ""
         type: string
@@ -99,12 +99,12 @@ jobs:
           INPUT_PUBLISH: ${{ inputs.publish }}
           INPUT_CONFIRMATION: ${{ inputs.confirmation }}
         run: |
-          if [ "$INPUT_VERSION" != "0.6.0" ]; then
-            echo "Only version 0.6.0 is accepted by this workflow (got $INPUT_VERSION)" >&2
+          if [ "$INPUT_VERSION" != "0.6.1" ]; then
+            echo "Only version 0.6.1 is accepted by this workflow (got $INPUT_VERSION)" >&2
             exit 1
           fi
-          if [ "$INPUT_PUBLISH" = "true" ] && [ "$INPUT_CONFIRMATION" != "RELEASE v0.6.0" ]; then
-            echo "publish requires confirmation exactly equal to: RELEASE v0.6.0" >&2
+          if [ "$INPUT_PUBLISH" = "true" ] && [ "$INPUT_CONFIRMATION" != "RELEASE v0.6.1" ]; then
+            echo "publish requires confirmation exactly equal to: RELEASE v0.6.1" >&2
             exit 1
           fi
 
@@ -127,8 +127,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          BASE_TAG=v0.5.4
-          BASE_SHA=288337a9514150b7a5973d9d9410f7186567520f
+          BASE_TAG=v0.6.0
+          BASE_SHA=34642c4fe121c34c65f80a08b3e75560099676ff
           # The base stable tag must still exist on origin.
           if ! git ls-remote --exit-code --tags origin "refs/tags/$BASE_TAG" >/dev/null 2>&1; then
             echo "Required base stable tag $BASE_TAG does not exist on origin" >&2
@@ -148,8 +148,8 @@ jobs:
             if (meta.isPrerelease !== false) { console.error("base stable must remain non-prerelease"); process.exit(1); }
             if (meta.isDraft !== false) { console.error("base stable must remain non-draft"); process.exit(1); }
           '
-          # The v0.6.0 release notes must exist.
-          test -f docs/releases/v0.6.0.md
+          # The v0.6.1 release notes must exist.
+          test -f docs/releases/v0.6.1.md
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4.4.0
@@ -296,11 +296,11 @@ jobs:
       - name: Upload release assets artifact
         uses: actions/upload-artifact@v7
         with:
-          name: oh-my-pm-v0.6.0-release-assets
+          name: oh-my-pm-v0.6.1-release-assets
           path: |
-            ${{ runner.temp }}/release-assets/oh-my-pm-v0.6.0.tar.gz
-            ${{ runner.temp }}/release-assets/oh-my-pm-v0.6.0.zip
-            ${{ runner.temp }}/release-assets/oh-my-pm-v0.6.0-SHA256SUMS.txt
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.6.1.tar.gz
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.6.1.zip
+            ${{ runner.temp }}/release-assets/oh-my-pm-v0.6.1-SHA256SUMS.txt
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
@@ -334,7 +334,7 @@ jobs:
       - name: Download prepared release assets
         uses: actions/download-artifact@v7
         with:
-          name: oh-my-pm-v0.6.0-release-assets
+          name: oh-my-pm-v0.6.1-release-assets
           path: release-assets
 
       - name: Verify checksum then qualify the installed artifact (POSIX)
@@ -492,12 +492,12 @@ jobs:
           INPUT_VERSION: ${{ inputs.version }}
           INPUT_CONFIRMATION: ${{ inputs.confirmation }}
         run: |
-          if [ "$INPUT_VERSION" != "0.6.0" ]; then
-            echo "Only version 0.6.0 is accepted by this workflow (got $INPUT_VERSION)" >&2
+          if [ "$INPUT_VERSION" != "0.6.1" ]; then
+            echo "Only version 0.6.1 is accepted by this workflow (got $INPUT_VERSION)" >&2
             exit 1
           fi
-          if [ "$INPUT_CONFIRMATION" != "RELEASE v0.6.0" ]; then
-            echo "publish requires confirmation exactly equal to: RELEASE v0.6.0" >&2
+          if [ "$INPUT_CONFIRMATION" != "RELEASE v0.6.1" ]; then
+            echo "publish requires confirmation exactly equal to: RELEASE v0.6.1" >&2
             exit 1
           fi
 
@@ -514,22 +514,22 @@ jobs:
       - name: Download release assets
         uses: actions/download-artifact@v7
         with:
-          name: oh-my-pm-v0.6.0-release-assets
+          name: oh-my-pm-v0.6.1-release-assets
           path: release-assets
 
       - name: Re-verify archive checksums
         run: |
           cd release-assets
-          sha256sum -c oh-my-pm-v0.6.0-SHA256SUMS.txt
+          sha256sum -c oh-my-pm-v0.6.1-SHA256SUMS.txt
 
       - name: Ensure release notes exist
-        run: test -f docs/releases/v0.6.0.md
+        run: test -f docs/releases/v0.6.1.md
 
       - name: Ensure tag and release do not already exist
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=v0.6.0
+          TAG=v0.6.1
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
             echo "Tag $TAG already exists on origin; refusing to overwrite" >&2
             exit 1
@@ -543,10 +543,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          BASE_TAG=v0.5.4
-          BASE_SHA=288337a9514150b7a5973d9d9410f7186567520f
+          BASE_TAG=v0.6.0
+          BASE_SHA=34642c4fe121c34c65f80a08b3e75560099676ff
           if ! git ls-remote --exit-code --tags origin "refs/tags/$BASE_TAG" >/dev/null 2>&1; then
-            echo "Base stable tag $BASE_TAG no longer exists; refusing to publish v0.6.0" >&2
+            echo "Base stable tag $BASE_TAG no longer exists; refusing to publish v0.6.1" >&2
             exit 1
           fi
           BASE_RESOLVED="$(git ls-remote --tags origin "refs/tags/$BASE_TAG" | awk '{print $1}')"
@@ -565,30 +565,30 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v0.6.0" \
-            "release-assets/oh-my-pm-v0.6.0.tar.gz" \
-            "release-assets/oh-my-pm-v0.6.0.zip" \
-            "release-assets/oh-my-pm-v0.6.0-SHA256SUMS.txt" \
+          gh release create "v0.6.1" \
+            "release-assets/oh-my-pm-v0.6.1.tar.gz" \
+            "release-assets/oh-my-pm-v0.6.1.zip" \
+            "release-assets/oh-my-pm-v0.6.1-SHA256SUMS.txt" \
             --target "$GITHUB_SHA" \
-            --title "OH MY PM v0.6.0" \
-            --notes-file "docs/releases/v0.6.0.md" \
+            --title "OH MY PM v0.6.1" \
+            --notes-file "docs/releases/v0.6.1.md" \
             --latest
 
       - name: Verify published stable release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          META="$(gh release view v0.6.0 --json tagName,isDraft,isPrerelease,assets)"
+          META="$(gh release view v0.6.1 --json tagName,isDraft,isPrerelease,assets)"
           echo "$META"
           echo "$META" | node -e '
             const meta = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
             const expected = [
-              "oh-my-pm-v0.6.0-SHA256SUMS.txt",
-              "oh-my-pm-v0.6.0.tar.gz",
-              "oh-my-pm-v0.6.0.zip",
+              "oh-my-pm-v0.6.1-SHA256SUMS.txt",
+              "oh-my-pm-v0.6.1.tar.gz",
+              "oh-my-pm-v0.6.1.zip",
             ].sort();
             const names = (meta.assets || []).map((a) => a.name).sort();
-            if (meta.tagName !== "v0.6.0") { console.error("bad tag"); process.exit(1); }
+            if (meta.tagName !== "v0.6.1") { console.error("bad tag"); process.exit(1); }
             if (meta.isDraft !== false) { console.error("draft must be false"); process.exit(1); }
             if (meta.isPrerelease !== false) { console.error("prerelease must be false"); process.exit(1); }
             if (JSON.stringify(names) !== JSON.stringify(expected)) { console.error("asset mismatch"); process.exit(1); }
@@ -600,8 +600,8 @@ jobs:
         run: |
           LATEST="$(gh api repos/${GITHUB_REPOSITORY}/releases/latest --jq .tag_name)"
           echo "latest release: $LATEST"
-          if [ "$LATEST" != "v0.6.0" ]; then
-            echo "releases/latest is $LATEST, expected v0.6.0" >&2
+          if [ "$LATEST" != "v0.6.1" ]; then
+            echo "releases/latest is $LATEST, expected v0.6.1" >&2
             exit 1
           fi
 
@@ -611,13 +611,13 @@ jobs:
         run: |
           DL="$RUNNER_TEMP/published"
           mkdir -p "$DL"
-          gh release download v0.6.0 --dir "$DL"
+          gh release download v0.6.1 --dir "$DL"
           cd "$DL"
-          sha256sum -c oh-my-pm-v0.6.0-SHA256SUMS.txt
+          sha256sum -c oh-my-pm-v0.6.1-SHA256SUMS.txt
 
       - name: Print release URL to summary
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          URL="$(gh release view v0.6.0 --json url --jq .url)"
+          URL="$(gh release view v0.6.1 --json url --jq .url)"
           echo "Published stable release: $URL" >> "$GITHUB_STEP_SUMMARY"

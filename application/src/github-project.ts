@@ -29,7 +29,12 @@ import type {
 import { createRuntime } from "@oh-my-pm/runtime";
 import type { Runtime } from "@oh-my-pm/runtime";
 import { createDefaultSkillRegistry } from "@oh-my-pm/skills";
+import { isCancelled } from "./execution-context.js";
+import type { ExecutionContext } from "./execution-context.js";
 import { createGitHubRuntimeRequest } from "./request.js";
+import { applicationResult } from "./result.js";
+import type { ApplicationResult, SourceDescriptor } from "./result.js";
+import { diagnosticForCode } from "./taxonomy.js";
 import type { ProjectWorkflowOperation } from "./types.js";
 
 /** Bounded source/selection options a caller may supply. */
@@ -57,7 +62,14 @@ export type GitHubWorkflowErrorCode =
   | "github_invalid_limit"
   | "github_invalid_selection"
   | "github_runtime_failed"
-  | "github_output_invalid";
+  | "github_output_invalid"
+  /**
+   * The caller cancelled through the execution context signal. Only the GitHub
+   * family can emit this: it is the one workflow with remote, potentially
+   * long-running work. A cancelled run is always a controlled failure and never
+   * a partial result reported as success.
+   */
+  | "github_cancelled";
 
 export type GitHubWorkflowFailure = {
   readonly ok: false;
@@ -115,6 +127,21 @@ export type GitHubProjectDeps = {
   version: string;
   /** Runtime factory override for offline tests. */
   createRuntime?: (transport: GitHubHttpTransport, now: string) => Runtime;
+  /**
+   * Optional execution context, carrying the correlation id and the
+   * cancellation signal.
+   *
+   * Optional rather than required: every existing caller predates it, and
+   * making it mandatory would be a breaking change to the use case signature
+   * for no behavioural gain. Absent means "no cancellation", which is exactly
+   * the current behaviour.
+   *
+   * The clock stays in `now` above rather than moving to `context.now`. The
+   * GitHub family resolves its timestamp once, at a specific point after
+   * validation, and that ordering is a safety property; folding it into the
+   * context would invite a caller to read the clock somewhere else.
+   */
+  context?: ExecutionContext;
 };
 
 function isRecord(value: JsonValue | undefined): value is Record<string, JsonValue> {
@@ -216,6 +243,20 @@ export async function runGitHubProjectWorkflow(
   }
   const selection = selectionResult.selection;
 
+  // Cancellation is checked here, at the last offline point: every controlled
+  // input is validated but no transport exists and no request has been sent.
+  // Cancelling before this line costs nothing; cancelling after it is checked
+  // again below, once the remote work has completed.
+  if (isCancelled(deps.context)) {
+    return {
+      ok: false,
+      operation,
+      repository,
+      code: "github_cancelled",
+      message: "operation was cancelled before the GitHub request was sent",
+    };
+  }
+
   // Only now, with every controlled input validated: build the transport (the
   // token read happens lazily inside this factory) and read the clock exactly
   // once. Everything above this line is offline by construction.
@@ -263,6 +304,25 @@ export async function runGitHubProjectWorkflow(
     };
   }
 
+  // Checked again after the remote work: a caller that cancelled while the
+  // request was in flight must not receive data it asked us to stop fetching.
+  // Reporting the already-fetched payload as a success would make cancellation
+  // silently meaningless, so a late cancellation is still a controlled failure.
+  //
+  // Read through `isCancelled` rather than inline: `AbortSignal.aborted` is a
+  // readonly boolean, so narrowing from the pre-flight check above would
+  // otherwise carry across the await and type this as an impossible
+  // comparison -- when a flip DURING the await is exactly what it guards.
+  if (isCancelled(deps.context)) {
+    return {
+      ok: false,
+      operation,
+      repository,
+      code: "github_cancelled",
+      message: "operation was cancelled while the GitHub request was in flight",
+    };
+  }
+
   return { ok: true, operation, repository, selection, output, response, now };
 }
 
@@ -296,4 +356,152 @@ export function getGitHubProjectHandoff(
   deps: GitHubProjectDeps,
 ): Promise<GitHubWorkflowResult> {
   return runGitHubProjectWorkflow("handoff", input, deps);
+}
+
+// ---------------------------------------------------------------------------
+// The application-boundary envelope.
+// ---------------------------------------------------------------------------
+
+/**
+ * The semantic payload of a successful GitHub workflow.
+ *
+ * Deliberately NOT the whole `GitHubWorkflowSuccess`. The raw `RuntimeResponse`
+ * stays out of the envelope: it is a transport-shaped object owned by the
+ * runtime, and putting it in a result that both surfaces serialize would make
+ * an internal shape part of the public contract. Adapters that still need it
+ * keep calling `runGitHubProjectWorkflow` directly.
+ */
+export type GitHubWorkflowData = {
+  readonly operation: ProjectWorkflowOperation;
+  readonly repository: string;
+  readonly selection: GitHubSourceSelection;
+  readonly output: JsonValue;
+};
+
+/**
+ * The source kind implied by a resolved selection mode.
+ *
+ * Exhaustive over `GitHubSourceSelection`: the compiler rejects a new mode that
+ * is not classified here, so adding one cannot silently fall back to
+ * `github-repository` and mislabel the source.
+ */
+function githubSourceKind(selection: GitHubSourceSelection): SourceDescriptor["kind"] {
+  switch (selection.mode) {
+    case "issues":
+      return "github-issues";
+    case "pull-requests":
+      return "github-pull-requests";
+    case "item":
+      return "github-item";
+    case "search":
+      return "github-search";
+    case "overview":
+    case "repository":
+      return "github-repository";
+  }
+}
+
+/**
+ * Bounded, JSON-safe selection metadata for the source descriptor.
+ *
+ * Only scalars a reader needs to understand WHAT was selected. The free-text
+ * search `query` is deliberately omitted: it is caller-supplied text of up to
+ * GITHUB_SOURCE_QUERY_MAX characters, and echoing it into a descriptor that
+ * both surfaces serialize would widen what a result can carry for no
+ * identification benefit -- `kind` and `limit` already describe the search.
+ *
+ * Written per-variant rather than with optional property reads, because the
+ * selection is a discriminated union: `state` and `limit` genuinely do not
+ * exist on the `repository` and `item` variants.
+ */
+function githubSelectionMetadata(
+  selection: GitHubSourceSelection,
+): Readonly<Record<string, string | number | boolean>> {
+  switch (selection.mode) {
+    case "overview":
+    case "issues":
+    case "pull-requests":
+      return { mode: selection.mode, state: selection.state, limit: selection.limit };
+    case "search":
+      return {
+        mode: selection.mode,
+        state: selection.state,
+        kind: selection.kind,
+        limit: selection.limit,
+      };
+    case "item":
+      return { mode: selection.mode, number: selection.number };
+    case "repository":
+      return { mode: selection.mode };
+  }
+}
+
+/**
+ * Execute a GitHub workflow and describe it as an `ApplicationResult`.
+ *
+ * This is the boundary-facing entry point. It wraps
+ * `runGitHubProjectWorkflow` rather than replacing it: the discriminated result
+ * is still what the CLI and MCP adapters consume today, and changing that
+ * signature would be a public contract change for no gain. Both therefore
+ * describe the SAME execution -- there is no second pipeline to drift.
+ *
+ * A failure is an envelope too, not a thrown error: `data` is null and the
+ * failure is carried as a diagnostic whose code is the same stable public code
+ * the discriminated result would have returned.
+ */
+export async function runGitHubProjectApplication(
+  operation: ProjectWorkflowOperation,
+  input: GitHubWorkflowInput,
+  deps: GitHubProjectDeps,
+  context: ExecutionContext,
+): Promise<ApplicationResult<GitHubWorkflowData | null>> {
+  const result = await runGitHubProjectWorkflow(operation, input, {
+    ...deps,
+    context,
+  });
+
+  // `generatedAt` comes from the injected context clock, never from the
+  // workflow's own `now`: the two answer different questions. The workflow's
+  // `now` is the instant overdue classification was computed against and is
+  // part of the semantic payload; `generatedAt` is when this envelope was
+  // built, and it is what determinism tests pin.
+  const generated = context.now().toISOString();
+
+  if (!result.ok) {
+    const source: SourceDescriptor = {
+      kind: "github-repository",
+      // The repository as resolved when known, else exactly what the caller
+      // supplied. Never a resolved path, never a URL.
+      reference: result.repository,
+    };
+    return applicationResult<GitHubWorkflowData | null>({
+      operation: `github.${operation}`,
+      generatedAt: generated,
+      source,
+      data: null,
+      diagnostics: [diagnosticForCode(result.code, result.message)],
+    });
+  }
+
+  const source: SourceDescriptor = {
+    kind: githubSourceKind(result.selection),
+    reference: result.repository,
+    // A single addressed item has a stable identity of its own; the descriptor
+    // exposes it as `identifier` so a consumer can key on it without parsing
+    // the selection metadata.
+    ...(result.selection.mode === "item" ? { identifier: String(result.selection.number) } : {}),
+    selection: githubSelectionMetadata(result.selection),
+  };
+
+  return applicationResult<GitHubWorkflowData>({
+    operation: `github.${operation}`,
+    generatedAt: generated,
+    source,
+    data: {
+      operation: result.operation,
+      repository: result.repository,
+      selection: result.selection,
+      output: result.output,
+    },
+  });
 }

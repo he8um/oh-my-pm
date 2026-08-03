@@ -5,6 +5,23 @@ The detailed public roadmap is maintained in [`docs/roadmap.md`](docs/roadmap.md
 Work is labelled with one of five states: **Shipped**, **Prepared but
 unpublished**, **Active maintenance**, **Planned**, or **Out of scope**.
 
+## Active maintenance — v0.6.1
+
+**Application boundary completion.** The source version is `0.6.1`; the latest
+published stable remains
+[`v0.6.0`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.0) until v0.6.1
+publishes.
+
+`ApplicationResult<T>` shipped in v0.5.4 with no production caller. This makes it
+operational for the workflows that genuinely have two presentation consumers, and
+converges the CLI's duplicated local composition onto the shared use case. The
+CLI previously shared only the document loader and rebuilt the Runtime, provider,
+and Kernel itself.
+
+`status`, `doctor`, and `plan` stay outside the boundary by design. No public CLI
+or MCP behaviour changes and no Project Memory format changes. See
+[`docs/releases/v0.6.1.md`](docs/releases/v0.6.1.md).
+
 ## Shipped — v0.6.0
 
 **Canonical `omp` command migration and public surface stabilization.**

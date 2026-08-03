@@ -1,0 +1,1572 @@
+{
+  "schemaVersion": 1,
+  "capturedFor": "0.6.0",
+  "now": "2026-03-01T00:00:00.000Z",
+  "entries": [
+    {
+      "name": "local.brief.json",
+      "surface": "cli",
+      "args": ["brief", "examples/fixtures/project-signals", "--json"],
+      "exitCode": 0,
+      "stdout": "{\n  \"id\": \"cli-brief\",\n  \"ok\": true,\n  \"data\": {\n    \"plannerInput\": {\n      \"request\": \"status brief for the current project\",\n      \"locale\": \"en\",\n      \"context\": {\n        \"providerRequests\": [\n          {\n            \"providerId\": \"local\",\n            \"action\": \"list\",\n            \"query\": \"\",\n            \"limit\": 200\n          }\n        ]\n      }\n    },\n    \"plannerResult\": {\n      \"status\": \"ok\",\n      \"graph\": {\n        \"nodes\": [\n          {\n            \"id\": \"provider:0:local:list\",\n            \"kind\": \"providerRead\",\n            \"title\": \"Read local context\",\n            \"dependsOn\": [],\n            \"payload\": {\n              \"providerRequest\": {\n                \"providerId\": \"local\",\n                \"action\": \"list\",\n                \"query\": \"\",\n                \"limit\": 200\n              }\n            }\n          },\n          {\n            \"id\": \"plan:status\",\n            \"kind\": \"skillExecution\",\n            \"title\": \"Prepare project status\",\n            \"dependsOn\": [\n              \"provider:0:local:list\"\n            ],\n            \"payload\": {\n              \"intent\": \"status\",\n              \"request\": \"status brief for the current project\",\n              \"locale\": \"en\"\n            }\n          }\n        ]\n      }\n    },\n    \"graph\": {\n      \"nodes\": [\n        {\n          \"id\": \"provider:0:local:list\",\n          \"kind\": \"providerRead\",\n          \"title\": \"Read local context\",\n          \"dependsOn\": [],\n          \"payload\": {\n            \"providerRequest\": {\n              \"providerId\": \"local\",\n              \"action\": \"list\",\n              \"query\": \"\",\n              \"limit\": 200\n            }\n          }\n        },\n        {\n          \"id\": \"plan:status\",\n          \"kind\": \"skillExecution\",\n          \"title\": \"Prepare project status\",\n          \"dependsOn\": [\n            \"provider:0:local:list\"\n          ],\n          \"payload\": {\n            \"intent\": \"status\",\n            \"request\": \"status brief for the current project\",\n            \"locale\": \"en\"\n          }\n        }\n      ]\n    },\n    \"providerResponses\": [\n      {\n        \"providerId\": \"local\",\n        \"items\": [\n          {\n            \"id\": \"README.md\",\n            \"type\": \"document\",\n            \"title\": \"Riverside Signals fixture\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"README.md\",\n              \"content\": \"# Riverside Signals fixture\\n\\nA fictional project used to exercise deterministic risk and next-task\\nextraction. All names, repositories, and content are invented for testing;\\nthere is no real project, person, or private data here.\\n\\nThe fixture intentionally mixes:\\n\\n- English and Persian risk headings, action headings, and inline markers\\n- blocker and dependency signals\\n- a checked (resolved) risk that must be excluded\\n- unchecked tasks and an action section\\n- Persian next steps\\n- a duplicate task line\\n- priority markers (`[P0]`, `Critical:`, `بحرانی:`)\\n- fenced code blocks whose contents are false positives\\n- ordinary prose containing the words \\\"unblocked\\\" and \\\"riskless\\\"\\n\",\n              \"bytes\": 685\n            }\n          },\n          {\n            \"id\": \"fa-signals.md\",\n            \"type\": \"document\",\n            \"title\": \"سیگنال‌های فارسی\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"fa-signals.md\",\n              \"content\": \"# سیگنال‌های فارسی\\n\\nاین پاراگراف متن عادی است و نباید ریسک یا وظیفه‌ای بسازد.\\n\\n## موانع\\n\\n- انتشار نسخه به دلیل بازبینی امنیتی مسدود شده است.\\n\\n## وابستگی‌ها\\n\\n- تحویل داده‌های نقشه به تیم بیرونی وابسته است.\\n\\n## اقدامات بعدی\\n\\n- بازبینی طرح جلد را انجام بده.\\n- [ ] فهرست نهایی چاپ را تأیید کن.\\n\\nاقدام: به تیم پشتیبانی درباره‌ی نسخه‌ی جدید اطلاع بده.\\n\\nمانع: صدور گواهی هنوز انجام نشده است.\\n\",\n              \"bytes\": 673\n            }\n          },\n          {\n            \"id\": \"planning.md\",\n            \"type\": \"document\",\n            \"title\": \"Riverside Signals Planning\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"planning.md\",\n              \"content\": \"# Riverside Signals Planning\\n\\nOrdinary prose: the pipeline is finally unblocked and the plan is riskless in\\nits current shape, so this paragraph must not create any risk or task.\\n\\n## Open Risks\\n\\n- The staging environment is blocked until the new certificate lands.\\n- Analytics ingestion has a dependency on the upstream schema freeze.\\n- [ ] Confirm the rollback window with operations.\\n- [x] Decommission the legacy exporter.\\n\\n## Blockers\\n\\n- Release sign-off is blocked waiting on the compliance review.\\n\\n## Next Steps\\n\\n- Draft the migration runbook.\\n- Schedule the load test.\\n\\n## Action Items\\n\\n- [ ] [P0] Patch the auth regression.\\n- [ ] Update the onboarding guide.\\n- [ ] Update the onboarding guide.\\n\\nAction: Notify the beta cohort about the new build.\\n\\nRisk: The vendor SLA renewal is still unconfirmed.\\n\\n## Code samples\\n\\n```\\n- [ ] This checkbox lives in a code fence and must be ignored.\\nRisk: this marker is inside code and must be ignored.\\n```\\n\",\n              \"bytes\": 951\n            }\n          }\n        ]\n      }\n    ],\n    \"skillOutput\": {\n      \"skillId\": \"summarizeStatus\",\n      \"ok\": true,\n      \"output\": {\n        \"title\": \"status brief for the current project\",\n        \"summary\": \"status brief for the current project\",\n        \"counts\": {\n          \"total\": 3,\n          \"done\": 0,\n          \"blocked\": 0,\n          \"open\": 3\n        },\n        \"highlights\": [\n          \"Riverside Signals fixture\",\n          \"سیگنال‌های فارسی\",\n          \"Riverside Signals Planning\"\n        ],\n        \"generatedAt\": \"2026-01-01T00:00:00.000Z\"\n      }\n    },\n    \"output\": {\n      \"title\": \"status brief for the current project\",\n      \"summary\": \"status brief for the current project\",\n      \"counts\": {\n        \"total\": 3,\n        \"done\": 0,\n        \"blocked\": 0,\n        \"open\": 3\n      },\n      \"highlights\": [\n        \"Riverside Signals fixture\",\n        \"سیگنال‌های فارسی\",\n        \"Riverside Signals Planning\"\n      ],\n      \"generatedAt\": \"2026-01-01T00:00:00.000Z\"\n    }\n  },\n  \"trace\": [\n    {\n      \"step\": \"runtime.receive\",\n      \"status\": \"ok\",\n      \"message\": \"plan\"\n    },\n    {\n      \"step\": \"kernel.validate.systemRequest\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.input\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.plan\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"kernel.validate.taskGraph\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"provider.execute\",\n      \"status\": \"ok\",\n      \"message\": \"local:list\"\n    },\n    {\n      \"step\": \"skill.execute\",\n      \"status\": \"ok\",\n      \"message\": \"summarizeStatus\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "local.brief.human",
+      "surface": "cli",
+      "args": ["brief", "examples/fixtures/project-signals"],
+      "exitCode": 0,
+      "stdout": "OH MY PM plan: ok\nitems: 3 (open 3, blocked 0, done 0)\n- Riverside Signals fixture\n- سیگنال‌های فارسی\n- Riverside Signals Planning\n",
+      "stderr": ""
+    },
+    {
+      "name": "local.brief.mcp",
+      "surface": "mcp",
+      "operation": "brief",
+      "result": {
+        "ok": true,
+        "operation": "brief",
+        "root": "examples/fixtures/project-signals",
+        "documents": {
+          "filesScanned": 3,
+          "filesMatched": 3,
+          "filesExcluded": 0,
+          "filesLoaded": 3,
+          "totalBytes": 2309,
+          "configExists": false
+        },
+        "output": {
+          "title": "status brief for the current project",
+          "summary": "status brief for the current project",
+          "counts": { "total": 3, "done": 0, "blocked": 0, "open": 3 },
+          "highlights": [
+            "Riverside Signals fixture",
+            "سیگنال‌های فارسی",
+            "Riverside Signals Planning"
+          ],
+          "generatedAt": "2026-01-01T00:00:00.000Z"
+        },
+        "markdown": "# OH MY PM Plan\n\n## Status\n\n- Total: 3\n- Open: 3\n- Blocked: 0\n- Done: 0\n\n## Highlights\n\n- Riverside Signals fixture\n- سیگنال‌های فارسی\n- Riverside Signals Planning\n",
+        "runtimeResponse": {
+          "id": "cli-brief",
+          "ok": true,
+          "data": {
+            "plannerInput": {
+              "request": "status brief for the current project",
+              "locale": "en",
+              "context": {
+                "providerRequests": [
+                  { "providerId": "local", "action": "list", "query": "", "limit": 200 }
+                ]
+              }
+            },
+            "plannerResult": {
+              "status": "ok",
+              "graph": {
+                "nodes": [
+                  {
+                    "id": "provider:0:local:list",
+                    "kind": "providerRead",
+                    "title": "Read local context",
+                    "dependsOn": [],
+                    "payload": {
+                      "providerRequest": {
+                        "providerId": "local",
+                        "action": "list",
+                        "query": "",
+                        "limit": 200
+                      }
+                    }
+                  },
+                  {
+                    "id": "plan:status",
+                    "kind": "skillExecution",
+                    "title": "Prepare project status",
+                    "dependsOn": ["provider:0:local:list"],
+                    "payload": {
+                      "intent": "status",
+                      "request": "status brief for the current project",
+                      "locale": "en"
+                    }
+                  }
+                ]
+              }
+            },
+            "graph": {
+              "nodes": [
+                {
+                  "id": "provider:0:local:list",
+                  "kind": "providerRead",
+                  "title": "Read local context",
+                  "dependsOn": [],
+                  "payload": {
+                    "providerRequest": {
+                      "providerId": "local",
+                      "action": "list",
+                      "query": "",
+                      "limit": 200
+                    }
+                  }
+                },
+                {
+                  "id": "plan:status",
+                  "kind": "skillExecution",
+                  "title": "Prepare project status",
+                  "dependsOn": ["provider:0:local:list"],
+                  "payload": {
+                    "intent": "status",
+                    "request": "status brief for the current project",
+                    "locale": "en"
+                  }
+                }
+              ]
+            },
+            "providerResponses": [
+              {
+                "providerId": "local",
+                "items": [
+                  {
+                    "id": "README.md",
+                    "type": "document",
+                    "title": "Riverside Signals fixture",
+                    "source": "local",
+                    "data": {
+                      "path": "README.md",
+                      "content": "# Riverside Signals fixture\n\nA fictional project used to exercise deterministic risk and next-task\nextraction. All names, repositories, and content are invented for testing;\nthere is no real project, person, or private data here.\n\nThe fixture intentionally mixes:\n\n- English and Persian risk headings, action headings, and inline markers\n- blocker and dependency signals\n- a checked (resolved) risk that must be excluded\n- unchecked tasks and an action section\n- Persian next steps\n- a duplicate task line\n- priority markers (`[P0]`, `Critical:`, `بحرانی:`)\n- fenced code blocks whose contents are false positives\n- ordinary prose containing the words \"unblocked\" and \"riskless\"\n",
+                      "bytes": 685
+                    }
+                  },
+                  {
+                    "id": "fa-signals.md",
+                    "type": "document",
+                    "title": "سیگنال‌های فارسی",
+                    "source": "local",
+                    "data": {
+                      "path": "fa-signals.md",
+                      "content": "# سیگنال‌های فارسی\n\nاین پاراگراف متن عادی است و نباید ریسک یا وظیفه‌ای بسازد.\n\n## موانع\n\n- انتشار نسخه به دلیل بازبینی امنیتی مسدود شده است.\n\n## وابستگی‌ها\n\n- تحویل داده‌های نقشه به تیم بیرونی وابسته است.\n\n## اقدامات بعدی\n\n- بازبینی طرح جلد را انجام بده.\n- [ ] فهرست نهایی چاپ را تأیید کن.\n\nاقدام: به تیم پشتیبانی درباره‌ی نسخه‌ی جدید اطلاع بده.\n\nمانع: صدور گواهی هنوز انجام نشده است.\n",
+                      "bytes": 673
+                    }
+                  },
+                  {
+                    "id": "planning.md",
+                    "type": "document",
+                    "title": "Riverside Signals Planning",
+                    "source": "local",
+                    "data": {
+                      "path": "planning.md",
+                      "content": "# Riverside Signals Planning\n\nOrdinary prose: the pipeline is finally unblocked and the plan is riskless in\nits current shape, so this paragraph must not create any risk or task.\n\n## Open Risks\n\n- The staging environment is blocked until the new certificate lands.\n- Analytics ingestion has a dependency on the upstream schema freeze.\n- [ ] Confirm the rollback window with operations.\n- [x] Decommission the legacy exporter.\n\n## Blockers\n\n- Release sign-off is blocked waiting on the compliance review.\n\n## Next Steps\n\n- Draft the migration runbook.\n- Schedule the load test.\n\n## Action Items\n\n- [ ] [P0] Patch the auth regression.\n- [ ] Update the onboarding guide.\n- [ ] Update the onboarding guide.\n\nAction: Notify the beta cohort about the new build.\n\nRisk: The vendor SLA renewal is still unconfirmed.\n\n## Code samples\n\n```\n- [ ] This checkbox lives in a code fence and must be ignored.\nRisk: this marker is inside code and must be ignored.\n```\n",
+                      "bytes": 951
+                    }
+                  }
+                ]
+              }
+            ],
+            "skillOutput": {
+              "skillId": "summarizeStatus",
+              "ok": true,
+              "output": {
+                "title": "status brief for the current project",
+                "summary": "status brief for the current project",
+                "counts": { "total": 3, "done": 0, "blocked": 0, "open": 3 },
+                "highlights": [
+                  "Riverside Signals fixture",
+                  "سیگنال‌های فارسی",
+                  "Riverside Signals Planning"
+                ],
+                "generatedAt": "2026-01-01T00:00:00.000Z"
+              }
+            },
+            "output": {
+              "title": "status brief for the current project",
+              "summary": "status brief for the current project",
+              "counts": { "total": 3, "done": 0, "blocked": 0, "open": 3 },
+              "highlights": [
+                "Riverside Signals fixture",
+                "سیگنال‌های فارسی",
+                "Riverside Signals Planning"
+              ],
+              "generatedAt": "2026-01-01T00:00:00.000Z"
+            }
+          },
+          "trace": [
+            { "step": "runtime.receive", "status": "ok", "message": "plan" },
+            { "step": "kernel.validate.systemRequest", "status": "ok" },
+            { "step": "planner.input", "status": "ok" },
+            { "step": "planner.plan", "status": "ok" },
+            { "step": "kernel.validate.taskGraph", "status": "ok" },
+            { "step": "provider.execute", "status": "ok", "message": "local:list" },
+            { "step": "skill.execute", "status": "ok", "message": "summarizeStatus" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "local.risks.json",
+      "surface": "cli",
+      "args": ["risks", "examples/fixtures/project-signals", "--json"],
+      "exitCode": 0,
+      "stdout": "{\n  \"id\": \"cli-risks\",\n  \"ok\": true,\n  \"data\": {\n    \"plannerInput\": {\n      \"request\": \"review project risks\",\n      \"locale\": \"en\",\n      \"context\": {\n        \"providerRequests\": [\n          {\n            \"providerId\": \"local\",\n            \"action\": \"list\",\n            \"query\": \"\",\n            \"limit\": 200\n          }\n        ]\n      }\n    },\n    \"plannerResult\": {\n      \"status\": \"ok\",\n      \"graph\": {\n        \"nodes\": [\n          {\n            \"id\": \"provider:0:local:list\",\n            \"kind\": \"providerRead\",\n            \"title\": \"Read local context\",\n            \"dependsOn\": [],\n            \"payload\": {\n              \"providerRequest\": {\n                \"providerId\": \"local\",\n                \"action\": \"list\",\n                \"query\": \"\",\n                \"limit\": 200\n              }\n            }\n          },\n          {\n            \"id\": \"plan:riskReview\",\n            \"kind\": \"skillExecution\",\n            \"title\": \"Review project risks\",\n            \"dependsOn\": [\n              \"provider:0:local:list\"\n            ],\n            \"payload\": {\n              \"intent\": \"riskReview\",\n              \"request\": \"review project risks\",\n              \"locale\": \"en\"\n            }\n          }\n        ]\n      }\n    },\n    \"graph\": {\n      \"nodes\": [\n        {\n          \"id\": \"provider:0:local:list\",\n          \"kind\": \"providerRead\",\n          \"title\": \"Read local context\",\n          \"dependsOn\": [],\n          \"payload\": {\n            \"providerRequest\": {\n              \"providerId\": \"local\",\n              \"action\": \"list\",\n              \"query\": \"\",\n              \"limit\": 200\n            }\n          }\n        },\n        {\n          \"id\": \"plan:riskReview\",\n          \"kind\": \"skillExecution\",\n          \"title\": \"Review project risks\",\n          \"dependsOn\": [\n            \"provider:0:local:list\"\n          ],\n          \"payload\": {\n            \"intent\": \"riskReview\",\n            \"request\": \"review project risks\",\n            \"locale\": \"en\"\n          }\n        }\n      ]\n    },\n    \"providerResponses\": [\n      {\n        \"providerId\": \"local\",\n        \"items\": [\n          {\n            \"id\": \"README.md\",\n            \"type\": \"document\",\n            \"title\": \"Riverside Signals fixture\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"README.md\",\n              \"content\": \"# Riverside Signals fixture\\n\\nA fictional project used to exercise deterministic risk and next-task\\nextraction. All names, repositories, and content are invented for testing;\\nthere is no real project, person, or private data here.\\n\\nThe fixture intentionally mixes:\\n\\n- English and Persian risk headings, action headings, and inline markers\\n- blocker and dependency signals\\n- a checked (resolved) risk that must be excluded\\n- unchecked tasks and an action section\\n- Persian next steps\\n- a duplicate task line\\n- priority markers (`[P0]`, `Critical:`, `بحرانی:`)\\n- fenced code blocks whose contents are false positives\\n- ordinary prose containing the words \\\"unblocked\\\" and \\\"riskless\\\"\\n\",\n              \"bytes\": 685\n            }\n          },\n          {\n            \"id\": \"fa-signals.md\",\n            \"type\": \"document\",\n            \"title\": \"سیگنال‌های فارسی\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"fa-signals.md\",\n              \"content\": \"# سیگنال‌های فارسی\\n\\nاین پاراگراف متن عادی است و نباید ریسک یا وظیفه‌ای بسازد.\\n\\n## موانع\\n\\n- انتشار نسخه به دلیل بازبینی امنیتی مسدود شده است.\\n\\n## وابستگی‌ها\\n\\n- تحویل داده‌های نقشه به تیم بیرونی وابسته است.\\n\\n## اقدامات بعدی\\n\\n- بازبینی طرح جلد را انجام بده.\\n- [ ] فهرست نهایی چاپ را تأیید کن.\\n\\nاقدام: به تیم پشتیبانی درباره‌ی نسخه‌ی جدید اطلاع بده.\\n\\nمانع: صدور گواهی هنوز انجام نشده است.\\n\",\n              \"bytes\": 673\n            }\n          },\n          {\n            \"id\": \"planning.md\",\n            \"type\": \"document\",\n            \"title\": \"Riverside Signals Planning\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"planning.md\",\n              \"content\": \"# Riverside Signals Planning\\n\\nOrdinary prose: the pipeline is finally unblocked and the plan is riskless in\\nits current shape, so this paragraph must not create any risk or task.\\n\\n## Open Risks\\n\\n- The staging environment is blocked until the new certificate lands.\\n- Analytics ingestion has a dependency on the upstream schema freeze.\\n- [ ] Confirm the rollback window with operations.\\n- [x] Decommission the legacy exporter.\\n\\n## Blockers\\n\\n- Release sign-off is blocked waiting on the compliance review.\\n\\n## Next Steps\\n\\n- Draft the migration runbook.\\n- Schedule the load test.\\n\\n## Action Items\\n\\n- [ ] [P0] Patch the auth regression.\\n- [ ] Update the onboarding guide.\\n- [ ] Update the onboarding guide.\\n\\nAction: Notify the beta cohort about the new build.\\n\\nRisk: The vendor SLA renewal is still unconfirmed.\\n\\n## Code samples\\n\\n```\\n- [ ] This checkbox lives in a code fence and must be ignored.\\nRisk: this marker is inside code and must be ignored.\\n```\\n\",\n              \"bytes\": 951\n            }\n          }\n        ]\n      }\n    ],\n    \"skillOutput\": {\n      \"skillId\": \"extractRisks\",\n      \"ok\": true,\n      \"output\": {\n        \"risks\": [\n          {\n            \"id\": \"fa-signals.md#risk-2\",\n            \"title\": \"انتشار نسخه به دلیل بازبینی امنیتی مسدود شده است.\",\n            \"severity\": \"high\",\n            \"reason\": \"markdown_heading:blockers\",\n            \"source\": \"markdown\"\n          },\n          {\n            \"id\": \"fa-signals.md#risk-7\",\n            \"title\": \"صدور گواهی هنوز انجام نشده است.\",\n            \"severity\": \"high\",\n            \"reason\": \"markdown_marker:blocker\",\n            \"source\": \"markdown\"\n          },\n          {\n            \"id\": \"planning.md#risk-2\",\n            \"title\": \"The staging environment is blocked until the new certificate lands.\",\n            \"severity\": \"medium\",\n            \"reason\": \"markdown_heading:risks\",\n            \"source\": \"markdown\"\n          },\n          {\n            \"id\": \"planning.md#risk-3\",\n            \"title\": \"Analytics ingestion has a dependency on the upstream schema freeze.\",\n            \"severity\": \"medium\",\n            \"reason\": \"markdown_heading:risks\",\n            \"source\": \"markdown\"\n          },\n          {\n            \"id\": \"planning.md#risk-4\",\n            \"title\": \"Confirm the rollback window with operations.\",\n            \"severity\": \"medium\",\n            \"reason\": \"markdown_heading:risks\",\n            \"source\": \"markdown\"\n          },\n          {\n            \"id\": \"planning.md#risk-6\",\n            \"title\": \"Release sign-off is blocked waiting on the compliance review.\",\n            \"severity\": \"high\",\n            \"reason\": \"markdown_heading:blockers\",\n            \"source\": \"markdown\"\n          },\n          {\n            \"id\": \"planning.md#risk-13\",\n            \"title\": \"The vendor SLA renewal is still unconfirmed.\",\n            \"severity\": \"medium\",\n            \"reason\": \"markdown_marker:risk\",\n            \"source\": \"markdown\"\n          }\n        ]\n      }\n    },\n    \"output\": {\n      \"risks\": [\n        {\n          \"id\": \"fa-signals.md#risk-2\",\n          \"title\": \"انتشار نسخه به دلیل بازبینی امنیتی مسدود شده است.\",\n          \"severity\": \"high\",\n          \"reason\": \"markdown_heading:blockers\",\n          \"source\": \"markdown\"\n        },\n        {\n          \"id\": \"fa-signals.md#risk-7\",\n          \"title\": \"صدور گواهی هنوز انجام نشده است.\",\n          \"severity\": \"high\",\n          \"reason\": \"markdown_marker:blocker\",\n          \"source\": \"markdown\"\n        },\n        {\n          \"id\": \"planning.md#risk-2\",\n          \"title\": \"The staging environment is blocked until the new certificate lands.\",\n          \"severity\": \"medium\",\n          \"reason\": \"markdown_heading:risks\",\n          \"source\": \"markdown\"\n        },\n        {\n          \"id\": \"planning.md#risk-3\",\n          \"title\": \"Analytics ingestion has a dependency on the upstream schema freeze.\",\n          \"severity\": \"medium\",\n          \"reason\": \"markdown_heading:risks\",\n          \"source\": \"markdown\"\n        },\n        {\n          \"id\": \"planning.md#risk-4\",\n          \"title\": \"Confirm the rollback window with operations.\",\n          \"severity\": \"medium\",\n          \"reason\": \"markdown_heading:risks\",\n          \"source\": \"markdown\"\n        },\n        {\n          \"id\": \"planning.md#risk-6\",\n          \"title\": \"Release sign-off is blocked waiting on the compliance review.\",\n          \"severity\": \"high\",\n          \"reason\": \"markdown_heading:blockers\",\n          \"source\": \"markdown\"\n        },\n        {\n          \"id\": \"planning.md#risk-13\",\n          \"title\": \"The vendor SLA renewal is still unconfirmed.\",\n          \"severity\": \"medium\",\n          \"reason\": \"markdown_marker:risk\",\n          \"source\": \"markdown\"\n        }\n      ]\n    }\n  },\n  \"trace\": [\n    {\n      \"step\": \"runtime.receive\",\n      \"status\": \"ok\",\n      \"message\": \"plan\"\n    },\n    {\n      \"step\": \"kernel.validate.systemRequest\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.input\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.plan\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"kernel.validate.taskGraph\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"provider.execute\",\n      \"status\": \"ok\",\n      \"message\": \"local:list\"\n    },\n    {\n      \"step\": \"skill.execute\",\n      \"status\": \"ok\",\n      \"message\": \"extractRisks\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "local.risks.human",
+      "surface": "cli",
+      "args": ["risks", "examples/fixtures/project-signals"],
+      "exitCode": 0,
+      "stdout": "OH MY PM risks: 7\n- [high] انتشار نسخه به دلیل بازبینی امنیتی مسدود شده است. — markdown_heading:blockers\n- [high] صدور گواهی هنوز انجام نشده است. — markdown_marker:blocker\n- [medium] The staging environment is blocked until the new certificate lands. — markdown_heading:risks\n- [medium] Analytics ingestion has a dependency on the upstream schema freeze. — markdown_heading:risks\n- [medium] Confirm the rollback window with operations. — markdown_heading:risks\n- [high] Release sign-off is blocked waiting on the compliance review. — markdown_heading:blockers\n- [medium] The vendor SLA renewal is still unconfirmed. — markdown_marker:risk\n",
+      "stderr": ""
+    },
+    {
+      "name": "local.risks.mcp",
+      "surface": "mcp",
+      "operation": "risks",
+      "result": {
+        "ok": true,
+        "operation": "risks",
+        "root": "examples/fixtures/project-signals",
+        "documents": {
+          "filesScanned": 3,
+          "filesMatched": 3,
+          "filesExcluded": 0,
+          "filesLoaded": 3,
+          "totalBytes": 2309,
+          "configExists": false
+        },
+        "output": {
+          "risks": [
+            {
+              "id": "fa-signals.md#risk-2",
+              "title": "انتشار نسخه به دلیل بازبینی امنیتی مسدود شده است.",
+              "severity": "high",
+              "reason": "markdown_heading:blockers",
+              "source": "markdown"
+            },
+            {
+              "id": "fa-signals.md#risk-7",
+              "title": "صدور گواهی هنوز انجام نشده است.",
+              "severity": "high",
+              "reason": "markdown_marker:blocker",
+              "source": "markdown"
+            },
+            {
+              "id": "planning.md#risk-2",
+              "title": "The staging environment is blocked until the new certificate lands.",
+              "severity": "medium",
+              "reason": "markdown_heading:risks",
+              "source": "markdown"
+            },
+            {
+              "id": "planning.md#risk-3",
+              "title": "Analytics ingestion has a dependency on the upstream schema freeze.",
+              "severity": "medium",
+              "reason": "markdown_heading:risks",
+              "source": "markdown"
+            },
+            {
+              "id": "planning.md#risk-4",
+              "title": "Confirm the rollback window with operations.",
+              "severity": "medium",
+              "reason": "markdown_heading:risks",
+              "source": "markdown"
+            },
+            {
+              "id": "planning.md#risk-6",
+              "title": "Release sign-off is blocked waiting on the compliance review.",
+              "severity": "high",
+              "reason": "markdown_heading:blockers",
+              "source": "markdown"
+            },
+            {
+              "id": "planning.md#risk-13",
+              "title": "The vendor SLA renewal is still unconfirmed.",
+              "severity": "medium",
+              "reason": "markdown_marker:risk",
+              "source": "markdown"
+            }
+          ]
+        },
+        "markdown": "# OH MY PM Project Risks\n\n## Summary\n\n- Total: 7\n- High: 3\n- Medium: 4\n- Low: 0\n\n## Risks\n\n- **high** — انتشار نسخه به دلیل بازبینی امنیتی مسدود شده است. — `markdown_heading:blockers`\n- **high** — صدور گواهی هنوز انجام نشده است. — `markdown_marker:blocker`\n- **medium** — The staging environment is blocked until the new certificate lands. — `markdown_heading:risks`\n- **medium** — Analytics ingestion has a dependency on the upstream schema freeze. — `markdown_heading:risks`\n- **medium** — Confirm the rollback window with operations. — `markdown_heading:risks`\n- **high** — Release sign-off is blocked waiting on the compliance review. — `markdown_heading:blockers`\n- **medium** — The vendor SLA renewal is still unconfirmed. — `markdown_marker:risk`\n",
+        "runtimeResponse": {
+          "id": "cli-risks",
+          "ok": true,
+          "data": {
+            "plannerInput": {
+              "request": "review project risks",
+              "locale": "en",
+              "context": {
+                "providerRequests": [
+                  { "providerId": "local", "action": "list", "query": "", "limit": 200 }
+                ]
+              }
+            },
+            "plannerResult": {
+              "status": "ok",
+              "graph": {
+                "nodes": [
+                  {
+                    "id": "provider:0:local:list",
+                    "kind": "providerRead",
+                    "title": "Read local context",
+                    "dependsOn": [],
+                    "payload": {
+                      "providerRequest": {
+                        "providerId": "local",
+                        "action": "list",
+                        "query": "",
+                        "limit": 200
+                      }
+                    }
+                  },
+                  {
+                    "id": "plan:riskReview",
+                    "kind": "skillExecution",
+                    "title": "Review project risks",
+                    "dependsOn": ["provider:0:local:list"],
+                    "payload": {
+                      "intent": "riskReview",
+                      "request": "review project risks",
+                      "locale": "en"
+                    }
+                  }
+                ]
+              }
+            },
+            "graph": {
+              "nodes": [
+                {
+                  "id": "provider:0:local:list",
+                  "kind": "providerRead",
+                  "title": "Read local context",
+                  "dependsOn": [],
+                  "payload": {
+                    "providerRequest": {
+                      "providerId": "local",
+                      "action": "list",
+                      "query": "",
+                      "limit": 200
+                    }
+                  }
+                },
+                {
+                  "id": "plan:riskReview",
+                  "kind": "skillExecution",
+                  "title": "Review project risks",
+                  "dependsOn": ["provider:0:local:list"],
+                  "payload": {
+                    "intent": "riskReview",
+                    "request": "review project risks",
+                    "locale": "en"
+                  }
+                }
+              ]
+            },
+            "providerResponses": [
+              {
+                "providerId": "local",
+                "items": [
+                  {
+                    "id": "README.md",
+                    "type": "document",
+                    "title": "Riverside Signals fixture",
+                    "source": "local",
+                    "data": {
+                      "path": "README.md",
+                      "content": "# Riverside Signals fixture\n\nA fictional project used to exercise deterministic risk and next-task\nextraction. All names, repositories, and content are invented for testing;\nthere is no real project, person, or private data here.\n\nThe fixture intentionally mixes:\n\n- English and Persian risk headings, action headings, and inline markers\n- blocker and dependency signals\n- a checked (resolved) risk that must be excluded\n- unchecked tasks and an action section\n- Persian next steps\n- a duplicate task line\n- priority markers (`[P0]`, `Critical:`, `بحرانی:`)\n- fenced code blocks whose contents are false positives\n- ordinary prose containing the words \"unblocked\" and \"riskless\"\n",
+                      "bytes": 685
+                    }
+                  },
+                  {
+                    "id": "fa-signals.md",
+                    "type": "document",
+                    "title": "سیگنال‌های فارسی",
+                    "source": "local",
+                    "data": {
+                      "path": "fa-signals.md",
+                      "content": "# سیگنال‌های فارسی\n\nاین پاراگراف متن عادی است و نباید ریسک یا وظیفه‌ای بسازد.\n\n## موانع\n\n- انتشار نسخه به دلیل بازبینی امنیتی مسدود شده است.\n\n## وابستگی‌ها\n\n- تحویل داده‌های نقشه به تیم بیرونی وابسته است.\n\n## اقدامات بعدی\n\n- بازبینی طرح جلد را انجام بده.\n- [ ] فهرست نهایی چاپ را تأیید کن.\n\nاقدام: به تیم پشتیبانی درباره‌ی نسخه‌ی جدید اطلاع بده.\n\nمانع: صدور گواهی هنوز انجام نشده است.\n",
+                      "bytes": 673
+                    }
+                  },
+                  {
+                    "id": "planning.md",
+                    "type": "document",
+                    "title": "Riverside Signals Planning",
+                    "source": "local",
+                    "data": {
+                      "path": "planning.md",
+                      "content": "# Riverside Signals Planning\n\nOrdinary prose: the pipeline is finally unblocked and the plan is riskless in\nits current shape, so this paragraph must not create any risk or task.\n\n## Open Risks\n\n- The staging environment is blocked until the new certificate lands.\n- Analytics ingestion has a dependency on the upstream schema freeze.\n- [ ] Confirm the rollback window with operations.\n- [x] Decommission the legacy exporter.\n\n## Blockers\n\n- Release sign-off is blocked waiting on the compliance review.\n\n## Next Steps\n\n- Draft the migration runbook.\n- Schedule the load test.\n\n## Action Items\n\n- [ ] [P0] Patch the auth regression.\n- [ ] Update the onboarding guide.\n- [ ] Update the onboarding guide.\n\nAction: Notify the beta cohort about the new build.\n\nRisk: The vendor SLA renewal is still unconfirmed.\n\n## Code samples\n\n```\n- [ ] This checkbox lives in a code fence and must be ignored.\nRisk: this marker is inside code and must be ignored.\n```\n",
+                      "bytes": 951
+                    }
+                  }
+                ]
+              }
+            ],
+            "skillOutput": {
+              "skillId": "extractRisks",
+              "ok": true,
+              "output": {
+                "risks": [
+                  {
+                    "id": "fa-signals.md#risk-2",
+                    "title": "انتشار نسخه به دلیل بازبینی امنیتی مسدود شده است.",
+                    "severity": "high",
+                    "reason": "markdown_heading:blockers",
+                    "source": "markdown"
+                  },
+                  {
+                    "id": "fa-signals.md#risk-7",
+                    "title": "صدور گواهی هنوز انجام نشده است.",
+                    "severity": "high",
+                    "reason": "markdown_marker:blocker",
+                    "source": "markdown"
+                  },
+                  {
+                    "id": "planning.md#risk-2",
+                    "title": "The staging environment is blocked until the new certificate lands.",
+                    "severity": "medium",
+                    "reason": "markdown_heading:risks",
+                    "source": "markdown"
+                  },
+                  {
+                    "id": "planning.md#risk-3",
+                    "title": "Analytics ingestion has a dependency on the upstream schema freeze.",
+                    "severity": "medium",
+                    "reason": "markdown_heading:risks",
+                    "source": "markdown"
+                  },
+                  {
+                    "id": "planning.md#risk-4",
+                    "title": "Confirm the rollback window with operations.",
+                    "severity": "medium",
+                    "reason": "markdown_heading:risks",
+                    "source": "markdown"
+                  },
+                  {
+                    "id": "planning.md#risk-6",
+                    "title": "Release sign-off is blocked waiting on the compliance review.",
+                    "severity": "high",
+                    "reason": "markdown_heading:blockers",
+                    "source": "markdown"
+                  },
+                  {
+                    "id": "planning.md#risk-13",
+                    "title": "The vendor SLA renewal is still unconfirmed.",
+                    "severity": "medium",
+                    "reason": "markdown_marker:risk",
+                    "source": "markdown"
+                  }
+                ]
+              }
+            },
+            "output": {
+              "risks": [
+                {
+                  "id": "fa-signals.md#risk-2",
+                  "title": "انتشار نسخه به دلیل بازبینی امنیتی مسدود شده است.",
+                  "severity": "high",
+                  "reason": "markdown_heading:blockers",
+                  "source": "markdown"
+                },
+                {
+                  "id": "fa-signals.md#risk-7",
+                  "title": "صدور گواهی هنوز انجام نشده است.",
+                  "severity": "high",
+                  "reason": "markdown_marker:blocker",
+                  "source": "markdown"
+                },
+                {
+                  "id": "planning.md#risk-2",
+                  "title": "The staging environment is blocked until the new certificate lands.",
+                  "severity": "medium",
+                  "reason": "markdown_heading:risks",
+                  "source": "markdown"
+                },
+                {
+                  "id": "planning.md#risk-3",
+                  "title": "Analytics ingestion has a dependency on the upstream schema freeze.",
+                  "severity": "medium",
+                  "reason": "markdown_heading:risks",
+                  "source": "markdown"
+                },
+                {
+                  "id": "planning.md#risk-4",
+                  "title": "Confirm the rollback window with operations.",
+                  "severity": "medium",
+                  "reason": "markdown_heading:risks",
+                  "source": "markdown"
+                },
+                {
+                  "id": "planning.md#risk-6",
+                  "title": "Release sign-off is blocked waiting on the compliance review.",
+                  "severity": "high",
+                  "reason": "markdown_heading:blockers",
+                  "source": "markdown"
+                },
+                {
+                  "id": "planning.md#risk-13",
+                  "title": "The vendor SLA renewal is still unconfirmed.",
+                  "severity": "medium",
+                  "reason": "markdown_marker:risk",
+                  "source": "markdown"
+                }
+              ]
+            }
+          },
+          "trace": [
+            { "step": "runtime.receive", "status": "ok", "message": "plan" },
+            { "step": "kernel.validate.systemRequest", "status": "ok" },
+            { "step": "planner.input", "status": "ok" },
+            { "step": "planner.plan", "status": "ok" },
+            { "step": "kernel.validate.taskGraph", "status": "ok" },
+            { "step": "provider.execute", "status": "ok", "message": "local:list" },
+            { "step": "skill.execute", "status": "ok", "message": "extractRisks" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "local.next.json",
+      "surface": "cli",
+      "args": ["next", "examples/fixtures/project-signals", "--json"],
+      "exitCode": 0,
+      "stdout": "{\n  \"id\": \"cli-next\",\n  \"ok\": true,\n  \"data\": {\n    \"plannerInput\": {\n      \"request\": \"derive next project tasks\",\n      \"locale\": \"en\",\n      \"context\": {\n        \"providerRequests\": [\n          {\n            \"providerId\": \"local\",\n            \"action\": \"list\",\n            \"query\": \"\",\n            \"limit\": 200\n          }\n        ]\n      }\n    },\n    \"plannerResult\": {\n      \"status\": \"ok\",\n      \"graph\": {\n        \"nodes\": [\n          {\n            \"id\": \"provider:0:local:list\",\n            \"kind\": \"providerRead\",\n            \"title\": \"Read local context\",\n            \"dependsOn\": [],\n            \"payload\": {\n              \"providerRequest\": {\n                \"providerId\": \"local\",\n                \"action\": \"list\",\n                \"query\": \"\",\n                \"limit\": 200\n              }\n            }\n          },\n          {\n            \"id\": \"plan:nextTask\",\n            \"kind\": \"skillExecution\",\n            \"title\": \"Derive next tasks\",\n            \"dependsOn\": [\n              \"provider:0:local:list\"\n            ],\n            \"payload\": {\n              \"intent\": \"nextTask\",\n              \"request\": \"derive next project tasks\",\n              \"locale\": \"en\"\n            }\n          }\n        ]\n      }\n    },\n    \"graph\": {\n      \"nodes\": [\n        {\n          \"id\": \"provider:0:local:list\",\n          \"kind\": \"providerRead\",\n          \"title\": \"Read local context\",\n          \"dependsOn\": [],\n          \"payload\": {\n            \"providerRequest\": {\n              \"providerId\": \"local\",\n              \"action\": \"list\",\n              \"query\": \"\",\n              \"limit\": 200\n            }\n          }\n        },\n        {\n          \"id\": \"plan:nextTask\",\n          \"kind\": \"skillExecution\",\n          \"title\": \"Derive next tasks\",\n          \"dependsOn\": [\n            \"provider:0:local:list\"\n          ],\n          \"payload\": {\n            \"intent\": \"nextTask\",\n            \"request\": \"derive next project tasks\",\n            \"locale\": \"en\"\n          }\n        }\n      ]\n    },\n    \"providerResponses\": [\n      {\n        \"providerId\": \"local\",\n        \"items\": [\n          {\n            \"id\": \"README.md\",\n            \"type\": \"document\",\n            \"title\": \"Riverside Signals fixture\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"README.md\",\n              \"content\": \"# Riverside Signals fixture\\n\\nA fictional project used to exercise deterministic risk and next-task\\nextraction. All names, repositories, and content are invented for testing;\\nthere is no real project, person, or private data here.\\n\\nThe fixture intentionally mixes:\\n\\n- English and Persian risk headings, action headings, and inline markers\\n- blocker and dependency signals\\n- a checked (resolved) risk that must be excluded\\n- unchecked tasks and an action section\\n- Persian next steps\\n- a duplicate task line\\n- priority markers (`[P0]`, `Critical:`, `بحرانی:`)\\n- fenced code blocks whose contents are false positives\\n- ordinary prose containing the words \\\"unblocked\\\" and \\\"riskless\\\"\\n\",\n              \"bytes\": 685\n            }\n          },\n          {\n            \"id\": \"fa-signals.md\",\n            \"type\": \"document\",\n            \"title\": \"سیگنال‌های فارسی\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"fa-signals.md\",\n              \"content\": \"# سیگنال‌های فارسی\\n\\nاین پاراگراف متن عادی است و نباید ریسک یا وظیفه‌ای بسازد.\\n\\n## موانع\\n\\n- انتشار نسخه به دلیل بازبینی امنیتی مسدود شده است.\\n\\n## وابستگی‌ها\\n\\n- تحویل داده‌های نقشه به تیم بیرونی وابسته است.\\n\\n## اقدامات بعدی\\n\\n- بازبینی طرح جلد را انجام بده.\\n- [ ] فهرست نهایی چاپ را تأیید کن.\\n\\nاقدام: به تیم پشتیبانی درباره‌ی نسخه‌ی جدید اطلاع بده.\\n\\nمانع: صدور گواهی هنوز انجام نشده است.\\n\",\n              \"bytes\": 673\n            }\n          },\n          {\n            \"id\": \"planning.md\",\n            \"type\": \"document\",\n            \"title\": \"Riverside Signals Planning\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"planning.md\",\n              \"content\": \"# Riverside Signals Planning\\n\\nOrdinary prose: the pipeline is finally unblocked and the plan is riskless in\\nits current shape, so this paragraph must not create any risk or task.\\n\\n## Open Risks\\n\\n- The staging environment is blocked until the new certificate lands.\\n- Analytics ingestion has a dependency on the upstream schema freeze.\\n- [ ] Confirm the rollback window with operations.\\n- [x] Decommission the legacy exporter.\\n\\n## Blockers\\n\\n- Release sign-off is blocked waiting on the compliance review.\\n\\n## Next Steps\\n\\n- Draft the migration runbook.\\n- Schedule the load test.\\n\\n## Action Items\\n\\n- [ ] [P0] Patch the auth regression.\\n- [ ] Update the onboarding guide.\\n- [ ] Update the onboarding guide.\\n\\nAction: Notify the beta cohort about the new build.\\n\\nRisk: The vendor SLA renewal is still unconfirmed.\\n\\n## Code samples\\n\\n```\\n- [ ] This checkbox lives in a code fence and must be ignored.\\nRisk: this marker is inside code and must be ignored.\\n```\\n\",\n              \"bytes\": 951\n            }\n          }\n        ]\n      }\n    ],\n    \"skillOutput\": {\n      \"skillId\": \"deriveNextTasks\",\n      \"ok\": true,\n      \"output\": {\n        \"tasks\": [\n          {\n            \"id\": \"fa-signals.md#action-4\",\n            \"title\": \"بازبینی طرح جلد را انجام بده.\",\n            \"reason\": \"markdown_heading:next_steps\",\n            \"source\": \"markdown\"\n          },\n          {\n            \"id\": \"fa-signals.md#task-5\",\n            \"title\": \"فهرست نهایی چاپ را تأیید کن.\",\n            \"reason\": \"markdown_unchecked_task\",\n            \"source\": \"markdown\"\n          },\n          {\n            \"id\": \"fa-signals.md#action-6\",\n            \"title\": \"به تیم پشتیبانی درباره‌ی نسخه‌ی جدید اطلاع بده.\",\n            \"reason\": \"markdown_marker:action\",\n            \"source\": \"markdown\"\n          },\n          {\n            \"id\": \"planning.md#action-7\",\n            \"title\": \"Draft the migration runbook.\",\n            \"reason\": \"markdown_heading:next_steps\",\n            \"source\": \"markdown\"\n          },\n          {\n            \"id\": \"planning.md#action-8\",\n            \"title\": \"Schedule the load test.\",\n            \"reason\": \"markdown_heading:next_steps\",\n            \"source\": \"markdown\"\n          },\n          {\n            \"id\": \"planning.md#task-9\",\n            \"title\": \"Patch the auth regression.\",\n            \"reason\": \"markdown_unchecked_task\",\n            \"source\": \"markdown\",\n            \"priority\": \"high\"\n          },\n          {\n            \"id\": \"planning.md#task-10\",\n            \"title\": \"Update the onboarding guide.\",\n            \"reason\": \"markdown_unchecked_task\",\n            \"source\": \"markdown\"\n          },\n          {\n            \"id\": \"planning.md#action-12\",\n            \"title\": \"Notify the beta cohort about the new build.\",\n            \"reason\": \"markdown_marker:action\",\n            \"source\": \"markdown\"\n          }\n        ]\n      }\n    },\n    \"output\": {\n      \"tasks\": [\n        {\n          \"id\": \"fa-signals.md#action-4\",\n          \"title\": \"بازبینی طرح جلد را انجام بده.\",\n          \"reason\": \"markdown_heading:next_steps\",\n          \"source\": \"markdown\"\n        },\n        {\n          \"id\": \"fa-signals.md#task-5\",\n          \"title\": \"فهرست نهایی چاپ را تأیید کن.\",\n          \"reason\": \"markdown_unchecked_task\",\n          \"source\": \"markdown\"\n        },\n        {\n          \"id\": \"fa-signals.md#action-6\",\n          \"title\": \"به تیم پشتیبانی درباره‌ی نسخه‌ی جدید اطلاع بده.\",\n          \"reason\": \"markdown_marker:action\",\n          \"source\": \"markdown\"\n        },\n        {\n          \"id\": \"planning.md#action-7\",\n          \"title\": \"Draft the migration runbook.\",\n          \"reason\": \"markdown_heading:next_steps\",\n          \"source\": \"markdown\"\n        },\n        {\n          \"id\": \"planning.md#action-8\",\n          \"title\": \"Schedule the load test.\",\n          \"reason\": \"markdown_heading:next_steps\",\n          \"source\": \"markdown\"\n        },\n        {\n          \"id\": \"planning.md#task-9\",\n          \"title\": \"Patch the auth regression.\",\n          \"reason\": \"markdown_unchecked_task\",\n          \"source\": \"markdown\",\n          \"priority\": \"high\"\n        },\n        {\n          \"id\": \"planning.md#task-10\",\n          \"title\": \"Update the onboarding guide.\",\n          \"reason\": \"markdown_unchecked_task\",\n          \"source\": \"markdown\"\n        },\n        {\n          \"id\": \"planning.md#action-12\",\n          \"title\": \"Notify the beta cohort about the new build.\",\n          \"reason\": \"markdown_marker:action\",\n          \"source\": \"markdown\"\n        }\n      ]\n    }\n  },\n  \"trace\": [\n    {\n      \"step\": \"runtime.receive\",\n      \"status\": \"ok\",\n      \"message\": \"plan\"\n    },\n    {\n      \"step\": \"kernel.validate.systemRequest\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.input\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.plan\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"kernel.validate.taskGraph\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"provider.execute\",\n      \"status\": \"ok\",\n      \"message\": \"local:list\"\n    },\n    {\n      \"step\": \"skill.execute\",\n      \"status\": \"ok\",\n      \"message\": \"deriveNextTasks\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "local.next.human",
+      "surface": "cli",
+      "args": ["next", "examples/fixtures/project-signals"],
+      "exitCode": 0,
+      "stdout": "OH MY PM next: 8\n- بازبینی طرح جلد را انجام بده. — markdown_heading:next_steps\n- فهرست نهایی چاپ را تأیید کن. — markdown_unchecked_task\n- به تیم پشتیبانی درباره‌ی نسخه‌ی جدید اطلاع بده. — markdown_marker:action\n- Draft the migration runbook. — markdown_heading:next_steps\n- Schedule the load test. — markdown_heading:next_steps\n- [high] Patch the auth regression. — markdown_unchecked_task\n- Update the onboarding guide. — markdown_unchecked_task\n- Notify the beta cohort about the new build. — markdown_marker:action\n",
+      "stderr": ""
+    },
+    {
+      "name": "local.next.mcp",
+      "surface": "mcp",
+      "operation": "next",
+      "result": {
+        "ok": true,
+        "operation": "next",
+        "root": "examples/fixtures/project-signals",
+        "documents": {
+          "filesScanned": 3,
+          "filesMatched": 3,
+          "filesExcluded": 0,
+          "filesLoaded": 3,
+          "totalBytes": 2309,
+          "configExists": false
+        },
+        "output": {
+          "tasks": [
+            {
+              "id": "fa-signals.md#action-4",
+              "title": "بازبینی طرح جلد را انجام بده.",
+              "reason": "markdown_heading:next_steps",
+              "source": "markdown"
+            },
+            {
+              "id": "fa-signals.md#task-5",
+              "title": "فهرست نهایی چاپ را تأیید کن.",
+              "reason": "markdown_unchecked_task",
+              "source": "markdown"
+            },
+            {
+              "id": "fa-signals.md#action-6",
+              "title": "به تیم پشتیبانی درباره‌ی نسخه‌ی جدید اطلاع بده.",
+              "reason": "markdown_marker:action",
+              "source": "markdown"
+            },
+            {
+              "id": "planning.md#action-7",
+              "title": "Draft the migration runbook.",
+              "reason": "markdown_heading:next_steps",
+              "source": "markdown"
+            },
+            {
+              "id": "planning.md#action-8",
+              "title": "Schedule the load test.",
+              "reason": "markdown_heading:next_steps",
+              "source": "markdown"
+            },
+            {
+              "id": "planning.md#task-9",
+              "title": "Patch the auth regression.",
+              "reason": "markdown_unchecked_task",
+              "source": "markdown",
+              "priority": "high"
+            },
+            {
+              "id": "planning.md#task-10",
+              "title": "Update the onboarding guide.",
+              "reason": "markdown_unchecked_task",
+              "source": "markdown"
+            },
+            {
+              "id": "planning.md#action-12",
+              "title": "Notify the beta cohort about the new build.",
+              "reason": "markdown_marker:action",
+              "source": "markdown"
+            }
+          ]
+        },
+        "markdown": "# OH MY PM Next Tasks\n\n## Summary\n\n- Total: 8\n\n## Tasks\n\n- بازبینی طرح جلد را انجام بده. — `markdown_heading:next_steps`\n- فهرست نهایی چاپ را تأیید کن. — `markdown_unchecked_task`\n- به تیم پشتیبانی درباره‌ی نسخه‌ی جدید اطلاع بده. — `markdown_marker:action`\n- Draft the migration runbook. — `markdown_heading:next_steps`\n- Schedule the load test. — `markdown_heading:next_steps`\n- **high** — Patch the auth regression. — `markdown_unchecked_task`\n- Update the onboarding guide. — `markdown_unchecked_task`\n- Notify the beta cohort about the new build. — `markdown_marker:action`\n",
+        "runtimeResponse": {
+          "id": "cli-next",
+          "ok": true,
+          "data": {
+            "plannerInput": {
+              "request": "derive next project tasks",
+              "locale": "en",
+              "context": {
+                "providerRequests": [
+                  { "providerId": "local", "action": "list", "query": "", "limit": 200 }
+                ]
+              }
+            },
+            "plannerResult": {
+              "status": "ok",
+              "graph": {
+                "nodes": [
+                  {
+                    "id": "provider:0:local:list",
+                    "kind": "providerRead",
+                    "title": "Read local context",
+                    "dependsOn": [],
+                    "payload": {
+                      "providerRequest": {
+                        "providerId": "local",
+                        "action": "list",
+                        "query": "",
+                        "limit": 200
+                      }
+                    }
+                  },
+                  {
+                    "id": "plan:nextTask",
+                    "kind": "skillExecution",
+                    "title": "Derive next tasks",
+                    "dependsOn": ["provider:0:local:list"],
+                    "payload": {
+                      "intent": "nextTask",
+                      "request": "derive next project tasks",
+                      "locale": "en"
+                    }
+                  }
+                ]
+              }
+            },
+            "graph": {
+              "nodes": [
+                {
+                  "id": "provider:0:local:list",
+                  "kind": "providerRead",
+                  "title": "Read local context",
+                  "dependsOn": [],
+                  "payload": {
+                    "providerRequest": {
+                      "providerId": "local",
+                      "action": "list",
+                      "query": "",
+                      "limit": 200
+                    }
+                  }
+                },
+                {
+                  "id": "plan:nextTask",
+                  "kind": "skillExecution",
+                  "title": "Derive next tasks",
+                  "dependsOn": ["provider:0:local:list"],
+                  "payload": {
+                    "intent": "nextTask",
+                    "request": "derive next project tasks",
+                    "locale": "en"
+                  }
+                }
+              ]
+            },
+            "providerResponses": [
+              {
+                "providerId": "local",
+                "items": [
+                  {
+                    "id": "README.md",
+                    "type": "document",
+                    "title": "Riverside Signals fixture",
+                    "source": "local",
+                    "data": {
+                      "path": "README.md",
+                      "content": "# Riverside Signals fixture\n\nA fictional project used to exercise deterministic risk and next-task\nextraction. All names, repositories, and content are invented for testing;\nthere is no real project, person, or private data here.\n\nThe fixture intentionally mixes:\n\n- English and Persian risk headings, action headings, and inline markers\n- blocker and dependency signals\n- a checked (resolved) risk that must be excluded\n- unchecked tasks and an action section\n- Persian next steps\n- a duplicate task line\n- priority markers (`[P0]`, `Critical:`, `بحرانی:`)\n- fenced code blocks whose contents are false positives\n- ordinary prose containing the words \"unblocked\" and \"riskless\"\n",
+                      "bytes": 685
+                    }
+                  },
+                  {
+                    "id": "fa-signals.md",
+                    "type": "document",
+                    "title": "سیگنال‌های فارسی",
+                    "source": "local",
+                    "data": {
+                      "path": "fa-signals.md",
+                      "content": "# سیگنال‌های فارسی\n\nاین پاراگراف متن عادی است و نباید ریسک یا وظیفه‌ای بسازد.\n\n## موانع\n\n- انتشار نسخه به دلیل بازبینی امنیتی مسدود شده است.\n\n## وابستگی‌ها\n\n- تحویل داده‌های نقشه به تیم بیرونی وابسته است.\n\n## اقدامات بعدی\n\n- بازبینی طرح جلد را انجام بده.\n- [ ] فهرست نهایی چاپ را تأیید کن.\n\nاقدام: به تیم پشتیبانی درباره‌ی نسخه‌ی جدید اطلاع بده.\n\nمانع: صدور گواهی هنوز انجام نشده است.\n",
+                      "bytes": 673
+                    }
+                  },
+                  {
+                    "id": "planning.md",
+                    "type": "document",
+                    "title": "Riverside Signals Planning",
+                    "source": "local",
+                    "data": {
+                      "path": "planning.md",
+                      "content": "# Riverside Signals Planning\n\nOrdinary prose: the pipeline is finally unblocked and the plan is riskless in\nits current shape, so this paragraph must not create any risk or task.\n\n## Open Risks\n\n- The staging environment is blocked until the new certificate lands.\n- Analytics ingestion has a dependency on the upstream schema freeze.\n- [ ] Confirm the rollback window with operations.\n- [x] Decommission the legacy exporter.\n\n## Blockers\n\n- Release sign-off is blocked waiting on the compliance review.\n\n## Next Steps\n\n- Draft the migration runbook.\n- Schedule the load test.\n\n## Action Items\n\n- [ ] [P0] Patch the auth regression.\n- [ ] Update the onboarding guide.\n- [ ] Update the onboarding guide.\n\nAction: Notify the beta cohort about the new build.\n\nRisk: The vendor SLA renewal is still unconfirmed.\n\n## Code samples\n\n```\n- [ ] This checkbox lives in a code fence and must be ignored.\nRisk: this marker is inside code and must be ignored.\n```\n",
+                      "bytes": 951
+                    }
+                  }
+                ]
+              }
+            ],
+            "skillOutput": {
+              "skillId": "deriveNextTasks",
+              "ok": true,
+              "output": {
+                "tasks": [
+                  {
+                    "id": "fa-signals.md#action-4",
+                    "title": "بازبینی طرح جلد را انجام بده.",
+                    "reason": "markdown_heading:next_steps",
+                    "source": "markdown"
+                  },
+                  {
+                    "id": "fa-signals.md#task-5",
+                    "title": "فهرست نهایی چاپ را تأیید کن.",
+                    "reason": "markdown_unchecked_task",
+                    "source": "markdown"
+                  },
+                  {
+                    "id": "fa-signals.md#action-6",
+                    "title": "به تیم پشتیبانی درباره‌ی نسخه‌ی جدید اطلاع بده.",
+                    "reason": "markdown_marker:action",
+                    "source": "markdown"
+                  },
+                  {
+                    "id": "planning.md#action-7",
+                    "title": "Draft the migration runbook.",
+                    "reason": "markdown_heading:next_steps",
+                    "source": "markdown"
+                  },
+                  {
+                    "id": "planning.md#action-8",
+                    "title": "Schedule the load test.",
+                    "reason": "markdown_heading:next_steps",
+                    "source": "markdown"
+                  },
+                  {
+                    "id": "planning.md#task-9",
+                    "title": "Patch the auth regression.",
+                    "reason": "markdown_unchecked_task",
+                    "source": "markdown",
+                    "priority": "high"
+                  },
+                  {
+                    "id": "planning.md#task-10",
+                    "title": "Update the onboarding guide.",
+                    "reason": "markdown_unchecked_task",
+                    "source": "markdown"
+                  },
+                  {
+                    "id": "planning.md#action-12",
+                    "title": "Notify the beta cohort about the new build.",
+                    "reason": "markdown_marker:action",
+                    "source": "markdown"
+                  }
+                ]
+              }
+            },
+            "output": {
+              "tasks": [
+                {
+                  "id": "fa-signals.md#action-4",
+                  "title": "بازبینی طرح جلد را انجام بده.",
+                  "reason": "markdown_heading:next_steps",
+                  "source": "markdown"
+                },
+                {
+                  "id": "fa-signals.md#task-5",
+                  "title": "فهرست نهایی چاپ را تأیید کن.",
+                  "reason": "markdown_unchecked_task",
+                  "source": "markdown"
+                },
+                {
+                  "id": "fa-signals.md#action-6",
+                  "title": "به تیم پشتیبانی درباره‌ی نسخه‌ی جدید اطلاع بده.",
+                  "reason": "markdown_marker:action",
+                  "source": "markdown"
+                },
+                {
+                  "id": "planning.md#action-7",
+                  "title": "Draft the migration runbook.",
+                  "reason": "markdown_heading:next_steps",
+                  "source": "markdown"
+                },
+                {
+                  "id": "planning.md#action-8",
+                  "title": "Schedule the load test.",
+                  "reason": "markdown_heading:next_steps",
+                  "source": "markdown"
+                },
+                {
+                  "id": "planning.md#task-9",
+                  "title": "Patch the auth regression.",
+                  "reason": "markdown_unchecked_task",
+                  "source": "markdown",
+                  "priority": "high"
+                },
+                {
+                  "id": "planning.md#task-10",
+                  "title": "Update the onboarding guide.",
+                  "reason": "markdown_unchecked_task",
+                  "source": "markdown"
+                },
+                {
+                  "id": "planning.md#action-12",
+                  "title": "Notify the beta cohort about the new build.",
+                  "reason": "markdown_marker:action",
+                  "source": "markdown"
+                }
+              ]
+            }
+          },
+          "trace": [
+            { "step": "runtime.receive", "status": "ok", "message": "plan" },
+            { "step": "kernel.validate.systemRequest", "status": "ok" },
+            { "step": "planner.input", "status": "ok" },
+            { "step": "planner.plan", "status": "ok" },
+            { "step": "kernel.validate.taskGraph", "status": "ok" },
+            { "step": "provider.execute", "status": "ok", "message": "local:list" },
+            { "step": "skill.execute", "status": "ok", "message": "deriveNextTasks" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "local.handoff.json",
+      "surface": "cli",
+      "args": ["handoff", "examples/fixtures/project-signals", "--json"],
+      "exitCode": 0,
+      "stdout": "{\n  \"id\": \"cli-handoff\",\n  \"ok\": true,\n  \"data\": {\n    \"plannerInput\": {\n      \"request\": \"create project handoff\",\n      \"locale\": \"en\",\n      \"context\": {\n        \"providerRequests\": [\n          {\n            \"providerId\": \"local\",\n            \"action\": \"list\",\n            \"query\": \"\",\n            \"limit\": 200\n          }\n        ]\n      }\n    },\n    \"plannerResult\": {\n      \"status\": \"ok\",\n      \"graph\": {\n        \"nodes\": [\n          {\n            \"id\": \"provider:0:local:list\",\n            \"kind\": \"providerRead\",\n            \"title\": \"Read local context\",\n            \"dependsOn\": [],\n            \"payload\": {\n              \"providerRequest\": {\n                \"providerId\": \"local\",\n                \"action\": \"list\",\n                \"query\": \"\",\n                \"limit\": 200\n              }\n            }\n          },\n          {\n            \"id\": \"plan:handoff\",\n            \"kind\": \"skillExecution\",\n            \"title\": \"Create project handoff\",\n            \"dependsOn\": [\n              \"provider:0:local:list\"\n            ],\n            \"payload\": {\n              \"intent\": \"handoff\",\n              \"request\": \"create project handoff\",\n              \"locale\": \"en\"\n            }\n          }\n        ]\n      }\n    },\n    \"graph\": {\n      \"nodes\": [\n        {\n          \"id\": \"provider:0:local:list\",\n          \"kind\": \"providerRead\",\n          \"title\": \"Read local context\",\n          \"dependsOn\": [],\n          \"payload\": {\n            \"providerRequest\": {\n              \"providerId\": \"local\",\n              \"action\": \"list\",\n              \"query\": \"\",\n              \"limit\": 200\n            }\n          }\n        },\n        {\n          \"id\": \"plan:handoff\",\n          \"kind\": \"skillExecution\",\n          \"title\": \"Create project handoff\",\n          \"dependsOn\": [\n            \"provider:0:local:list\"\n          ],\n          \"payload\": {\n            \"intent\": \"handoff\",\n            \"request\": \"create project handoff\",\n            \"locale\": \"en\"\n          }\n        }\n      ]\n    },\n    \"providerResponses\": [\n      {\n        \"providerId\": \"local\",\n        \"items\": [\n          {\n            \"id\": \"README.md\",\n            \"type\": \"document\",\n            \"title\": \"Riverside Signals fixture\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"README.md\",\n              \"content\": \"# Riverside Signals fixture\\n\\nA fictional project used to exercise deterministic risk and next-task\\nextraction. All names, repositories, and content are invented for testing;\\nthere is no real project, person, or private data here.\\n\\nThe fixture intentionally mixes:\\n\\n- English and Persian risk headings, action headings, and inline markers\\n- blocker and dependency signals\\n- a checked (resolved) risk that must be excluded\\n- unchecked tasks and an action section\\n- Persian next steps\\n- a duplicate task line\\n- priority markers (`[P0]`, `Critical:`, `بحرانی:`)\\n- fenced code blocks whose contents are false positives\\n- ordinary prose containing the words \\\"unblocked\\\" and \\\"riskless\\\"\\n\",\n              \"bytes\": 685\n            }\n          },\n          {\n            \"id\": \"fa-signals.md\",\n            \"type\": \"document\",\n            \"title\": \"سیگنال‌های فارسی\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"fa-signals.md\",\n              \"content\": \"# سیگنال‌های فارسی\\n\\nاین پاراگراف متن عادی است و نباید ریسک یا وظیفه‌ای بسازد.\\n\\n## موانع\\n\\n- انتشار نسخه به دلیل بازبینی امنیتی مسدود شده است.\\n\\n## وابستگی‌ها\\n\\n- تحویل داده‌های نقشه به تیم بیرونی وابسته است.\\n\\n## اقدامات بعدی\\n\\n- بازبینی طرح جلد را انجام بده.\\n- [ ] فهرست نهایی چاپ را تأیید کن.\\n\\nاقدام: به تیم پشتیبانی درباره‌ی نسخه‌ی جدید اطلاع بده.\\n\\nمانع: صدور گواهی هنوز انجام نشده است.\\n\",\n              \"bytes\": 673\n            }\n          },\n          {\n            \"id\": \"planning.md\",\n            \"type\": \"document\",\n            \"title\": \"Riverside Signals Planning\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"planning.md\",\n              \"content\": \"# Riverside Signals Planning\\n\\nOrdinary prose: the pipeline is finally unblocked and the plan is riskless in\\nits current shape, so this paragraph must not create any risk or task.\\n\\n## Open Risks\\n\\n- The staging environment is blocked until the new certificate lands.\\n- Analytics ingestion has a dependency on the upstream schema freeze.\\n- [ ] Confirm the rollback window with operations.\\n- [x] Decommission the legacy exporter.\\n\\n## Blockers\\n\\n- Release sign-off is blocked waiting on the compliance review.\\n\\n## Next Steps\\n\\n- Draft the migration runbook.\\n- Schedule the load test.\\n\\n## Action Items\\n\\n- [ ] [P0] Patch the auth regression.\\n- [ ] Update the onboarding guide.\\n- [ ] Update the onboarding guide.\\n\\nAction: Notify the beta cohort about the new build.\\n\\nRisk: The vendor SLA renewal is still unconfirmed.\\n\\n## Code samples\\n\\n```\\n- [ ] This checkbox lives in a code fence and must be ignored.\\nRisk: this marker is inside code and must be ignored.\\n```\\n\",\n              \"bytes\": 951\n            }\n          }\n        ]\n      }\n    ],\n    \"skillOutput\": {\n      \"skillId\": \"createHandoff\",\n      \"ok\": true,\n      \"output\": {\n        \"title\": \"Riverside Signals fixture\",\n        \"sections\": [\n          {\n            \"heading\": \"Summary\",\n            \"items\": [\n              \"create project handoff\"\n            ]\n          },\n          {\n            \"heading\": \"Open Tasks\",\n            \"items\": [\n              \"فهرست نهایی چاپ را تأیید کن.\",\n              \"Confirm the rollback window with operations.\",\n              \"[P0] Patch the auth regression.\",\n              \"Update the onboarding guide.\",\n              \"This checkbox lives in a code fence and must be ignored.\"\n            ]\n          },\n          {\n            \"heading\": \"Risks\",\n            \"items\": [\n              \"Release sign-off is blocked waiting on the compliance review.\"\n            ]\n          },\n          {\n            \"heading\": \"Decisions\",\n            \"items\": [\n              \"No decisions listed.\"\n            ]\n          }\n        ],\n        \"generatedAt\": \"2026-01-01T00:00:00.000Z\"\n      }\n    },\n    \"output\": {\n      \"title\": \"Riverside Signals fixture\",\n      \"sections\": [\n        {\n          \"heading\": \"Summary\",\n          \"items\": [\n            \"create project handoff\"\n          ]\n        },\n        {\n          \"heading\": \"Open Tasks\",\n          \"items\": [\n            \"فهرست نهایی چاپ را تأیید کن.\",\n            \"Confirm the rollback window with operations.\",\n            \"[P0] Patch the auth regression.\",\n            \"Update the onboarding guide.\",\n            \"This checkbox lives in a code fence and must be ignored.\"\n          ]\n        },\n        {\n          \"heading\": \"Risks\",\n          \"items\": [\n            \"Release sign-off is blocked waiting on the compliance review.\"\n          ]\n        },\n        {\n          \"heading\": \"Decisions\",\n          \"items\": [\n            \"No decisions listed.\"\n          ]\n        }\n      ],\n      \"generatedAt\": \"2026-01-01T00:00:00.000Z\"\n    }\n  },\n  \"trace\": [\n    {\n      \"step\": \"runtime.receive\",\n      \"status\": \"ok\",\n      \"message\": \"plan\"\n    },\n    {\n      \"step\": \"kernel.validate.systemRequest\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.input\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.plan\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"kernel.validate.taskGraph\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"provider.execute\",\n      \"status\": \"ok\",\n      \"message\": \"local:list\"\n    },\n    {\n      \"step\": \"skill.execute\",\n      \"status\": \"ok\",\n      \"message\": \"createHandoff\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "local.handoff.human",
+      "surface": "cli",
+      "args": ["handoff", "examples/fixtures/project-signals"],
+      "exitCode": 0,
+      "stdout": "OH MY PM handoff: Riverside Signals fixture\nSummary: 1\n- create project handoff\nOpen Tasks: 5\n- فهرست نهایی چاپ را تأیید کن.\n- Confirm the rollback window with operations.\n- [P0] Patch the auth regression.\n- Update the onboarding guide.\n- This checkbox lives in a code fence and must be ignored.\nRisks: 1\n- Release sign-off is blocked waiting on the compliance review.\nDecisions: 1\n- No decisions listed.\ngenerated at: 2026-01-01T00:00:00.000Z\n",
+      "stderr": ""
+    },
+    {
+      "name": "local.handoff.mcp",
+      "surface": "mcp",
+      "operation": "handoff",
+      "result": {
+        "ok": true,
+        "operation": "handoff",
+        "root": "examples/fixtures/project-signals",
+        "documents": {
+          "filesScanned": 3,
+          "filesMatched": 3,
+          "filesExcluded": 0,
+          "filesLoaded": 3,
+          "totalBytes": 2309,
+          "configExists": false
+        },
+        "output": {
+          "title": "Riverside Signals fixture",
+          "sections": [
+            { "heading": "Summary", "items": ["create project handoff"] },
+            {
+              "heading": "Open Tasks",
+              "items": [
+                "فهرست نهایی چاپ را تأیید کن.",
+                "Confirm the rollback window with operations.",
+                "[P0] Patch the auth regression.",
+                "Update the onboarding guide.",
+                "This checkbox lives in a code fence and must be ignored."
+              ]
+            },
+            {
+              "heading": "Risks",
+              "items": ["Release sign-off is blocked waiting on the compliance review."]
+            },
+            { "heading": "Decisions", "items": ["No decisions listed."] }
+          ],
+          "generatedAt": "2026-01-01T00:00:00.000Z"
+        },
+        "markdown": "# OH MY PM Project Handoff\n\n- Project: Riverside Signals fixture\n- Generated at: `2026-01-01T00:00:00.000Z`\n\n## Summary\n\n- create project handoff\n\n## Open Tasks\n\n- فهرست نهایی چاپ را تأیید کن.\n- Confirm the rollback window with operations.\n- [P0] Patch the auth regression.\n- Update the onboarding guide.\n- This checkbox lives in a code fence and must be ignored.\n\n## Risks\n\n- Release sign-off is blocked waiting on the compliance review.\n\n## Decisions\n\n- No decisions listed.\n",
+        "runtimeResponse": {
+          "id": "cli-handoff",
+          "ok": true,
+          "data": {
+            "plannerInput": {
+              "request": "create project handoff",
+              "locale": "en",
+              "context": {
+                "providerRequests": [
+                  { "providerId": "local", "action": "list", "query": "", "limit": 200 }
+                ]
+              }
+            },
+            "plannerResult": {
+              "status": "ok",
+              "graph": {
+                "nodes": [
+                  {
+                    "id": "provider:0:local:list",
+                    "kind": "providerRead",
+                    "title": "Read local context",
+                    "dependsOn": [],
+                    "payload": {
+                      "providerRequest": {
+                        "providerId": "local",
+                        "action": "list",
+                        "query": "",
+                        "limit": 200
+                      }
+                    }
+                  },
+                  {
+                    "id": "plan:handoff",
+                    "kind": "skillExecution",
+                    "title": "Create project handoff",
+                    "dependsOn": ["provider:0:local:list"],
+                    "payload": {
+                      "intent": "handoff",
+                      "request": "create project handoff",
+                      "locale": "en"
+                    }
+                  }
+                ]
+              }
+            },
+            "graph": {
+              "nodes": [
+                {
+                  "id": "provider:0:local:list",
+                  "kind": "providerRead",
+                  "title": "Read local context",
+                  "dependsOn": [],
+                  "payload": {
+                    "providerRequest": {
+                      "providerId": "local",
+                      "action": "list",
+                      "query": "",
+                      "limit": 200
+                    }
+                  }
+                },
+                {
+                  "id": "plan:handoff",
+                  "kind": "skillExecution",
+                  "title": "Create project handoff",
+                  "dependsOn": ["provider:0:local:list"],
+                  "payload": {
+                    "intent": "handoff",
+                    "request": "create project handoff",
+                    "locale": "en"
+                  }
+                }
+              ]
+            },
+            "providerResponses": [
+              {
+                "providerId": "local",
+                "items": [
+                  {
+                    "id": "README.md",
+                    "type": "document",
+                    "title": "Riverside Signals fixture",
+                    "source": "local",
+                    "data": {
+                      "path": "README.md",
+                      "content": "# Riverside Signals fixture\n\nA fictional project used to exercise deterministic risk and next-task\nextraction. All names, repositories, and content are invented for testing;\nthere is no real project, person, or private data here.\n\nThe fixture intentionally mixes:\n\n- English and Persian risk headings, action headings, and inline markers\n- blocker and dependency signals\n- a checked (resolved) risk that must be excluded\n- unchecked tasks and an action section\n- Persian next steps\n- a duplicate task line\n- priority markers (`[P0]`, `Critical:`, `بحرانی:`)\n- fenced code blocks whose contents are false positives\n- ordinary prose containing the words \"unblocked\" and \"riskless\"\n",
+                      "bytes": 685
+                    }
+                  },
+                  {
+                    "id": "fa-signals.md",
+                    "type": "document",
+                    "title": "سیگنال‌های فارسی",
+                    "source": "local",
+                    "data": {
+                      "path": "fa-signals.md",
+                      "content": "# سیگنال‌های فارسی\n\nاین پاراگراف متن عادی است و نباید ریسک یا وظیفه‌ای بسازد.\n\n## موانع\n\n- انتشار نسخه به دلیل بازبینی امنیتی مسدود شده است.\n\n## وابستگی‌ها\n\n- تحویل داده‌های نقشه به تیم بیرونی وابسته است.\n\n## اقدامات بعدی\n\n- بازبینی طرح جلد را انجام بده.\n- [ ] فهرست نهایی چاپ را تأیید کن.\n\nاقدام: به تیم پشتیبانی درباره‌ی نسخه‌ی جدید اطلاع بده.\n\nمانع: صدور گواهی هنوز انجام نشده است.\n",
+                      "bytes": 673
+                    }
+                  },
+                  {
+                    "id": "planning.md",
+                    "type": "document",
+                    "title": "Riverside Signals Planning",
+                    "source": "local",
+                    "data": {
+                      "path": "planning.md",
+                      "content": "# Riverside Signals Planning\n\nOrdinary prose: the pipeline is finally unblocked and the plan is riskless in\nits current shape, so this paragraph must not create any risk or task.\n\n## Open Risks\n\n- The staging environment is blocked until the new certificate lands.\n- Analytics ingestion has a dependency on the upstream schema freeze.\n- [ ] Confirm the rollback window with operations.\n- [x] Decommission the legacy exporter.\n\n## Blockers\n\n- Release sign-off is blocked waiting on the compliance review.\n\n## Next Steps\n\n- Draft the migration runbook.\n- Schedule the load test.\n\n## Action Items\n\n- [ ] [P0] Patch the auth regression.\n- [ ] Update the onboarding guide.\n- [ ] Update the onboarding guide.\n\nAction: Notify the beta cohort about the new build.\n\nRisk: The vendor SLA renewal is still unconfirmed.\n\n## Code samples\n\n```\n- [ ] This checkbox lives in a code fence and must be ignored.\nRisk: this marker is inside code and must be ignored.\n```\n",
+                      "bytes": 951
+                    }
+                  }
+                ]
+              }
+            ],
+            "skillOutput": {
+              "skillId": "createHandoff",
+              "ok": true,
+              "output": {
+                "title": "Riverside Signals fixture",
+                "sections": [
+                  { "heading": "Summary", "items": ["create project handoff"] },
+                  {
+                    "heading": "Open Tasks",
+                    "items": [
+                      "فهرست نهایی چاپ را تأیید کن.",
+                      "Confirm the rollback window with operations.",
+                      "[P0] Patch the auth regression.",
+                      "Update the onboarding guide.",
+                      "This checkbox lives in a code fence and must be ignored."
+                    ]
+                  },
+                  {
+                    "heading": "Risks",
+                    "items": ["Release sign-off is blocked waiting on the compliance review."]
+                  },
+                  { "heading": "Decisions", "items": ["No decisions listed."] }
+                ],
+                "generatedAt": "2026-01-01T00:00:00.000Z"
+              }
+            },
+            "output": {
+              "title": "Riverside Signals fixture",
+              "sections": [
+                { "heading": "Summary", "items": ["create project handoff"] },
+                {
+                  "heading": "Open Tasks",
+                  "items": [
+                    "فهرست نهایی چاپ را تأیید کن.",
+                    "Confirm the rollback window with operations.",
+                    "[P0] Patch the auth regression.",
+                    "Update the onboarding guide.",
+                    "This checkbox lives in a code fence and must be ignored."
+                  ]
+                },
+                {
+                  "heading": "Risks",
+                  "items": ["Release sign-off is blocked waiting on the compliance review."]
+                },
+                { "heading": "Decisions", "items": ["No decisions listed."] }
+              ],
+              "generatedAt": "2026-01-01T00:00:00.000Z"
+            }
+          },
+          "trace": [
+            { "step": "runtime.receive", "status": "ok", "message": "plan" },
+            { "step": "kernel.validate.systemRequest", "status": "ok" },
+            { "step": "planner.input", "status": "ok" },
+            { "step": "planner.plan", "status": "ok" },
+            { "step": "kernel.validate.taskGraph", "status": "ok" },
+            { "step": "provider.execute", "status": "ok", "message": "local:list" },
+            { "step": "skill.execute", "status": "ok", "message": "createHandoff" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "local.risks.markdown.json",
+      "surface": "cli",
+      "args": ["risks", "examples/fixtures/markdown-project", "--json"],
+      "exitCode": 0,
+      "stdout": "{\n  \"id\": \"cli-risks\",\n  \"ok\": true,\n  \"data\": {\n    \"plannerInput\": {\n      \"request\": \"review project risks\",\n      \"locale\": \"en\",\n      \"context\": {\n        \"providerRequests\": [\n          {\n            \"providerId\": \"local\",\n            \"action\": \"list\",\n            \"query\": \"\",\n            \"limit\": 200\n          }\n        ]\n      }\n    },\n    \"plannerResult\": {\n      \"status\": \"ok\",\n      \"graph\": {\n        \"nodes\": [\n          {\n            \"id\": \"provider:0:local:list\",\n            \"kind\": \"providerRead\",\n            \"title\": \"Read local context\",\n            \"dependsOn\": [],\n            \"payload\": {\n              \"providerRequest\": {\n                \"providerId\": \"local\",\n                \"action\": \"list\",\n                \"query\": \"\",\n                \"limit\": 200\n              }\n            }\n          },\n          {\n            \"id\": \"plan:riskReview\",\n            \"kind\": \"skillExecution\",\n            \"title\": \"Review project risks\",\n            \"dependsOn\": [\n              \"provider:0:local:list\"\n            ],\n            \"payload\": {\n              \"intent\": \"riskReview\",\n              \"request\": \"review project risks\",\n              \"locale\": \"en\"\n            }\n          }\n        ]\n      }\n    },\n    \"graph\": {\n      \"nodes\": [\n        {\n          \"id\": \"provider:0:local:list\",\n          \"kind\": \"providerRead\",\n          \"title\": \"Read local context\",\n          \"dependsOn\": [],\n          \"payload\": {\n            \"providerRequest\": {\n              \"providerId\": \"local\",\n              \"action\": \"list\",\n              \"query\": \"\",\n              \"limit\": 200\n            }\n          }\n        },\n        {\n          \"id\": \"plan:riskReview\",\n          \"kind\": \"skillExecution\",\n          \"title\": \"Review project risks\",\n          \"dependsOn\": [\n            \"provider:0:local:list\"\n          ],\n          \"payload\": {\n            \"intent\": \"riskReview\",\n            \"request\": \"review project risks\",\n            \"locale\": \"en\"\n          }\n        }\n      ]\n    },\n    \"providerResponses\": [\n      {\n        \"providerId\": \"local\",\n        \"items\": [\n          {\n            \"id\": \"README.md\",\n            \"type\": \"document\",\n            \"title\": \"Riverline Field Guide\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"README.md\",\n              \"content\": \"# Riverline Field Guide\\n\\nRiverline Field Guide is a fictional example project used to demonstrate the\\nlocal Markdown project brief workflow. Nothing in this folder describes a real\\ncompany, team, or product.\\n\\n## Current objective\\n\\nShip the printable spring edition of the trail guide.\\n\\n## Team\\n\\n- Owner: Jordan (project lead)\\n- Sam (content)\\n- Alex (maps)\\n\",\n              \"bytes\": 356\n            }\n          },\n          {\n            \"id\": \"docs/decisions.md\",\n            \"type\": \"document\",\n            \"title\": \"Decisions\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"docs/decisions.md\",\n              \"content\": \"# Decisions\\n\\n- Decision: the spring edition ships as a single printed volume, not two\\n  booklets.\\n- Decided by: Jordan\\n- Date: 2026-03-02\\n\",\n              \"bytes\": 138\n            }\n          },\n          {\n            \"id\": \"docs/risks.md\",\n            \"type\": \"document\",\n            \"title\": \"Delivery Constraints\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"docs/risks.md\",\n              \"content\": \"# Delivery Constraints\\n\\nOpen constraints for the fictional Riverline Field Guide project. The title of\\nthis document is deliberately neutral: the signal words appear only in the\\nbody below, which proves that document content — not just the title — is\\ninspected.\\n\\n- The printing quote is blocked until the paper supplier responds\\n  (owner: Jordan).\\n- The updated cover artwork approval is urgent and due this week\\n  (owner: Sam).\\n- Elevation data licensing is an external dependency that still needs a final\\n  confirmation (owner: Alex).\\n- A courier strike could cause a delay for the sample shipment\\n  (owner: Jordan).\\n\",\n              \"bytes\": 623\n            }\n          },\n          {\n            \"id\": \"docs/status.md\",\n            \"type\": \"document\",\n            \"title\": \"Status\",\n            \"source\": \"local\",\n            \"data\": {\n              \"path\": \"docs/status.md\",\n              \"content\": \"# Status\\n\\n## Completed\\n\\n- Trail survey for the north loop is complete.\\n- The map legend design is approved.\\n\\n## Active\\n\\n- Sam is drafting the campsite section.\\n- Alex is rendering the elevation maps.\\n\\n## Blocked\\n\\n- The printing quote is blocked waiting on the paper supplier (owner: Jordan).\\n\\n## Next milestone\\n\\n- Print-ready draft of the full guide at the end of the month.\\n\\n## Next actions\\n\\n- [ ] Confirm final paper stock with the supplier.\\n- [ ] Export the elevation maps for print.\\n- [ ] Assemble the print-ready guide draft.\\n- [x] Approve the map legend.\\n\",\n              \"bytes\": 561\n            }\n          }\n        ]\n      }\n    ],\n    \"skillOutput\": {\n      \"skillId\": \"extractRisks\",\n      \"ok\": true,\n      \"output\": {\n        \"risks\": [\n          {\n            \"id\": \"docs/status.md#risk-5\",\n            \"title\": \"The printing quote is blocked waiting on the paper supplier (owner: Jordan).\",\n            \"severity\": \"high\",\n            \"reason\": \"markdown_heading:blockers\",\n            \"source\": \"markdown\"\n          }\n        ]\n      }\n    },\n    \"output\": {\n      \"risks\": [\n        {\n          \"id\": \"docs/status.md#risk-5\",\n          \"title\": \"The printing quote is blocked waiting on the paper supplier (owner: Jordan).\",\n          \"severity\": \"high\",\n          \"reason\": \"markdown_heading:blockers\",\n          \"source\": \"markdown\"\n        }\n      ]\n    }\n  },\n  \"trace\": [\n    {\n      \"step\": \"runtime.receive\",\n      \"status\": \"ok\",\n      \"message\": \"plan\"\n    },\n    {\n      \"step\": \"kernel.validate.systemRequest\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.input\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.plan\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"kernel.validate.taskGraph\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"provider.execute\",\n      \"status\": \"ok\",\n      \"message\": \"local:list\"\n    },\n    {\n      \"step\": \"skill.execute\",\n      \"status\": \"ok\",\n      \"message\": \"extractRisks\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "local.risks.markdown.mcp",
+      "surface": "mcp",
+      "operation": "risks",
+      "result": {
+        "ok": true,
+        "operation": "risks",
+        "root": "examples/fixtures/markdown-project",
+        "documents": {
+          "filesScanned": 6,
+          "filesMatched": 4,
+          "filesExcluded": 2,
+          "filesLoaded": 4,
+          "totalBytes": 1678,
+          "configExists": true
+        },
+        "output": {
+          "risks": [
+            {
+              "id": "docs/status.md#risk-5",
+              "title": "The printing quote is blocked waiting on the paper supplier (owner: Jordan).",
+              "severity": "high",
+              "reason": "markdown_heading:blockers",
+              "source": "markdown"
+            }
+          ]
+        },
+        "markdown": "# OH MY PM Project Risks\n\n## Summary\n\n- Total: 1\n- High: 1\n- Medium: 0\n- Low: 0\n\n## Risks\n\n- **high** — The printing quote is blocked waiting on the paper supplier (owner: Jordan). — `markdown_heading:blockers`\n",
+        "runtimeResponse": {
+          "id": "cli-risks",
+          "ok": true,
+          "data": {
+            "plannerInput": {
+              "request": "review project risks",
+              "locale": "en",
+              "context": {
+                "providerRequests": [
+                  { "providerId": "local", "action": "list", "query": "", "limit": 200 }
+                ]
+              }
+            },
+            "plannerResult": {
+              "status": "ok",
+              "graph": {
+                "nodes": [
+                  {
+                    "id": "provider:0:local:list",
+                    "kind": "providerRead",
+                    "title": "Read local context",
+                    "dependsOn": [],
+                    "payload": {
+                      "providerRequest": {
+                        "providerId": "local",
+                        "action": "list",
+                        "query": "",
+                        "limit": 200
+                      }
+                    }
+                  },
+                  {
+                    "id": "plan:riskReview",
+                    "kind": "skillExecution",
+                    "title": "Review project risks",
+                    "dependsOn": ["provider:0:local:list"],
+                    "payload": {
+                      "intent": "riskReview",
+                      "request": "review project risks",
+                      "locale": "en"
+                    }
+                  }
+                ]
+              }
+            },
+            "graph": {
+              "nodes": [
+                {
+                  "id": "provider:0:local:list",
+                  "kind": "providerRead",
+                  "title": "Read local context",
+                  "dependsOn": [],
+                  "payload": {
+                    "providerRequest": {
+                      "providerId": "local",
+                      "action": "list",
+                      "query": "",
+                      "limit": 200
+                    }
+                  }
+                },
+                {
+                  "id": "plan:riskReview",
+                  "kind": "skillExecution",
+                  "title": "Review project risks",
+                  "dependsOn": ["provider:0:local:list"],
+                  "payload": {
+                    "intent": "riskReview",
+                    "request": "review project risks",
+                    "locale": "en"
+                  }
+                }
+              ]
+            },
+            "providerResponses": [
+              {
+                "providerId": "local",
+                "items": [
+                  {
+                    "id": "README.md",
+                    "type": "document",
+                    "title": "Riverline Field Guide",
+                    "source": "local",
+                    "data": {
+                      "path": "README.md",
+                      "content": "# Riverline Field Guide\n\nRiverline Field Guide is a fictional example project used to demonstrate the\nlocal Markdown project brief workflow. Nothing in this folder describes a real\ncompany, team, or product.\n\n## Current objective\n\nShip the printable spring edition of the trail guide.\n\n## Team\n\n- Owner: Jordan (project lead)\n- Sam (content)\n- Alex (maps)\n",
+                      "bytes": 356
+                    }
+                  },
+                  {
+                    "id": "docs/decisions.md",
+                    "type": "document",
+                    "title": "Decisions",
+                    "source": "local",
+                    "data": {
+                      "path": "docs/decisions.md",
+                      "content": "# Decisions\n\n- Decision: the spring edition ships as a single printed volume, not two\n  booklets.\n- Decided by: Jordan\n- Date: 2026-03-02\n",
+                      "bytes": 138
+                    }
+                  },
+                  {
+                    "id": "docs/risks.md",
+                    "type": "document",
+                    "title": "Delivery Constraints",
+                    "source": "local",
+                    "data": {
+                      "path": "docs/risks.md",
+                      "content": "# Delivery Constraints\n\nOpen constraints for the fictional Riverline Field Guide project. The title of\nthis document is deliberately neutral: the signal words appear only in the\nbody below, which proves that document content — not just the title — is\ninspected.\n\n- The printing quote is blocked until the paper supplier responds\n  (owner: Jordan).\n- The updated cover artwork approval is urgent and due this week\n  (owner: Sam).\n- Elevation data licensing is an external dependency that still needs a final\n  confirmation (owner: Alex).\n- A courier strike could cause a delay for the sample shipment\n  (owner: Jordan).\n",
+                      "bytes": 623
+                    }
+                  },
+                  {
+                    "id": "docs/status.md",
+                    "type": "document",
+                    "title": "Status",
+                    "source": "local",
+                    "data": {
+                      "path": "docs/status.md",
+                      "content": "# Status\n\n## Completed\n\n- Trail survey for the north loop is complete.\n- The map legend design is approved.\n\n## Active\n\n- Sam is drafting the campsite section.\n- Alex is rendering the elevation maps.\n\n## Blocked\n\n- The printing quote is blocked waiting on the paper supplier (owner: Jordan).\n\n## Next milestone\n\n- Print-ready draft of the full guide at the end of the month.\n\n## Next actions\n\n- [ ] Confirm final paper stock with the supplier.\n- [ ] Export the elevation maps for print.\n- [ ] Assemble the print-ready guide draft.\n- [x] Approve the map legend.\n",
+                      "bytes": 561
+                    }
+                  }
+                ]
+              }
+            ],
+            "skillOutput": {
+              "skillId": "extractRisks",
+              "ok": true,
+              "output": {
+                "risks": [
+                  {
+                    "id": "docs/status.md#risk-5",
+                    "title": "The printing quote is blocked waiting on the paper supplier (owner: Jordan).",
+                    "severity": "high",
+                    "reason": "markdown_heading:blockers",
+                    "source": "markdown"
+                  }
+                ]
+              }
+            },
+            "output": {
+              "risks": [
+                {
+                  "id": "docs/status.md#risk-5",
+                  "title": "The printing quote is blocked waiting on the paper supplier (owner: Jordan).",
+                  "severity": "high",
+                  "reason": "markdown_heading:blockers",
+                  "source": "markdown"
+                }
+              ]
+            }
+          },
+          "trace": [
+            { "step": "runtime.receive", "status": "ok", "message": "plan" },
+            { "step": "kernel.validate.systemRequest", "status": "ok" },
+            { "step": "planner.input", "status": "ok" },
+            { "step": "planner.plan", "status": "ok" },
+            { "step": "kernel.validate.taskGraph", "status": "ok" },
+            { "step": "provider.execute", "status": "ok", "message": "local:list" },
+            { "step": "skill.execute", "status": "ok", "message": "extractRisks" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "local.brief.missing.json",
+      "surface": "cli",
+      "args": ["brief", "examples/fixtures/does-not-exist-anywhere", "--json"],
+      "exitCode": 2,
+      "stdout": "",
+      "stderr": "project root was not found: examples/fixtures/does-not-exist-anywhere\n"
+    },
+    {
+      "name": "local.brief.missing.relative",
+      "surface": "cli",
+      "args": ["brief", "./does-not-exist-anywhere"],
+      "exitCode": 2,
+      "stdout": "",
+      "stderr": "project root was not found: ./does-not-exist-anywhere\n"
+    },
+    {
+      "name": "local.brief.missing.mcp",
+      "surface": "mcp",
+      "operation": "brief",
+      "result": {
+        "ok": false,
+        "operation": "brief",
+        "root": "./does-not-exist-anywhere",
+        "code": "project_root_not_found",
+        "message": "project root was not found: ./does-not-exist-anywhere"
+      }
+    },
+    {
+      "name": "github.brief.json",
+      "surface": "cli",
+      "args": ["github", "brief", "octo/demo", "--json", "--limit", "5"],
+      "exitCode": 0,
+      "stdout": "{\n  \"id\": \"cli-github-brief\",\n  \"ok\": true,\n  \"data\": {\n    \"plannerInput\": {\n      \"request\": \"status brief for GitHub repository octo/demo using overview source\",\n      \"locale\": \"en\",\n      \"context\": {\n        \"providerRequests\": [\n          {\n            \"providerId\": \"github\",\n            \"action\": \"list\",\n            \"query\": \"octo/demo::source=overview&state=open\",\n            \"limit\": 5\n          }\n        ]\n      }\n    },\n    \"plannerResult\": {\n      \"status\": \"ok\",\n      \"graph\": {\n        \"nodes\": [\n          {\n            \"id\": \"provider:0:github:list\",\n            \"kind\": \"providerRead\",\n            \"title\": \"Read github context\",\n            \"dependsOn\": [],\n            \"payload\": {\n              \"providerRequest\": {\n                \"providerId\": \"github\",\n                \"action\": \"list\",\n                \"query\": \"octo/demo::source=overview&state=open\",\n                \"limit\": 5\n              }\n            }\n          },\n          {\n            \"id\": \"plan:status\",\n            \"kind\": \"skillExecution\",\n            \"title\": \"Prepare project status\",\n            \"dependsOn\": [\n              \"provider:0:github:list\"\n            ],\n            \"payload\": {\n              \"intent\": \"status\",\n              \"request\": \"status brief for GitHub repository octo/demo using overview source\",\n              \"locale\": \"en\"\n            }\n          }\n        ]\n      }\n    },\n    \"graph\": {\n      \"nodes\": [\n        {\n          \"id\": \"provider:0:github:list\",\n          \"kind\": \"providerRead\",\n          \"title\": \"Read github context\",\n          \"dependsOn\": [],\n          \"payload\": {\n            \"providerRequest\": {\n              \"providerId\": \"github\",\n              \"action\": \"list\",\n              \"query\": \"octo/demo::source=overview&state=open\",\n              \"limit\": 5\n            }\n          }\n        },\n        {\n          \"id\": \"plan:status\",\n          \"kind\": \"skillExecution\",\n          \"title\": \"Prepare project status\",\n          \"dependsOn\": [\n            \"provider:0:github:list\"\n          ],\n          \"payload\": {\n            \"intent\": \"status\",\n            \"request\": \"status brief for GitHub repository octo/demo using overview source\",\n            \"locale\": \"en\"\n          }\n        }\n      ]\n    },\n    \"providerResponses\": [\n      {\n        \"providerId\": \"github\",\n        \"items\": [\n          {\n            \"id\": \"github:repository:octo/demo\",\n            \"type\": \"record\",\n            \"title\": \"octo/demo\",\n            \"source\": \"github\",\n            \"data\": {\n              \"repository\": \"octo/demo\",\n              \"kind\": \"repository\",\n              \"body\": \"Repository: octo/demo\\nDescription: demo\\nVisibility: public\\nOpen issues and pull requests: 2\\nArchived: no\",\n              \"status\": \"active\",\n              \"owner\": \"octo\",\n              \"tags\": [\n                \"repository\",\n                \"public\"\n              ],\n              \"openIssuesCount\": 2\n            },\n            \"url\": \"https://github.com/octo/demo\"\n          },\n          {\n            \"id\": \"github:issue:octo/demo#1\",\n            \"type\": \"issue\",\n            \"title\": \"#1 Blocked on design review\",\n            \"source\": \"github\",\n            \"data\": {\n              \"repository\": \"octo/demo\",\n              \"number\": 1,\n              \"kind\": \"issue\",\n              \"body\": \"blocked\",\n              \"status\": \"open\",\n              \"owner\": \"\",\n              \"assignees\": [],\n              \"tags\": [\n                \"issue\",\n                \"blocked\"\n              ],\n              \"labels\": [\n                \"blocked\"\n              ],\n              \"comments\": 0,\n              \"locked\": false,\n              \"author\": \"a\"\n            },\n            \"url\": \"https://github.com/octo/demo/issues/1\"\n          },\n          {\n            \"id\": \"github:issue:octo/demo#2\",\n            \"type\": \"issue\",\n            \"title\": \"#2 Ship the handoff\",\n            \"source\": \"github\",\n            \"data\": {\n              \"repository\": \"octo/demo\",\n              \"number\": 2,\n              \"kind\": \"issue\",\n              \"body\": \"ready\",\n              \"status\": \"open\",\n              \"owner\": \"\",\n              \"assignees\": [],\n              \"tags\": [\n                \"issue\"\n              ],\n              \"labels\": [],\n              \"comments\": 0,\n              \"locked\": false,\n              \"author\": \"b\"\n            },\n            \"url\": \"https://github.com/octo/demo/issues/2\"\n          }\n        ]\n      }\n    ],\n    \"skillOutput\": {\n      \"skillId\": \"summarizeStatus\",\n      \"ok\": true,\n      \"output\": {\n        \"title\": \"status brief for GitHub repository octo/demo using overview source\",\n        \"summary\": \"status brief for GitHub repository octo/demo using overview source\",\n        \"counts\": {\n          \"total\": 3,\n          \"done\": 0,\n          \"blocked\": 1,\n          \"open\": 2\n        },\n        \"highlights\": [\n          \"octo/demo\",\n          \"#1 Blocked on design review\",\n          \"#2 Ship the handoff\"\n        ],\n        \"generatedAt\": \"2026-03-01T00:00:00.000Z\"\n      }\n    },\n    \"output\": {\n      \"title\": \"status brief for GitHub repository octo/demo using overview source\",\n      \"summary\": \"status brief for GitHub repository octo/demo using overview source\",\n      \"counts\": {\n        \"total\": 3,\n        \"done\": 0,\n        \"blocked\": 1,\n        \"open\": 2\n      },\n      \"highlights\": [\n        \"octo/demo\",\n        \"#1 Blocked on design review\",\n        \"#2 Ship the handoff\"\n      ],\n      \"generatedAt\": \"2026-03-01T00:00:00.000Z\"\n    }\n  },\n  \"trace\": [\n    {\n      \"step\": \"runtime.receive\",\n      \"status\": \"ok\",\n      \"message\": \"plan\"\n    },\n    {\n      \"step\": \"kernel.validate.systemRequest\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.input\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.plan\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"kernel.validate.taskGraph\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"provider.execute\",\n      \"status\": \"ok\",\n      \"message\": \"github:list\"\n    },\n    {\n      \"step\": \"skill.execute\",\n      \"status\": \"ok\",\n      \"message\": \"summarizeStatus\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "github.brief.human",
+      "surface": "cli",
+      "args": ["github", "brief", "octo/demo", "--limit", "5"],
+      "exitCode": 0,
+      "stdout": "OH MY PM plan: ok\nitems: 3 (open 2, blocked 1, done 0)\n- octo/demo\n- #1 Blocked on design review\n- #2 Ship the handoff\n",
+      "stderr": ""
+    },
+    {
+      "name": "github.brief.mcp",
+      "surface": "mcp",
+      "operation": "brief",
+      "result": {
+        "ok": true,
+        "operation": "brief",
+        "repository": "octo/demo",
+        "selection": { "mode": "overview", "state": "open", "limit": 5 },
+        "sourceSummary": {
+          "total": 3,
+          "repositories": 1,
+          "issues": 2,
+          "pullRequests": 0,
+          "comments": 0,
+          "reviews": 0,
+          "reviewComments": 0
+        },
+        "sources": [
+          {
+            "type": "issue",
+            "number": 1,
+            "title": "#1 Blocked on design review",
+            "state": "open",
+            "url": "https://github.com/octo/demo/issues/1"
+          },
+          {
+            "type": "issue",
+            "number": 2,
+            "title": "#2 Ship the handoff",
+            "state": "open",
+            "url": "https://github.com/octo/demo/issues/2"
+          }
+        ],
+        "output": {
+          "title": "status brief for GitHub repository octo/demo using overview source",
+          "summary": "status brief for GitHub repository octo/demo using overview source",
+          "counts": { "total": 3, "done": 0, "blocked": 1, "open": 2 },
+          "highlights": ["octo/demo", "#1 Blocked on design review", "#2 Ship the handoff"],
+          "generatedAt": "2026-03-01T00:00:00.000Z"
+        },
+        "markdown": "# OH MY PM Plan\n\n## Status\n\n- Total: 3\n- Open: 2\n- Blocked: 1\n- Done: 0\n\n## Highlights\n\n- octo/demo\n- #1 Blocked on design review\n- #2 Ship the handoff\n"
+      }
+    },
+    {
+      "name": "github.risks.json",
+      "surface": "cli",
+      "args": ["github", "risks", "octo/demo", "--json", "--limit", "5"],
+      "exitCode": 0,
+      "stdout": "{\n  \"id\": \"cli-github-risks\",\n  \"ok\": true,\n  \"data\": {\n    \"plannerInput\": {\n      \"request\": \"review risks for GitHub repository octo/demo using overview source\",\n      \"locale\": \"en\",\n      \"context\": {\n        \"providerRequests\": [\n          {\n            \"providerId\": \"github\",\n            \"action\": \"list\",\n            \"query\": \"octo/demo::source=overview&state=open\",\n            \"limit\": 5\n          }\n        ]\n      }\n    },\n    \"plannerResult\": {\n      \"status\": \"ok\",\n      \"graph\": {\n        \"nodes\": [\n          {\n            \"id\": \"provider:0:github:list\",\n            \"kind\": \"providerRead\",\n            \"title\": \"Read github context\",\n            \"dependsOn\": [],\n            \"payload\": {\n              \"providerRequest\": {\n                \"providerId\": \"github\",\n                \"action\": \"list\",\n                \"query\": \"octo/demo::source=overview&state=open\",\n                \"limit\": 5\n              }\n            }\n          },\n          {\n            \"id\": \"plan:riskReview\",\n            \"kind\": \"skillExecution\",\n            \"title\": \"Review project risks\",\n            \"dependsOn\": [\n              \"provider:0:github:list\"\n            ],\n            \"payload\": {\n              \"intent\": \"riskReview\",\n              \"request\": \"review risks for GitHub repository octo/demo using overview source\",\n              \"locale\": \"en\"\n            }\n          }\n        ]\n      }\n    },\n    \"graph\": {\n      \"nodes\": [\n        {\n          \"id\": \"provider:0:github:list\",\n          \"kind\": \"providerRead\",\n          \"title\": \"Read github context\",\n          \"dependsOn\": [],\n          \"payload\": {\n            \"providerRequest\": {\n              \"providerId\": \"github\",\n              \"action\": \"list\",\n              \"query\": \"octo/demo::source=overview&state=open\",\n              \"limit\": 5\n            }\n          }\n        },\n        {\n          \"id\": \"plan:riskReview\",\n          \"kind\": \"skillExecution\",\n          \"title\": \"Review project risks\",\n          \"dependsOn\": [\n            \"provider:0:github:list\"\n          ],\n          \"payload\": {\n            \"intent\": \"riskReview\",\n            \"request\": \"review risks for GitHub repository octo/demo using overview source\",\n            \"locale\": \"en\"\n          }\n        }\n      ]\n    },\n    \"providerResponses\": [\n      {\n        \"providerId\": \"github\",\n        \"items\": [\n          {\n            \"id\": \"github:repository:octo/demo\",\n            \"type\": \"record\",\n            \"title\": \"octo/demo\",\n            \"source\": \"github\",\n            \"data\": {\n              \"repository\": \"octo/demo\",\n              \"kind\": \"repository\",\n              \"body\": \"Repository: octo/demo\\nDescription: demo\\nVisibility: public\\nOpen issues and pull requests: 2\\nArchived: no\",\n              \"status\": \"active\",\n              \"owner\": \"octo\",\n              \"tags\": [\n                \"repository\",\n                \"public\"\n              ],\n              \"openIssuesCount\": 2\n            },\n            \"url\": \"https://github.com/octo/demo\"\n          },\n          {\n            \"id\": \"github:issue:octo/demo#1\",\n            \"type\": \"issue\",\n            \"title\": \"#1 Blocked on design review\",\n            \"source\": \"github\",\n            \"data\": {\n              \"repository\": \"octo/demo\",\n              \"number\": 1,\n              \"kind\": \"issue\",\n              \"body\": \"blocked\",\n              \"status\": \"open\",\n              \"owner\": \"\",\n              \"assignees\": [],\n              \"tags\": [\n                \"issue\",\n                \"blocked\"\n              ],\n              \"labels\": [\n                \"blocked\"\n              ],\n              \"comments\": 0,\n              \"locked\": false,\n              \"author\": \"a\"\n            },\n            \"url\": \"https://github.com/octo/demo/issues/1\"\n          },\n          {\n            \"id\": \"github:issue:octo/demo#2\",\n            \"type\": \"issue\",\n            \"title\": \"#2 Ship the handoff\",\n            \"source\": \"github\",\n            \"data\": {\n              \"repository\": \"octo/demo\",\n              \"number\": 2,\n              \"kind\": \"issue\",\n              \"body\": \"ready\",\n              \"status\": \"open\",\n              \"owner\": \"\",\n              \"assignees\": [],\n              \"tags\": [\n                \"issue\"\n              ],\n              \"labels\": [],\n              \"comments\": 0,\n              \"locked\": false,\n              \"author\": \"b\"\n            },\n            \"url\": \"https://github.com/octo/demo/issues/2\"\n          }\n        ]\n      }\n    ],\n    \"skillOutput\": {\n      \"skillId\": \"extractRisks\",\n      \"ok\": true,\n      \"output\": {\n        \"risks\": [\n          {\n            \"id\": \"github:issue:octo/demo#1\",\n            \"title\": \"#1 Blocked on design review\",\n            \"severity\": \"high\",\n            \"reason\": \"github_state:blocked\",\n            \"source\": \"github-issue\",\n            \"sourceType\": \"issue\",\n            \"url\": \"https://github.com/octo/demo/issues/1\",\n            \"author\": \"a\",\n            \"repository\": \"octo/demo\",\n            \"number\": 1\n          }\n        ]\n      }\n    },\n    \"output\": {\n      \"risks\": [\n        {\n          \"id\": \"github:issue:octo/demo#1\",\n          \"title\": \"#1 Blocked on design review\",\n          \"severity\": \"high\",\n          \"reason\": \"github_state:blocked\",\n          \"source\": \"github-issue\",\n          \"sourceType\": \"issue\",\n          \"url\": \"https://github.com/octo/demo/issues/1\",\n          \"author\": \"a\",\n          \"repository\": \"octo/demo\",\n          \"number\": 1\n        }\n      ]\n    }\n  },\n  \"trace\": [\n    {\n      \"step\": \"runtime.receive\",\n      \"status\": \"ok\",\n      \"message\": \"plan\"\n    },\n    {\n      \"step\": \"kernel.validate.systemRequest\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.input\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.plan\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"kernel.validate.taskGraph\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"provider.execute\",\n      \"status\": \"ok\",\n      \"message\": \"github:list\"\n    },\n    {\n      \"step\": \"skill.execute\",\n      \"status\": \"ok\",\n      \"message\": \"extractRisks\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "github.risks.human",
+      "surface": "cli",
+      "args": ["github", "risks", "octo/demo", "--limit", "5"],
+      "exitCode": 0,
+      "stdout": "OH MY PM risks: 1\n- [high] #1 Blocked on design review — github_state:blocked — author: a — source: octo/demo#1 — https://github.com/octo/demo/issues/1\n",
+      "stderr": ""
+    },
+    {
+      "name": "github.risks.mcp",
+      "surface": "mcp",
+      "operation": "risks",
+      "result": {
+        "ok": true,
+        "operation": "risks",
+        "repository": "octo/demo",
+        "selection": { "mode": "overview", "state": "open", "limit": 5 },
+        "sourceSummary": {
+          "total": 3,
+          "repositories": 1,
+          "issues": 2,
+          "pullRequests": 0,
+          "comments": 0,
+          "reviews": 0,
+          "reviewComments": 0
+        },
+        "sources": [
+          {
+            "type": "issue",
+            "number": 1,
+            "title": "#1 Blocked on design review",
+            "state": "open",
+            "url": "https://github.com/octo/demo/issues/1"
+          },
+          {
+            "type": "issue",
+            "number": 2,
+            "title": "#2 Ship the handoff",
+            "state": "open",
+            "url": "https://github.com/octo/demo/issues/2"
+          }
+        ],
+        "output": {
+          "risks": [
+            {
+              "id": "github:issue:octo/demo#1",
+              "title": "#1 Blocked on design review",
+              "severity": "high",
+              "reason": "github_state:blocked",
+              "source": "github-issue",
+              "sourceType": "issue",
+              "url": "https://github.com/octo/demo/issues/1",
+              "author": "a",
+              "repository": "octo/demo",
+              "number": 1
+            }
+          ]
+        },
+        "markdown": "# OH MY PM Project Risks\n\n## Summary\n\n- Total: 1\n- High: 1\n- Medium: 0\n- Low: 0\n\n## Risks\n\n- **high** — [#1 Blocked on design review](https://github.com/octo/demo/issues/1) — `github_state:blocked` — author: `a`\n"
+      }
+    },
+    {
+      "name": "github.next.json",
+      "surface": "cli",
+      "args": ["github", "next", "octo/demo", "--json", "--limit", "5"],
+      "exitCode": 0,
+      "stdout": "{\n  \"id\": \"cli-github-next\",\n  \"ok\": true,\n  \"data\": {\n    \"plannerInput\": {\n      \"request\": \"derive next tasks for GitHub repository octo/demo using overview source\",\n      \"locale\": \"en\",\n      \"context\": {\n        \"providerRequests\": [\n          {\n            \"providerId\": \"github\",\n            \"action\": \"list\",\n            \"query\": \"octo/demo::source=overview&state=open\",\n            \"limit\": 5\n          }\n        ]\n      }\n    },\n    \"plannerResult\": {\n      \"status\": \"ok\",\n      \"graph\": {\n        \"nodes\": [\n          {\n            \"id\": \"provider:0:github:list\",\n            \"kind\": \"providerRead\",\n            \"title\": \"Read github context\",\n            \"dependsOn\": [],\n            \"payload\": {\n              \"providerRequest\": {\n                \"providerId\": \"github\",\n                \"action\": \"list\",\n                \"query\": \"octo/demo::source=overview&state=open\",\n                \"limit\": 5\n              }\n            }\n          },\n          {\n            \"id\": \"plan:nextTask\",\n            \"kind\": \"skillExecution\",\n            \"title\": \"Derive next tasks\",\n            \"dependsOn\": [\n              \"provider:0:github:list\"\n            ],\n            \"payload\": {\n              \"intent\": \"nextTask\",\n              \"request\": \"derive next tasks for GitHub repository octo/demo using overview source\",\n              \"locale\": \"en\"\n            }\n          }\n        ]\n      }\n    },\n    \"graph\": {\n      \"nodes\": [\n        {\n          \"id\": \"provider:0:github:list\",\n          \"kind\": \"providerRead\",\n          \"title\": \"Read github context\",\n          \"dependsOn\": [],\n          \"payload\": {\n            \"providerRequest\": {\n              \"providerId\": \"github\",\n              \"action\": \"list\",\n              \"query\": \"octo/demo::source=overview&state=open\",\n              \"limit\": 5\n            }\n          }\n        },\n        {\n          \"id\": \"plan:nextTask\",\n          \"kind\": \"skillExecution\",\n          \"title\": \"Derive next tasks\",\n          \"dependsOn\": [\n            \"provider:0:github:list\"\n          ],\n          \"payload\": {\n            \"intent\": \"nextTask\",\n            \"request\": \"derive next tasks for GitHub repository octo/demo using overview source\",\n            \"locale\": \"en\"\n          }\n        }\n      ]\n    },\n    \"providerResponses\": [\n      {\n        \"providerId\": \"github\",\n        \"items\": [\n          {\n            \"id\": \"github:repository:octo/demo\",\n            \"type\": \"record\",\n            \"title\": \"octo/demo\",\n            \"source\": \"github\",\n            \"data\": {\n              \"repository\": \"octo/demo\",\n              \"kind\": \"repository\",\n              \"body\": \"Repository: octo/demo\\nDescription: demo\\nVisibility: public\\nOpen issues and pull requests: 2\\nArchived: no\",\n              \"status\": \"active\",\n              \"owner\": \"octo\",\n              \"tags\": [\n                \"repository\",\n                \"public\"\n              ],\n              \"openIssuesCount\": 2\n            },\n            \"url\": \"https://github.com/octo/demo\"\n          },\n          {\n            \"id\": \"github:issue:octo/demo#1\",\n            \"type\": \"issue\",\n            \"title\": \"#1 Blocked on design review\",\n            \"source\": \"github\",\n            \"data\": {\n              \"repository\": \"octo/demo\",\n              \"number\": 1,\n              \"kind\": \"issue\",\n              \"body\": \"blocked\",\n              \"status\": \"open\",\n              \"owner\": \"\",\n              \"assignees\": [],\n              \"tags\": [\n                \"issue\",\n                \"blocked\"\n              ],\n              \"labels\": [\n                \"blocked\"\n              ],\n              \"comments\": 0,\n              \"locked\": false,\n              \"author\": \"a\"\n            },\n            \"url\": \"https://github.com/octo/demo/issues/1\"\n          },\n          {\n            \"id\": \"github:issue:octo/demo#2\",\n            \"type\": \"issue\",\n            \"title\": \"#2 Ship the handoff\",\n            \"source\": \"github\",\n            \"data\": {\n              \"repository\": \"octo/demo\",\n              \"number\": 2,\n              \"kind\": \"issue\",\n              \"body\": \"ready\",\n              \"status\": \"open\",\n              \"owner\": \"\",\n              \"assignees\": [],\n              \"tags\": [\n                \"issue\"\n              ],\n              \"labels\": [],\n              \"comments\": 0,\n              \"locked\": false,\n              \"author\": \"b\"\n            },\n            \"url\": \"https://github.com/octo/demo/issues/2\"\n          }\n        ]\n      }\n    ],\n    \"skillOutput\": {\n      \"skillId\": \"deriveNextTasks\",\n      \"ok\": true,\n      \"output\": {\n        \"tasks\": [\n          {\n            \"id\": \"github:issue:octo/demo#2\",\n            \"title\": \"#2 Ship the handoff\",\n            \"reason\": \"github_issue:open\",\n            \"source\": \"github-issue\",\n            \"priority\": \"low\",\n            \"sourceType\": \"issue\",\n            \"url\": \"https://github.com/octo/demo/issues/2\",\n            \"author\": \"b\",\n            \"repository\": \"octo/demo\",\n            \"number\": 2\n          }\n        ]\n      }\n    },\n    \"output\": {\n      \"tasks\": [\n        {\n          \"id\": \"github:issue:octo/demo#2\",\n          \"title\": \"#2 Ship the handoff\",\n          \"reason\": \"github_issue:open\",\n          \"source\": \"github-issue\",\n          \"priority\": \"low\",\n          \"sourceType\": \"issue\",\n          \"url\": \"https://github.com/octo/demo/issues/2\",\n          \"author\": \"b\",\n          \"repository\": \"octo/demo\",\n          \"number\": 2\n        }\n      ]\n    }\n  },\n  \"trace\": [\n    {\n      \"step\": \"runtime.receive\",\n      \"status\": \"ok\",\n      \"message\": \"plan\"\n    },\n    {\n      \"step\": \"kernel.validate.systemRequest\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.input\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.plan\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"kernel.validate.taskGraph\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"provider.execute\",\n      \"status\": \"ok\",\n      \"message\": \"github:list\"\n    },\n    {\n      \"step\": \"skill.execute\",\n      \"status\": \"ok\",\n      \"message\": \"deriveNextTasks\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "github.next.human",
+      "surface": "cli",
+      "args": ["github", "next", "octo/demo", "--limit", "5"],
+      "exitCode": 0,
+      "stdout": "OH MY PM next: 1\n- [low] #2 Ship the handoff — github_issue:open — author: b — source: octo/demo#2 — https://github.com/octo/demo/issues/2\n",
+      "stderr": ""
+    },
+    {
+      "name": "github.next.mcp",
+      "surface": "mcp",
+      "operation": "next",
+      "result": {
+        "ok": true,
+        "operation": "next",
+        "repository": "octo/demo",
+        "selection": { "mode": "overview", "state": "open", "limit": 5 },
+        "sourceSummary": {
+          "total": 3,
+          "repositories": 1,
+          "issues": 2,
+          "pullRequests": 0,
+          "comments": 0,
+          "reviews": 0,
+          "reviewComments": 0
+        },
+        "sources": [
+          {
+            "type": "issue",
+            "number": 1,
+            "title": "#1 Blocked on design review",
+            "state": "open",
+            "url": "https://github.com/octo/demo/issues/1"
+          },
+          {
+            "type": "issue",
+            "number": 2,
+            "title": "#2 Ship the handoff",
+            "state": "open",
+            "url": "https://github.com/octo/demo/issues/2"
+          }
+        ],
+        "output": {
+          "tasks": [
+            {
+              "id": "github:issue:octo/demo#2",
+              "title": "#2 Ship the handoff",
+              "reason": "github_issue:open",
+              "source": "github-issue",
+              "priority": "low",
+              "sourceType": "issue",
+              "url": "https://github.com/octo/demo/issues/2",
+              "author": "b",
+              "repository": "octo/demo",
+              "number": 2
+            }
+          ]
+        },
+        "markdown": "# OH MY PM Next Tasks\n\n## Summary\n\n- Total: 1\n\n## Tasks\n\n- **low** — [#2 Ship the handoff](https://github.com/octo/demo/issues/2) — `github_issue:open` — author: `b`\n"
+      }
+    },
+    {
+      "name": "github.handoff.json",
+      "surface": "cli",
+      "args": ["github", "handoff", "octo/demo", "--json", "--limit", "5"],
+      "exitCode": 0,
+      "stdout": "{\n  \"id\": \"cli-github-handoff\",\n  \"ok\": true,\n  \"data\": {\n    \"plannerInput\": {\n      \"request\": \"create handoff for GitHub repository octo/demo using overview source\",\n      \"locale\": \"en\",\n      \"context\": {\n        \"providerRequests\": [\n          {\n            \"providerId\": \"github\",\n            \"action\": \"list\",\n            \"query\": \"octo/demo::source=overview&state=open\",\n            \"limit\": 5\n          }\n        ]\n      }\n    },\n    \"plannerResult\": {\n      \"status\": \"ok\",\n      \"graph\": {\n        \"nodes\": [\n          {\n            \"id\": \"provider:0:github:list\",\n            \"kind\": \"providerRead\",\n            \"title\": \"Read github context\",\n            \"dependsOn\": [],\n            \"payload\": {\n              \"providerRequest\": {\n                \"providerId\": \"github\",\n                \"action\": \"list\",\n                \"query\": \"octo/demo::source=overview&state=open\",\n                \"limit\": 5\n              }\n            }\n          },\n          {\n            \"id\": \"plan:handoff\",\n            \"kind\": \"skillExecution\",\n            \"title\": \"Create project handoff\",\n            \"dependsOn\": [\n              \"provider:0:github:list\"\n            ],\n            \"payload\": {\n              \"intent\": \"handoff\",\n              \"request\": \"create handoff for GitHub repository octo/demo using overview source\",\n              \"locale\": \"en\"\n            }\n          }\n        ]\n      }\n    },\n    \"graph\": {\n      \"nodes\": [\n        {\n          \"id\": \"provider:0:github:list\",\n          \"kind\": \"providerRead\",\n          \"title\": \"Read github context\",\n          \"dependsOn\": [],\n          \"payload\": {\n            \"providerRequest\": {\n              \"providerId\": \"github\",\n              \"action\": \"list\",\n              \"query\": \"octo/demo::source=overview&state=open\",\n              \"limit\": 5\n            }\n          }\n        },\n        {\n          \"id\": \"plan:handoff\",\n          \"kind\": \"skillExecution\",\n          \"title\": \"Create project handoff\",\n          \"dependsOn\": [\n            \"provider:0:github:list\"\n          ],\n          \"payload\": {\n            \"intent\": \"handoff\",\n            \"request\": \"create handoff for GitHub repository octo/demo using overview source\",\n            \"locale\": \"en\"\n          }\n        }\n      ]\n    },\n    \"providerResponses\": [\n      {\n        \"providerId\": \"github\",\n        \"items\": [\n          {\n            \"id\": \"github:repository:octo/demo\",\n            \"type\": \"record\",\n            \"title\": \"octo/demo\",\n            \"source\": \"github\",\n            \"data\": {\n              \"repository\": \"octo/demo\",\n              \"kind\": \"repository\",\n              \"body\": \"Repository: octo/demo\\nDescription: demo\\nVisibility: public\\nOpen issues and pull requests: 2\\nArchived: no\",\n              \"status\": \"active\",\n              \"owner\": \"octo\",\n              \"tags\": [\n                \"repository\",\n                \"public\"\n              ],\n              \"openIssuesCount\": 2\n            },\n            \"url\": \"https://github.com/octo/demo\"\n          },\n          {\n            \"id\": \"github:issue:octo/demo#1\",\n            \"type\": \"issue\",\n            \"title\": \"#1 Blocked on design review\",\n            \"source\": \"github\",\n            \"data\": {\n              \"repository\": \"octo/demo\",\n              \"number\": 1,\n              \"kind\": \"issue\",\n              \"body\": \"blocked\",\n              \"status\": \"open\",\n              \"owner\": \"\",\n              \"assignees\": [],\n              \"tags\": [\n                \"issue\",\n                \"blocked\"\n              ],\n              \"labels\": [\n                \"blocked\"\n              ],\n              \"comments\": 0,\n              \"locked\": false,\n              \"author\": \"a\"\n            },\n            \"url\": \"https://github.com/octo/demo/issues/1\"\n          },\n          {\n            \"id\": \"github:issue:octo/demo#2\",\n            \"type\": \"issue\",\n            \"title\": \"#2 Ship the handoff\",\n            \"source\": \"github\",\n            \"data\": {\n              \"repository\": \"octo/demo\",\n              \"number\": 2,\n              \"kind\": \"issue\",\n              \"body\": \"ready\",\n              \"status\": \"open\",\n              \"owner\": \"\",\n              \"assignees\": [],\n              \"tags\": [\n                \"issue\"\n              ],\n              \"labels\": [],\n              \"comments\": 0,\n              \"locked\": false,\n              \"author\": \"b\"\n            },\n            \"url\": \"https://github.com/octo/demo/issues/2\"\n          }\n        ]\n      }\n    ],\n    \"skillOutput\": {\n      \"skillId\": \"createHandoff\",\n      \"ok\": true,\n      \"output\": {\n        \"title\": \"octo/demo\",\n        \"sections\": [\n          {\n            \"heading\": \"Summary\",\n            \"items\": [\n              \"create handoff for GitHub repository octo/demo using overview source\"\n            ]\n          },\n          {\n            \"heading\": \"Open Tasks\",\n            \"items\": [\n              \"octo/demo\",\n              \"#2 Ship the handoff\"\n            ]\n          },\n          {\n            \"heading\": \"Risks\",\n            \"items\": [\n              \"No risks listed.\"\n            ]\n          },\n          {\n            \"heading\": \"Decisions\",\n            \"items\": [\n              \"No decisions listed.\"\n            ]\n          }\n        ],\n        \"generatedAt\": \"2026-03-01T00:00:00.000Z\"\n      }\n    },\n    \"output\": {\n      \"title\": \"octo/demo\",\n      \"sections\": [\n        {\n          \"heading\": \"Summary\",\n          \"items\": [\n            \"create handoff for GitHub repository octo/demo using overview source\"\n          ]\n        },\n        {\n          \"heading\": \"Open Tasks\",\n          \"items\": [\n            \"octo/demo\",\n            \"#2 Ship the handoff\"\n          ]\n        },\n        {\n          \"heading\": \"Risks\",\n          \"items\": [\n            \"No risks listed.\"\n          ]\n        },\n        {\n          \"heading\": \"Decisions\",\n          \"items\": [\n            \"No decisions listed.\"\n          ]\n        }\n      ],\n      \"generatedAt\": \"2026-03-01T00:00:00.000Z\"\n    }\n  },\n  \"trace\": [\n    {\n      \"step\": \"runtime.receive\",\n      \"status\": \"ok\",\n      \"message\": \"plan\"\n    },\n    {\n      \"step\": \"kernel.validate.systemRequest\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.input\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"planner.plan\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"kernel.validate.taskGraph\",\n      \"status\": \"ok\"\n    },\n    {\n      \"step\": \"provider.execute\",\n      \"status\": \"ok\",\n      \"message\": \"github:list\"\n    },\n    {\n      \"step\": \"skill.execute\",\n      \"status\": \"ok\",\n      \"message\": \"createHandoff\"\n    }\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "name": "github.handoff.human",
+      "surface": "cli",
+      "args": ["github", "handoff", "octo/demo", "--limit", "5"],
+      "exitCode": 0,
+      "stdout": "OH MY PM handoff: octo/demo\nSummary: 1\n- create handoff for GitHub repository octo/demo using overview source\nOpen Tasks: 2\n- octo/demo\n- #2 Ship the handoff\nRisks: 1\n- No risks listed.\nDecisions: 1\n- No decisions listed.\ngenerated at: 2026-03-01T00:00:00.000Z\n",
+      "stderr": ""
+    },
+    {
+      "name": "github.handoff.mcp",
+      "surface": "mcp",
+      "operation": "handoff",
+      "result": {
+        "ok": true,
+        "operation": "handoff",
+        "repository": "octo/demo",
+        "selection": { "mode": "overview", "state": "open", "limit": 5 },
+        "sourceSummary": {
+          "total": 3,
+          "repositories": 1,
+          "issues": 2,
+          "pullRequests": 0,
+          "comments": 0,
+          "reviews": 0,
+          "reviewComments": 0
+        },
+        "sources": [
+          {
+            "type": "issue",
+            "number": 1,
+            "title": "#1 Blocked on design review",
+            "state": "open",
+            "url": "https://github.com/octo/demo/issues/1"
+          },
+          {
+            "type": "issue",
+            "number": 2,
+            "title": "#2 Ship the handoff",
+            "state": "open",
+            "url": "https://github.com/octo/demo/issues/2"
+          }
+        ],
+        "output": {
+          "title": "octo/demo",
+          "sections": [
+            {
+              "heading": "Summary",
+              "items": ["create handoff for GitHub repository octo/demo using overview source"]
+            },
+            { "heading": "Open Tasks", "items": ["octo/demo", "#2 Ship the handoff"] },
+            { "heading": "Risks", "items": ["No risks listed."] },
+            { "heading": "Decisions", "items": ["No decisions listed."] }
+          ],
+          "generatedAt": "2026-03-01T00:00:00.000Z"
+        },
+        "markdown": "# OH MY PM Project Handoff\n\n- Project: octo/demo\n- Generated at: `2026-03-01T00:00:00.000Z`\n\n## Summary\n\n- create handoff for GitHub repository octo/demo using overview source\n\n## Open Tasks\n\n- octo/demo\n- #2 Ship the handoff\n\n## Risks\n\n- No risks listed.\n\n## Decisions\n\n- No decisions listed.\n"
+      }
+    }
+  ]
+}
