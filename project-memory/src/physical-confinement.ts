@@ -39,7 +39,7 @@
 // "validated immediately before the write against the real filesystem", not
 // "atomically race-free".
 
-import { basename, dirname, isAbsolute, normalize, parse, relative, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, normalize, parse, resolve, sep } from "node:path";
 
 import { invalidInput, pathEscape } from "./errors.js";
 
@@ -125,9 +125,24 @@ function comparable(path: string, caseInsensitive: boolean): string {
 
 /**
  * True when `inner` is the same as, or nested inside, `outer`. BOTH must already
- * be canonical (realpath output). Uses `relative()` rather than `startsWith()`:
- * a prefix test would accept `/data/store-evil` as inside `/data/store`, since
- * the former does begin with the latter's characters.
+ * be canonical (realpath output).
+ *
+ * Compares SEGMENT BY SEGMENT rather than delegating to `relative()`. Two reasons,
+ * and the second is a real cross-platform defect:
+ *
+ *   1. A prefix test would accept `/data/store-evil` as inside `/data/store`,
+ *      since the former does begin with the latter's characters. Segment equality
+ *      cannot make that mistake.
+ *   2. `path.win32.relative` FOLDS CASE. So on Windows
+ *      `relative("\\data\\Store", "\\data\\store\\a")` returns `"a"`, and an
+ *      explicit `caseInsensitive: false` request was silently answered as if it
+ *      were `true` -- the function accepted a case variant as contained even when
+ *      the caller had asked for exact matching. Comparing segments with the
+ *      caller's own case rule honours the flag on every platform.
+ *
+ * Case folding remains the correct DEFAULT on macOS and Windows, where `STORE` and
+ * `store` genuinely are the same directory; the point is that the caller decides,
+ * and now that decision is actually respected.
  */
 export function isPhysicallyInside(
   outer: string,
@@ -137,11 +152,32 @@ export function isPhysicallyInside(
   const outerKey = comparable(outer, caseInsensitive);
   const innerKey = comparable(inner, caseInsensitive);
   if (outerKey === innerKey) return true;
-  const rel = relative(outerKey, innerKey);
-  if (rel === "" || isAbsolute(rel)) return false;
-  // No segment may be a traversal token, and the relative path may not start by
-  // walking upwards.
-  return !rel.split(sep).includes("..");
+
+  // A path that is not on the same filesystem root cannot be contained.
+  const outerParsed = parse(outerKey);
+  const innerParsed = parse(innerKey);
+  if (outerParsed.root !== innerParsed.root) return false;
+
+  const outerSegments = splitSegments(outerKey);
+  const innerSegments = splitSegments(innerKey);
+  // `inner` must be strictly deeper: equal depth was handled by the key equality
+  // above, and a shallower path can never be nested inside a deeper one.
+  if (innerSegments.length <= outerSegments.length) return false;
+  for (const [index, segment] of outerSegments.entries()) {
+    if (innerSegments[index] !== segment) return false;
+  }
+  // No traversal token may appear below the root. `comparable` normalizes first,
+  // so a resolvable `..` is already gone; anything left is an escape attempt.
+  return !innerSegments.slice(outerSegments.length).includes("..");
+}
+
+/** The non-root segments of an already-normalized path. */
+function splitSegments(normalizedPath: string): string[] {
+  const { root } = parse(normalizedPath);
+  return normalizedPath
+    .slice(root.length)
+    .split(sep)
+    .filter((segment) => segment.length > 0);
 }
 
 /**

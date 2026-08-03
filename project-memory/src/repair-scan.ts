@@ -26,6 +26,8 @@
 //   * Sanitized output. Every target is store-relative; no absolute path,
 //     environment value, or raw record content is ever placed in a finding.
 
+import { join } from "node:path";
+
 import { computeIntegrity, deriveProjectKey, deriveRecordKey } from "./integrity.js";
 import type { FileSystem } from "./filesystem.js";
 import { STALE_LOCK_THRESHOLD_MS } from "./lock.js";
@@ -574,7 +576,9 @@ async function classifyResidue(
   const findings: RepairFinding[] = [];
 
   for (const dirname of [SNAPSHOTS_DIRNAME, EVIDENCE_DIRNAME, STAGING_DIRNAME]) {
-    const dir = `${projectDir}/${dirname}`;
+    // NATIVE path: joined with node:path, never string concatenation. See the
+    // canonical/native note on `storeRelative`.
+    const dir = join(projectDir, dirname);
     if (!(await fs.exists(dir))) continue;
     const entries = await fs.readDir(dir);
     for (const entry of [...entries].sort((a, b) => compare(a.name, b.name))) {
@@ -582,6 +586,8 @@ async function classifyResidue(
       const isTemp = entry.name.startsWith(TEMP_PREFIX);
       const isStaged = dirname === STAGING_DIRNAME;
       if (!isTemp && !isStaged) continue;
+      // CANONICAL store-relative: always "/" so a finding compares equal across
+      // platforms. Built from storeRelative(), which normalizes the native path.
       const relativePath = `${storeRelative(layout, dir)}/${entry.name}`;
       // Residue contributes to the fingerprint by NAME only. Its contents are
       // not authoritative, and reading a partially-written temp file adds nothing
@@ -696,7 +702,8 @@ async function readRecordDir(
   dirname: typeof SNAPSHOTS_DIRNAME | typeof EVIDENCE_DIRNAME,
   observed: ObservedFile[],
 ): Promise<readonly ObservedFile[]> {
-  const dir = `${projectDir}/${dirname}`;
+  // NATIVE path: see the canonical/native note on `storeRelative`.
+  const dir = join(projectDir, dirname);
   if (!(await fs.exists(dir))) return [];
   const entries = await fs.readDir(dir);
   const files: ObservedFile[] = [];
@@ -706,7 +713,7 @@ async function readRecordDir(
     if (entry.isSymbolicLink || !entry.isFile) continue;
     if (!entry.name.endsWith(".json")) continue;
     if (entry.name.startsWith(TEMP_PREFIX)) continue;
-    const raw = await fs.readFileIfExists(`${dir}/${entry.name}`);
+    const raw = await fs.readFileIfExists(join(dir, entry.name));
     if (raw === null) continue;
     const file = { relativePath: `${storeRelative(layout, dir)}/${entry.name}`, raw };
     files.push(file);
@@ -718,9 +725,27 @@ async function readRecordDir(
 /**
  * The store-relative form of an absolute managed path.
  *
- * Every finding target passes through here, which is what keeps an absolute local
- * path out of the output. POSIX separators are forced so a plan generated on
- * Windows compares equal to one generated elsewhere.
+ * This function IS the canonical/native boundary, and the distinction matters
+ * enough to state once:
+ *
+ *   NATIVE path    -- an absolute filesystem path built with `node:path`. Uses the
+ *                     platform separator: backslashes on Windows. Only these are
+ *                     ever handed to a filesystem call.
+ *   CANONICAL path -- a store-relative identifier that always uses "/", because it
+ *                     is part of the persisted and printed format. A finding
+ *                     target, a quarantine metadata `originalPath`, and a plan
+ *                     action target are all canonical, so a plan generated on
+ *                     Windows compares byte-equal to one generated on Linux.
+ *
+ * Mixing the two is what broke the scanner on Windows: a native directory built by
+ * string concatenation (`${projectDir}/${dirname}`) produced
+ * `C:\...\v1\projects\KEY/snapshots`, whose entries never matched the paths the
+ * store had actually written, so the scan observed nothing at all and every
+ * downstream finding, fingerprint, and stale-plan check silently collapsed.
+ *
+ * So: build native paths with `join`, convert to canonical HERE, and never feed a
+ * canonical path back to a filesystem call without going through
+ * `absoluteFromStoreRelative`.
  */
 function storeRelative(layout: StoreLayout, absolutePath: string): string {
   const root = layout.storeRoot;

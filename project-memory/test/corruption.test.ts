@@ -48,7 +48,9 @@ describe("corruption handling", () => {
       SNAPSHOTS_DIRNAME,
       deriveRecordKey("snapshot", "snap-1"),
     );
-    fs.nodes.delete(recordPath);
+    // remove(), not nodes.delete(): the raw map is keyed on "/" while recordPathFor
+    // returns a platform-native path, so a raw delete matches nothing on Windows.
+    fs.remove(recordPath);
     const verification = await new DependencyInjectedStore({ fs, dataRoot: DATA_ROOT }).verify(PID);
     expect(verification.ok).toBe(false);
     expect(verification.issues.some((i) => i.kind === "missingRecord")).toBe(true);

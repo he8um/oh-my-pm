@@ -152,6 +152,24 @@ export class MemoryFileSystem implements FileSystem {
     this.nodes.set(norm, { kind: "file", content });
   }
 
+  /**
+   * Test helper: delete exactly one node, normalizing the path first.
+   *
+   * Exists because `fs.nodes.delete(p)` bypasses `normalize()`. The store builds
+   * its paths with `node:path`, so on Windows a caller passes backslashes while the
+   * map is keyed on "/" -- the raw delete silently matched nothing and the test
+   * then asserted against an undamaged store. Every mutation from a test must go
+   * through a normalizing helper.
+   */
+  remove(path: string): void {
+    this.nodes.delete(normalize(path));
+  }
+
+  /** Test helper: every persisted path, normalized and sorted. */
+  listPaths(): string[] {
+    return [...this.nodes.keys()].sort();
+  }
+
   /** Test helper: snapshot of every file path -> content, for byte comparisons. */
   snapshot(): Map<string, string> {
     const out = new Map<string, string>();

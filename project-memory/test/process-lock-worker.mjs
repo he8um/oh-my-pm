@@ -16,7 +16,9 @@
 // hanging forever; they are never the synchronization mechanism.
 
 import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 
 /** Emit one protocol line. Flushed per write because stdout is a pipe. */
 function emit(event, extra = {}) {
@@ -34,12 +36,18 @@ function config() {
 
 const cfg = config();
 
-const dist = cfg.distDir;
-const { NodeFileSystem } = await import(`${dist}/node-adapter.js`);
-const { acquireLock, STALE_LOCK_THRESHOLD_MS } = await import(`${dist}/lock.js`);
-const { deriveProjectKey } = await import(`${dist}/integrity.js`);
-const { lockPathFor, resolveStoreLayout } = await import(`${dist}/path-safety.js`);
-const { DependencyInjectedStore } = await import(`${dist}/store.js`);
+// A dynamic import needs a file:// URL, not a filesystem path. On POSIX a bare
+// absolute path happens to work; on Windows `C:\...\dist\lock.js` is parsed as a
+// URL whose scheme is "c:", and Node rejects it with
+// ERR_UNSUPPORTED_ESM_URL_SCHEME -- which killed every cross-process lock test
+// before the worker could emit its first handshake line. `pathToFileURL` is the
+// portable conversion.
+const distUrl = (file) => pathToFileURL(join(cfg.distDir, file)).href;
+const { NodeFileSystem } = await import(distUrl("node-adapter.js"));
+const { acquireLock, STALE_LOCK_THRESHOLD_MS } = await import(distUrl("lock.js"));
+const { deriveProjectKey } = await import(distUrl("integrity.js"));
+const { lockPathFor, resolveStoreLayout } = await import(distUrl("path-safety.js"));
+const { DependencyInjectedStore } = await import(distUrl("store.js"));
 
 const layout = resolveStoreLayout(cfg.dataRoot);
 const projectKey = deriveProjectKey(cfg.projectId);

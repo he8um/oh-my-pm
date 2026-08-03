@@ -14,10 +14,16 @@
 // Timing is recorded nowhere here. If a future release wants regression detection
 // it should add generous, explicitly non-normative timing beside these counts.
 
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { deriveProjectKey } from "../src/integrity.js";
-import { resolveStoreLayout, STAGING_DIRNAME, PROJECTS_DIRNAME } from "../src/path-safety.js";
+import {
+  PROJECTS_DIRNAME,
+  QUARANTINE_DIRNAME,
+  resolveStoreLayout,
+  STAGING_DIRNAME,
+} from "../src/path-safety.js";
 import { applyRepairPlan } from "../src/repair-apply.js";
 import { buildRepairPlan } from "../src/repair-plan.js";
 import { scanStore } from "../src/repair-scan.js";
@@ -98,10 +104,23 @@ async function seed(
   return store;
 }
 
+/**
+ * The double keys its nodes on "/" after normalizing, so a native path must be
+ * converted the same way before it is used as a prefix. Without this the
+ * comparison silently matched nothing on Windows and every bound compared zero
+ * against zero.
+ */
+function toKey(nativePath: string): string {
+  return nativePath.replace(/\\/g, "/");
+}
+
 function recordPathsOf(fs: CountingFileSystem, projectId: string): string[] {
   const key = deriveProjectKey(projectId);
-  const prefix = `${layout.storeRoot}/${PROJECTS_DIRNAME}/${key}/`;
-  return [...fs.nodes.keys()].filter((p) => p.startsWith(prefix) && p.endsWith(".json"));
+  // Normalized to "/" to match listPaths(), which returns normalized keys.
+  const prefix = `${toKey(join(layout.storeRoot, PROJECTS_DIRNAME, key))}/`;
+  // listPaths() returns NORMALIZED keys, so the prefix comparison holds whatever
+  // separator the layout used. A raw nodes.keys() read matched nothing on Windows.
+  return fs.listPaths().filter((p) => p.startsWith(prefix) && p.endsWith(".json"));
 }
 
 describe("scan is bounded by store size, not by finding count", () => {
@@ -136,7 +155,7 @@ describe("scan is bounded by store size, not by finding count", () => {
     const damaged = new CountingFileSystem({ now: () => NOW, pid: 1 });
     await seed(damaged, "bounds-damaged", SIZES.medium);
     for (const path of recordPathsOf(damaged, "bounds-damaged")) {
-      if (path.includes("snapshots")) damaged.nodes.set(path, { kind: "file", content: "{broken" });
+      if (path.includes("snapshots")) damaged.poke(path, "{broken");
     }
     damaged.counts.readFile = 0;
     const damagedScan = await scanStore({ fs: damaged, layout, projectId: "bounds-damaged" });
@@ -190,7 +209,7 @@ describe("repair work is bounded by the plan, not the store", () => {
     const fs = new CountingFileSystem({ now: () => NOW, pid: 1 });
     await seed(fs, "bounds-apply", SIZES.medium);
     const damaged = recordPathsOf(fs, "bounds-apply").filter((p) => p.includes("snapshots"))[0];
-    fs.nodes.set(damaged as string, { kind: "file", content: "{broken" });
+    fs.poke(damaged as string, "{broken");
 
     const scan = await scanStore({ fs, layout, projectId: "bounds-apply" });
     const plan = buildRepairPlan({ scan, operationId: "bounds-op", generatedAt: NOW });
@@ -217,7 +236,7 @@ describe("repair work is bounded by the plan, not the store", () => {
     const fs = new CountingFileSystem({ now: () => NOW, pid: 1 });
     await seed(fs, "bounds-lock", SIZES.small);
     const damaged = recordPathsOf(fs, "bounds-lock").filter((p) => p.includes("snapshots"))[0];
-    fs.nodes.set(damaged as string, { kind: "file", content: "{broken" });
+    fs.poke(damaged as string, "{broken");
 
     const scan = await scanStore({ fs, layout, projectId: "bounds-lock" });
     const plan = buildRepairPlan({ scan, operationId: "lock-op", generatedAt: NOW });
@@ -239,7 +258,7 @@ describe("repair work is bounded by the plan, not the store", () => {
     const fs = new CountingFileSystem({ now: () => NOW, pid: 1 });
     await seed(fs, "bounds-preview", SIZES.medium);
     const damaged = recordPathsOf(fs, "bounds-preview").filter((p) => p.includes("snapshots"))[0];
-    fs.nodes.set(damaged as string, { kind: "file", content: "{broken" });
+    fs.poke(damaged as string, "{broken");
 
     fs.counts.write = 0;
     fs.counts.remove = 0;
@@ -259,10 +278,10 @@ describe("adversarial fixtures stay bounded", () => {
     const fs = new CountingFileSystem({ now: () => NOW, pid: 1 });
     await seed(fs, "bounds-temps", SIZES.small);
     const key = deriveProjectKey("bounds-temps");
-    const staging = `${layout.storeRoot}/${PROJECTS_DIRNAME}/${key}/${STAGING_DIRNAME}`;
+    const staging = join(layout.storeRoot, PROJECTS_DIRNAME, key, STAGING_DIRNAME);
     await fs.mkdirp(staging);
     for (let i = 0; i < 200; i += 1) {
-      fs.nodes.set(`${staging}/.tmp-op-1-${i}-staged`, { kind: "file", content: "x" });
+      fs.poke(join(staging, `.tmp-op-1-${i}-staged`), "x");
     }
 
     fs.counts.readFile = 0;
@@ -294,9 +313,9 @@ describe("adversarial fixtures stay bounded", () => {
     const before = await scanStore({ fs, layout, projectId: "bounds-quar" });
 
     const key = deriveProjectKey("bounds-quar");
-    const quarantine = `${layout.storeRoot}/${PROJECTS_DIRNAME}/${key}/quarantine`;
+    const quarantine = join(layout.storeRoot, PROJECTS_DIRNAME, key, QUARANTINE_DIRNAME);
     for (let i = 0; i < 50; i += 1) {
-      fs.nodes.set(`${quarantine}/op-${i}/entry/payload.bin`, { kind: "file", content: "old" });
+      fs.poke(join(quarantine, `op-${i}`, "entry", "payload.bin"), "old");
     }
 
     fs.counts.readFile = 0;

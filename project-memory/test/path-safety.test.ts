@@ -1,3 +1,4 @@
+import { dirname } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { ProjectMemoryError, PROJECT_MEMORY_ERROR_CODES } from "../src/errors.js";
@@ -57,7 +58,11 @@ describe("project/data-root separation", () => {
 describe("confinement and traversal", () => {
   it("confines a normal managed path", () => {
     const p = manifestPathFor(layout, deriveProjectKey("proj"));
-    expect(p.startsWith(layout.dataRoot)).toBe(true);
+    // isSameOrInside(), not startsWith(). `resolveStoreLayout` resolves through
+    // node:path, so on Windows a "/data/..." root becomes "D:\\data\\..." and a raw
+    // prefix test fails on the drive letter alone -- while also being the wrong
+    // check, since "/data/store-evil" does begin with "/data/store".
+    expect(isSameOrInside(layout.dataRoot, p)).toBe(true);
   });
 
   it("rejects a traversal that escapes the data root", () => {
@@ -165,10 +170,10 @@ describe("governed quarantine layout", () => {
     expect(metadata.endsWith(QUARANTINE_METADATA_FILENAME)).toBe(true);
     expect(receipt.endsWith(REPAIR_RECEIPT_FILENAME)).toBe(true);
     // Payload and metadata share an entry directory so one entry's evidence is
-    // never split across operations.
-    expect(payload.slice(0, payload.lastIndexOf("/"))).toBe(
-      metadata.slice(0, metadata.lastIndexOf("/")),
-    );
+    // never split across operations. Compared with dirname(): a lastIndexOf("/")
+    // scan finds nothing in a backslash path and silently compared two whole
+    // paths instead of two directories.
+    expect(dirname(payload)).toBe(dirname(metadata));
   });
 
   it("is deterministic for the same operation and entry", () => {
