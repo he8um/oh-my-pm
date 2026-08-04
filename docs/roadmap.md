@@ -11,12 +11,12 @@ Every entry below carries one of five explicit states:
 | **Out of scope**             | deliberately excluded                                       |
 
 The latest **published** stable release is
-[`v0.6.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.1). The current
-source version is `0.6.2`, which is **prepared but unpublished** — merged in
-source with no tag and no GitHub release. v0.6.2 is the active maintenance scope:
-it closes the Project Memory integrity gaps recorded in
-[the v0.6.2 integrity audit](releases/v0.6.2-integrity-audit.md) and adds the
-preview-first `omp memory repair` recovery path. The v0.5 line is complete.
+[`v0.6.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.2), which is also
+the current source version. It closes the Project Memory integrity gaps recorded
+in [the v0.6.2 integrity audit](releases/v0.6.2-integrity-audit.md) and adds the
+preview-first `omp memory repair` recovery path. See
+[the post-publication validation record](releases/v0.6.2-post-publication-validation.md).
+The v0.5 line is complete.
 
 Phases 0 through 6 below are the historical implementation log for the v0.1
 through v0.4 lines. Everything in them is **Shipped** unless a later section
@@ -605,14 +605,42 @@ from the v0.6.0 tree before the refactor began. See
 [`docs/releases/v0.6.1.md`](releases/v0.6.1.md) and the
 [post-publication validation record](releases/v0.6.1-post-publication-validation.md).
 
-## Beyond v0.6.1 — Core and public surface (Planned)
+## v0.6.2 — Project Memory integrity and recovery (Shipped)
 
-Remaining public-surface consolidation: Project Memory and data-integrity
-hardening, security and trust-boundary hardening, diagnostics and operability,
-performance and test architecture, and a Core freeze. The provider diagnostic
-shape was decided in v0.6.1 — the existing report types stay as a compatibility
-surface, because replacing them with the unified `Diagnostic` model would change
-MCP output. Nothing else here is committed, designed, or implemented.
+Published as the latest stable release, from source version `0.6.2`. The
+immutable base it builds on is `v0.6.1`.
+
+The scope was rewritten after an audit performed _before_ any implementation
+found that most of what the original scope proposed to build already existed and
+was correct. Five real gaps remained: atomic-write fault injection could not reach
+inside the write, post-crash recovery was untested and one test misreported
+itself, locking was never exercised across real processes, path confinement was
+purely lexical, and corruption could be detected but never isolated or repaired.
+
+v0.6.2 closes all five and adds one command, `omp memory repair`. Preview-first:
+`repair` scans and proposes while changing no byte; `repair --apply` performs
+bounded recovery under the single-writer lock, re-scanning under that lock and
+refusing a plan whose store fingerprint moved. Damaged authoritative bytes are
+**isolated** into a governed quarantine with their exact contents preserved —
+never rewritten from a guess, never deleted — and only derived state is rebuilt,
+from verified records only. Isolation is deliberately not reported as repair.
+
+No Dashboard, cloud sync, telemetry, automatic pruning, automatic repair on read,
+or MCP write tools. No store format change and no migration required; the MCP
+surface remains 12 read-only tools with zero repair write tools. See
+[`docs/releases/v0.6.2.md`](releases/v0.6.2.md),
+[the integrity audit](releases/v0.6.2-integrity-audit.md), and the
+[post-publication validation record](releases/v0.6.2-post-publication-validation.md).
+
+## Beyond v0.6.2 — Core and public surface (Planned)
+
+Remaining public-surface consolidation: security and trust-boundary hardening,
+diagnostics and operability, performance and test architecture, and a Core
+freeze. Project Memory data-integrity hardening was delivered in v0.6.2. The
+provider diagnostic shape was decided in v0.6.1 — the existing report types stay
+as a compatibility surface, because replacing them with the unified `Diagnostic`
+model would change MCP output. Nothing else here is committed, designed, or
+implemented.
 
 ## Beyond v0.6 — Local Project Dashboard (Planned)
 

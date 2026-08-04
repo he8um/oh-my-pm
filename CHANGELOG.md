@@ -4,9 +4,13 @@
 
 ## [0.6.2]
 
+Published as the latest stable release
+([`v0.6.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.2)).
+
 Project Memory integrity: verification, gap closure, and a supported recovery
-path. See [the release note](docs/releases/v0.6.2.md) and
-[the integrity audit](docs/releases/v0.6.2-integrity-audit.md).
+path. See [the release note](docs/releases/v0.6.2.md),
+[the integrity audit](docs/releases/v0.6.2-integrity-audit.md), and
+[the post-publication validation record](docs/releases/v0.6.2-post-publication-validation.md).
 
 **One new command; nothing else behaves differently.** No changed flag, output
 schema, or exit code outside the additive command, no changed MCP tool, schema,
