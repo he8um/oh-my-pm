@@ -243,6 +243,14 @@
       "concern": "integrity-audit-v0.6.2"
     },
     {
+      "path": "docs/releases/v0.6.2-post-publication-validation.md",
+      "status": "release-record",
+      "authority": "informative",
+      "appliesTo": "v0.6.2",
+      "replacement": null,
+      "concern": "post-publication-validation-v0.6.2"
+    },
+    {
       "path": "docs/releases/v0.6.1.md",
       "status": "release-record",
       "authority": "informative",

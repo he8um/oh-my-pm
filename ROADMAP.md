@@ -5,12 +5,12 @@ The detailed public roadmap is maintained in [`docs/roadmap.md`](docs/roadmap.md
 Work is labelled with one of five states: **Shipped**, **Prepared but
 unpublished**, **Active maintenance**, **Planned**, or **Out of scope**.
 
-## Prepared but unpublished — v0.6.2
+## Shipped — v0.6.2
 
 **Project Memory integrity: verification, gap closure, and a supported recovery
-path.** Merged in source with **no tag and no GitHub release**, so the latest
-published stable release remains
-[`v0.6.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.1).
+path.** **Published as the latest stable release**:
+[`v0.6.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.2). See the
+[post-publication validation record](docs/releases/v0.6.2-post-publication-validation.md).
 
 The scope was re-written after an audit performed _before_ any implementation
 found that most of what the original scope proposed to build already existed and
@@ -167,7 +167,7 @@ the v0.5 line. See [`docs/v0.6/README.md`](docs/v0.6/README.md).
   context provider framework, and the validation and release lifecycle.
 
 The latest **published** stable release is
-[`v0.6.1`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.1).
+[`v0.6.2`](https://github.com/he8um/oh-my-pm/releases/tag/v0.6.2).
 
 ## Shipped — v0.5.4
 
