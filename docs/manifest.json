@@ -131,6 +131,22 @@
       "concern": "security-model"
     },
     {
+      "path": "docs/security/v0.6.3-threat-model.md",
+      "status": "active",
+      "authority": "informative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "security-threat-model-v0.6.3"
+    },
+    {
+      "path": "docs/security/v0.6.3-implementation-plan.md",
+      "status": "active",
+      "authority": "informative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "security-implementation-plan-v0.6.3"
+    },
+    {
       "path": "docs/deterministic-extraction.md",
       "status": "active",
       "authority": "normative",
