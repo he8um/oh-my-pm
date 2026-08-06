@@ -25,7 +25,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.29.0",
+    "@modelcontextprotocol/sdk": "1.30.0",
     "@oh-my-pm/application": "workspace:*",
     "@oh-my-pm/contracts": "workspace:*",
     "@oh-my-pm/kernel": "workspace:*",
