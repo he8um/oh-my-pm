@@ -18,6 +18,11 @@ preview-first `omp memory repair` recovery path. See
 [the post-publication validation record](releases/v0.6.2-post-publication-validation.md).
 The v0.5 line is complete.
 
+The scope under **Active maintenance** is
+[v0.6.3 — Security and Trust Boundaries](#v063--security-and-trust-boundaries-active-maintenance).
+It is a scope entry only: nothing in it is implemented, and the source version
+remains `0.6.2`, published.
+
 Phases 0 through 6 below are the historical implementation log for the v0.1
 through v0.4 lines. Everything in them is **Shipped** unless a later section
 supersedes it.
@@ -632,15 +637,58 @@ surface remains 12 read-only tools with zero repair write tools. See
 [the integrity audit](releases/v0.6.2-integrity-audit.md), and the
 [post-publication validation record](releases/v0.6.2-post-publication-validation.md).
 
-## Beyond v0.6.2 — Core and public surface (Planned)
+## v0.6.3 — Security and Trust Boundaries (Active maintenance)
 
-Remaining public-surface consolidation: security and trust-boundary hardening,
-diagnostics and operability, performance and test architecture, and a Core
-freeze. Project Memory data-integrity hardening was delivered in v0.6.2. The
-provider diagnostic shape was decided in v0.6.1 — the existing report types stay
-as a compatibility surface, because replacing them with the unified `Diagnostic`
-model would change MCP output. Nothing else here is committed, designed, or
-implemented.
+The scope currently being worked on. The immutable base it builds on is
+`v0.6.2`; the source version stays `0.6.2` and published until v0.6.3 is itself
+released.
+
+Security has so far been asserted document by document rather than stated once
+as a boundary. v0.6.3 makes the trust boundaries explicit and then holds them
+with tests, so that "this input is untrusted" is a property the build checks
+rather than a claim the prose makes.
+
+In scope:
+
+- **Trust boundaries.** A written threat model naming every boundary the product
+  crosses — CLI, MCP server, Project Memory, the installer, the release
+  pipeline, and project documents — and, for each, what is trusted, what is not,
+  and who may cross it.
+- **Untrusted input and deterministic validation.** Project documents, MCP tool
+  arguments, and provider responses are untrusted input. Validation is
+  deterministic: the same input yields the same verdict, and rejection is a
+  defined outcome rather than an exception that escapes.
+- **Token, credential, and secret handling.** Least privilege for the GitHub
+  integration, and a rule that secrets never reach logs, diagnostics, error
+  messages, or Project Memory.
+- **Filesystem confinement.** Path, symlink, and TOCTOU boundaries. v0.6.2
+  replaced purely lexical path confinement inside Project Memory; v0.6.3 states
+  the rule for every filesystem consumer and tests it.
+- **MCP limits and protocol isolation.** Resource and size limits on tool input
+  and output, and the existing stdout protocol cleanliness restated as an
+  enforced boundary rather than an incidental property.
+- **Supply chain.** Dependency and release controls: what is allowed into the
+  tree, and what the release pipeline proves about what it publishes.
+- **Deny-by-default and evidence.** Least privilege as the default posture,
+  security audit events as evidence, and security regression tests so a closed
+  hole stays closed.
+
+Deliberately excluded: no implementation lands with this scope entry; no new CLI
+commands; no MCP write tools — the surface stays at 12 read-only tools; no
+Project Memory schema or format change and no migration; no Dashboard, cloud
+sync, accounts, telemetry, or remote analytics; and no release publication.
+Diagnostics and operability remain v0.6.4, performance and test architecture
+remain v0.6.5, and neither begins here.
+
+## Beyond v0.6.3 — Core and public surface (Planned)
+
+Remaining public-surface consolidation: diagnostics and operability, performance
+and test architecture, and a Core freeze. Project Memory data-integrity
+hardening was delivered in v0.6.2, and security and trust-boundary hardening is
+the active v0.6.3 scope above. The provider diagnostic shape was decided in
+v0.6.1 — the existing report types stay as a compatibility surface, because
+replacing them with the unified `Diagnostic` model would change MCP output.
+Nothing else here is committed, designed, or implemented.
 
 ## Beyond v0.6 — Local Project Dashboard (Planned)
 
