@@ -55,7 +55,7 @@
     "github:smoke": "node tools/check-github-provider-live.mjs"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.4",
+    "@eslint/js": "^9.39.5",
     "@oh-my-pm/application": "workspace:*",
     "@oh-my-pm/cli": "workspace:*",
     "@oh-my-pm/mcp-server": "workspace:*",
