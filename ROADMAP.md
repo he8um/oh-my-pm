@@ -5,6 +5,26 @@ The detailed public roadmap is maintained in [`docs/roadmap.md`](docs/roadmap.md
 Work is labelled with one of five states: **Shipped**, **Prepared but
 unpublished**, **Active maintenance**, **Planned**, or **Out of scope**.
 
+## Active maintenance — v0.6.3
+
+**Security and Trust Boundaries.** The scope currently being worked on, built on
+the immutable `v0.6.2` base. Nothing in it is implemented; the source version
+remains `0.6.2`, published.
+
+States the trust boundaries the product crosses — CLI, MCP server, Project
+Memory, the installer, the release pipeline, and project documents — and then
+holds them with tests. Covers untrusted input and deterministic validation;
+token, credential, and secret handling under least privilege; filesystem
+confinement including symlink, path, and TOCTOU risks; MCP resource limits and
+stdout protocol isolation; dependency and release supply-chain controls; and
+deny-by-default behaviour backed by security audit events and regression tests.
+
+No implementation in this scope entry, no new CLI commands, no MCP write tools
+— the surface stays at 12 read-only tools — no Project Memory schema or format
+change, no Dashboard, cloud sync, accounts, telemetry, or remote analytics, and
+no release publication. Diagnostics and operability remain v0.6.4; performance
+remains v0.6.5. See [`docs/roadmap.md`](docs/roadmap.md).
+
 ## Shipped — v0.6.2
 
 **Project Memory integrity: verification, gap closure, and a supported recovery
