@@ -113,9 +113,9 @@ describe("the twelve-tool surface is unchanged", () => {
   it("declares zero write tools", () => {
     expect(server).not.toMatch(/destructiveHint:\s*true/);
     // A source-level smoke check only. The authoritative per-tool guarantee is
-    // the live listTools() assertion in server.test.ts: counting
-    // `readOnlyHint: true` occurrences here cannot tell which tools they belong
-    // to, so it must never stand in for that check.
+    // the live listTools() assertion in mcp-readonly-annotations.test.ts:
+    // counting `readOnlyHint: true` occurrences here cannot tell which tools
+    // they belong to, so it must never stand in for that check.
     expect(server).toMatch(/readOnlyHint:\s*true/);
   });
 
