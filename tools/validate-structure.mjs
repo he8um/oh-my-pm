@@ -80,7 +80,9 @@ const ALLOWED_TOP_FILES = [
   // v0.5.2: test topology. Separates the parallel unit project from the
   // serialized release/archive/install project so those suites cannot race
   // over shared workspace build output while computing bundle checksums.
-  "vitest.workspace.mjs",
+  // v0.6.3: Vitest 4 removed the standalone workspace file; the same topology
+  // now lives in `projects` inside vitest.config.mjs.
+  "vitest.config.mjs",
 ];
 
 // Canonical current-development version. version.json is the single source of
