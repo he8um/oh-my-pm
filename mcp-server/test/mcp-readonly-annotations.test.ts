@@ -1,0 +1,275 @@
+// v0.6.3 F-01 — every MCP tool must carry an EXPLICIT read-only annotation.
+//
+// The MCP spec treats a missing annotation as unknown, never as read-only, so a
+// tool that simply omits `annotations` must fail this guard rather than pass it
+// by silence. The earlier checks were satisfiable by a single annotated tool (a
+// repo-wide `readOnlyHint: true` occurrence count) or by absence (`not.toBe(false)`
+// on an undefined field), so ten of the twelve tools were unannotated while the
+// suite stayed green. The validator below is total over the tool list, and the
+// negative tests feed it crafted surfaces to prove it actually rejects.
+
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { createOhMyPmMcpServer } from "../src/index.js";
+import type { McpProjectChangesExecutor, McpProjectTimelineExecutor } from "../src/index.js";
+
+type Closeable = { close: () => Promise<void> };
+const openSides: Closeable[] = [];
+afterEach(async () => {
+  for (const side of openSides.splice(0)) await side.close();
+});
+
+async function connect(server: ReturnType<typeof createOhMyPmMcpServer>): Promise<Client> {
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: "test", version: "0.0.0" });
+  await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+  openSides.push(client, server);
+  return client;
+}
+
+/**
+ * The exact registered tool surface, in registration order. Both the names and
+ * the order are part of the published contract.
+ */
+const TWELVE_TOOLS_IN_ORDER = [
+  "project_brief",
+  "project_risks",
+  "project_next",
+  "project_handoff",
+  "github_project_brief",
+  "github_project_risks",
+  "github_project_next",
+  "github_project_handoff",
+  "provider_status",
+  "github_provider_diagnostics",
+  "project_changes",
+  "project_timeline",
+] as const;
+
+/** The minimal shape this guard inspects; a real listTools() tool satisfies it. */
+type InspectableTool = {
+  readonly name: string;
+  readonly annotations?: Record<string, unknown> | undefined;
+};
+
+/**
+ * Validate an MCP tool surface. Returns the list of violations — empty means the
+ * surface is provably read-only. Every rule is expressed as a positive
+ * requirement on a present value: a missing `annotations` object and a missing
+ * `readOnlyHint` are violations, never passes.
+ */
+function readOnlyViolations(
+  tools: readonly InspectableTool[],
+  expected: readonly string[] = TWELVE_TOOLS_IN_ORDER,
+): string[] {
+  const violations: string[] = [];
+
+  if (tools.length !== expected.length) {
+    violations.push(`tool count changed: expected ${expected.length}, got ${tools.length}`);
+  }
+  const names = tools.map((tool) => tool.name);
+  if (names.join("\u0000") !== expected.join("\u0000")) {
+    violations.push(`tool names or order changed: got [${names.join(", ")}]`);
+  }
+
+  for (const tool of tools) {
+    const annotations = tool.annotations;
+    // Absence is a violation: the spec does not let a client infer read-only.
+    if (annotations === undefined || annotations === null) {
+      violations.push(`${tool.name}: missing annotations`);
+      continue;
+    }
+    if (!Object.hasOwn(annotations, "readOnlyHint")) {
+      violations.push(`${tool.name}: missing readOnlyHint`);
+    } else if (annotations["readOnlyHint"] !== true) {
+      // Strict identity: only the literal `true` counts, never a truthy value.
+      violations.push(
+        `${tool.name}: readOnlyHint must be exactly true, got ${JSON.stringify(annotations["readOnlyHint"])}`,
+      );
+    }
+    if (annotations["destructiveHint"] === true) {
+      violations.push(`${tool.name}: destructiveHint must not be true`);
+    }
+  }
+
+  return violations;
+}
+
+const changesExecutor: McpProjectChangesExecutor = async () => ({
+  ok: true,
+  result: {
+    schemaVersion: 1,
+    status: "noPriorMemory",
+    projectId: "p",
+    chronology: "capture-order",
+    summary: {
+      totalChanges: 0,
+      returnedChanges: 0,
+      truncated: false,
+      countsByCategory: {
+        added: 0,
+        removed: 0,
+        resolved: 0,
+        reopened: 0,
+        becameOverdue: 0,
+        noLongerOverdue: 0,
+        severityIncreased: 0,
+        severityDecreased: 0,
+        fresh: 0,
+        stale: 0,
+        evidenceChanged: 0,
+        modified: 0,
+      },
+    },
+    changes: [],
+  },
+});
+
+const timelineExecutor: McpProjectTimelineExecutor = async () => ({
+  ok: true,
+  result: {
+    schemaVersion: 1,
+    projectId: "p",
+    eventCount: 0,
+    hasMore: false,
+    chronology: "capture-order",
+    events: [],
+  },
+});
+
+function fullSurface(): ReturnType<typeof createOhMyPmMcpServer> {
+  return createOhMyPmMcpServer({
+    executeProjectChanges: changesExecutor,
+    executeProjectTimeline: timelineExecutor,
+  });
+}
+
+/** A surface that satisfies the guard, used as the base for each negative case. */
+function validTools(): InspectableTool[] {
+  return TWELVE_TOOLS_IN_ORDER.map((name) => ({
+    name,
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+  }));
+}
+
+describe("every MCP tool declares an explicit read-only annotation", () => {
+  it("annotates all twelve registered tools with readOnlyHint === true", async () => {
+    const client = await connect(fullSurface());
+    const { tools } = await client.listTools();
+
+    expect(tools).toHaveLength(12);
+    expect(tools.map((tool) => tool.name)).toEqual([...TWELVE_TOOLS_IN_ORDER]);
+
+    // Per-tool, so a failure names the offending tool instead of a bare count.
+    for (const tool of tools) {
+      expect(tool.annotations, `${tool.name} must declare annotations`).toBeDefined();
+      expect(tool.annotations?.readOnlyHint, `${tool.name}.readOnlyHint`).toBe(true);
+      expect(tool.annotations?.destructiveHint, `${tool.name}.destructiveHint`).not.toBe(true);
+    }
+
+    expect(readOnlyViolations(tools)).toEqual([]);
+  });
+
+  it("annotates the ten-tool surface too, when the memory tools are absent", async () => {
+    const client = await connect(createOhMyPmMcpServer());
+    const { tools } = await client.listTools();
+    const expected = TWELVE_TOOLS_IN_ORDER.slice(0, 10);
+
+    expect(tools).toHaveLength(10);
+    expect(readOnlyViolations(tools, expected)).toEqual([]);
+  });
+
+  it("marks only the GitHub tools open-world, since they alone reach the network", async () => {
+    const client = await connect(fullSurface());
+    const { tools } = await client.listTools();
+    for (const tool of tools) {
+      const reachesNetwork = tool.name.startsWith("github_");
+      expect(tool.annotations?.openWorldHint, `${tool.name}.openWorldHint`).toBe(reachesNetwork);
+    }
+  });
+});
+
+// These prove the guard has teeth. Each mutates one field of an otherwise-valid
+// surface; if any of these stopped failing, the positive test above would be
+// vacuous.
+describe("the read-only guard rejects a non-read-only surface", () => {
+  it("rejects a tool with no annotations at all", () => {
+    const tools = validTools();
+    delete (tools[3] as { annotations?: unknown }).annotations;
+
+    const violations = readOnlyViolations(tools);
+    expect(violations).toContain("project_handoff: missing annotations");
+    expect(violations).toHaveLength(1);
+  });
+
+  it("rejects a tool whose annotations omit readOnlyHint", () => {
+    const tools = validTools();
+    const annotations = { ...(tools[0].annotations as Record<string, unknown>) };
+    delete annotations["readOnlyHint"];
+    tools[0] = { name: tools[0].name, annotations };
+
+    const violations = readOnlyViolations(tools);
+    expect(violations).toContain("project_brief: missing readOnlyHint");
+    expect(violations).toHaveLength(1);
+  });
+
+  it("rejects readOnlyHint: false", () => {
+    const tools = validTools();
+    tools[8] = { name: tools[8].name, annotations: { readOnlyHint: false } };
+
+    const violations = readOnlyViolations(tools);
+    expect(violations).toContain("provider_status: readOnlyHint must be exactly true, got false");
+    expect(violations).toHaveLength(1);
+  });
+
+  it("rejects destructiveHint: true", () => {
+    const tools = validTools();
+    tools[11] = {
+      name: tools[11].name,
+      annotations: { readOnlyHint: true, destructiveHint: true },
+    };
+
+    const violations = readOnlyViolations(tools);
+    expect(violations).toContain("project_timeline: destructiveHint must not be true");
+    expect(violations).toHaveLength(1);
+  });
+
+  it("rejects a readOnlyHint that is merely truthy rather than exactly true", () => {
+    const tools = validTools();
+    tools[0] = { name: tools[0].name, annotations: { readOnlyHint: "true" } };
+
+    const violations = readOnlyViolations(tools);
+    expect(violations).toContain('project_brief: readOnlyHint must be exactly true, got "true"');
+    expect(violations).toHaveLength(1);
+  });
+
+  it("rejects a changed tool count", () => {
+    const violations = readOnlyViolations(validTools().slice(0, 11));
+    expect(violations).toContain("tool count changed: expected 12, got 11");
+  });
+
+  it("rejects a renamed tool", () => {
+    const tools = validTools();
+    tools[0] = { name: "project_write", annotations: tools[0].annotations };
+
+    expect(readOnlyViolations(tools).some((v) => v.startsWith("tool names or order changed"))).toBe(
+      true,
+    );
+  });
+
+  it("rejects a reordered surface", () => {
+    const tools = validTools();
+    const swapped = [tools[1], tools[0], ...tools.slice(2)];
+
+    expect(
+      readOnlyViolations(swapped).some((v) => v.startsWith("tool names or order changed")),
+    ).toBe(true);
+  });
+});

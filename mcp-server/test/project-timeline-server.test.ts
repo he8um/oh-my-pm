@@ -159,9 +159,13 @@ describe("project_timeline — conditional registration", () => {
     );
     const { tools } = await client.listTools();
     for (const tool of tools) {
-      const annotations = (tool.annotations ?? {}) as Record<string, unknown>;
-      expect(annotations["destructiveHint"]).not.toBe(true);
-      expect(annotations["readOnlyHint"]).not.toBe(false);
+      // Require the annotation to be present and exactly true. Defaulting to
+      // `{}` and asserting `not.toBe(false)` would pass an unannotated tool,
+      // which the MCP spec does NOT treat as read-only.
+      const annotations = tool.annotations as Record<string, unknown> | undefined;
+      expect(annotations, `${tool.name} must declare annotations`).toBeDefined();
+      expect(annotations?.["destructiveHint"], `${tool.name}.destructiveHint`).not.toBe(true);
+      expect(annotations?.["readOnlyHint"], `${tool.name}.readOnlyHint`).toBe(true);
     }
   });
 

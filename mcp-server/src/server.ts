@@ -1148,6 +1148,34 @@ async function handleProjectTimeline(
   return successResult(markdown, structured);
 }
 
+/**
+ * Read-only annotations for the tools that never touch the network. Every
+ * registered tool MUST carry an explicit `readOnlyHint: true`: the MCP spec
+ * treats a missing annotation as unknown, not as read-only, so silence would let
+ * a client assume a tool may write. The server has no write or destructive
+ * capability, so `destructiveHint` is always false and `idempotentHint` always
+ * true.
+ */
+const LOCAL_READ_ONLY_ANNOTATIONS = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: false,
+} as const;
+
+/**
+ * Read-only annotations for the GitHub tools. Identical to
+ * {@link LOCAL_READ_ONLY_ANNOTATIONS} except that `openWorldHint` is true:
+ * these tools issue an outbound read-only GET to api.github.com when called, so
+ * their results depend on an external system outside this process.
+ */
+const NETWORK_READ_ONLY_ANNOTATIONS = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: true,
+} as const;
+
 export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): McpServer {
   const execute = options?.executeProjectTool ?? executeMcpProjectTool;
   const executeGitHub = options?.executeGitHubTool ?? executeMcpGitHubTool;
@@ -1186,6 +1214,7 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
         "Generate a deterministic read-only project status brief from local Markdown documents under the supplied root. Respects oh-my-pm.config.json and never modifies files or uploads project context.",
       inputSchema: rootInputShape,
       outputSchema: briefOutputShape,
+      annotations: LOCAL_READ_ONLY_ANNOTATIONS,
     },
     ({ root }) => handleProjectTool(execute, "project_brief", root, projectBriefResult),
   );
@@ -1198,6 +1227,7 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
         "Detect deterministic document-level project risk signals from local Markdown documents under the supplied root. Respects oh-my-pm.config.json and never modifies files or uploads project context.",
       inputSchema: rootInputShape,
       outputSchema: risksOutputShape,
+      annotations: LOCAL_READ_ONLY_ANNOTATIONS,
     },
     ({ root }) => handleProjectTool(execute, "project_risks", root, projectRisksResult),
   );
@@ -1210,6 +1240,7 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
         "Derive deterministic next tasks from unchecked Markdown checklist items under the supplied root. Respects oh-my-pm.config.json and never modifies files or uploads project context.",
       inputSchema: rootInputShape,
       outputSchema: nextOutputShape,
+      annotations: LOCAL_READ_ONLY_ANNOTATIONS,
     },
     ({ root }) => handleProjectTool(execute, "project_next", root, projectNextResult),
   );
@@ -1222,6 +1253,7 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
         "Build a deterministic project handoff from local Markdown sections under the supplied root. Respects oh-my-pm.config.json and never modifies files or uploads project context.",
       inputSchema: rootInputShape,
       outputSchema: handoffOutputShape,
+      annotations: LOCAL_READ_ONLY_ANNOTATIONS,
     },
     ({ root }) => handleProjectTool(execute, "project_handoff", root, projectHandoffResult),
   );
@@ -1272,6 +1304,7 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
         description: tool.description,
         inputSchema: githubInputShape,
         outputSchema: githubOutputShape(tool.operation),
+        annotations: NETWORK_READ_ONLY_ANNOTATIONS,
       },
       ({
         repository,
@@ -1318,6 +1351,7 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
         "Report resolved provider configuration and token presence offline. Never accesses the network. Resolves configuration from the process environment or standard OS location; the agent cannot supply a config path.",
       inputSchema: {},
       outputSchema: providerStatusOutputShape,
+      annotations: LOCAL_READ_ONLY_ANNOTATIONS,
     },
     () => {
       let report: ProviderStatusReport;
@@ -1341,6 +1375,7 @@ export function createOhMyPmMcpServer(options?: CreateOhMyPmMcpServerOptions): M
         "Run offline GitHub provider diagnostics; with confirmNetwork it performs exactly one read-only GET repository-metadata request. No token, config path, API URL, or header input; the repository falls back to the configured default when omitted.",
       inputSchema: githubDiagnosticsInputShape,
       outputSchema: githubDiagnosticsOutputShape,
+      annotations: NETWORK_READ_ONLY_ANNOTATIONS,
     },
     async ({ repository, confirmNetwork }) => {
       let report: ProviderDoctorReport;
