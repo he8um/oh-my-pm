@@ -489,8 +489,30 @@ jobs:
     timeout-minutes: 20
     environment:
       name: github-release
+    # Least privilege, scoped to the one job that publishes:
+    #
+    #   contents: write      -- create the tag and the GitHub Release;
+    #   id-token: write      -- mint the short-lived OIDC token actions/attest
+    #                           exchanges for a Sigstore signing certificate.
+    #                           Without it the action fails closed with
+    #                           'missing "id-token" permission';
+    #   attestations: write  -- upload the signed attestation bundle to this
+    #                           repository's attestation store.
+    #
+    # artifact-metadata: write is deliberately NOT granted. In actions/attest
+    # v4.2.2 the storage-record call is reachable only inside
+    # `if (subjects.length === 1 && opts.pushToRegistry)` (src/attest.ts), and
+    # this step attests THREE file subjects with push-to-registry left at its
+    # default of false. The branch cannot be entered, so the permission would be
+    # standing authority this workflow never exercises.
+    #
+    # No other job in this workflow, and no other workflow in this repository,
+    # receives id-token: write or attestations: write. The signing identity is
+    # GitHub's short-lived OIDC path: no secret, no PAT, no stored signing key.
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     steps:
       - name: Checkout
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
@@ -570,6 +592,36 @@ jobs:
             if (meta.isPrerelease !== false) { console.error("base stable must remain non-prerelease"); process.exit(1); }
             if (meta.isDraft !== false) { console.error("base stable must remain non-draft"); process.exit(1); }
           '
+
+      # Build provenance (audit finding F-02). Binds each published artifact's
+      # SHA-256 digest to the workflow identity that produced it, signed with a
+      # short-lived Sigstore certificate obtained through GitHub's OIDC path.
+      #
+      # Placement is deliberate. This step runs AFTER the assets are downloaded,
+      # their checksums re-verified, the release notes confirmed present, the
+      # duplicate tag/release check passed, and the base stable lineage
+      # re-verified -- so provenance is only ever generated over bytes that have
+      # already been proven to be the qualified artifact. It runs BEFORE the
+      # release is created, so a failure here fails the job closed and nothing
+      # is published. A release carrying no attestation is a release that was
+      # never created, not one published and patched afterwards.
+      #
+      # actions/attest (not actions/attest-build-provenance): as of v4 the
+      # latter is a thin wrapper over this action, and upstream directs new
+      # implementations here. With no sbom-path/predicate inputs supplied, the
+      # action's default mode auto-generates SLSA build provenance.
+      #
+      # The three subjects are listed explicitly rather than by glob: the
+      # attested set must be exactly the three assets the release-creation step
+      # below uploads, and a wildcard would silently widen it if the assets
+      # directory ever gained a file.
+      - name: Attest build provenance for the release assets
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: |
+            release-assets/oh-my-pm-v0.6.2.tar.gz
+            release-assets/oh-my-pm-v0.6.2.zip
+            release-assets/oh-my-pm-v0.6.2-SHA256SUMS.txt
 
       - name: Create stable GitHub Release at the exact workflow commit
         env:

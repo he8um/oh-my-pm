@@ -243,6 +243,14 @@
       "concern": "contract-model"
     },
     {
+      "path": "docs/releases/verification.md",
+      "status": "active",
+      "authority": "normative",
+      "appliesTo": "current",
+      "replacement": null,
+      "concern": "release-verification"
+    },
+    {
       "path": "docs/releases/v0.6.2.md",
       "status": "release-record",
       "authority": "informative",

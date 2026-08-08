@@ -129,6 +129,17 @@ jobs:
       - name: Validate GitHub Action pins
         run: pnpm validate:action-pins
 
+      # v0.6.3: the release workflow's build-provenance boundary. The signing
+      # permissions must stay scoped to the single publish job, the attested
+      # subjects must stay exactly the three published assets, and attestation
+      # must stay ordered after checksum verification and before publication.
+      # Attributable on its own because a widened subject glob or a hoisted
+      # id-token permission is a supply-chain regression, not a generic
+      # validation failure. This checks structure only: no attestation is
+      # generated here, and CI holds no signing permission.
+      - name: Validate release provenance boundary
+        run: pnpm validate:provenance
+
       # v0.6.1: ownership of the shared workflows, in both directions. The four
       # shared project workflows must reach the application boundary from every
       # surface, AND status/doctor/plan must stay outside it. Attributable on its

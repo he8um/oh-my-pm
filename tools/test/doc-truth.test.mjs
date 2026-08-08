@@ -187,7 +187,16 @@ describe("historical documents are exempt", () => {
     const { manifest, errors } = loadDocsManifest(repoRoot);
     expect(errors).toEqual([]);
 
-    const releaseNotes = manifest.documents.filter((d) => d.path.startsWith("docs/releases/"));
+    // "Release note" means a point-in-time record OF A RELEASE -- every such
+    // file is version-stamped (v0.6.2.md, publishing-v0.5.0.md). A
+    // non-version-specific guide that lives in the same directory, such as
+    // docs/releases/verification.md, describes how to verify ANY release and is
+    // current truth, so it is deliberately outside this rule: it is classified
+    // active/normative and validated for current-state claims like any other
+    // active document.
+    const releaseNotes = manifest.documents.filter(
+      (d) => d.path.startsWith("docs/releases/") && /v\d+\.\d+/.test(d.path),
+    );
     expect(releaseNotes.length).toBeGreaterThan(0);
     for (const doc of releaseNotes) {
       expect(["release-record", "historical"]).toContain(doc.status);
