@@ -72,6 +72,50 @@ which, and credited in the advisory if you would like to be.
   as `GET`-only requests to the fixed `api.github.com` origin.
 - Diagnostics must not print secret values.
 
+## Release artifact integrity and build provenance
+
+Every stable v0.6 release publishes a `SHA256SUMS.txt` file alongside its two
+archives, so a download can be checked against the checksums recorded when the
+artifact was built.
+
+Beyond checksums, the v0.6 release workflow generates a **build provenance
+attestation** for each of its three published assets, using GitHub's official
+`actions/attest` action pinned to an immutable commit SHA. A provenance
+attestation:
+
+- binds the artifact's SHA-256 digest to the GitHub Actions workflow identity
+  that produced it — repository, workflow, and commit;
+- is cryptographically verifiable, signed with a short-lived Sigstore
+  certificate obtained through GitHub's OIDC identity path. No signing key, PAT,
+  or long-lived secret is stored in this repository;
+- **complements** the SHA-256 checksums rather than replacing them: a checksum
+  answers "are these the bytes the checksum file describes", provenance answers
+  "did this repository's release workflow produce them";
+- gives consumers evidence about _where and how_ an artifact was produced.
+
+Provenance does **not** assert that the software is free of defects, and it does
+not establish that the source code itself is trustworthy — a build system
+faithfully building bad source still produces valid provenance. It is also not a
+signature over the archive itself; it signs a statement binding the archive's
+digest to a build identity.
+
+Attestation is generated inside the publish job only, after the release assets
+have been checksum-verified and every publication gate has passed, and before
+the GitHub Release is created — so a signing failure blocks publication rather
+than yielding a published release with no provenance. The `id-token: write` and
+`attestations: write` permissions this requires are scoped to that single job;
+no other job and no other workflow in this repository holds them, and CI remains
+`contents: read`.
+
+Attestations apply only to releases published after this support was activated
+in a real release run. Releases published earlier — including v0.6.2 — carry no
+attestation and were not retroactively attested. A missing attestation on an
+older release is not evidence that its archive was modified; verify those with
+the published checksums.
+
+Exact verification commands, including the stronger signer-workflow–bound form,
+are in [docs/releases/verification.md](docs/releases/verification.md).
+
 ## GitHub provider
 
 The read-only GitHub provider (see [docs/providers/github.md](docs/providers/github.md))
