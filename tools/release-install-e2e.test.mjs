@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import {
+  cpSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -442,4 +443,251 @@ describe("installed-runtime launch policy (Windows-safe invocation)", () => {
     expect(mcpEntry.startsWith(versionDir)).toBe(true);
     expect(cliEntry).not.toContain("node_modules");
   });
+});
+
+// -----------------------------------------------------------------------------
+// Bundle-level SHA256SUMS tampering (F-05).
+//
+// The installer's checksum pass is the layer that makes a bundle's manifest
+// binding: a bundle whose contents disagree with its own SHA256SUMS must never
+// install, no matter how it disagrees. Four distinct tamper shapes each map to
+// their own reason code, so a rejection says *how* the bundle was wrong rather
+// than only that it was.
+//
+// Every case is proved against a real built bundle (not a hand-written fixture)
+// copied into its own temp directory, so the tampering is confined and the
+// shared bundle the rest of this file depends on is never mutated.
+//
+// Note on the fourth code: the installer emits `sha256sums_lists_missing_file`
+// for a manifest entry with no corresponding file. The v0.6.3 planning docs
+// refer to it as `sha256sums_lists_missing`; the production string is the
+// authority and is asserted verbatim here.
+describe("bundle checksum tampering is rejected (F-05)", () => {
+  const SUMS_LINE = /^([0-9a-f]{64}) {2}(.+)$/;
+
+  /**
+   * Copy the shared bundle into a fresh temp root so a tamper case can mutate
+   * it freely. Returns the disposable bundle directory plus the owned root, so
+   * confinement can be asserted against the exact root the case owns.
+   */
+  function disposableBundle(prefixLabel) {
+    const root = tempDir(`omp-e2e-tamper-${prefixLabel}-`);
+    const dir = join(root, BUNDLE_NAME);
+    cpSync(bundle.dir, dir, { recursive: true, dereference: false, verbatimSymlinks: true });
+    return { dir, root };
+  }
+
+  function readSums(bundleDir) {
+    return readFileSync(join(bundleDir, "SHA256SUMS"), "utf8");
+  }
+  function writeSums(bundleDir, text) {
+    writeFileSync(join(bundleDir, "SHA256SUMS"), text);
+  }
+
+  /** The manifest's listed relative paths, in file order. */
+  function listedPaths(bundleDir) {
+    return readSums(bundleDir)
+      .split("\n")
+      .filter((line) => line.trim() !== "")
+      .map((line) => SUMS_LINE.exec(line))
+      .filter((m) => m !== null)
+      .map((m) => m[2]);
+  }
+
+  /**
+   * Drive the real installer wrapper against a tampered bundle and assert the
+   * full security contract for that tamper case:
+   *
+   *   - the exact expected reason code is emitted (prefixed `source:`, which is
+   *     how resolveReleaseInstallPlan namespaces source-bundle failures),
+   *   - the failure is detected before any write -- the prefix is not created,
+   *   - `--force` does not bypass it,
+   *   - no absolute host path appears in the reported reasons,
+   *   - the tampering stayed inside the case's own temp root.
+   *
+   * The plan is resolved through the shipped core *and* through the installer
+   * CLI, so neither path can regress independently.
+   */
+  function expectTamperRejected({ bundleDir, ownedRoot, reason }) {
+    const parent = tempDir("omp-e2e-tamper-prefix-");
+    const prefix = join(parent, "prefix");
+
+    // 1. The core's own plan resolution blocks with the exact reason.
+    const plan = resolveReleaseInstallPlan({
+      bundleRoot: bundleDir,
+      prefix,
+      apply: false,
+      force: false,
+    });
+    expect(plan.ok, JSON.stringify(plan.reasons)).toBe(false);
+    expect(plan.action).toBe("blocked");
+    expect(plan.reasons).toContain(`source:${reason}`);
+
+    // 2. Reasons stay path-free: no absolute host path, and specifically
+    //    neither the bundle nor the destination prefix.
+    const serializedReasons = JSON.stringify(plan.reasons);
+    expect(serializedReasons).not.toMatch(/\/Users\/|\/home\/|[A-Za-z]:\\/);
+    expect(serializedReasons).not.toContain(bundleDir);
+    expect(serializedReasons).not.toContain(prefix);
+    expect(serializedReasons).not.toContain(tmpdir());
+
+    // 3. Preview wrote nothing.
+    expect(existsSync(prefix)).toBe(false);
+
+    // 4. --apply is refused, still before any write.
+    const applied = run(wrapper, ["--bundle", bundleDir, "--prefix", prefix, "--apply"]);
+    expect(applied.status, applied.diagnostics).toBe(2);
+    expect(`${applied.stdout}${applied.stderr}`).toContain(`source:${reason}`);
+    expect(existsSync(prefix)).toBe(false);
+
+    // 5. --force does NOT bypass an integrity failure. Force only authorizes
+    //    replacing exact managed targets; it can never authorize installing a
+    //    bundle that fails its own checksum manifest.
+    const forced = run(wrapper, ["--bundle", bundleDir, "--prefix", prefix, "--apply", "--force"]);
+    expect(forced.status, forced.diagnostics).toBe(2);
+    expect(`${forced.stdout}${forced.stderr}`).toContain(`source:${reason}`);
+
+    // 6. Destination is untouched by every attempt above: no prefix, and so no
+    //    bin/, lib/, version directory, or install manifest.
+    expect(existsSync(prefix)).toBe(false);
+    expect(existsSync(join(prefix, "bin"))).toBe(false);
+    expect(existsSync(join(prefix, "lib"))).toBe(false);
+    expect(existsSync(join(prefix, "lib", "oh-my-pm", "install.json"))).toBe(false);
+
+    // 7. The fixture stayed confined to its own temp root, and the shared
+    //    bundle every other test depends on was never touched.
+    expect(bundleDir.startsWith(ownedRoot)).toBe(true);
+    expect(bundleDir.startsWith(bundle.dir)).toBe(false);
+    expect(existsSync(join(bundle.dir, "SHA256SUMS"))).toBe(true);
+  }
+
+  // A. A regular file listed in SHA256SUMS no longer hashes to its listed
+  //    digest. This is the classic post-signing content swap.
+  it("A. rejects a modified listed file with sha256sums_checksum_mismatch", () => {
+    const { dir, root } = disposableBundle("mismatch");
+    const target = join(dir, "RELEASE.json");
+    expect(listedPaths(dir)).toContain("RELEASE.json");
+
+    // Flip one byte of a listed regular file, preserving its length so only the
+    // digest changes. RELEASE.json stays syntactically valid JSON with an
+    // unchanged version, so the only reason this bundle can fail is the digest.
+    const original = readFileSync(target);
+    const flipped = Buffer.from(original);
+    // Mutate inside the "OH MY PM" name value, not a structural character, so
+    // the file stays valid JSON and only its digest changes.
+    const valueAt = flipped.indexOf(Buffer.from("OH MY PM"));
+    expect(valueAt).toBeGreaterThanOrEqual(0);
+    flipped[valueAt] = flipped[valueAt] ^ 0x20;
+    expect(Buffer.compare(flipped, original)).not.toBe(0);
+    expect(flipped.length).toBe(original.length);
+    writeFileSync(target, flipped);
+
+    expectTamperRejected({
+      bundleDir: dir,
+      ownedRoot: root,
+      reason: "sha256sums_checksum_mismatch",
+    });
+  }, 120_000);
+
+  // B. An extra regular file is smuggled into the bundle. It is not listed, so
+  //    no listed digest is wrong -- completeness is what catches it.
+  it("B. rejects an unlisted added regular file with sha256sums_unlisted_file", () => {
+    const { dir, root } = disposableBundle("unlisted");
+    const smuggled = join(dir, "libexec", "smuggled-payload.mjs");
+    expect(existsSync(smuggled)).toBe(false);
+    writeFileSync(smuggled, "// not listed in SHA256SUMS\n");
+    expect(listedPaths(dir)).not.toContain("libexec/smuggled-payload.mjs");
+
+    expectTamperRejected({
+      bundleDir: dir,
+      ownedRoot: root,
+      reason: "sha256sums_unlisted_file",
+    });
+  }, 120_000);
+
+  // C. The manifest itself is not parseable as the accepted syntax. A manifest
+  //    that cannot be read must fail closed rather than be partially trusted.
+  it("C. rejects a malformed SHA256SUMS line with sha256sums_malformed", () => {
+    const { dir, root } = disposableBundle("malformed");
+    const lines = readSums(dir).split("\n");
+    const firstIndex = lines.findIndex((line) => SUMS_LINE.test(line));
+    expect(firstIndex).toBeGreaterThanOrEqual(0);
+
+    // Corrupt the digest field so the line no longer matches the accepted
+    // `<64 lowercase hex><2 spaces><path>` syntax, while still looking
+    // superficially like a manifest line.
+    const [, digest, rel] = SUMS_LINE.exec(lines[firstIndex]);
+    expect(digest).toHaveLength(64);
+    lines[firstIndex] = `not-a-sha256-digest  ${rel}`;
+    expect(SUMS_LINE.test(lines[firstIndex])).toBe(false);
+    writeSums(dir, lines.join("\n"));
+
+    expectTamperRejected({
+      bundleDir: dir,
+      ownedRoot: root,
+      reason: "sha256sums_malformed",
+    });
+  }, 120_000);
+
+  // D. A manifest entry names a file that is not present. The remaining files
+  //    all match, so only the dangling entry can explain the rejection.
+  it("D. rejects a manifest entry for an absent file with sha256sums_lists_missing_file", () => {
+    const { dir, root } = disposableBundle("listsmissing");
+
+    // Pick a listed, non-required file so its removal cannot also trigger a
+    // required_file_missing reason -- the dangling manifest entry must be the
+    // distinguishing signal.
+    const required = new Set([
+      "RELEASE.json",
+      "bin/omp.mjs",
+      "bin/omp-mcp.mjs",
+      "bin/omp-install.mjs",
+      "bin/ohmypm.mjs",
+      "bin/ohmypm-mcp.mjs",
+      "bin/ohmypm-install.mjs",
+      "bin/oh-my-pm.mjs",
+      "bin/oh-my-pm-mcp.mjs",
+      "bin/oh-my-pm-install.mjs",
+      "libexec/release-install-core.mjs",
+      "libexec/check-release-bundle.mjs",
+      "node_modules/@oh-my-pm/kernel/generated-node/oh_my_pm_kernel.js",
+      "node_modules/@oh-my-pm/kernel/generated-node/oh_my_pm_kernel_bg.wasm",
+      "node_modules/@oh-my-pm/kernel/generated-node/package.json",
+    ]);
+    const victim = listedPaths(dir).find((rel) => !required.has(rel));
+    expect(victim, "bundle must list at least one non-required file").toBeTruthy();
+
+    // Delete the file but leave its manifest entry in place: the manifest now
+    // lists a file the bundle does not contain.
+    rmSync(join(dir, ...victim.split("/")));
+    expect(existsSync(join(dir, ...victim.split("/")))).toBe(false);
+    expect(listedPaths(dir)).toContain(victim);
+
+    expectTamperRejected({
+      bundleDir: dir,
+      ownedRoot: root,
+      reason: "sha256sums_lists_missing_file",
+    });
+  }, 120_000);
+
+  // The untampered control: the same bundle, copied the same way, installs
+  // cleanly. Without this, every assertion above could pass for the wrong
+  // reason (e.g. if copying alone broke the bundle).
+  it("control: an untampered copy of the same bundle still installs", () => {
+    const { dir } = disposableBundle("control");
+    const prefix = join(tempDir("omp-e2e-tamper-control-"), "prefix");
+    const plan = resolveReleaseInstallPlan({
+      bundleRoot: dir,
+      prefix,
+      apply: false,
+      force: false,
+    });
+    expect(plan.ok, JSON.stringify(plan.reasons)).toBe(true);
+    expect(plan.action).toBe("create");
+    expect(plan.reasons).toEqual([]);
+
+    const applied = run(wrapper, ["--bundle", dir, "--prefix", prefix, "--apply"]);
+    expect(applied.status, applied.diagnostics).toBe(0);
+    expect(run(installedCheck, ["--prefix", prefix]).status).toBe(0);
+  }, 180_000);
 });
