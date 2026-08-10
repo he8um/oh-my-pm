@@ -11,12 +11,13 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   KERNEL_GENERATED_NODE_ASSETS,
   RELEASE_BUNDLE_NAME,
   RELEASE_BUNDLE_VERSION,
   createPnpmDeployInvocation,
+  resolvePnpmCliEntrypoint,
   formatReleaseBundlePlan,
   parseReleaseBundleArgs,
   resolveReleaseBundlePlan,
@@ -128,31 +129,142 @@ describe("formatReleaseBundlePlan", () => {
   });
 });
 
+// The deploy invocation is the one place the bundle builder launches a
+// subprocess with an operator-supplied path (`--output`). It must therefore be a
+// direct, no-shell spawn on every platform, including Windows -- where this
+// previously ran through cmd.exe (F-09).
 describe("createPnpmDeployInvocation", () => {
-  const expectedArgs = (out) => [
+  const staticArgs = [
     "--filter",
     "@oh-my-pm/distribution",
     "--prod",
     "--config.node-linker=hoisted",
     "deploy",
-    out,
   ];
-  it("uses a shell on Windows and no shell on POSIX, with static hoisted args", () => {
-    const win = createPnpmDeployInvocation("win32", "C:/tmp/out");
-    expect(win.command).toBe("pnpm");
-    expect(win.shell).toBe(true);
-    expect(win.args).toEqual(expectedArgs("C:/tmp/out"));
-    for (const platform of ["linux", "darwin"]) {
-      const posix = createPnpmDeployInvocation(platform, "/tmp/out");
-      expect(posix.command).toBe("pnpm");
-      expect(posix.shell).toBe(false);
-      expect(posix.args).toEqual(expectedArgs("/tmp/out"));
+
+  // A stand-in for the OS path lookup that reports a real pnpm.cjs on disk, so
+  // the invocation shape can be asserted the same way on every platform without
+  // depending on how pnpm is installed on the host running this suite.
+  let fakeCli;
+  const fakeLookup = () => ({ stdout: `${fakeCli}\n` });
+
+  beforeEach(() => {
+    const dir = makeOutput();
+    fakeCli = join(dir, "pnpm.cjs");
+    writeFileSync(fakeCli, "// pnpm cli\n", "utf8");
+  });
+
+  it("spawns pnpm's own Node CLI directly, with no shell, on every platform", () => {
+    for (const [platform, out] of [
+      ["win32", "C:/tmp/out"],
+      ["linux", "/tmp/out"],
+      ["darwin", "/tmp/out"],
+    ]) {
+      // The lookup is injected so the invocation shape is asserted identically
+      // on every platform, independent of where pnpm happens to live on the
+      // host running the suite (`where` does not exist on POSIX, and vice versa).
+      const inv = createPnpmDeployInvocation(platform, out, { spawn: fakeLookup });
+      expect(inv, platform).not.toBeNull();
+      // The launched program is the current Node binary, never a shim or shell.
+      expect(inv.command, platform).toBe(process.execPath);
+      // No shell on any platform -- the property is absent entirely, so a
+      // truthy `shell` cannot be reintroduced by accident.
+      expect("shell" in inv, platform).toBe(false);
+      expect(inv.shell, platform).toBeUndefined();
+      // argv[0] is pnpm's plain Node entrypoint; the static args follow.
+      expect(inv.args[0].endsWith("pnpm.cjs"), platform).toBe(true);
+      expect(inv.args.slice(1, -1), platform).toEqual(staticArgs);
+      // The output path is the final, discrete argv element.
+      expect(inv.args[inv.args.length - 1], platform).toBe(out);
     }
   });
 
+  it("never assembles a command string and never invokes a shell interpreter", () => {
+    const inv = createPnpmDeployInvocation("win32", "C:/tmp/out", { spawn: fakeLookup });
+    for (const arg of [inv.command, ...inv.args]) {
+      expect(typeof arg).toBe("string");
+      for (const marker of ["cmd.exe", "powershell", "pwsh", "/c ", "&&", "|"]) {
+        expect(arg, marker).not.toContain(marker);
+      }
+    }
+    // No single element carries the whole command line.
+    expect(inv.args.some((a) => a.includes("deploy") && a.includes("--filter"))).toBe(false);
+  });
+
+  it("keeps a metacharacter-bearing output path as one inert argv element", () => {
+    // A path with spaces, an ampersand, quotes, and a redirect would be a shell
+    // injection if any shell ever parsed it. It must survive verbatim as data.
+    const hostile = 'C:\\my out\\a & b | c > d "e" ^f';
+    const inv = createPnpmDeployInvocation("win32", hostile, { spawn: fakeLookup });
+    expect(inv.args[inv.args.length - 1]).toBe(hostile);
+    // It appears exactly once, unquoted and unescaped -- no shell quoting was
+    // applied, because no shell is involved.
+    expect(inv.args.filter((a) => a === hostile)).toHaveLength(1);
+  });
+
   it("forces a flat, symlink-free deployed tree via the hoisted node-linker", () => {
-    const inv = createPnpmDeployInvocation("linux", "/tmp/out");
+    const inv = createPnpmDeployInvocation("linux", "/tmp/out", { spawn: fakeLookup });
     expect(inv.args).toContain("--config.node-linker=hoisted");
+  });
+
+  it("fails closed with no invocation when pnpm's CLI cannot be resolved", () => {
+    // A path lookup that reports nothing must yield null rather than a shell
+    // fallback or a bare "pnpm" command the OS would resolve for us.
+    const emptyLookup = () => ({ stdout: "" });
+    expect(resolvePnpmCliEntrypoint({ spawn: emptyLookup })).toBeNull();
+    expect(createPnpmDeployInvocation("win32", "C:/tmp/out", { spawn: emptyLookup })).toBeNull();
+  });
+
+  it("uses the OS path-lookup utility directly, with no shell", () => {
+    // PATH resolution happens in the OS layer, so this module reads no
+    // environment (the release-tool boundary forbids it). Assert the exact
+    // spawn: the per-platform utility, one static argument, and no shell option.
+    for (const [platform, expectedLookup] of [
+      ["win32", "where"],
+      ["linux", "which"],
+      ["darwin", "which"],
+    ]) {
+      const calls = [];
+      resolvePnpmCliEntrypoint({
+        platform,
+        spawn: (command, args, options) => {
+          calls.push({ command, args, options });
+          return { stdout: "" };
+        },
+      });
+      expect(calls, platform).toHaveLength(1);
+      expect(calls[0].command, platform).toBe(expectedLookup);
+      expect(calls[0].args, platform).toEqual(["pnpm"]);
+      expect("shell" in (calls[0].options ?? {}), platform).toBe(false);
+    }
+  });
+
+  it("resolves pnpm's CLI from the npm .bin layout pnpm/action-setup produces", () => {
+    // pnpm/action-setup@v4 runs `npm install pnpm@<version>` into a private
+    // directory and puts <dest>/node_modules/.bin on PATH. On Windows the
+    // launcher there is a .cmd shim (not a symlink), so resolution must come
+    // from the directory layout: <.bin>/../pnpm/bin/pnpm.cjs.
+    const root = makeOutput();
+    const binDir = join(root, "node_modules", ".bin");
+    const pkgBin = join(root, "node_modules", "pnpm", "bin");
+    mkdirSync(binDir, { recursive: true });
+    mkdirSync(pkgBin, { recursive: true });
+    const cjs = join(pkgBin, "pnpm.cjs");
+    writeFileSync(cjs, "// pnpm cli\n", "utf8");
+    // A .cmd shim beside it, exactly as npm writes on Windows.
+    const shim = join(binDir, "pnpm.cmd");
+    writeFileSync(shim, "@echo off\r\n", "utf8");
+
+    // `where` reports the .cmd shim; the layout resolves it to the real CLI.
+    const windowsLookup = () => ({ stdout: `${shim}\r\n` });
+    expect(resolvePnpmCliEntrypoint({ platform: "win32", spawn: windowsLookup })).toBe(cjs);
+
+    const inv = createPnpmDeployInvocation("win32", "C:/tmp/out", { spawn: windowsLookup });
+    expect(inv.args[0]).toBe(cjs);
+    expect(inv.command).toBe(process.execPath);
+    expect("shell" in inv).toBe(false);
+    // The shim itself is never launched -- that is what required a shell before.
+    expect(inv.args).not.toContain(shim);
   });
 });
 

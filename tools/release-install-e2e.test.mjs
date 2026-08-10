@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   cpSync,
   existsSync,
@@ -20,6 +21,7 @@ import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { describeSubprocessResult } from "./test-subprocess-diagnostics.mjs";
 import {
+  applyReleaseInstallPlan,
   evaluatePostInstallState,
   requiresPosixShimExecutableMode,
   resolveReleaseInstallPlan,
@@ -977,4 +979,345 @@ describe("bundle symlink safety (F-04)", () => {
     expect(applied.status, applied.diagnostics).toBe(0);
     expect(run(installedCheck, ["--prefix", prefix]).status).toBe(0);
   }, 180_000);
+});
+
+// -----------------------------------------------------------------------------
+// Install transaction and rollback (F-06, F-08).
+//
+// Before this suite, rollback had never been executed by a test: every step of
+// it was wrapped in a best-effort `try {} catch {}`, and the transaction
+// directory (which holds the ONLY copy of the previous install) was deleted
+// immediately afterwards whether or not the restore had worked.
+//
+// Forcing a post-install failure needs no production test hook. The installer
+// runs the bundle's OWN shipped verifier three times with a different `--bundle`
+// argument each time: against the source bundle, against the staged copy inside
+// the transaction directory, and finally against the installed
+// `versions/<version>` directory. A disposable bundle copy whose verifier fails
+// only when its target's parent directory is named `versions` therefore passes
+// every earlier gate and fails exactly once the new managed state is already in
+// place -- which is precisely the state rollback exists to undo.
+describe("install transaction and rollback (F-06, F-08)", () => {
+  const productRelative = ["lib", "oh-my-pm"];
+  const SHIM_NAMES = [
+    "omp",
+    "omp.cmd",
+    "omp-mcp",
+    "omp-mcp.cmd",
+    "ohmypm",
+    "ohmypm.cmd",
+    "ohmypm-mcp",
+    "ohmypm-mcp.cmd",
+    "oh-my-pm",
+    "oh-my-pm.cmd",
+    "oh-my-pm-mcp",
+    "oh-my-pm-mcp.cmd",
+  ];
+
+  const productDir = (prefix) => join(prefix, ...productRelative);
+  const versionDir = (prefix) => join(productDir(prefix), "versions", CANONICAL_VERSION);
+  const manifestPath = (prefix) => join(productDir(prefix), "install.json");
+
+  /** The transaction directories currently present under a prefix. */
+  function transactionDirs(prefix) {
+    const product = productDir(prefix);
+    if (!existsSync(product)) return [];
+    return readdirSync(product).filter((name) => name.startsWith(".install-tx-"));
+  }
+
+  /**
+   * A disposable copy of the shared bundle whose shipped verifier has been
+   * replaced with `guardSource` -- code injected directly after the shebang, so
+   * it runs before the real verifier does anything.
+   *
+   * SHA256SUMS is repaired for the rewritten verifier, because the installer
+   * checksums the source bundle first: without the repair the install would fail
+   * at `source:sha256sums_checksum_mismatch` and never reach post-install.
+   */
+  function bundleWithVerifierGuard(label, guardSource) {
+    const root = tempDir(`omp-e2e-rollback-${label}-`);
+    const dir = join(root, BUNDLE_NAME);
+    cpSync(bundle.dir, dir, { recursive: true, dereference: false, verbatimSymlinks: true });
+
+    const verifierRel = "libexec/check-release-bundle.mjs";
+    const verifierPath = join(dir, ...verifierRel.split("/"));
+    const lines = readFileSync(verifierPath, "utf8").split("\n");
+    // Keep the shebang first; ESM imports in the guard are hoisted anyway.
+    writeFileSync(verifierPath, [lines[0], guardSource, ...lines.slice(1)].join("\n"), "utf8");
+
+    const digest = createHash("sha256").update(readFileSync(verifierPath)).digest("hex");
+    const sumsPath = join(dir, "SHA256SUMS");
+    const repaired = readFileSync(sumsPath, "utf8")
+      .split("\n")
+      .map((line) => (line.endsWith(`  ${verifierRel}`) ? `${digest}  ${verifierRel}` : line))
+      .join("\n");
+    writeFileSync(sumsPath, repaired, "utf8");
+
+    // The rewritten fixture still passes from its own source location, so a
+    // later failure is attributable to the injected stage check and nothing else.
+    expectFixtureSuccess(run(verifierPath, ["--bundle", dir]));
+    return { dir, root };
+  }
+
+  /**
+   * Snapshot every managed target's observable state: relative path, kind,
+   * regular-file bytes, and (POSIX only) the executable bit. This is the
+   * evidence that a successful rollback restored the prior install *exactly*
+   * rather than merely leaving something behind.
+   */
+  function snapshotManaged(prefix) {
+    const entries = new Map();
+    const walk = (absolute, relativePath) => {
+      const stat = lstatSync(absolute);
+      if (stat.isSymbolicLink()) {
+        entries.set(relativePath, { kind: "symlink" });
+        return;
+      }
+      if (stat.isDirectory()) {
+        entries.set(relativePath, { kind: "dir" });
+        for (const name of readdirSync(absolute).sort()) {
+          walk(join(absolute, name), `${relativePath}/${name}`);
+        }
+        return;
+      }
+      const record = {
+        kind: "file",
+        sha256: createHash("sha256").update(readFileSync(absolute)).digest("hex"),
+      };
+      if (requiresPosixShimExecutableMode(process.platform)) {
+        record.executable = (stat.mode & 0o111) !== 0;
+      }
+      entries.set(relativePath, record);
+    };
+
+    walk(versionDir(prefix), "versions");
+    for (const shim of SHIM_NAMES) {
+      const path = join(prefix, "bin", shim);
+      if (existsSync(path)) walk(path, `bin/${shim}`);
+    }
+    entries.set("install.json", {
+      kind: "file",
+      contents: readFileSync(manifestPath(prefix), "utf8"),
+    });
+    return entries;
+  }
+
+  /** Install the real, unmodified shared bundle as the "previous" install. */
+  function installPriorVersion(prefix) {
+    expectFixtureSuccess(run(wrapper, ["--bundle", bundle.dir, "--prefix", prefix, "--apply"]));
+    expectFixtureSuccess(run(installedCheck, ["--prefix", prefix]));
+  }
+
+  // A. Post-install verification fails after the new state is in place; rollback
+  //    succeeds. The original failure code must survive (NOT be rewritten to
+  //    rollback_failed), the prior install must return byte-exactly, and the
+  //    transaction directory must be cleaned because recovery is proven good.
+  it("A. rolls back a post-install failure and restores the prior install exactly", () => {
+    // Fail only from the final installed location: the source bundle and the
+    // in-transaction staged copy both verify normally.
+    const guard = [
+      'import { basename as fiBase, dirname as fiDir, resolve as fiRes } from "node:path";',
+      "{",
+      '  const i = process.argv.indexOf("--bundle");',
+      '  if (i !== -1 && typeof process.argv[i + 1] === "string") {',
+      "    const target = fiRes(process.argv[i + 1]);",
+      '    if (fiBase(fiDir(target)) === "versions") {',
+      '      process.stderr.write("fixture: forced post-install failure\\n");',
+      "      process.exit(1);",
+      "    }",
+      "  }",
+      "}",
+    ].join("\n");
+    const fixture = bundleWithVerifierGuard("post-fail", guard);
+
+    const prefix = join(tempDir("omp-e2e-rollback-good-"), "prefix");
+    installPriorVersion(prefix);
+    const before = snapshotManaged(prefix);
+    // Files the installer does not manage must also survive untouched.
+    const unrelated = join(prefix, "bin", "unrelated-tool");
+    writeFileSync(unrelated, "keep me\n", "utf8");
+
+    // Forced replacement, so the previous managed targets really are moved into
+    // backup and the restore path is genuinely exercised.
+    const forced = run(wrapper, [
+      "--bundle",
+      fixture.dir,
+      "--prefix",
+      prefix,
+      "--apply",
+      "--force",
+    ]);
+
+    // 1. The install fails for the ORIGINAL reason. Rollback succeeded, so the
+    //    failure is not reported as rollback_failed.
+    expect(forced.status, forced.diagnostics).toBe(1);
+    const output = `${forced.stdout}${forced.stderr}`;
+    expect(output).toContain("post_install_verification_failed");
+    expect(output).not.toContain("rollback_failed");
+
+    // 2. No absolute host path, prefix, or transaction path is disclosed.
+    expect(output).not.toMatch(/\/Users\/|\/home\/|[A-Za-z]:\\/);
+    expect(output).not.toContain(prefix);
+    expect(output).not.toContain(fixture.dir);
+    expect(output).not.toContain(tmpdir());
+    expect(output).not.toContain(".install-tx-");
+
+    // 3. The prior managed state is back, byte-for-byte and mode-for-mode.
+    const after = snapshotManaged(prefix);
+    expect([...after.keys()].sort()).toEqual([...before.keys()].sort());
+    for (const [key, value] of before) {
+      expect(after.get(key), key).toEqual(value);
+    }
+
+    // 4. The installed-state verifier agrees the prefix is a valid install.
+    expectFixtureSuccess(run(installedCheck, ["--prefix", prefix]));
+
+    // 5. Rollback was proven good, so the transaction directory is gone -- no
+    //    stranded backup and no leftover staging tree.
+    expect(transactionDirs(prefix)).toEqual([]);
+
+    // 6. Unmanaged files were never touched.
+    expect(readFileSync(unrelated, "utf8")).toBe("keep me\n");
+  }, 240_000);
+
+  // B. Rollback itself cannot complete. The distinct code must surface, the
+  //    backup must survive as recoverable evidence, and the transaction
+  //    directory must NOT be deleted.
+  //
+  //    Mechanism: the fixture makes `<prefix>/bin` read-only just before failing,
+  //    so rollback can neither remove the newly installed shims nor rename the
+  //    backups back into it. Directory permission bits do not deny an
+  //    administrator on Windows, so this case is POSIX-only; the reason-code and
+  //    cleanup-ordering logic it covers is platform-independent.
+  it.skipIf(isWindows)(
+    "B. reports rollback_failed and preserves the backup when restore cannot complete",
+    () => {
+      const guard = [
+        'import { basename as fiBase, dirname as fiDir, resolve as fiRes, join as fiJoin } from "node:path";',
+        'import { chmodSync as fiChmod } from "node:fs";',
+        "{",
+        '  const i = process.argv.indexOf("--bundle");',
+        '  if (i !== -1 && typeof process.argv[i + 1] === "string") {',
+        "    const target = fiRes(process.argv[i + 1]);",
+        '    if (fiBase(fiDir(target)) === "versions") {',
+        "      // <prefix>/lib/oh-my-pm/versions/<version> -> <prefix>",
+        "      const prefix = fiDir(fiDir(fiDir(fiDir(target))));",
+        '      try { fiChmod(fiJoin(prefix, "bin"), 0o500); } catch {}',
+        '      process.stderr.write("fixture: obstructed rollback\\n");',
+        "      process.exit(1);",
+        "    }",
+        "  }",
+        "}",
+      ].join("\n");
+      const fixture = bundleWithVerifierGuard("rollback-fail", guard);
+
+      const prefix = join(tempDir("omp-e2e-rollback-bad-"), "prefix");
+      installPriorVersion(prefix);
+      const priorShim = readFileSync(join(prefix, "bin", "omp"), "utf8");
+
+      const forced = run(wrapper, [
+        "--bundle",
+        fixture.dir,
+        "--prefix",
+        prefix,
+        "--apply",
+        "--force",
+      ]);
+      // Restore write access immediately so the assertions (and cleanup) can
+      // read the prefix regardless of what follows.
+      chmodSync(join(prefix, "bin"), 0o700);
+
+      // 1. The distinct rollback failure code is reported, not the original one.
+      expect(forced.status, forced.diagnostics).toBe(1);
+      const output = `${forced.stdout}${forced.stderr}`;
+      expect(output).toContain("rollback_failed");
+      // 2. The original failure is retained alongside it, so the mixed state is
+      //    still attributable to the post-install check that started it.
+      expect(output).toContain("post_install_verification_failed");
+
+      // 3. Nothing about the filesystem layout leaks, including the random
+      //    transaction directory that is deliberately still on disk.
+      expect(output).not.toMatch(/\/Users\/|\/home\/|[A-Za-z]:\\/);
+      expect(output).not.toContain(prefix);
+      expect(output).not.toContain(tmpdir());
+      expect(output).not.toContain(".install-tx-");
+
+      // 4. The transaction directory SURVIVES: a failed rollback must never be
+      //    followed by deletion of the only copy of the previous install.
+      const surviving = transactionDirs(prefix);
+      expect(surviving).toHaveLength(1);
+
+      // 5. The previous shim is still recoverable from the preserved backup,
+      //    byte-identical to what was installed before the failed transaction.
+      const backupDir = join(productDir(prefix), surviving[0], "backup");
+      expect(existsSync(backupDir)).toBe(true);
+      const backedUpShim = join(backupDir, "shim-omp");
+      expect(isRegularFile(backedUpShim)).toBe(true);
+      expect(readFileSync(backedUpShim, "utf8")).toBe(priorShim);
+
+      // 6. The test owns this disposable prefix, so it cleans the preserved
+      //    evidence itself. Production deliberately does not.
+      rmSync(join(productDir(prefix), surviving[0]), { recursive: true, force: true });
+      expect(transactionDirs(prefix)).toEqual([]);
+    },
+    240_000,
+  );
+
+  // C. F-08: the transaction directory name is unpredictable, so a pre-created
+  //    directory at the OLD PID-derived path is never removed or reused.
+  //
+  //    This drives applyReleaseInstallPlan IN-PROCESS rather than through the
+  //    installer subprocess. That is essential to the test's power: the old code
+  //    derived its path from the *installing* process's pid, so a sentinel
+  //    planted at the test runner's `process.pid` would never collide with a
+  //    child installer's pid and the defect would go unobserved. Running the
+  //    install in this process makes `process.pid` the exact value the
+  //    vulnerable implementation would have used.
+  it("C. never touches a pre-created PID-derived transaction path", () => {
+    const prefix = join(tempDir("omp-e2e-txpath-"), "prefix");
+
+    // The product directory must exist before the sentinel can be planted, so
+    // install once, then plant the old predictable path and reinstall by force.
+    installPriorVersion(prefix);
+
+    const predictable = join(productDir(prefix), `.install-tx-${process.pid}`);
+    mkdirSync(predictable, { recursive: true });
+    const sentinel = join(predictable, "DO_NOT_DELETE");
+    const sentinelBytes = "pre-created by a co-located process\n";
+    writeFileSync(sentinel, sentinelBytes, "utf8");
+
+    // Drift one managed shim so the plan resolves to `replace` rather than
+    // `already-installed`. A replacement takes the full transaction path --
+    // staging, backup, and rename -- which is what must avoid the planted path.
+    writeFileSync(join(prefix, "bin", "omp"), "drifted\n", "utf8");
+
+    const plan = resolveReleaseInstallPlan({
+      bundleRoot: bundle.dir,
+      prefix,
+      apply: true,
+      force: true,
+    });
+    expect(plan.ok, JSON.stringify(plan.reasons)).toBe(true);
+    expect(plan.action).toBe("replace");
+    const applied = applyReleaseInstallPlan(plan);
+    expect(applied.ok, JSON.stringify(applied)).toBe(true);
+    expect(applied.code).toBe("replaced");
+
+    // 1. The sentinel survives byte-identically: the installer neither removed
+    //    the predictable directory nor wrote through it.
+    expect(existsSync(sentinel)).toBe(true);
+    expect(readFileSync(sentinel, "utf8")).toBe(sentinelBytes);
+    // Nothing was added to it either -- it was not used as a workspace.
+    expect(readdirSync(predictable)).toEqual(["DO_NOT_DELETE"]);
+
+    // 2. The install still succeeded and its own random workspace was cleaned,
+    //    so the planted directory is the ONLY `.install-tx-*` entry left.
+    expectFixtureSuccess(run(installedCheck, ["--prefix", prefix]));
+    expect(transactionDirs(prefix)).toEqual([`.install-tx-${process.pid}`]);
+
+    // 3. The surviving directory is the planted sentinel, not a transaction
+    //    directory the installer created and abandoned.
+    rmSync(predictable, { recursive: true, force: true });
+    expect(transactionDirs(prefix)).toEqual([]);
+  }, 240_000);
 });

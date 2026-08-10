@@ -12,6 +12,7 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
+  mkdtempSync,
   readFileSync,
   readdirSync,
   realpathSync,
@@ -195,7 +196,82 @@ function isSymbolicLink(path) {
 }
 
 /**
- * Build the platform-specific pnpm deploy invocation.
+ * Locate pnpm's own Node CLI entrypoint (`<pnpm package>/bin/pnpm.cjs`) without
+ * a shell, without guessing, and without reading the environment.
+ *
+ * `pnpm.cjs` is a plain Node script — it is exactly what the platform launcher
+ * (`pnpm` on POSIX, `pnpm.cmd` on Windows) ultimately runs — so invoking it with
+ * `process.execPath` needs no shell on any platform.
+ *
+ * The launcher's directory is found by spawning the OS path-lookup utility
+ * (`which` on POSIX, `where` on Windows) directly, with no shell. PATH
+ * resolution therefore happens in the OS layer: this module never reads
+ * the environment directly, which the release-tool boundary forbids so that
+ * bundle output cannot vary with it. This mirrors the existing convention of
+ * resolving an external tool by probing it rather than by inspecting the
+ * environment (see `probeUtility` in release-archive-utils.mjs).
+ *
+ * From each reported launcher path, the CLI is resolved deterministically; the
+ * first candidate that is a real regular file wins:
+ *
+ *   1. The launcher realpath'ed, when it is itself the `.cjs`. An npm-installed
+ *      `.bin/pnpm` on POSIX is a symlink straight to `pnpm.cjs`. On Windows the
+ *      launcher is a `.cmd`/`.ps1` shim (not a link), so this misses there and
+ *      step 2 resolves it.
+ *   2. Known package layouts relative to the launcher's directory:
+ *        `<dir>/../pnpm/bin/pnpm.cjs`                   (npm `node_modules/.bin`)
+ *        `<dir>/../lib/node_modules/pnpm/bin/pnpm.cjs`  (global npm prefix)
+ *        `<dir>/pnpm.cjs`                               (launcher beside the CLI)
+ *
+ * `pnpm/action-setup@v4` installs pnpm with `npm install pnpm@<version>` into a
+ * private directory and puts `<dest>/node_modules/.bin` on PATH, so the hosted
+ * Windows runner resolves through step 2's first form.
+ *
+ * Returns null when no usable entrypoint exists, so the caller fails closed with
+ * a bounded reason rather than falling back to a shell.
+ *
+ * `spawn` and `platform` are injectable for testing only; both default to the
+ * real implementations.
+ */
+export function resolvePnpmCliEntrypoint(options = {}) {
+  const { platform = process.platform, spawn = spawnSync } = options;
+
+  // No shell: the lookup utility is spawned directly and only ever receives the
+  // static argument "pnpm".
+  const lookup = platform === "win32" ? "where" : "which";
+  const probe = spawn(lookup, ["pnpm"], { encoding: "utf8" });
+  const stdout = typeof probe.stdout === "string" ? probe.stdout : "";
+  // `where` can report several matches, one per line; `which` reports one.
+  const launchers = stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "");
+
+  for (const launcher of launchers) {
+    // 1. The launcher may itself be (or link to) the .cjs entrypoint.
+    try {
+      const real = realpathSync(launcher);
+      if (real.endsWith(".cjs") && isRegularFile(real)) return real;
+    } catch {
+      // Unreadable candidate: fall through to the layout checks.
+    }
+    // 2. Known package layouts relative to the launcher's directory.
+    const dir = dirname(launcher);
+    for (const relativeCandidate of [
+      join(dir, "..", "pnpm", "bin", "pnpm.cjs"),
+      join(dir, "..", "lib", "node_modules", "pnpm", "bin", "pnpm.cjs"),
+      join(dir, "pnpm.cjs"),
+    ]) {
+      const candidate = resolve(relativeCandidate);
+      if (isRegularFile(candidate)) return candidate;
+    }
+  }
+  return null;
+}
+
+/**
+ * Build the pnpm deploy invocation. Identical on every platform: a direct,
+ * no-shell `process.execPath pnpm.cjs …` spawn.
  *
  * `--config.node-linker=hoisted` forces a flat, symlink-free deployed
  * node_modules: every @oh-my-pm/* package is a real directory and there is no
@@ -205,15 +281,24 @@ function isSymbolicLink(path) {
  * generated Kernel binding unreadable through the broken junction). A hoisted
  * tree is inherently rename-safe on every platform.
  *
- * On Windows the launcher is a .cmd shim that modern Node refuses to spawn
- * without a shell, so run through a shell there; POSIX uses a direct, no-shell
- * spawn. Arguments are all static, tool-controlled values — no user-controlled
- * shell string.
+ * No shell on any platform, including Windows. Windows previously ran through
+ * `cmd.exe` because modern Node refuses to spawn a `.cmd` shim directly
+ * (CVE-2024-27980); running pnpm's own `.cjs` entrypoint under `process.execPath`
+ * removes the shim, and with it the shell. `outputDirectory` is therefore always
+ * one discrete argv element that no shell ever parses — no quoting, no escaping,
+ * and no metacharacter is interpretable, whatever the operator passed to
+ * `--output`.
+ *
+ * Returns null when pnpm's CLI cannot be located, so the caller reports a
+ * bounded failure instead of falling back to a shell.
  */
-export function createPnpmDeployInvocation(platform, outputDirectory) {
+export function createPnpmDeployInvocation(platform, outputDirectory, options = {}) {
+  const cli = resolvePnpmCliEntrypoint({ platform, ...options });
+  if (cli === null) return null;
   return {
-    command: "pnpm",
+    command: process.execPath,
     args: [
+      cli,
       "--filter",
       "@oh-my-pm/distribution",
       "--prod",
@@ -221,7 +306,6 @@ export function createPnpmDeployInvocation(platform, outputDirectory) {
       "deploy",
       outputDirectory,
     ],
-    shell: platform === "win32",
   };
 }
 
@@ -955,30 +1039,47 @@ export function applyReleaseBundlePlan(plan) {
     return { ok: false, code: "bundle_exists", reasons: ["release_bundle_exists"] };
   }
 
-  const tempDir = join(plan.outputRoot, `.${RELEASE_BUNDLE_NAME}.tmp-${process.pid}`);
-
   try {
     mkdirSync(plan.outputRoot, { recursive: true });
   } catch {
     return { ok: false, code: "output_root_failed", reasons: ["output_root_failed"] };
   }
 
-  // Remove only our exact stale temp path.
-  if (existsSync(tempDir)) {
-    rmSync(tempDir, { recursive: true, force: true });
+  // The transaction root is created by mkdtempSync, so its name is unpredictable
+  // and no pre-existing path is ever removed to make room for it. The staged
+  // bundle is a child of that private root because `pnpm deploy` requires its
+  // destination not to already exist. Both stay inside plan.outputRoot, so the
+  // final staged→final rename remains a same-filesystem operation.
+  let txRoot;
+  try {
+    txRoot = mkdtempSync(join(plan.outputRoot, `.${RELEASE_BUNDLE_NAME}.tmp-`));
+  } catch {
+    return { ok: false, code: "output_root_failed", reasons: ["output_root_failed"] };
   }
+  const tempDir = join(txRoot, RELEASE_BUNDLE_NAME);
+  // Remove the whole private transaction root, never a guessed path.
+  const cleanupTx = () => {
+    try {
+      rmSync(txRoot, { recursive: true, force: true });
+    } catch {
+      // best-effort: the transaction root holds only disposable staging output.
+    }
+  };
 
   try {
     // pnpm deploy can exit non-zero during teardown in non-interactive shells
     // even after producing a correct deployment, so success is judged by the
     // presence of the expected deployed structure rather than the exit code.
-    // The Windows launcher requires a shell; POSIX uses a direct spawn.
+    // Direct, no-shell spawn of pnpm's own Node CLI on every platform.
     const invocation = createPnpmDeployInvocation(process.platform, tempDir);
+    if (invocation === null) {
+      cleanupTx();
+      return { ok: false, code: "pnpm_cli_unresolved", reasons: ["pnpm_cli_unresolved"] };
+    }
     spawnSync(invocation.command, invocation.args, {
       cwd: REPO_ROOT,
       stdio: ["ignore", "ignore", "ignore"],
       encoding: "utf8",
-      shell: invocation.shell,
     });
 
     // Deploy must at minimum produce the distribution CLI and the @oh-my-pm/kernel
@@ -991,7 +1092,7 @@ export function applyReleaseBundlePlan(plan) {
     const deployedKernelPackage = join(tempDir, "node_modules", "@oh-my-pm", "kernel");
     const deployedKernelManifest = join(deployedKernelPackage, "package.json");
     if (!isRegularFile(deployedBin) || !isRegularFile(deployedKernelManifest)) {
-      rmSync(tempDir, { recursive: true, force: true });
+      cleanupTx();
       return { ok: false, code: "deploy_incomplete", reasons: ["deploy_incomplete"] };
     }
 
@@ -1004,7 +1105,7 @@ export function applyReleaseBundlePlan(plan) {
       bundleRoot: tempDir,
     });
     if (!staged.ok) {
-      rmSync(tempDir, { recursive: true, force: true });
+      cleanupTx();
       return { ok: false, code: staged.code, reasons: staged.reasons };
     }
 
@@ -1015,7 +1116,7 @@ export function applyReleaseBundlePlan(plan) {
     const stagedGeneratedDir = join(deployedKernelPackage, "generated-node");
     for (const asset of KERNEL_GENERATED_NODE_ASSETS) {
       if (!isRegularFile(join(stagedGeneratedDir, asset))) {
-        rmSync(tempDir, { recursive: true, force: true });
+        cleanupTx();
         return {
           ok: false,
           code: "kernel_binding_incomplete",
@@ -1090,7 +1191,7 @@ export function applyReleaseBundlePlan(plan) {
       join("libexec", "check-release-bundle.mjs"),
     ]) {
       if (!isRegularFile(join(tempDir, rel))) {
-        rmSync(tempDir, { recursive: true, force: true });
+        cleanupTx();
         return {
           ok: false,
           code: "installer_surface_missing",
@@ -1113,7 +1214,7 @@ export function applyReleaseBundlePlan(plan) {
 
     const safetyErrors = inspectBundleSafety(tempDir);
     if (safetyErrors.length > 0) {
-      rmSync(tempDir, { recursive: true, force: true });
+      cleanupTx();
       return { ok: false, code: "bundle_unsafe", reasons: safetyErrors };
     }
 
@@ -1125,10 +1226,10 @@ export function applyReleaseBundlePlan(plan) {
       rmSync(plan.bundleDirectory, { recursive: true, force: true });
     }
     renameSync(tempDir, plan.bundleDirectory);
+    // The staged bundle has moved out; remove the now-empty transaction root.
+    cleanupTx();
   } catch {
-    if (existsSync(tempDir)) {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    cleanupTx();
     return {
       ok: false,
       code: "assembly_failed",

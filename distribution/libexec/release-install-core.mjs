@@ -16,6 +16,7 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
+  mkdtempSync,
   readFileSync,
   readdirSync,
   realpathSync,
@@ -329,6 +330,22 @@ export function serializeInstalledManifest(manifest) {
 function isRegularFile(path) {
   try {
     return lstatSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether anything at all occupies `path`, without following symlinks.
+ *
+ * Rollback uses this instead of existsSync because existsSync follows links: a
+ * dangling symlink left at a managed target would read as absent, which would
+ * let an occupied original path or a stranded backup pass verification.
+ */
+function pathPresent(path) {
+  try {
+    lstatSync(path);
+    return true;
   } catch {
     return false;
   }
@@ -1125,13 +1142,18 @@ export function applyReleaseInstallPlan(plan) {
     }
   }
 
-  const txDir = join(productDirectory, `.install-tx-${process.pid}`);
-  // The staged version directory basename must equal the bare version so the
-  // shipped verifier's basename check accepts it before the rename into place.
-  const stagedVersionDir = join(txDir, version);
-  const stagedBinDir = join(txDir, "staged-bin");
-  const stagedManifest = join(txDir, "install.json");
-  const backupDir = join(txDir, "backup");
+  // The transaction directory is created by mkdtempSync, so its final name is
+  // unpredictable and the installer never removes a path it merely guessed. A
+  // co-located writer cannot pre-create the transaction path and have it
+  // recursively deleted, nor race its contents. It stays inside the
+  // product-managed directory so the whole transaction remains within the prefix
+  // and the final renames are same-filesystem. Assigned below, once the managed
+  // parent directories exist.
+  let txDir;
+  let stagedVersionDir;
+  let stagedBinDir;
+  let stagedManifest;
+  let backupDir;
 
   const expectedShims = shimTargetsForVersion(version);
   const shimPlan = releaseInstallShimFileNames().map((name) => ({
@@ -1144,46 +1166,133 @@ export function applyReleaseInstallPlan(plan) {
   const movedIntoPlace = { versionDir: false, shims: [], manifest: false };
 
   const cleanupTempOnly = () => {
+    if (txDir === undefined) return;
     try {
       if (existsSync(txDir)) rmSync(txDir, { recursive: true, force: true });
     } catch {
-      // best-effort
+      // best-effort: the transaction directory is disposable once the managed
+      // state is known good. Never called while backup evidence must survive.
     }
   };
 
+  /**
+   * Undo this transaction: remove the new managed state that was moved into
+   * place, then restore every backed-up old managed target to its original
+   * location, and verify the result.
+   *
+   * Unlike the previous best-effort chain, this reports whether recovery
+   * actually succeeded. The caller must not delete the transaction directory
+   * (which holds the only copy of the previous install) unless `ok` is true.
+   *
+   * Reasons are a bounded, deterministic, path-free vocabulary. No prefix,
+   * transaction, backup, or source path and no file content is ever included.
+   */
   const restoreBackups = () => {
-    // Restore any backed-up managed targets and remove partial new state.
+    const reasons = [];
+    const addReason = (reason) => {
+      if (!reasons.includes(reason)) reasons.push(reason);
+    };
+
+    // 1. Remove the new managed state this transaction moved into place. A
+    //    failure here is fatal to the rollback: a surviving new target both
+    //    leaves a mixed state and blocks the rename-back below.
     if (movedIntoPlace.versionDir) {
       try {
-        if (existsSync(versionDirectory))
+        if (pathPresent(versionDirectory)) {
           rmSync(versionDirectory, { recursive: true, force: true });
+        }
       } catch {
-        // best-effort
+        addReason("rollback_new_version_directory_not_removed");
       }
     }
     for (const shim of movedIntoPlace.shims) {
       try {
-        if (existsSync(shim)) rmSync(shim, { force: true });
+        // The new shim is a regular file. A non-file shape here is not the state
+        // this transaction created, so it is removed recursively rather than
+        // left to block the restore.
+        if (pathPresent(shim)) {
+          rmSync(shim, { recursive: true, force: true });
+        }
       } catch {
-        // best-effort
+        addReason("rollback_new_shim_not_removed");
       }
     }
     if (movedIntoPlace.manifest) {
       try {
-        if (existsSync(manifestPath)) rmSync(manifestPath, { force: true });
+        if (pathPresent(manifestPath)) rmSync(manifestPath, { force: true });
       } catch {
-        // best-effort
+        addReason("rollback_new_manifest_not_removed");
       }
     }
+
+    // 2. Restore every backup to its original location. An occupied original
+    //    path is a failure rather than a silent skip: skipping would strand the
+    //    backup inside a transaction directory the caller may delete.
     for (const backup of backups) {
       try {
-        if (existsSync(backup.backupPath) && !existsSync(backup.originalPath)) {
-          renameSync(backup.backupPath, backup.originalPath);
+        if (pathPresent(backup.originalPath)) {
+          addReason("rollback_original_path_occupied");
+          continue;
         }
+        renameSync(backup.backupPath, backup.originalPath);
       } catch {
-        // best-effort
+        addReason("rollback_backup_not_restored");
       }
     }
+
+    // 3. Verify the outcome rather than trusting that no call threw. Every
+    //    backed-up target must be back in place, and no backup may remain
+    //    stranded in backup storage.
+    for (const backup of backups) {
+      if (!pathPresent(backup.originalPath)) {
+        addReason("rollback_restore_incomplete");
+      }
+      if (pathPresent(backup.backupPath)) {
+        addReason("rollback_backup_stranded");
+      }
+    }
+
+    // 4. For a create rollback there is nothing to restore, so every managed
+    //    target this transaction introduced must simply be gone.
+    if (backups.length === 0) {
+      if (movedIntoPlace.versionDir && pathPresent(versionDirectory)) {
+        addReason("rollback_new_version_directory_not_removed");
+      }
+      for (const shim of movedIntoPlace.shims) {
+        if (pathPresent(shim)) {
+          addReason("rollback_new_shim_not_removed");
+        }
+      }
+      if (movedIntoPlace.manifest && pathPresent(manifestPath)) {
+        addReason("rollback_new_manifest_not_removed");
+      }
+    }
+
+    return { ok: reasons.length === 0, reasons };
+  };
+
+  /**
+   * Roll back, then report the failure the caller should surface.
+   *
+   * When rollback succeeds the original failure is preserved verbatim and the
+   * transaction directory is removed. When rollback itself fails, the
+   * transaction directory is deliberately left intact -- it holds the only copy
+   * of the previous install -- and the distinct `rollback_failed` code is
+   * returned with the original failure retained in the bounded reasons.
+   */
+  const rollbackThenFail = (code, reasons) => {
+    const rollback = restoreBackups();
+    if (rollback.ok) {
+      cleanupTempOnly();
+      return { ok: false, code, reasons: [...reasons] };
+    }
+    // Deliberately NOT cleaned: the surviving backup is the evidence needed to
+    // recover the prefix by hand.
+    const merged = ["rollback_failed"];
+    for (const reason of [...reasons, ...rollback.reasons]) {
+      if (!merged.includes(reason)) merged.push(reason);
+    }
+    return { ok: false, code: "rollback_failed", reasons: merged };
   };
 
   try {
@@ -1191,9 +1300,16 @@ export function applyReleaseInstallPlan(plan) {
     mkdirSync(versionsDirectory, { recursive: true });
     mkdirSync(binDirectory, { recursive: true });
 
-    // 3. Create the transaction workspace.
-    if (existsSync(txDir)) rmSync(txDir, { recursive: true, force: true });
-    mkdirSync(txDir, { recursive: true });
+    // 3. Create the transaction workspace. mkdtempSync both picks the random
+    //    suffix and creates the directory, so there is no guessable name to
+    //    pre-create and nothing is removed before creation.
+    txDir = mkdtempSync(join(productDirectory, ".install-tx-"));
+    // The staged version directory basename must equal the bare version so the
+    // shipped verifier's basename check accepts it before the rename into place.
+    stagedVersionDir = join(txDir, version);
+    stagedBinDir = join(txDir, "staged-bin");
+    stagedManifest = join(txDir, "install.json");
+    backupDir = join(txDir, "backup");
     mkdirSync(backupDir, { recursive: true });
 
     // 4. Copy the complete source bundle into the staged version directory,
@@ -1291,21 +1407,19 @@ export function applyReleaseInstallPlan(plan) {
     // path-free sub-reasons on failure.
     const post = evaluatePostInstallState({ bundleRoot, prefix, versionDirectory });
     if (!post.ok) {
-      restoreBackups();
-      cleanupTempOnly();
-      return {
-        ok: false,
-        code: "post_install_verification_failed",
-        reasons: ["post_install_verification_failed", ...post.reasons],
-      };
+      // Roll back first, and only clean the transaction directory if the
+      // rollback is proven to have succeeded. A failed rollback keeps its
+      // backups and reports `rollback_failed` instead of this code.
+      return rollbackThenFail("post_install_verification_failed", [
+        "post_install_verification_failed",
+        ...post.reasons,
+      ]);
     }
 
     // 16. Remove transaction backups and temp paths only after success.
     cleanupTempOnly();
   } catch {
-    restoreBackups();
-    cleanupTempOnly();
-    return { ok: false, code: "apply_failed", reasons: ["apply_failed"] };
+    return rollbackThenFail("apply_failed", ["apply_failed"]);
   }
 
   return { ok: true, code: fresh.action === "replace" ? "replaced" : "created", reasons: [] };
