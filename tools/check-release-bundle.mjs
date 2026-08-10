@@ -81,14 +81,61 @@ function isRegularFile(path) {
   }
 }
 
-function enumerateFiles(root, current, out) {
+/**
+ * Recursively enumerate bundle entries. Symbolic links are RECORDED and never
+ * traversed: a directory symlink is not walked through, and a file symlink is
+ * never mistaken for a regular file. Regular files carry `symlink: false` and
+ * are the only entries SHA256SUMS reasons about.
+ */
+function enumerateEntries(root, current, out) {
   for (const entry of readdirSync(current, { withFileTypes: true })) {
-    if (entry.isSymbolicLink()) continue;
     const abs = join(current, entry.name);
-    if (entry.isDirectory()) enumerateFiles(root, abs, out);
-    else if (entry.isFile()) out.push({ abs, rel: relative(root, abs).split(sep).join("/") });
+    const rel = relative(root, abs).split(sep).join("/");
+    if (entry.isSymbolicLink()) {
+      // Recorded for the symlink safety pass below; never followed here, so a
+      // directory symlink cannot expand the enumeration outside the bundle.
+      out.push({ abs, rel, symlink: true });
+    } else if (entry.isDirectory()) {
+      enumerateEntries(root, abs, out);
+    } else if (entry.isFile()) {
+      out.push({ abs, rel, symlink: false });
+    }
   }
   return out;
+}
+
+/**
+ * Symlink safety, enforced independently of SHA256SUMS coverage.
+ *
+ * Checksum policy: symlinks are deliberately EXCLUDED from SHA256SUMS.
+ * SHA256SUMS covers regular-file bytes only; hashing a link's resolved target
+ * again under the link's own path would double-cover those bytes and make the
+ * manifest describe a file that does not exist at that path. Symlink safety is
+ * therefore a separate invariant, enforced here and by bundle construction and
+ * installer validation alike.
+ *
+ * Containment is decided on the REAL filesystem target (realpathSync), not on
+ * lexical normalization, so a link through an intermediate symlinked directory
+ * cannot spoof confinement. Returns a stable reason token, or null when every
+ * symlink resolves inside the bundle.
+ */
+function checkSymlinkSafety(realRoot, entries) {
+  for (const entry of entries) {
+    if (!entry.symlink) continue;
+    let target;
+    try {
+      target = realpathSync(entry.abs);
+    } catch {
+      // A link whose target does not resolve: unsafe, and never installable.
+      return "bundle_dangling_symlink";
+    }
+    if (target !== realRoot && !target.startsWith(realRoot + sep)) {
+      // Only the stable reason token is reported: the resolved external target
+      // is never disclosed.
+      return "bundle_symlink_escape";
+    }
+  }
+  return null;
 }
 
 const parsed = parseArgs(process.argv.slice(2));
@@ -436,6 +483,22 @@ async function run(bundle) {
     return fail("RELEASE.json providerDiagnostics.tokenValuesReported must be false");
   }
 
+  // Symlink safety, before any checksum reasoning. The bundle root is resolved
+  // to its real path exactly once so containment is decided against the real
+  // filesystem location (a temp root may itself be symlinked, e.g. macOS
+  // /var -> /private/var). Symlinks are excluded from SHA256SUMS by policy, so
+  // this pass is what makes them safe -- checksum coverage never speaks for
+  // them. Failure reports the stable reason token only, no resolved path.
+  let realBundleRoot;
+  try {
+    realBundleRoot = realpathSync(bundle);
+  } catch {
+    realBundleRoot = bundle;
+  }
+  const entries = enumerateEntries(bundle, bundle, []);
+  const symlinkReason = checkSymlinkSafety(realBundleRoot, entries);
+  if (symlinkReason !== null) return fail(symlinkReason);
+
   // SHA256SUMS: every listed file matches; every regular file is listed.
   const sumsPath = join(bundle, "SHA256SUMS");
   if (!isRegularFile(sumsPath)) return fail("SHA256SUMS is missing");
@@ -452,7 +515,10 @@ async function run(bundle) {
     const actual = createHash("sha256").update(readFileSync(abs)).digest("hex");
     if (actual !== expected) return fail(`checksum mismatch: ${rel}`);
   }
-  const actualFiles = enumerateFiles(bundle, bundle, []).filter((f) => f.rel !== "SHA256SUMS");
+  // Completeness is asserted over regular files only. A symlink is never
+  // treated as a regular SHA256SUMS file: it is excluded from the manifest by
+  // the policy documented above, and its safety was already proven.
+  const actualFiles = entries.filter((f) => !f.symlink && f.rel !== "SHA256SUMS");
   for (const file of actualFiles) {
     if (!listed.has(file.rel)) return fail(`unlisted regular file present: ${file.rel}`);
   }
