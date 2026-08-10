@@ -7,9 +7,11 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   renameSync,
   chmodSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -47,6 +49,25 @@ function run(script, args) {
     stderr: r.stderr,
     diagnostics: describeSubprocessResult(script, args, r),
   };
+}
+
+/** Whether a path is a regular file (never following a symlink). */
+function isRegularFile(path) {
+  try {
+    return lstatSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/** The relative paths a bundle's SHA256SUMS manifest lists, in file order. */
+function listedManifestPaths(bundleDir) {
+  return readFileSync(join(bundleDir, "SHA256SUMS"), "utf8")
+    .split("\n")
+    .filter((line) => line.trim() !== "")
+    .map((line) => /^([0-9a-f]{64}) {2}(.+)$/.exec(line))
+    .filter((m) => m !== null)
+    .map((m) => m[2]);
 }
 
 /** Assert a fixture subprocess succeeded, surfacing its full diagnostics. */
@@ -686,6 +707,272 @@ describe("bundle checksum tampering is rejected (F-05)", () => {
     expect(plan.action).toBe("create");
     expect(plan.reasons).toEqual([]);
 
+    const applied = run(wrapper, ["--bundle", dir, "--prefix", prefix, "--apply"]);
+    expect(applied.status, applied.diagnostics).toBe(0);
+    expect(run(installedCheck, ["--prefix", prefix]).status).toBe(0);
+  }, 180_000);
+});
+
+// -----------------------------------------------------------------------------
+// Bundle symlink safety (F-04).
+//
+// Symlinks are a coverage gap that checksums cannot close: SHA256SUMS covers
+// regular-file bytes, and a symlink has no bytes of its own to cover. The
+// explicit policy is therefore that symlinks are EXCLUDED from SHA256SUMS and
+// made safe by a separate invariant -- enforced independently by the installer
+// and by the shipped bundle verifier.
+//
+// These cases prove both layers agree on all three shapes: an escaping link and
+// a dangling link are each rejected by BOTH, and a benign link whose real target
+// stays inside the bundle is accepted by BOTH. Every case runs against a real
+// built bundle copied into its own temp root, using real filesystem symlinks.
+describe("bundle symlink safety (F-04)", () => {
+  /**
+   * Copy the shared bundle into a fresh temp root. `verbatimSymlinks` keeps any
+   * link the bundle already contains as a link rather than materializing its
+   * target, so the copy is a faithful fixture base.
+   */
+  function disposableBundle(prefixLabel) {
+    const root = tempDir(`omp-e2e-symlink-${prefixLabel}-`);
+    const dir = join(root, BUNDLE_NAME);
+    cpSync(bundle.dir, dir, { recursive: true, dereference: false, verbatimSymlinks: true });
+    return { dir, root };
+  }
+
+  /**
+   * Create a real filesystem symlink, reporting whether the platform allowed it.
+   * On Windows, creating a symlink requires Developer Mode or elevation; when it
+   * is refused the case is skipped rather than being weakened into a fake
+   * fixture. POSIX CI always exercises the real path.
+   */
+  function trySymlink(target, linkPath, type) {
+    try {
+      symlinkSync(target, linkPath, type);
+      return lstatSync(linkPath).isSymbolicLink();
+    } catch {
+      return false;
+    }
+  }
+
+  /** Skip-with-report helper for a platform that refused to create a symlink. */
+  function reportSymlinkUnsupported(ctx, label) {
+    // Only Windows may legitimately refuse; a POSIX failure is a real failure.
+    expect(isWindows, `${label}: symlink creation failed on a POSIX platform`).toBe(true);
+    ctx.skip();
+  }
+
+  /** Run the SHIPPED verifier (the copy inside the bundle's own libexec/). */
+  function runShippedVerifier(bundleDir) {
+    return run(join(bundleDir, "libexec", "check-release-bundle.mjs"), ["--bundle", bundleDir]);
+  }
+
+  /**
+   * Assert that BOTH independent layers reject a bundle for the same stable
+   * symlink reason, and that rejection costs the destination nothing.
+   */
+  function expectSymlinkRejected({ bundleDir, ownedRoot, reason, externalFile }) {
+    const parent = tempDir("omp-e2e-symlink-prefix-");
+    const prefix = join(parent, "prefix");
+
+    // 1. The SHIPPED verifier rejects, naming the stable reason token.
+    const verified = runShippedVerifier(bundleDir);
+    expect(verified.status, verified.diagnostics).not.toBe(0);
+    const verifierOutput = `${verified.stdout}${verified.stderr}`;
+    expect(verifierOutput).toContain(reason);
+
+    // 2. The verifier leaks no host/absolute path -- only the reason token.
+    expect(verifierOutput).not.toMatch(/\/Users\/|\/home\/|[A-Za-z]:\\/);
+    expect(verifierOutput).not.toContain(bundleDir);
+    expect(verifierOutput).not.toContain(tmpdir());
+    if (externalFile !== undefined) {
+      expect(verifierOutput).not.toContain(externalFile);
+    }
+
+    // 3. The INSTALLER independently rejects with the same reason, before any
+    //    write. This is the agreement invariant: neither layer carries it alone.
+    const plan = resolveReleaseInstallPlan({
+      bundleRoot: bundleDir,
+      prefix,
+      apply: false,
+      force: false,
+    });
+    expect(plan.ok, JSON.stringify(plan.reasons)).toBe(false);
+    expect(plan.action).toBe("blocked");
+    expect(plan.reasons).toContain(`source:${reason}`);
+
+    const serializedReasons = JSON.stringify(plan.reasons);
+    expect(serializedReasons).not.toMatch(/\/Users\/|\/home\/|[A-Za-z]:\\/);
+    expect(serializedReasons).not.toContain(bundleDir);
+    expect(serializedReasons).not.toContain(prefix);
+
+    // 4. Preview wrote nothing, --apply is refused, and --force cannot bypass a
+    //    safety failure. The prefix never comes into existence.
+    expect(existsSync(prefix)).toBe(false);
+    const applied = run(wrapper, ["--bundle", bundleDir, "--prefix", prefix, "--apply"]);
+    expect(applied.status, applied.diagnostics).toBe(2);
+    expect(`${applied.stdout}${applied.stderr}`).toContain(`source:${reason}`);
+    expect(existsSync(prefix)).toBe(false);
+
+    const forced = run(wrapper, ["--bundle", bundleDir, "--prefix", prefix, "--apply", "--force"]);
+    expect(forced.status, forced.diagnostics).toBe(2);
+    expect(`${forced.stdout}${forced.stderr}`).toContain(`source:${reason}`);
+
+    // 5. No installation artifact of any kind was produced.
+    expect(existsSync(prefix)).toBe(false);
+    expect(existsSync(join(prefix, "bin"))).toBe(false);
+    expect(existsSync(join(prefix, "lib"))).toBe(false);
+    expect(existsSync(join(prefix, "lib", "oh-my-pm", "install.json"))).toBe(false);
+
+    // 6. The fixture stayed inside its own root; the shared bundle is untouched.
+    expect(bundleDir.startsWith(ownedRoot)).toBe(true);
+    expect(bundleDir.startsWith(bundle.dir)).toBe(false);
+    expect(existsSync(join(bundle.dir, "SHA256SUMS"))).toBe(true);
+  }
+
+  // A. A symlink inside the bundle whose real target lies OUTSIDE the bundle
+  //    root. This is the escape shape: following it during install would read
+  //    (or write through to) a location the bundle does not own.
+  it("A. rejects a symlink escaping the bundle root with bundle_symlink_escape", (ctx) => {
+    const { dir, root } = disposableBundle("escape");
+
+    // The escape target lives outside the bundle directory entirely, in a root
+    // this case owns, so "outside" is a real property and not a path trick.
+    const outsideRoot = tempDir("omp-e2e-symlink-outside-");
+    const outsideFile = join(outsideRoot, "outside-secret.txt");
+    const outsideContents = "outside-the-bundle\n";
+    writeFileSync(outsideFile, outsideContents);
+    expect(outsideFile.startsWith(dir)).toBe(false);
+
+    const link = join(dir, "libexec", "escaping-link.mjs");
+    if (!trySymlink(outsideFile, link, "file")) {
+      reportSymlinkUnsupported(ctx, "escaping symlink");
+      return;
+    }
+    // The link really resolves out of the bundle.
+    expect(realpathSync(link)).toBe(realpathSync(outsideFile));
+    expect(realpathSync(link).startsWith(realpathSync(dir))).toBe(false);
+
+    expectSymlinkRejected({
+      bundleDir: dir,
+      ownedRoot: root,
+      reason: "bundle_symlink_escape",
+      externalFile: outsideFile,
+    });
+
+    // The external target was never read through, written, or removed.
+    expect(existsSync(outsideFile)).toBe(true);
+    expect(readFileSync(outsideFile, "utf8")).toBe(outsideContents);
+  }, 180_000);
+
+  // B. A symlink whose target does not exist. It cannot be checksummed, cannot
+  //    be installed, and its target could be created later -- so it fails closed.
+  it("B. rejects a dangling symlink with bundle_dangling_symlink", (ctx) => {
+    const { dir, root } = disposableBundle("dangling");
+
+    // Target inside the bundle but absent, so only "dangling" can explain the
+    // rejection -- an escape reason would be the wrong diagnosis.
+    const missingTarget = join(dir, "libexec", "no-such-target.mjs");
+    expect(existsSync(missingTarget)).toBe(false);
+    const link = join(dir, "libexec", "dangling-link.mjs");
+    if (!trySymlink(missingTarget, link, "file")) {
+      reportSymlinkUnsupported(ctx, "dangling symlink");
+      return;
+    }
+    expect(lstatSync(link).isSymbolicLink()).toBe(true);
+    expect(existsSync(link)).toBe(false); // resolves to nothing
+
+    expectSymlinkRejected({
+      bundleDir: dir,
+      ownedRoot: root,
+      reason: "bundle_dangling_symlink",
+    });
+  }, 180_000);
+
+  // C. A benign symlink whose real target is an existing regular file INSIDE the
+  //    bundle. This is the acceptance half of the invariant: the link is
+  //    inspected -- not skipped -- and passes because it stays confined.
+  it("C. accepts a benign symlink confined to the bundle root", (ctx) => {
+    const { dir } = disposableBundle("benign");
+
+    // Target a listed regular file that is not itself required, so the fixture
+    // adds a link and changes nothing else about the bundle.
+    const targetRel = "docs/getting-started.md";
+    const target = join(dir, ...targetRel.split("/"));
+    expect(isRegularFile(target)).toBe(true);
+
+    // The link target is RELATIVE ("getting-started.md", a sibling). A bundle is
+    // relocated by copy during install, so an absolute link would point back at
+    // the original bundle location and become a real escape from the installed
+    // copy -- which the installer's post-copy staged check correctly rejects
+    // (staged_symlink_unsafe). A relative sibling link stays confined through
+    // relocation, which is what a genuinely portable bundle symlink looks like.
+    const linkRel = "docs/getting-started-alias.md";
+    const link = join(dir, ...linkRel.split("/"));
+    if (!trySymlink("getting-started.md", link, "file")) {
+      reportSymlinkUnsupported(ctx, "benign symlink");
+      return;
+    }
+    // Real target is confined inside the bundle root.
+    expect(lstatSync(link).isSymbolicLink()).toBe(true);
+    expect(realpathSync(link).startsWith(realpathSync(dir))).toBe(true);
+
+    // --- SHA256SUMS policy assertions -------------------------------------
+    // The symlink itself needs NO manifest entry, and adding it must not make
+    // the bundle look incomplete. Its regular target stays covered normally.
+    const listed = listedManifestPaths(dir);
+    expect(listed).not.toContain(linkRel);
+    expect(listed).toContain(targetRel);
+
+    // --- The shipped verifier accepts -------------------------------------
+    const verified = runShippedVerifier(dir);
+    expect(verified.status, verified.diagnostics).toBe(0);
+    expect(verified.stdout).toBe(`OH MY PM release bundle check: OK (${CANONICAL_VERSION})\n`);
+    // Specifically NOT rejected for any symlink or manifest-coverage reason:
+    // the link is inspected and accepted, not silently unlisted.
+    const verifierOutput = `${verified.stdout}${verified.stderr}`;
+    expect(verifierOutput).not.toContain("bundle_symlink_escape");
+    expect(verifierOutput).not.toContain("bundle_dangling_symlink");
+    expect(verifierOutput).not.toContain("unlisted regular file present");
+
+    // --- The installer accepts too (agreement) ----------------------------
+    const prefix = join(tempDir("omp-e2e-symlink-benign-"), "prefix");
+    const plan = resolveReleaseInstallPlan({
+      bundleRoot: dir,
+      prefix,
+      apply: false,
+      force: false,
+    });
+    expect(plan.ok, JSON.stringify(plan.reasons)).toBe(true);
+    expect(plan.action).toBe("create");
+    // No symlink or checksum-coverage reason appears -- notably not
+    // sha256sums_unlisted_file, which an unlisted *regular* file would trigger.
+    expect(plan.reasons).toEqual([]);
+
+    const applied = run(wrapper, ["--bundle", dir, "--prefix", prefix, "--apply"]);
+    expect(applied.status, applied.diagnostics).toBe(0);
+    expect(run(installedCheck, ["--prefix", prefix]).status).toBe(0);
+
+    // The link survived relocation as a link, still confined to the INSTALLED
+    // copy's own root -- confinement is a property of the relocated bundle, not
+    // only of the fixture it was built in.
+    const installedRoot = join(prefix, "lib", "oh-my-pm", "versions", CANONICAL_VERSION);
+    const installedLink = join(installedRoot, ...linkRel.split("/"));
+    expect(lstatSync(installedLink).isSymbolicLink()).toBe(true);
+    expect(realpathSync(installedLink).startsWith(realpathSync(installedRoot))).toBe(true);
+
+    // The target file was not disturbed by being linked to.
+    expect(isRegularFile(target)).toBe(true);
+  }, 180_000);
+
+  // Control: the very same copy WITHOUT any added symlink verifies and installs.
+  // Without this, an acceptance above could pass for an unrelated reason.
+  it("control: the same bundle copy with no added symlink verifies and installs", () => {
+    const { dir } = disposableBundle("control");
+    const verified = runShippedVerifier(dir);
+    expect(verified.status, verified.diagnostics).toBe(0);
+    expect(verified.stdout).toBe(`OH MY PM release bundle check: OK (${CANONICAL_VERSION})\n`);
+
+    const prefix = join(tempDir("omp-e2e-symlink-ctl-"), "prefix");
     const applied = run(wrapper, ["--bundle", dir, "--prefix", prefix, "--apply"]);
     expect(applied.status, applied.diagnostics).toBe(0);
     expect(run(installedCheck, ["--prefix", prefix]).status).toBe(0);
