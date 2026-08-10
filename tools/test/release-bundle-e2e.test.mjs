@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -305,5 +306,37 @@ describe("portable release bundle e2e", () => {
     expect(existsSync(sibling)).toBe(true);
     expect(readFileSync(sibling, "utf8")).toBe("sibling");
     expect(existsSync(join(out, BUNDLE))).toBe(true);
+  }, 180_000);
+
+  // F-08: the staging directory used to be `.<bundle>.tmp-<pid>` and was
+  // recursively removed before use, so a co-located writer could pre-create that
+  // predictable name and have it deleted. The transaction root is now created by
+  // mkdtempSync, so the old path must be left strictly alone.
+  it("never touches a pre-created PID-derived temp path and leaves no staging behind", () => {
+    const out = tempDir("oh-my-pm-rel-txpath-");
+
+    // Plant the exact path the old implementation would have claimed.
+    const predictable = join(out, `.${BUNDLE}.tmp-${process.pid}`);
+    mkdirSync(predictable, { recursive: true });
+    const sentinel = join(predictable, "DO_NOT_DELETE");
+    const sentinelBytes = "pre-created by a co-located process\n";
+    writeFileSync(sentinel, sentinelBytes, "utf8");
+
+    const applied = run(buildCli, ["--output", out, "--apply"]);
+    expect(applied.status, applied.stderr).toBe(0);
+
+    // 1. The sentinel survives byte-identically and was not used as a workspace.
+    expect(existsSync(sentinel)).toBe(true);
+    expect(readFileSync(sentinel, "utf8")).toBe(sentinelBytes);
+    expect(readdirSync(predictable)).toEqual(["DO_NOT_DELETE"]);
+
+    // 2. The build produced the canonical bundle and cleaned its own random
+    //    transaction root: the only entries are the bundle and the sentinel dir.
+    expect(existsSync(join(out, BUNDLE))).toBe(true);
+    expect(readdirSync(out).sort()).toEqual([`.${BUNDLE}.tmp-${process.pid}`, BUNDLE].sort());
+
+    // 3. The finished bundle verifies, so unpredictable staging did not change
+    //    the output.
+    expect(run(checkCli, ["--bundle", join(out, BUNDLE)]).status).toBe(0);
   }, 180_000);
 });

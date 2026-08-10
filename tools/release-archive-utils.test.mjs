@@ -1,5 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -153,6 +161,62 @@ describe("applyReleaseArchivePlan", () => {
 
     // No temporary workspace left behind.
     expect(readdirSync(out).some((n) => n.includes(".archive.tmp-"))).toBe(false);
+  }, 120_000);
+
+  // F-08: the workspace used to be `.<bundle>.archive.tmp-<pid>` (recursively
+  // removed before use) and the three staged assets were `<final path>.tmp-<pid>`
+  // siblings. All four are now created inside one mkdtempSync workspace, so the
+  // old predictable paths must be left strictly alone.
+  it("never touches pre-created PID-derived temp paths and cleans its own workspace", () => {
+    const out = tempDir("oh-my-pm-arch-txpath-");
+
+    // Plant every path shape the old implementation would have claimed: the
+    // workspace directory and the three temporary asset files.
+    const predictableWorkspace = join(
+      out,
+      `.${RELEASE_ARCHIVE_BUNDLE_NAME}.archive.tmp-${process.pid}`,
+    );
+    mkdirSync(predictableWorkspace, { recursive: true });
+    const sentinel = join(predictableWorkspace, "DO_NOT_DELETE");
+    const sentinelBytes = "pre-created by a co-located process\n";
+    writeFileSync(sentinel, sentinelBytes, "utf8");
+
+    const assetSentinels = [
+      RELEASE_ARCHIVE_TAR_NAME,
+      RELEASE_ARCHIVE_ZIP_NAME,
+      RELEASE_ARCHIVE_SUMS_NAME,
+    ].map((name) => {
+      const path = join(out, `${name}.tmp-${process.pid}`);
+      writeFileSync(path, `sentinel for ${name}\n`, "utf8");
+      return { path, contents: `sentinel for ${name}\n` };
+    });
+
+    const plan = resolveReleaseArchivePlan({ bundle, output: out, apply: true });
+    const result = applyReleaseArchivePlan(plan);
+    expect(result.ok, JSON.stringify(result)).toBe(true);
+
+    // 1. The planted workspace survives byte-identically and was never used.
+    expect(existsSync(sentinel)).toBe(true);
+    expect(readFileSync(sentinel, "utf8")).toBe(sentinelBytes);
+    expect(readdirSync(predictableWorkspace)).toEqual(["DO_NOT_DELETE"]);
+
+    // 2. Each planted temporary asset file survives untouched: no finished asset
+    //    was staged through a predictable sibling path.
+    for (const { path, contents } of assetSentinels) {
+      expect(existsSync(path)).toBe(true);
+      expect(readFileSync(path, "utf8")).toBe(contents);
+    }
+
+    // 3. The three real assets exist, and the only other entries are the
+    //    sentinels this test planted -- the random workspace was cleaned.
+    const expected = [
+      RELEASE_ARCHIVE_SUMS_NAME,
+      RELEASE_ARCHIVE_TAR_NAME,
+      RELEASE_ARCHIVE_ZIP_NAME,
+      `.${RELEASE_ARCHIVE_BUNDLE_NAME}.archive.tmp-${process.pid}`,
+      ...assetSentinels.map(({ path }) => path.slice(out.length + 1)),
+    ];
+    expect(readdirSync(out).sort()).toEqual(expected.sort());
   }, 120_000);
 
   it("refuses when apply is not requested or the plan is not applicable", () => {

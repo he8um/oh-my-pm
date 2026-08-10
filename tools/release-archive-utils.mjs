@@ -13,6 +13,7 @@ import {
   lstatSync,
   lutimesSync,
   mkdirSync,
+  mkdtempSync,
   readFileSync,
   readdirSync,
   realpathSync,
@@ -530,39 +531,46 @@ export function applyReleaseArchivePlan(plan) {
     return { ok: false, code: "archive_exists", reasons: ["release_archive_exists"] };
   }
 
-  const workspace = join(
-    plan.outputRoot,
-    `.${RELEASE_ARCHIVE_BUNDLE_NAME}.archive.tmp-${process.pid}`,
-  );
-  const tarTmp = `${plan.tarPath}.tmp-${process.pid}`;
-  const zipTmp = `${plan.zipPath}.tmp-${process.pid}`;
-  const sumsTmp = `${plan.sumsPath}.tmp-${process.pid}`;
-  const cleanupTemps = () => {
-    for (const path of [workspace, tarTmp, zipTmp, sumsTmp]) {
-      if (
-        existsSync(path) ||
-        (() => {
-          try {
-            return lstatSync(path) !== undefined;
-          } catch {
-            return false;
-          }
-        })()
-      ) {
-        rmSync(path, { recursive: true, force: true });
-      }
-    }
-  };
-
   try {
     mkdirSync(plan.outputRoot, { recursive: true });
   } catch {
     return { ok: false, code: "output_root_failed", reasons: ["output_root_failed"] };
   }
 
+  // The whole archive transaction lives in one mkdtempSync-created workspace
+  // under plan.outputRoot: its name is unpredictable, nothing is removed to make
+  // room for it, and cleanup removes only the directory this invocation created.
+  //
+  // Layout:
+  //   <workspace>/stage/<bundle name>   the normalized copy tar/zip read from
+  //   <workspace>/assets/…              the three finished assets, pre-rename
+  //
+  // The staged bundle gets its own `stage/` parent so the temp assets never sit
+  // in the directory zip enumerates. Keeping the assets under plan.outputRoot
+  // (rather than the system temp dir) keeps the final renames same-filesystem
+  // and therefore atomic.
+  let txRoot;
   try {
-    if (existsSync(workspace)) rmSync(workspace, { recursive: true, force: true });
+    txRoot = mkdtempSync(join(plan.outputRoot, `.${RELEASE_ARCHIVE_BUNDLE_NAME}.archive.tmp-`));
+  } catch {
+    return { ok: false, code: "output_root_failed", reasons: ["output_root_failed"] };
+  }
+  const workspace = join(txRoot, "stage");
+  const assetsDir = join(txRoot, "assets");
+  const tarTmp = join(assetsDir, RELEASE_ARCHIVE_TAR_NAME);
+  const zipTmp = join(assetsDir, RELEASE_ARCHIVE_ZIP_NAME);
+  const sumsTmp = join(assetsDir, RELEASE_ARCHIVE_SUMS_NAME);
+  const cleanupTemps = () => {
+    try {
+      rmSync(txRoot, { recursive: true, force: true });
+    } catch {
+      // best-effort: the transaction root holds only disposable staging output.
+    }
+  };
+
+  try {
     mkdirSync(workspace, { recursive: true });
+    mkdirSync(assetsDir, { recursive: true });
 
     const stagedBundle = join(workspace, RELEASE_ARCHIVE_BUNDLE_NAME);
     // Copy the bundle verbatim (symlinks preserved, never followed).
@@ -613,7 +621,8 @@ export function applyReleaseArchivePlan(plan) {
     renameSync(zipTmp, plan.zipPath);
     renameSync(sumsTmp, plan.sumsPath);
 
-    rmSync(workspace, { recursive: true, force: true });
+    // The three assets have moved out; remove the whole transaction root.
+    cleanupTemps();
   } catch {
     cleanupTemps();
     return { ok: false, code: "archive_failed", reasons: ["archive_failed"] };

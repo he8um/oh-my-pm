@@ -465,3 +465,80 @@ describe("formatReleaseInstallPlan", () => {
     expect(out).toContain("apply required: no");
   });
 });
+
+// The rollback contract, asserted against the install core's own source (F-06).
+//
+// The behavioural proof lives in tools/release-install-e2e.test.mjs, which forces
+// a real post-install failure against a real prefix. This file stays free of
+// subprocesses and shared build output (see tools/test-suite-inventory.mjs), so
+// what it pins here is the ordering invariant that made F-06 exploitable: the
+// transaction directory holding the only copy of the previous install must not be
+// deleted on a path where the restore has not been proven to have succeeded.
+describe("install rollback fails closed (F-06)", () => {
+  const source = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "release-install-core.mjs"),
+    "utf8",
+  );
+
+  it("never cleans the transaction directory unconditionally after a rollback", () => {
+    // The defect shape was `restoreBackups(); cleanupTempOnly();` in sequence:
+    // a failed rename-back was immediately followed by deleting the backup.
+    expect(source).not.toMatch(/restoreBackups\(\);\s*cleanupTempOnly\(\);/);
+  });
+
+  it("cleans the transaction directory only inside a proven-successful branch", () => {
+    // Every cleanup that follows a rollback is guarded by the rollback result.
+    expect(source).toMatch(/if \(rollback\.ok\) \{\s*cleanupTempOnly\(\);/);
+  });
+
+  it("returns a structured result from the rollback rather than nothing", () => {
+    expect(source).toContain("return { ok: reasons.length === 0, reasons };");
+  });
+
+  it("exposes rollback_failed as a distinct public code", () => {
+    expect(source).toContain('code: "rollback_failed"');
+  });
+
+  it("keeps every rollback reason a bounded, path-free token", () => {
+    // Collect the reason literals the rollback vocabulary adds.
+    const reasons = [...source.matchAll(/addReason\("([^"]+)"\)/g)].map((match) => match[1]);
+    expect(reasons.length).toBeGreaterThan(0);
+    for (const reason of reasons) {
+      // Stable snake_case tokens only: no path separators, no interpolation, no
+      // drive letters, and nothing that could carry file contents.
+      expect(reason, reason).toMatch(/^[a-z][a-z0-9_]*$/);
+      expect(reason, reason).not.toContain("/");
+      expect(reason, reason).not.toContain("\\");
+      expect(reason, reason).not.toContain("${");
+    }
+    // The rollback vocabulary covers each way recovery can fail.
+    for (const expected of [
+      "rollback_new_version_directory_not_removed",
+      "rollback_new_shim_not_removed",
+      "rollback_new_manifest_not_removed",
+      "rollback_original_path_occupied",
+      "rollback_backup_not_restored",
+      "rollback_restore_incomplete",
+      "rollback_backup_stranded",
+    ]) {
+      expect(reasons, expected).toContain(expected);
+    }
+  });
+
+  it("verifies restoration instead of trusting that renameSync did not throw", () => {
+    // A restored target must be observed present, and no backup may remain.
+    expect(source).toContain("rollback_restore_incomplete");
+    expect(source).toContain("rollback_backup_stranded");
+    // Presence checks do not follow symlinks, so a dangling link at a managed
+    // path cannot read as "absent" and pass verification.
+    expect(source).toContain("function pathPresent(");
+  });
+
+  it("preserves the original failure code when the rollback succeeds", () => {
+    // post_install_verification_failed and apply_failed both route through the
+    // same helper, which returns the original code on a successful rollback.
+    expect(source).toContain('rollbackThenFail("post_install_verification_failed"');
+    expect(source).toContain('rollbackThenFail("apply_failed"');
+    expect(source).toMatch(/if \(rollback\.ok\) \{[\s\S]{0,120}return \{ ok: false, code, reasons/);
+  });
+});
