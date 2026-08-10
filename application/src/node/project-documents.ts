@@ -23,6 +23,7 @@ export type ProjectDocumentLoadWarningCode =
   | "project_root_not_directory"
   | "project_document_skipped_too_large"
   | "project_document_total_limit_reached"
+  | "project_document_depth_limit_reached"
   | "project_document_read_failed";
 
 export type ProjectDocumentLoadWarning = {
@@ -74,6 +75,16 @@ const IGNORED_DIRECTORIES: ReadonlySet<string> = new Set([
 
 const MARKDOWN_EXTENSIONS = [".md", ".markdown"] as const;
 
+/**
+ * Maximum directory depth the walk will traverse, matching the bound the
+ * privacy key scanners already use. Symlinks are skipped so cycles are
+ * impossible and the byte budget bounds reading, but a pathologically deep tree
+ * could still exhaust the stack. The root is depth 0; depth 128 is traversed,
+ * and recursion into depth 129 is refused with a warning. Internal by design:
+ * this is a stack-safety bound, not a user-tunable limit.
+ */
+const MAX_DIRECTORY_DEPTH = 128;
+
 function hasMarkdownExtension(name: string): boolean {
   const lower = name.toLowerCase();
   return MARKDOWN_EXTENSIONS.some((extension) => lower.endsWith(extension));
@@ -96,12 +107,19 @@ type DocumentCandidate = {
   relativePath: string;
 };
 
-/** Depth-first, lexicographically ordered candidate collection. */
+/**
+ * Depth-first, lexicographically ordered candidate collection, bounded to
+ * MAX_DIRECTORY_DEPTH. `depth` is the depth of `directoryPath` itself: the root
+ * is 0. A directory beyond the bound is neither entered nor enumerated, so no
+ * file below it becomes a candidate and none is read; traversal continues with
+ * siblings, so one pathological subtree never fails the whole load.
+ */
 function collectCandidates(
   rootPath: string,
   directoryPath: string,
   candidates: DocumentCandidate[],
   warnings: ProjectDocumentLoadWarning[],
+  depth: number,
 ): void {
   let entries;
   try {
@@ -126,7 +144,16 @@ function collectCandidates(
       if (IGNORED_DIRECTORIES.has(entry.name)) {
         continue;
       }
-      collectCandidates(rootPath, absolutePath, candidates, warnings);
+      if (depth + 1 > MAX_DIRECTORY_DEPTH) {
+        // Refuse the subtree without enumerating it: the counts stay a faithful
+        // description of what the bounded traversal actually discovered.
+        warnings.push({
+          code: "project_document_depth_limit_reached",
+          path: toRelativePosixPath(rootPath, absolutePath),
+        });
+        continue;
+      }
+      collectCandidates(rootPath, absolutePath, candidates, warnings, depth + 1);
       continue;
     }
     if (entry.isFile() && hasMarkdownExtension(entry.name)) {
@@ -193,7 +220,7 @@ export function loadMarkdownProjectDocuments(
 
   const warnings: ProjectDocumentLoadWarning[] = [];
   const candidates: DocumentCandidate[] = [];
-  collectCandidates(resolvedRoot, resolvedRoot, candidates, warnings);
+  collectCandidates(resolvedRoot, resolvedRoot, candidates, warnings, 0);
   candidates.sort((a, b) =>
     a.relativePath < b.relativePath ? -1 : a.relativePath > b.relativePath ? 1 : 0,
   );

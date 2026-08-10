@@ -44,7 +44,12 @@ import {
   normalizeRepository,
   readPullRequestDetail,
 } from "./normalize.js";
-import { parseGitHubFetchQuery, parseGitHubListQuery, parseGitHubSearchQuery } from "./query.js";
+import {
+  buildGitHubIssueSearchScope,
+  parseGitHubFetchQuery,
+  parseGitHubListQuery,
+  parseGitHubSearchQuery,
+} from "./query.js";
 import { GitHubTransportError } from "./transport.js";
 import type {
   GitHubHttpResponse,
@@ -185,33 +190,47 @@ export function createGitHubProvider(options: {
     return { ok: true, response };
   }
 
-  /** The GitHub search `is:` state qualifier for a selected state (all omits). */
-  function stateQualifier(state: GitHubQueryState): string | null {
-    if (state === "open") return "is:open";
-    if (state === "closed") return "is:closed";
-    return null;
-  }
-
   /**
    * Run one read-only `GET /search/issues` page with a provider-owned scope
    * (repository + optional state + optional kind qualifier) followed by the
    * user terms, normalize the results, and return them. Scope qualifiers are
    * always emitted before the terms; the terms never override scope.
+   *
+   * The scope invariant is re-asserted here, at the one place scope and terms
+   * combine, rather than resting solely on the upstream parser. Every current
+   * call path parses first, so this is defence in depth for a future path that
+   * constructs scope terms directly: it fails closed before any URL exists, so
+   * unsafe terms reach no request. The forbidden vocabulary is imported, not
+   * restated, so the parser and this use site cannot drift apart.
    */
   async function runIssueSearch(
     slug: string,
     scope: { state: GitHubQueryState; kind: GitHubQueryKind; terms: string },
     limit: number,
   ): Promise<ProviderResult> {
-    const parts = [`repo:${slug}`];
-    const stateQ = stateQualifier(scope.state);
-    if (stateQ !== null) parts.push(stateQ);
-    if (scope.kind === "issues") parts.push("is:issue");
-    else if (scope.kind === "pull-requests") parts.push("is:pr");
-    if (scope.terms !== "") parts.push(scope.terms);
+    // Fails closed before a URL exists: no transport request is made when the
+    // scope invariant is violated.
+    const q = buildGitHubIssueSearchScope({
+      slug,
+      state: scope.state,
+      kind: scope.kind,
+      terms: scope.terms,
+    });
+    if (q === null) {
+      // Bounded, sanitized message: the offending terms are never echoed.
+      const message = "search terms must not contain a scope qualifier";
+      return {
+        ok: false,
+        code: OMP_P_INVALID_REQUEST,
+        message,
+        response: emptyProviderResponse("github", [
+          providerWarning("github_search_scope_violation", message),
+        ]),
+      };
+    }
 
     const searchUrl = new URL(`${GITHUB_API_ORIGIN}/search/issues`);
-    searchUrl.searchParams.set("q", parts.join(" "));
+    searchUrl.searchParams.set("q", q);
     searchUrl.searchParams.set("sort", "updated");
     searchUrl.searchParams.set("order", "desc");
     searchUrl.searchParams.set("per_page", String(limit));
