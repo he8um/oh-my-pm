@@ -48,6 +48,45 @@ const SEGMENT_PATTERN = /^[A-Za-z0-9._-]+$/;
 // any of these.
 const FORBIDDEN_SEARCH_QUALIFIERS = ["repo:", "org:", "user:", "is:", "type:", "state:"];
 
+/**
+ * True when terms carry a provider-owned scope qualifier. This is the single
+ * source of truth for the forbidden vocabulary: the parser rejects user input
+ * with it, and the provider re-asserts it at the use site where scope and terms
+ * actually combine. Matching is case-insensitive; empty terms are scope-free.
+ */
+export function hasForbiddenGitHubSearchScopeQualifier(terms: string): boolean {
+  const lowered = terms.toLowerCase();
+  return FORBIDDEN_SEARCH_QUALIFIERS.some((qualifier) => lowered.includes(qualifier));
+}
+
+/**
+ * Combine a provider-owned scope with user terms into the `q` value for
+ * `GET /search/issues`.
+ *
+ * This is the one place scope and terms are joined, extracted from the provider
+ * so the invariant it enforces is directly testable: scope qualifiers are always
+ * emitted first, and terms carrying a forbidden qualifier are refused outright
+ * rather than appended. Returning `null` lets the caller fail closed before a
+ * URL exists, so unsafe terms never reach the transport.
+ */
+export function buildGitHubIssueSearchScope(input: {
+  slug: string;
+  state: GitHubQueryState;
+  kind: GitHubQueryKind;
+  terms: string;
+}): string | null {
+  if (hasForbiddenGitHubSearchScopeQualifier(input.terms)) {
+    return null;
+  }
+  const parts = [`repo:${input.slug}`];
+  if (input.state === "open") parts.push("is:open");
+  else if (input.state === "closed") parts.push("is:closed");
+  if (input.kind === "issues") parts.push("is:issue");
+  else if (input.kind === "pull-requests") parts.push("is:pr");
+  if (input.terms !== "") parts.push(input.terms);
+  return parts.join(" ");
+}
+
 const LIST_SOURCES: readonly GitHubListSource[] = [
   "overview",
   "repository",
@@ -286,11 +325,8 @@ function validateTerms(terms: string): { ok: true; terms: string } | { ok: false
   if (hasControlCharacters(trimmed)) {
     return { ok: false, reason: "search terms contain control characters" };
   }
-  const lowered = trimmed.toLowerCase();
-  for (const qualifier of FORBIDDEN_SEARCH_QUALIFIERS) {
-    if (lowered.includes(qualifier)) {
-      return { ok: false, reason: "search terms must not contain a scope qualifier" };
-    }
+  if (hasForbiddenGitHubSearchScopeQualifier(trimmed)) {
+    return { ok: false, reason: "search terms must not contain a scope qualifier" };
   }
   return { ok: true, terms: trimmed };
 }

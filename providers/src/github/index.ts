@@ -24,8 +24,10 @@ export {
 } from "./constants.js";
 export {
   buildGitHubFetchQuery,
+  buildGitHubIssueSearchScope,
   buildGitHubListQuery,
   buildGitHubSearchQuery,
+  hasForbiddenGitHubSearchScopeQualifier,
   parseGitHubFetchQuery,
   parseGitHubListQuery,
   parseGitHubRepository,

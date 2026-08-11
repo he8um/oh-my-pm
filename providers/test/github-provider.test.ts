@@ -3,7 +3,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ProviderRequest } from "@oh-my-pm/contracts";
 import { describe, expect, it } from "vitest";
-import { createGitHubProvider } from "../src/index.js";
+import {
+  buildGitHubIssueSearchScope,
+  createGitHubProvider,
+  hasForbiddenGitHubSearchScopeQualifier,
+  parseGitHubSearchQuery,
+} from "../src/index.js";
 import type { GitHubHttpRequest, GitHubHttpResponse, GitHubHttpTransport } from "../src/index.js";
 
 const fixtureDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures", "github");
@@ -144,6 +149,141 @@ describe("search", () => {
     expect(result.response.warnings?.some((w) => w.code === "github_incomplete_results")).toBe(
       true,
     );
+  });
+});
+
+// The scope invariant is asserted twice: once by the parser on user input, and
+// once inside runIssueSearch, the single place provider-owned scope and terms
+// combine into a query string. These tests target the SECOND assertion. Every
+// current entry path parses first, so the use-site guard is defence in depth for
+// a future path that builds scope terms directly -- and its contract is that it
+// fails closed BEFORE a URL exists, so no unsafe term reaches the transport.
+describe("search scope enforcement at the use site", () => {
+  const searchRoute: Route = {
+    match: (u) => u.pathname === "/search/issues",
+    body: load("search.json"),
+  };
+
+  // These target the combination function the use site actually calls, so they
+  // fail if the use-site refusal is removed while the parser stays intact.
+  describe("the scope/terms combination refuses unsafe terms", () => {
+    const base = { slug: SLUG, state: "open", kind: "all" } as const;
+
+    it("returns null for terms carrying a forbidden qualifier", () => {
+      for (const qualifier of ["repo:", "org:", "user:", "is:", "type:", "state:"]) {
+        expect(
+          buildGitHubIssueSearchScope({ ...base, terms: `bug ${qualifier}other/project` }),
+          `${qualifier} must be refused at the combination site`,
+        ).toBeNull();
+      }
+    });
+
+    it("returns null case-insensitively", () => {
+      expect(buildGitHubIssueSearchScope({ ...base, terms: "bug REPO:other" })).toBeNull();
+      expect(buildGitHubIssueSearchScope({ ...base, terms: "bug Is:Closed" })).toBeNull();
+    });
+
+    it("builds the query with scope first for valid terms", () => {
+      expect(buildGitHubIssueSearchScope({ ...base, terms: "rollback bug" })).toBe(
+        `repo:${SLUG} is:open rollback bug`,
+      );
+    });
+
+    it("emits scope-only queries for empty terms", () => {
+      expect(buildGitHubIssueSearchScope({ ...base, kind: "issues", terms: "" })).toBe(
+        `repo:${SLUG} is:open is:issue`,
+      );
+      expect(
+        buildGitHubIssueSearchScope({ ...base, state: "all", kind: "pull-requests", terms: "" }),
+      ).toBe(`repo:${SLUG} is:pr`);
+    });
+
+    it("never emits the unsafe terms in any returned value", () => {
+      const result = buildGitHubIssueSearchScope({ ...base, terms: "bug repo:evil/repo" });
+      expect(result).toBeNull();
+      expect(String(result)).not.toContain("evil");
+    });
+  });
+
+  it("shares one forbidden-qualifier vocabulary with the parser", () => {
+    // A single source of truth: the parser and the provider import the same
+    // helper, so the two cannot drift to different qualifier lists.
+    for (const qualifier of ["repo:", "org:", "user:", "is:", "type:", "state:"]) {
+      expect(hasForbiddenGitHubSearchScopeQualifier(`bug ${qualifier}other`)).toBe(true);
+      // The parser rejects the same input through the same vocabulary.
+      expect(parseGitHubSearchQuery(`${SLUG}::bug ${qualifier}other`).ok).toBe(false);
+    }
+  });
+
+  it("matches qualifiers case-insensitively", () => {
+    expect(hasForbiddenGitHubSearchScopeQualifier("bug REPO:other/project")).toBe(true);
+    expect(hasForbiddenGitHubSearchScopeQualifier("bug Is:Closed")).toBe(true);
+    expect(hasForbiddenGitHubSearchScopeQualifier("bug TyPe:pr")).toBe(true);
+  });
+
+  it("treats scope-free terms, including empty terms, as safe", () => {
+    // handleList reaches runIssueSearch with terms: "" -- the guard must not
+    // reject the provider's own scope-only searches.
+    expect(hasForbiddenGitHubSearchScopeQualifier("")).toBe(false);
+    expect(hasForbiddenGitHubSearchScopeQualifier("rollback bug")).toBe(false);
+    // Substrings that merely resemble a qualifier are not one.
+    expect(hasForbiddenGitHubSearchScopeQualifier("repository redesign")).toBe(false);
+    expect(hasForbiddenGitHubSearchScopeQualifier("issue triage")).toBe(false);
+  });
+
+  it("issues zero transport requests when unsafe terms reach the use site", async () => {
+    // The guard runs before the URL is constructed, so a rejected search must
+    // leave the transport untouched entirely.
+    const { provider: p, calls } = provider([searchRoute]);
+    const result = await p.execute(
+      req({ action: "search", query: `${SLUG}::bug repo:other/project`, limit: 10 }),
+      context,
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      // The stable invalid-request code, reused rather than a new taxonomy.
+      expect(result.code).toBe("OMP-P-4003");
+      expect(result.response.items).toEqual([]);
+      // Bounded, sanitized message: the unsafe terms are never echoed back.
+      expect(result.message).not.toContain("other/project");
+      expect(JSON.stringify(result.response)).not.toContain("other/project");
+    }
+    expect(calls).toEqual([]);
+  });
+
+  it("never builds a request URL containing the unsafe terms", async () => {
+    const { provider: p, calls } = provider([searchRoute]);
+    await p.execute(req({ action: "search", query: `${SLUG}::bug repo:evil/repo` }), context);
+    expect(calls.map((c) => c.url).join(" ")).not.toContain("evil");
+  });
+
+  it("still runs an ordinary search with valid terms, unchanged", async () => {
+    const { provider: p, calls } = provider([searchRoute]);
+    const result = await p.execute(
+      req({ action: "search", query: `${SLUG}::rollback bug`, limit: 10 }),
+      context,
+    );
+    expect(result.ok).toBe(true);
+    expect(calls).toHaveLength(1);
+    const q = new URL(calls[0]!.url).searchParams.get("q");
+    expect(q).toBe(`repo:${SLUG} is:open rollback bug`);
+  });
+
+  it("still runs the provider's own scope-only list searches", async () => {
+    // These call runIssueSearch with empty terms; the guard must not block them.
+    for (const source of ["issues", "pull-requests"]) {
+      const { provider: p, calls } = provider([searchRoute]);
+      const result = await p.execute(
+        req({ action: "list", query: `${SLUG}::source=${source}&state=open`, limit: 5 }),
+        context,
+      );
+      expect(result.ok).toBe(true);
+      expect(calls).toHaveLength(1);
+      const q = new URL(calls[0]!.url).searchParams.get("q");
+      expect(q).toContain(`repo:${SLUG}`);
+      // No trailing empty term was appended.
+      expect(q?.endsWith(" ")).toBe(false);
+    }
   });
 });
 

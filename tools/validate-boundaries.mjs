@@ -6,6 +6,8 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
+import { checkAllowlistFreshness, checkMcpStdoutDiscipline } from "./boundary-guards.mjs";
+
 let fail = false;
 const err = (msg) => {
   console.error(`FAIL: ${msg}`);
@@ -652,11 +654,11 @@ const MCP_FORBIDDEN = [
   "fork(",
   "process.env",
   "dotenv",
-  "console.log",
-  "console.error",
-  "console.info",
-  "console.warn",
-  "console.debug",
+  // console.* and process.stdout are enforced generically by
+  // checkMcpStdoutDiscipline below, not by an enumerated method list: the
+  // enumeration held only for the methods someone remembered, so console.trace,
+  // console.table, and console.dir evaded a rule whose stated intent is
+  // `console.*`. Do not re-add individual console methods here.
   "logger",
   "telemetry",
   "upload",
@@ -664,7 +666,6 @@ const MCP_FORBIDDEN = [
   "credentials",
   "http://",
   "https://",
-  "process.stdout",
   "createServer",
   "listen(",
 ];
@@ -703,6 +704,10 @@ for (const file of MCP_SOURCE_FILES) {
     if (contents.includes(marker)) {
       err(`${file} contains forbidden MCP package API "${marker}"`);
     }
+  }
+  // Generic console/stdout discipline: ANY direct console API, not a fixed list.
+  for (const failure of checkMcpStdoutDiscipline(file, contents)) {
+    err(failure);
   }
   // The public projectors (server.ts) must not build results from these keys.
   if (file === "mcp-server/src/server.ts") {
@@ -1211,17 +1216,44 @@ const PROVIDER_CONFIG_ENV_ALLOWED = new Set([
   // block; it must name the variable to prove its absence.
   "tools/check-v0.3-installed-project-brain.mjs",
 ]);
-// Every tracked GitHub production source (provider modules, the CLI adapter and
-// helpers, the MCP runner, and the manual smoke tool), excluding tests/docs.
+// Every tracked GitHub production source (provider modules, the application
+// token helper, the MCP runner, and the manual smoke tool), excluding
+// tests/docs.
+//
+// v0.6.3: the exact-path selection listed `cli/src/github-token.ts`, which
+// stopped existing when v0.5.1 moved the token boundary to the application Node
+// surface. The successor -- application/src/node/github-token.ts -- is named
+// here rather than merely dropped, because the scan genuinely applies to it: it
+// is GitHub production code on the token path, so the GET-only/no-mutation/
+// no-direct-network invariants are exactly what should hold there. The
+// freshness guard below now fails if any of these paths goes stale again.
+const GITHUB_PRODUCTION_EXPLICIT_FILES = [
+  "application/src/node/github-token.ts",
+  "mcp-server/src/github-tool-runner.ts",
+  "tools/check-github-provider-live.mjs",
+];
 const GITHUB_PRODUCTION_FILES = trackedFiles.filter((f) => {
   if (f.endsWith(".test.ts") || f.endsWith(".test.mjs")) return false;
   if (f.startsWith("providers/src/github/")) return true;
-  return (
-    f === "cli/src/github-token.ts" ||
-    f === "mcp-server/src/github-tool-runner.ts" ||
-    f === "tools/check-github-provider-live.mjs"
-  );
+  return GITHUB_PRODUCTION_EXPLICIT_FILES.includes(f);
 });
+// 4j0. Security allowlists must not go stale. Every explicitly named repository
+// path in these guards must still exist in the tracked surface: a stale entry
+// silently narrows enforcement, and a file re-created at that path would start
+// life pre-allowlisted without ever being reviewed for the exemption it
+// inherits. Applied to the path-bearing GitHub/provider-config guards; sets
+// whose members are not repository paths are deliberately not checked here.
+const TRACKED_PATHS = new Set(trackedFiles);
+for (const [guardName, entries] of [
+  ["GITHUB_TOKEN_ENV_ALLOWED", GITHUB_TOKEN_ENV_ALLOWED],
+  ["PROVIDER_CONFIG_ENV_ALLOWED", PROVIDER_CONFIG_ENV_ALLOWED],
+  ["GITHUB_PRODUCTION_FILES", GITHUB_PRODUCTION_EXPLICIT_FILES],
+]) {
+  for (const failure of checkAllowlistFreshness(guardName, entries, TRACKED_PATHS)) {
+    err(failure);
+  }
+}
+
 // Non-GET / mutation / GraphQL / workaround markers forbidden everywhere in
 // GitHub production code. "method: \"POST\"" and friends never appear; the
 // transport is GET-only.

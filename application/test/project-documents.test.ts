@@ -394,3 +394,122 @@ describe("markdown project document loader", () => {
     }
   });
 });
+
+// Symlinks are skipped so cycles are impossible, and the byte budget bounds
+// reading -- but nothing bounded the recursion itself, so a pathologically deep
+// tree could exhaust the stack. The cap matches the bound the privacy key
+// scanners already use: the root is depth 0, depth 128 is traversed, and
+// recursion into depth 129 is refused with a warning rather than a crash.
+describe("directory depth cap", () => {
+  const MAX_DEPTH = 128;
+
+  /** A chain of nested directories: <root>/d1/d2/.../dN. */
+  function nestedPath(depth: number): string {
+    return Array.from({ length: depth }, (_, i) => `d${i + 1}`).join("/");
+  }
+
+  it("discovers a document at the deepest permitted depth", () => {
+    const root = makeRoot();
+    // A file inside the directory at depth 128 is within the bound.
+    writeDoc(root, `${nestedPath(MAX_DEPTH)}/deep.md`, "# Deep\n");
+
+    const result = loadMarkdownProjectDocuments(root);
+    expect(result.ok).toBe(true);
+    expect(result.items.map((item) => item.id)).toEqual([`${nestedPath(MAX_DEPTH)}/deep.md`]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("refuses the subtree beyond the cap and warns instead of recursing", () => {
+    const root = makeRoot();
+    // The directory at depth 129 is one past the bound.
+    const refusedDirectory = nestedPath(MAX_DEPTH + 1);
+    writeDoc(root, `${refusedDirectory}/too-deep.md`, "# Too deep\n");
+    writeDoc(root, `${nestedPath(MAX_DEPTH)}/at-limit.md`, "# At limit\n");
+
+    const result = loadMarkdownProjectDocuments(root);
+
+    // Returns normally: no crash, no stack overflow.
+    expect(result.ok).toBe(true);
+    const ids = result.items.map((item) => item.id);
+    // The at-limit document is still discovered...
+    expect(ids).toContain(`${nestedPath(MAX_DEPTH)}/at-limit.md`);
+    // ...and nothing below the cap was discovered or read.
+    expect(ids.some((id) => id.includes("too-deep"))).toBe(false);
+    expect(result.filesScanned).toBe(1);
+    expect(result.filesLoaded).toBe(1);
+
+    const depthWarnings = result.warnings.filter(
+      (warning) => warning.code === "project_document_depth_limit_reached",
+    );
+    expect(depthWarnings).toHaveLength(1);
+    // The path is project-relative POSIX form, never absolute.
+    expect(depthWarnings[0]?.path).toBe(refusedDirectory);
+    expect(depthWarnings[0]?.path?.startsWith("/")).toBe(false);
+    expect(depthWarnings[0]?.path).not.toContain(root);
+    expect(depthWarnings[0]?.path).not.toContain("\\");
+  });
+
+  it("does not read files below the refused subtree", () => {
+    const root = makeRoot();
+    // An oversized file below the cap would produce a size warning if it were
+    // read; its absence proves the bytes were never touched.
+    writeDoc(
+      root,
+      `${nestedPath(MAX_DEPTH + 1)}/huge.md`,
+      "x".repeat(DEFAULT_PROJECT_DOCUMENT_MAX_BYTES_PER_FILE + 1),
+    );
+
+    const result = loadMarkdownProjectDocuments(root);
+    expect(result.ok).toBe(true);
+    expect(result.items).toEqual([]);
+    expect(result.filesScanned).toBe(0);
+    expect(
+      result.warnings.some((w) => w.code === "project_document_skipped_too_large"),
+      "a file below the cap must never be read, so no size warning can appear",
+    ).toBe(false);
+  });
+
+  it("continues with sibling paths after refusing one deep subtree", () => {
+    const root = makeRoot();
+    writeDoc(root, `${nestedPath(MAX_DEPTH + 1)}/too-deep.md`, "# Too deep\n");
+    // Siblings at ordinary depths, lexicographically after the deep chain.
+    writeDoc(root, "README.md", "# Readme\n");
+    writeDoc(root, "zdocs/status.md", "# Status\n");
+
+    const result = loadMarkdownProjectDocuments(root);
+    expect(result.ok).toBe(true);
+    expect(result.items.map((item) => item.id)).toEqual(["README.md", "zdocs/status.md"]);
+    expect(
+      result.warnings.filter((w) => w.code === "project_document_depth_limit_reached"),
+    ).toHaveLength(1);
+  });
+
+  it("emits one warning per refused subtree, not one per unseen file", () => {
+    const root = makeRoot();
+    const deep = nestedPath(MAX_DEPTH + 1);
+    writeDoc(root, `${deep}/a.md`, "# A\n");
+    writeDoc(root, `${deep}/b.md`, "# B\n");
+    writeDoc(root, `${deep}/nested/c.md`, "# C\n");
+
+    const result = loadMarkdownProjectDocuments(root);
+    expect(
+      result.warnings.filter((w) => w.code === "project_document_depth_limit_reached"),
+    ).toHaveLength(1);
+    // Counts describe only what the bounded traversal actually discovered.
+    expect(result.filesScanned).toBe(0);
+    expect(result.filesMatched).toBe(0);
+    expect(result.filesLoaded).toBe(0);
+    expect(result.totalBytes).toBe(0);
+  });
+
+  it("leaves ordinary shallow trees free of any depth warning", () => {
+    const root = makeRoot();
+    writeDoc(root, "README.md", "# Readme\n");
+    writeDoc(root, "docs/guides/deep/nested/status.md", "# Status\n");
+
+    const result = loadMarkdownProjectDocuments(root);
+    expect(result.ok).toBe(true);
+    expect(result.items).toHaveLength(2);
+    expect(result.warnings).toEqual([]);
+  });
+});
